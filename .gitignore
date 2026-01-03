@@ -208,5 +208,18 @@ __marimo__/
 .vscode/settings.json
 
 
-# MAC
+# macOS
 .DS_Store
+__MACOSX/
+
+# Python caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Pytest cache
+.pytest_cache/
+
+# Virtual environments
+.venv/
