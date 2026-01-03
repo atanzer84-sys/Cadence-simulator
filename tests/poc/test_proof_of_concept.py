@@ -6,3 +6,6 @@ def test_add():
 
 def test_add_not_equal():
     assert add(2, 2) != 1
+
+def test_failOnPurpose():
+    assert add(2, 2) == 1
