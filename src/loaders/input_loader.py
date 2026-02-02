@@ -1,3 +1,5 @@
+import logging
+
 def load_parameters(path):
     user_parameter = {}
 
@@ -53,6 +55,14 @@ def load_parameters(path):
             cast_fn=float,
             error_msg=f"{key} must be a number (seconds)",
         )
+
+    logging.info("Loaded user parameters")
+
+    logging.info(f"target_name = {user_parameter['target_name']}")
+    logging.info(f"total_observation_length_h = {user_parameter['total_observation_length_h']}")
+    logging.info(f"exposure_NUV_s = {user_parameter['exposure_NUV_s']}")
+    logging.info(f"exposure_VIS_s = {user_parameter['exposure_VIS_s']}")
+    logging.info(f"exposure_IR_s = {user_parameter['exposure_IR_s']}")
 
     return user_parameter
 
