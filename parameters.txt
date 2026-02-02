@@ -1,0 +1,10 @@
+# Insert the star's name. Properties of the star will be looked up.
+target_name = HD 202772 A
+
+# in hours, ie 24 or 24.5
+total_observation_length_h = 20.5
+
+#Exposure time of the three Channels in seconds
+exposure_NUV_s = 3
+exposure_VIS_s = 4.25
+exposure_IR_s = 10
