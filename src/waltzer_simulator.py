@@ -1,4 +1,4 @@
-from loaders.run_setup import *
+from loaders.run_setup import setup_output_directory, setup_logger, load_user_parameters
 
 def main():
     output_dir, timestamp = setup_output_directory()
