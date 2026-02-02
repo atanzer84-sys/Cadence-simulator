@@ -2,7 +2,7 @@
 
 import pytest
 
-from loaders.input_loader import load_parameters
+from loaders.userparameter_loader import load_parameters
 
 
 def _write_params(tmp_path, content: str):
