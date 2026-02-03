@@ -1,7 +1,7 @@
 import sys
 import logging
 from loaders.userparameter_loader import load_parameters
-from loaders.excel_loader import load_excel_parameters, split_stellar_planetary_parameters
+from loaders.excel_loader import load_excel_parameters, separate_stellar_planetary_parameters
 from loaders.parameter_preprocessing import process_stellar_parameter_values, process_planetary_parameter_values
 from pathlib import Path
 from datetime import datetime
@@ -92,7 +92,7 @@ def load_Excel_properties(target_name_user_input):
         excel_path = _find_excel_file()
         logging.info("Using Excel file '%s' for target '%s'", excel_path, target_name_user_input)
         planet_star_dictionary, target_name = load_excel_parameters(excel_path, target_name_user_input)
-        stellar_parameters_excel, planetary_parameters_excel = split_stellar_planetary_parameters(planet_star_dictionary, target_name)
+        stellar_parameters_excel, planetary_parameters_excel = separate_stellar_planetary_parameters(planet_star_dictionary, target_name)
         planet_param = process_planetary_parameter_values(planetary_parameters_excel)
         stellar_parameters_excel = process_stellar_parameter_values(stellar_parameters_excel)
         return planet_param, stellar_parameters_excel

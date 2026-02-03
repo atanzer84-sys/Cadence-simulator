@@ -52,7 +52,7 @@ def load_excel_parameters(excel_path, target_name_user_input):
         )
     return matching_row_dict, target_name
 
-def split_stellar_planetary_parameters(dictionary, target_name):
+def separate_stellar_planetary_parameters(dictionary, target_name):
     stellar_parameters = {}
     planetary_parameters = {}
 

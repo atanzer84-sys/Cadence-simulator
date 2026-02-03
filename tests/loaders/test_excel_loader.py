@@ -1,4 +1,4 @@
-"""Tests for excel_loader: load_excel_parameters, split_stellar_planetary_parameters, _normalize_name."""
+"""Tests for excel_loader: load_excel_parameters, separate_stellar_planetary_parameters, _normalize_name."""
 
 from pathlib import Path
 
@@ -7,7 +7,7 @@ from openpyxl import Workbook
 
 from loaders.excel_loader import (
     load_excel_parameters,
-    split_stellar_planetary_parameters,
+    separate_stellar_planetary_parameters,
     _normalize_name,
 )
 
@@ -144,35 +144,35 @@ def test_load_excel_returns_stripped_target_name(tmp_path: Path) -> None:
     assert target_name == "HD 202772 A"
 
 
-# --- split_stellar_planetary_parameters ---
-def test_split_stellar_planetary_pl_prefix_goes_to_planetary() -> None:
+# --- separate_stellar_planetary_parameters ---
+def test_separate_stellar_planetary_pl_prefix_goes_to_planetary() -> None:
     d = {"pl_name": "b", "pl_orbper": 3.4, "st_teff": 5000}
-    stellar, planetary = split_stellar_planetary_parameters(d, "HD 202772 A")
+    stellar, planetary = separate_stellar_planetary_parameters(d, "HD 202772 A")
     assert planetary["pl_name"] == "b"
     assert planetary["pl_orbper"] == 3.4
     assert "pl_name" not in stellar
     assert stellar["st_teff"] == 5000
 
 
-def test_split_stellar_planetary_st_and_others_go_to_stellar() -> None:
+def test_separate_stellar_planetary_st_and_others_go_to_stellar() -> None:
     d = {"st_teff": 5000, "st_rad": 1.1, "discoverymethod": "Transit"}
-    stellar, planetary = split_stellar_planetary_parameters(d, "Star")
+    stellar, planetary = separate_stellar_planetary_parameters(d, "Star")
     assert stellar["st_teff"] == 5000
     assert stellar["st_rad"] == 1.1
     assert planetary["discoverymethod"] == "Transit"
 
 
-def test_split_stellar_planetary_planet_keys_go_to_planetary() -> None:
+def test_separate_stellar_planetary_planet_keys_go_to_planetary() -> None:
     d = {"discoverymethod": "Transit", "scale_height_km": 100, "st_teff": 5000}
-    stellar, planetary = split_stellar_planetary_parameters(d, "Star")
+    stellar, planetary = separate_stellar_planetary_parameters(d, "Star")
     assert planetary["discoverymethod"] == "Transit"
     assert planetary["scale_height_km"] == 100
     assert stellar["st_teff"] == 5000
 
 
-def test_split_stellar_planetary_sets_st_name() -> None:
+def test_separate_stellar_planetary_sets_st_name() -> None:
     d = {"st_teff": 5000}
-    stellar, planetary = split_stellar_planetary_parameters(d, "HD 202772 A")
+    stellar, planetary = separate_stellar_planetary_parameters(d, "HD 202772 A")
     assert stellar["st_name"] == "HD 202772 A"
     assert "st_name" not in planetary
 
