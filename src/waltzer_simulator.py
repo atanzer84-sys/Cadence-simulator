@@ -1,4 +1,4 @@
-from loaders.run_setup import setup_output_directory, setup_logger, load_user_parameters
+from loaders.run_setup import setup_output_directory, setup_logger, load_user_parameters, load_Excel_properties
 
 def main():
     output_dir, timestamp = setup_output_directory()
@@ -10,6 +10,9 @@ def main():
 
     
     # TODO: load CSV, etc.
+    excel_properties = load_Excel_properties(user_parameters["target_name"])
+    # print(excel_properties)
+
     # TODO: fetch python code from sreejith and integrate it
 
 if __name__ == "__main__":

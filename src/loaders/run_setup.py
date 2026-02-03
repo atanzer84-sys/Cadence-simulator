@@ -1,6 +1,7 @@
 import sys
 import logging
 from loaders.userparameter_loader import load_parameters
+from loaders.excel_loader import load_excel_parameters
 from pathlib import Path
 from datetime import datetime
 
@@ -53,7 +54,6 @@ def setup_logger(output_dir, timestamp):
 
     logging.info("Logger initialized")
 
-
 def load_user_parameters():
     """Load user parameters from commandline: optional parameter file path.
 
@@ -86,3 +86,31 @@ def load_user_parameters():
         print(f"Input error: parameter file not found: {parameter_file}")
         sys.exit(1)
 
+def load_Excel_properties(target_name):
+    try:
+        excel_path = _find_excel_file()
+        logging.info("Using Excel file '%s' for target '%s'", excel_path, target_name)
+        # return load_excel_parameters(excel_path, target_name)
+    except ValueError as e:
+        print(f"Input error: {e}")
+        sys.exit(1)
+    except FileNotFoundError as e:
+        print(f"Input error: {e}")
+        sys.exit(1)
+
+def _find_excel_file(base_dir: Path | None = None):
+    repo_root = base_dir or Path(__file__).resolve().parents[2]
+    excel_files = list(repo_root.glob("*.xlsx"))
+
+    if len(excel_files) == 0:
+        raise FileNotFoundError(
+            f"No Excel file found in repo root ({repo_root})"
+        )
+
+    if len(excel_files) > 1:
+        names = [f.name for f in excel_files]
+        raise ValueError(
+            f"Multiple Excel files found in repo root: {names}"
+        )
+
+    return excel_files[0]
