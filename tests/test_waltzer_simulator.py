@@ -19,7 +19,8 @@ exposure_IR_s = 10
 
 
 # --- Too many arguments ---
-def test_too_many_arguments_exits_with_usage(monkeypatch, capsys):
+def test_too_many_arguments_exits_with_usage(monkeypatch, tmp_path, capsys):
+    monkeypatch.chdir(tmp_path)  # keep output/ and log out of project root
     monkeypatch.setattr("sys.argv", ["waltzer_simulator.py", "a.txt", "b.txt"])
     with pytest.raises(SystemExit) as exc_info:
         waltzer_simulator.main()
@@ -42,6 +43,12 @@ def test_no_argument_uses_default_file_success(monkeypatch, tmp_path, capsys):
     (tmp_path / "parameters.txt").write_text(VALID_PARAMS_CONTENT.strip(), encoding="utf-8")
     monkeypatch.setattr("sys.argv", ["waltzer_simulator.py"])
     monkeypatch.chdir(tmp_path)
+    # Avoid real Excel lookup (repo root has no .xlsx in test env); main() can then complete.
+    monkeypatch.setattr(
+        waltzer_simulator,
+        "load_Excel_properties",
+        lambda _: ({"planetary": True}, {"stellar": True}),
+    )
     waltzer_simulator.main()
     out = capsys.readouterr()
     assert "target_name" in out.out
@@ -52,6 +59,7 @@ def test_no_argument_uses_default_file_success(monkeypatch, tmp_path, capsys):
 def test_one_argument_absolute_path_success(monkeypatch, tmp_path, capsys):
     param_file = tmp_path / "params.txt"
     _write_params(param_file, VALID_PARAMS_CONTENT)
+    monkeypatch.chdir(tmp_path)  # keep output/ and log out of project root
     monkeypatch.setattr("sys.argv", ["waltzer_simulator.py", str(param_file)])
     waltzer_simulator.main()
     out = capsys.readouterr()
@@ -71,7 +79,8 @@ def test_one_argument_relative_path_success(monkeypatch, tmp_path, capsys):
     assert "HD 202772 A" in out.out
 
 
-def test_one_argument_file_not_found_exits(monkeypatch, capsys):
+def test_one_argument_file_not_found_exits(monkeypatch, tmp_path, capsys):
+    monkeypatch.chdir(tmp_path)  # keep output/ and log out of project root
     monkeypatch.setattr("sys.argv", ["waltzer_simulator.py", "/nonexistent/params.txt"])
     with pytest.raises(SystemExit) as exc_info:
         waltzer_simulator.main()
@@ -89,6 +98,7 @@ def test_one_argument_invalid_params_exits(monkeypatch, tmp_path, capsys):
         "exposure_NUV_s = 1\nexposure_VIS_s = 1\nexposure_IR_s = 1\n",
         encoding="utf-8",
     )
+    monkeypatch.chdir(tmp_path)  # keep output/ and log out of project root
     monkeypatch.setattr("sys.argv", ["waltzer_simulator.py", str(param_file)])
     with pytest.raises(SystemExit) as exc_info:
         waltzer_simulator.main()
