@@ -39,6 +39,7 @@ def process_stellar_parameter_values(stellar_parameters_excel: dict):
                 f"Star parameter '{key}' must be numeric, got {value!r}"
             ) from e
 
+    # TODO: Lookup star for missing props
     # Lookup hook (Part 2): do nothing for now
     # cleaned_stellar_parameters = lookup_missing_star_parameters(cleaned_stellar_parameters)
 
