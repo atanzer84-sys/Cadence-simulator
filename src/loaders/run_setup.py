@@ -1,7 +1,7 @@
 import sys
 import logging
 from loaders.userparameter_loader import load_parameters
-from loaders.excel_loader import load_excel_parameters
+from loaders.excel_loader import load_excel_parameters, split_stellar_planetary_parameters
 from pathlib import Path
 from datetime import datetime
 
@@ -86,11 +86,13 @@ def load_user_parameters():
         print(f"Input error: parameter file not found: {parameter_file}")
         sys.exit(1)
 
-def load_Excel_properties(target_name):
+def load_Excel_properties(target_name_user_input):
     try:
         excel_path = _find_excel_file()
-        logging.info("Using Excel file '%s' for target '%s'", excel_path, target_name)
-        # return load_excel_parameters(excel_path, target_name)
+        logging.info("Using Excel file '%s' for target '%s'", excel_path, target_name_user_input)
+        planet_star_dictionary, target_name = load_excel_parameters(excel_path, target_name_user_input)
+        stellar_parameters, planetary_parameters = split_stellar_planetary_parameters(planet_star_dictionary, target_name)
+        return stellar_parameters, planetary_parameters
     except ValueError as e:
         print(f"Input error: {e}")
         sys.exit(1)
@@ -100,7 +102,10 @@ def load_Excel_properties(target_name):
 
 def _find_excel_file(base_dir: Path | None = None):
     repo_root = base_dir or Path(__file__).resolve().parents[2]
-    excel_files = list(repo_root.glob("*.xlsx"))
+    # Ignore temporary Excel lock files (e.g. \"~$Targets_V10p1.xlsx\" created while the workbook is open in Excel).
+    excel_files = [
+        f for f in repo_root.glob("*.xlsx") if not f.name.startswith("~$")
+    ]
 
     if len(excel_files) == 0:
         raise FileNotFoundError(

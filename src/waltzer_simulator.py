@@ -7,10 +7,9 @@ def main():
     # Loading User Parameter file
     user_parameters = load_user_parameters()
     print(user_parameters)
-
     
     # TODO: load CSV, etc.
-    excel_properties = load_Excel_properties(user_parameters["target_name"])
+    stellar_parameters, planetary_parameters = load_Excel_properties(user_parameters["target_name"])
     # print(excel_properties)
 
     # TODO: fetch python code from sreejith and integrate it
