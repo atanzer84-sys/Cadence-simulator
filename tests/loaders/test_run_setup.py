@@ -56,15 +56,19 @@ def test_load_excel_properties_with_target_name(monkeypatch, tmp_path, caplog):
     def fake_loader(path, target):
         called["path"] = path
         called["target"] = target
-        return {"ok": True}
+        return ({"ok": True}, target)
+
+    def fake_split(_dict, _target):
+        return ({"stellar": True}, {"planetary": True})
 
     monkeypatch.setattr(run_setup, "load_excel_parameters", fake_loader)
+    monkeypatch.setattr(run_setup, "split_stellar_planetary_parameters", fake_split)
 
     target_name = "HD 202772 A"
     with caplog.at_level("INFO"):
         result = run_setup.load_Excel_properties(target_name)
 
-    assert result == {"ok": True}
+    assert result == ({"stellar": True}, {"planetary": True})
     assert called["path"] == excel
     assert called["target"] == target_name
 
@@ -87,15 +91,19 @@ def test_load_excel_properties_with_empty_target_name(monkeypatch, tmp_path, cap
     def fake_loader(path, target):
         seen["path"] = path
         seen["target"] = target
-        return {"ok": True}
+        return ({"ok": True}, target)
+
+    def fake_split(_dict, _target):
+        return ({"stellar": True}, {"planetary": True})
 
     monkeypatch.setattr(run_setup, "load_excel_parameters", fake_loader)
+    monkeypatch.setattr(run_setup, "split_stellar_planetary_parameters", fake_split)
 
     target_name = ""
     with caplog.at_level("INFO"):
         result = run_setup.load_Excel_properties(target_name)
 
-    assert result == {"ok": True}
+    assert result == ({"stellar": True}, {"planetary": True})
     assert seen["path"] == excel
     assert seen["target"] == target_name
 
