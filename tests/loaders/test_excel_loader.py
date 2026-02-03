@@ -119,6 +119,39 @@ def test_pl_name_match_target_uppercase_row_mixed(tmp_path: Path) -> None:
     assert row_dict.get("pl_name") == "HD 202772 A b"
 
 
+def test_load_excel_parameters_skips_none_rows(monkeypatch) -> None:
+    class DummyCell:
+        def __init__(self, value):
+            self.value = value
+
+    class DummyWorksheet:
+        def __init__(self):
+            self._headers = [DummyCell("pl_name"), DummyCell("st_teff")]
+            self._rows = [None, ("HD 202772 A b", 5000)]
+
+        def __getitem__(self, item):
+            if item == 1:
+                return self._headers
+            raise KeyError(item)
+
+        def iter_rows(self, min_row=2, values_only=True):
+            for row in self._rows:
+                yield row
+
+    class DummyWorkbook:
+        active = DummyWorksheet()
+
+    monkeypatch.setattr(
+        "loaders.excel_loader.load_workbook",
+        lambda _path, data_only=True: DummyWorkbook(),
+    )
+
+    row_dict, target_name = load_excel_parameters("dummy.xlsx", "HD 202772 A")
+    assert row_dict.get("pl_name") == "HD 202772 A b"
+    assert row_dict.get("st_teff") == 5000
+    assert target_name == "HD 202772 A"
+
+
 # --- load_excel_parameters: header normalization (# prefix) ---
 def test_excel_header_with_hash_normalized(tmp_path: Path) -> None:
     path = tmp_path / "targets.xlsx"

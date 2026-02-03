@@ -63,6 +63,8 @@ def test_load_excel_properties_with_target_name(monkeypatch, tmp_path, caplog):
 
     monkeypatch.setattr(run_setup, "load_excel_parameters", fake_loader)
     monkeypatch.setattr(run_setup, "separate_stellar_planetary_parameters", fake_split)
+    monkeypatch.setattr(run_setup, "process_planetary_parameter_values", lambda d: d)
+    monkeypatch.setattr(run_setup, "process_stellar_parameter_values", lambda d: d)
 
     target_name = "HD 202772 A"
     with caplog.at_level("INFO"):
@@ -99,6 +101,8 @@ def test_load_excel_properties_with_empty_target_name(monkeypatch, tmp_path, cap
 
     monkeypatch.setattr(run_setup, "load_excel_parameters", fake_loader)
     monkeypatch.setattr(run_setup, "separate_stellar_planetary_parameters", fake_split)
+    monkeypatch.setattr(run_setup, "process_planetary_parameter_values", lambda d: d)
+    monkeypatch.setattr(run_setup, "process_stellar_parameter_values", lambda d: d)
 
     target_name = ""
     with caplog.at_level("INFO"):
