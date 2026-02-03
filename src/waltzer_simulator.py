@@ -9,8 +9,9 @@ def main():
     print(user_parameters)
     
     # TODO: load CSV, etc.
-    planet_param = load_Excel_properties(user_parameters["target_name"])
-    print(planet_param)
+    planet_param, stellar_param = load_Excel_properties(user_parameters["target_name"])
+    print("planet:", planet_param)
+    print("star:", stellar_param)
 
     # TODO: fetch python code from sreejith and integrate it
 

@@ -94,8 +94,8 @@ def load_Excel_properties(target_name_user_input):
         planet_star_dictionary, target_name = load_excel_parameters(excel_path, target_name_user_input)
         stellar_parameters_excel, planetary_parameters_excel = split_stellar_planetary_parameters(planet_star_dictionary, target_name)
         planet_param = process_planetary_parameter_values(planetary_parameters_excel)
-        # stellar_param = process_stellar_parameter_values(stellar_parameters_excel)
-        return planet_param
+        stellar_parameters_excel = process_stellar_parameter_values(stellar_parameters_excel)
+        return planet_param, stellar_parameters_excel
     except ValueError as e:
         print(f"Input error: {e}")
         sys.exit(1)
