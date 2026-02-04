@@ -20,6 +20,100 @@ def _write_excel(path: Path, headers: list, rows: list[list]) -> None:
         ws.append(row)
     wb.save(path)
 
+def test_map_to_planet_or_star_dictionary_logs_unknown_headers(tmp_path, caplog):
+    from loaders.excel_loader import map_to_planet_or_star_dictionary
+
+    # Excel row contains an unmapped header "weird_col"
+    row = {
+        "pl_name": "Planet X b",
+        "st_teff": 5000,
+        "weird_col": 123,   # unmapped
+    }
+
+    mapping = {
+        "planet": {"orbital_period": "pl_orbper"},
+        "star": {"effective_temperature": "st_teff"},
+        "required_planet_parameters": [],
+        "required_star_parameters": [],
+    }
+
+    with caplog.at_level("WARNING"):
+        planet_params, star_params = map_to_planet_or_star_dictionary(row, mapping, "Planet X")
+
+    assert "Ignoring unmapped Excel columns" in " ".join(caplog.messages)
+    assert planet_params == {}
+    assert star_params["effective_temperature"] == 5000
+    assert star_params["name"] == "Planet X"
+
+
+def test_map_to_planet_or_star_dictionary_detects_missing_required_keys():
+    from loaders.excel_loader import map_to_planet_or_star_dictionary
+
+    row = {
+        "pl_name": "Planet X b",
+        "st_teff": 5000,
+    }
+
+    mapping = {
+        "planet": {"orbital_period": "pl_orbper"},  # missing in row
+        "star": {"effective_temperature": "st_teff"},
+        "required_planet_parameters": ["orbital_period"],
+        "required_star_parameters": ["effective_temperature", "radius"],
+    }
+
+    planet_params, star_params = map_to_planet_or_star_dictionary(row, mapping, "Star X")
+
+    # orbital_period missing
+    assert "orbital_period" not in planet_params
+
+    # radius missing
+    assert "radius" not in star_params
+
+    # star name still inserted
+    assert star_params["name"] == "Star X"
+
+def test_map_to_planet_or_star_dictionary_raises_on_collisions():
+    from loaders.excel_loader import map_to_planet_or_star_dictionary
+
+    # Excel row contains two headers
+    row = {
+        "col1": 1,
+        "col2": 2,
+    }
+
+    # Both Excel headers map to the SAME canonical key
+    mapping = {
+        "planet": {
+            "radius_jupiter": "col1",
+            "radius_jupiter": "col2",  # Python overwrites this → not allowed
+        },
+        "star": {},
+        "required_planet_parameters": [],
+        "required_star_parameters": [],
+    }
+
+
+
+
+def test_map_to_planet_or_star_dictionary_inserts_star_name():
+    from loaders.excel_loader import map_to_planet_or_star_dictionary
+
+    row = {
+        "pl_name": "Planet X b",
+        "st_teff": 5000,
+    }
+
+    mapping = {
+        "planet": {},
+        "star": {"effective_temperature": "st_teff"},
+        "required_planet_parameters": [],
+        "required_star_parameters": [],
+    }
+
+    planet_params, star_params = map_to_planet_or_star_dictionary(row, mapping, "Star X")
+
+    assert star_params["name"] == "Star X"
+    assert star_params["effective_temperature"] == 5000
 
 # --- load_matching_excel_row_from_excel: pl_name not found ---
 def test_pl_name_not_found_raises(tmp_path: Path) -> None:

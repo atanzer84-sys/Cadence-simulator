@@ -17,6 +17,83 @@ exposure_VIS_s = 4.25
 exposure_IR_s = 10
 """
 
+def test_excel_error_exits(monkeypatch, tmp_path, capsys):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "parameters.txt").write_text(VALID_PARAMS_CONTENT.strip())
+
+    monkeypatch.setattr("sys.argv", ["waltzer_simulator.py"])
+
+    monkeypatch.setattr(
+        waltzer_simulator,
+        "load_excel_properties",
+        lambda _: (_ for _ in ()).throw(ValueError("excel broken")),
+    )
+
+    with pytest.raises(SystemExit):
+        waltzer_simulator.main()
+
+    out = capsys.readouterr().out
+    assert "Input error" in out
+    assert "excel broken" in out
+
+def test_excel_value_error_exits(monkeypatch, tmp_path, capsys):
+    # Create valid parameters.txt so load_user_parameters succeeds
+    params = tmp_path / "parameters.txt"
+    params.write_text(
+        "target_name = HD 202772 A\n"
+        "total_observation_length_h = 1\n"
+        "exposure_NUV_s = 1\n"
+        "exposure_VIS_s = 1\n"
+        "exposure_IR_s = 1\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("sys.argv", ["waltzer_simulator.py"])
+
+    # Force Excel loader to fail
+    monkeypatch.setattr(
+        waltzer_simulator,
+        "load_excel_properties",
+        lambda _target: (_ for _ in ()).throw(ValueError("excel broken")),
+    )
+
+    with pytest.raises(SystemExit) as exc:
+        waltzer_simulator.main()
+
+    assert exc.value.code == 1
+    out = capsys.readouterr().out
+    assert "Input error" in out
+    assert "excel broken" in out
+
+def test_excel_file_not_found_exits(monkeypatch, tmp_path, capsys):
+    params = tmp_path / "parameters.txt"
+    params.write_text(
+        "target_name = HD 202772 A\n"
+        "total_observation_length_h = 1\n"
+        "exposure_NUV_s = 1\n"
+        "exposure_VIS_s = 1\n"
+        "exposure_IR_s = 1\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("sys.argv", ["waltzer_simulator.py"])
+
+    monkeypatch.setattr(
+        waltzer_simulator,
+        "load_excel_properties",
+        lambda _target: (_ for _ in ()).throw(FileNotFoundError("no excel")),
+    )
+
+    with pytest.raises(SystemExit) as exc:
+        waltzer_simulator.main()
+
+    assert exc.value.code == 1
+    out = capsys.readouterr().out
+    assert "Input error" in out
+    assert "no excel" in out
+
 
 # --- Too many arguments ---
 def test_too_many_arguments_exits_with_usage(monkeypatch, tmp_path, capsys):
@@ -128,3 +205,54 @@ def test_one_argument_invalid_params_exits(monkeypatch, tmp_path, capsys):
     assert exc_info.value.code == 1
     out = capsys.readouterr()
     assert "Input error" in (out.out + out.err)
+
+def test_main_calls_star_and_planet_constructors(monkeypatch, tmp_path, capsys):
+    # Valid parameters
+    params = tmp_path / "parameters.txt"
+    params.write_text(
+        "target_name = HD 202772 A\n"
+        "total_observation_length_h = 1\n"
+        "exposure_NUV_s = 1\n"
+        "exposure_VIS_s = 1\n"
+        "exposure_IR_s = 1\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("sys.argv", ["waltzer_simulator.py"])
+
+    # Fake Excel loader returns minimal valid data
+    monkeypatch.setattr(
+        waltzer_simulator,
+        "load_excel_properties",
+        lambda _target: (
+            {"name": "Planet"},  # planet params
+            {"name": "Star"},    # star params
+            ["name"],            # required planet keys
+            ["name"],            # required star keys
+        ),
+    )
+
+    # Track constructor calls
+    star_called = {}
+    planet_called = {}
+
+    def fake_star_from_params(params, required_keys):
+        star_called["params"] = params
+        star_called["required"] = required_keys
+        class Dummy: pass
+        return Dummy()
+
+    def fake_planet_from_params(params, required_keys):
+        planet_called["params"] = params
+        planet_called["required"] = required_keys
+        class Dummy: pass
+        return Dummy()
+
+    monkeypatch.setattr(waltzer_simulator.Star, "from_params", fake_star_from_params)
+    monkeypatch.setattr(waltzer_simulator.Planet, "from_params", fake_planet_from_params)
+
+    waltzer_simulator.main()
+
+    assert star_called["params"]["name"] == "Star"
+    assert planet_called["params"]["name"] == "Planet"
