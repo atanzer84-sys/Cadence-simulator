@@ -72,27 +72,6 @@ def test_map_to_planet_or_star_dictionary_detects_missing_required_keys():
     # star name still inserted
     assert star_params["name"] == "Star X"
 
-def test_map_to_planet_or_star_dictionary_raises_on_collisions():
-    from loaders.excel_loader import map_to_planet_or_star_dictionary
-
-    # Excel row contains two headers
-    row = {
-        "col1": 1,
-        "col2": 2,
-    }
-
-    # Both Excel headers map to the SAME canonical key
-    mapping = {
-        "planet": {
-            "radius_jupiter": "col1",
-            "radius_jupiter": "col2",  # Python overwrites this → not allowed
-        },
-        "star": {},
-        "required_planet_parameters": [],
-        "required_star_parameters": [],
-    }
-
-
 
 
 def test_map_to_planet_or_star_dictionary_inserts_star_name():
@@ -110,7 +89,7 @@ def test_map_to_planet_or_star_dictionary_inserts_star_name():
         "required_star_parameters": [],
     }
 
-    planet_params, star_params = map_to_planet_or_star_dictionary(row, mapping, "Star X")
+    _, star_params = map_to_planet_or_star_dictionary(row, mapping, "Star X")
 
     assert star_params["name"] == "Star X"
     assert star_params["effective_temperature"] == 5000
