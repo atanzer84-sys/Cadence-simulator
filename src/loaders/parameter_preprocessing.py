@@ -3,26 +3,6 @@ import types
 from dataclasses import fields
 from typing import Any, get_args, get_origin, Union
 
-STELLAR_NUMERIC_KEYS = {
-    "st_teff",
-    "st_rad",
-    "st_mass",
-    "st_logg",
-    "st_met",
-    "st_dist",
-    "st_vsin",
-    "st_lum",
-}
-
-PLANETARY_NUMERIC_KEYS = {
-    "pl_orbper",
-    "pl_orbsmax",
-    "pl_radj",
-    "pl_bmassj",
-    "pl_eqt",
-    "scale_height_km",
-}
-
 def get_missing_properties(parameters: dict, required_keys: list[str]) -> list[str]:
     """
     Return list of required keys that are missing in parameters.
