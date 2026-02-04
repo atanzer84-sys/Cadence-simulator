@@ -8,7 +8,6 @@ from openpyxl import Workbook
 from loaders.excel_loader import (
     load_excel_parameters,
     load_excel_mapping,
-    map_excel_row,
     _normalize_name,
 )
 
