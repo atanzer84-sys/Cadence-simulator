@@ -92,7 +92,6 @@ def load_user_parameters():
         sys.exit(1)
 
 def load_excel_properties(target_name_user_input):
-    try:
         repo_root = get_repo_root()
 
         # find the excel file
@@ -136,9 +135,6 @@ def load_excel_properties(target_name_user_input):
             mapping["required_planet_parameters"],
             mapping["required_star_parameters"],
         )
-    except (ValueError, FileNotFoundError) as e:
-        print(f"Input error: {e}")
-        sys.exit(1)
 
 def get_repo_root(base_dir: Path | None = None) -> Path:
     return base_dir or Path(__file__).resolve().parents[2]

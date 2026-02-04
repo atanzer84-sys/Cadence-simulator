@@ -144,24 +144,18 @@ def test_load_excel_properties_with_empty_target_name(monkeypatch, tmp_path, cap
     assert "Targets.xlsx" in log_text
 
 
-def test_load_excel_properties_exits_on_file_not_found(monkeypatch, capsys) -> None:
+def test_load_excel_properties_raises_file_not_found(monkeypatch):
     monkeypatch.setattr(run_setup, "get_repo_root", lambda base_dir=None: Path("/tmp"))
     monkeypatch.setattr(run_setup, "_find_excel_file", lambda repo_root: (_ for _ in ()).throw(FileNotFoundError("no excel")))
 
-    with pytest.raises(SystemExit):
+    with pytest.raises(FileNotFoundError):
         run_setup.load_excel_properties("Target")
 
-    captured = capsys.readouterr()
-    assert "Input error" in captured.out
-
-
-def test_load_excel_properties_exits_on_value_error(monkeypatch, capsys) -> None:
+def test_load_excel_properties_raises_value_error(monkeypatch):
     monkeypatch.setattr(run_setup, "get_repo_root", lambda base_dir=None: Path("/tmp"))
     monkeypatch.setattr(run_setup, "_find_excel_file", lambda repo_root: Path("/tmp/Targets.xlsx"))
     monkeypatch.setattr(run_setup, "load_matching_excel_row_from_excel", lambda _p, _t: (_ for _ in ()).throw(ValueError("bad excel")))
 
-    with pytest.raises(SystemExit):
+    with pytest.raises(ValueError):
         run_setup.load_excel_properties("Target")
 
-    captured = capsys.readouterr()
-    assert "Input error" in captured.out
