@@ -1,6 +1,7 @@
 import logging
 from typing import Any, Dict
 
+# TODO: REMOVE
 def process_stellar_parameter_values(stellar_parameters_excel: dict):
     cleaned_stellar_parameters: Dict[str, Any] = {}
     for key, value in stellar_parameters_excel.items():
