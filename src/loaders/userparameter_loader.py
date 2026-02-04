@@ -15,11 +15,16 @@ def load_parameters(path):
 
     with open(path, "r") as f:
         for line in f:
+            raw = line
             line = line.strip()
 
             if not line or line.startswith("#"):
                 continue
 
+            if "=" not in line:
+                raise ValueError(
+                    f"Invalid line in parameter file (expected key=value): {raw.strip()}"
+                )
             key, value = line.split("=", 1)
             user_parameter[key.strip()] = value.strip()
 

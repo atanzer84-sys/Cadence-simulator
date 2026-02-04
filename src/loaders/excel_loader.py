@@ -5,14 +5,19 @@ from configparser import ConfigParser
 from pathlib import Path
 PlanetStarDict = dict[str, Any]
 
-def load_excel_parameters(excel_path, target_name_user_input):
+def load_matching_excel_row_from_excel(excel_path, target_name_user_input):
     workbook = load_workbook(excel_path, data_only=True)
 
     # We currently assume that the **active worksheet** is the one containing the parameters we care about.
     worksheet = workbook.active
 
     #normalize headers so we can match the name
-    column_headers = [_normalize_name(cell.value) for cell in worksheet[1]] 
+    column_headers = []
+    for cell in worksheet[1]:
+        name = _normalize_name(cell.value)
+        if name is None:
+            break
+        column_headers.append(name)
     logging.info("Excel column headers: %s", column_headers)
 
     if "pl_name" not in column_headers:
@@ -52,7 +57,7 @@ def load_excel_parameters(excel_path, target_name_user_input):
         )
     return matching_row_dict, target_name
 
-def load_excel_mapping(mapping_path: Path):
+def load_excel_cfg(mapping_path: Path):
     """
     Load Excel-to-canonical mapping configuration.
 
@@ -101,7 +106,7 @@ def load_excel_mapping(mapping_path: Path):
 
     return mapping
 
-def map_excel_row(planet_star_dictionary: PlanetStarDict, mapping: dict, target_name: str) -> tuple[dict[str, Any], dict[str, Any]]:
+def map_to_planet_or_star_dictionary(planet_star_dictionary: PlanetStarDict, mapping: dict, target_name: str) -> tuple[dict[str, Any], dict[str, Any]]:
     """
     Translate one Excel row dict (Excel headers -> values) into two dicts:
       planet_params: canonical keys -> values
@@ -168,12 +173,6 @@ def map_excel_row(planet_star_dictionary: PlanetStarDict, mapping: dict, target_
     missing_star = [k for k in mapping["required_star_parameters"] if k not in star_params or is_missing(star_params[k])]
     logging.info("Missing required planet params: %s", missing_planet)
     logging.info("Missing required star params: %s", missing_star)
-
-    # if missing_planet:
-    #     raise ValueError(f"Missing required planet parameters: {missing_planet}")
-
-    # if missing_star:
-    #     raise ValueError(f"Missing required star parameters: {missing_star}")
 
     logging.info("Processed planetary parameters:")
     for k, v in planet_params.items():

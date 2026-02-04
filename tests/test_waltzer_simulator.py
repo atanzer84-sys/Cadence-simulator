@@ -46,8 +46,31 @@ def test_no_argument_uses_default_file_success(monkeypatch, tmp_path, capsys):
     # Avoid real Excel lookup (repo root has no .xlsx in test env); main() can then complete.
     monkeypatch.setattr(
         waltzer_simulator,
-        "load_Excel_properties",
-        lambda _: ({"planetary": True}, {"stellar": True}),
+        "load_excel_properties",
+        lambda _: (
+            {"name": "Planet"},
+            {
+                "name": "Star",
+                "effective_temperature": 1.0,
+                "radius": 1.0,
+                "mass": 1.0,
+                "surface_gravity": 1.0,
+                "right_ascension": 1.0,
+                "declination": 1.0,
+                "distance": 1.0,
+            },
+            ["name"],
+            [
+                "name",
+                "effective_temperature",
+                "radius",
+                "mass",
+                "surface_gravity",
+                "right_ascension",
+                "declination",
+                "distance",
+            ],
+        ),
     )
     waltzer_simulator.main()
     out = capsys.readouterr()

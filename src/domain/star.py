@@ -1,1 +1,53 @@
+from dataclasses import dataclass
+from typing import Any, Dict
+import logging
 
+
+@dataclass(frozen=True)
+class Star:
+    name: str
+    spectral_type: str | None
+    effective_temperature: float | None
+    radius: float | None
+    mass: float | None
+    metallicity: float | None
+    surface_gravity: float | None
+    right_ascension: float | None
+    declination: float | None
+    distance: float | None
+    v_magnitude: float | None
+    gaia_magnitude: float | None
+    log_r: float | None
+
+    @classmethod
+    def from_params(
+        cls,
+        star_params: Dict[str, Any],
+        required_keys: list[str],
+    ) -> "Star":
+        def is_missing(v: Any) -> bool:
+            return v is None or (isinstance(v, str) and v.strip() == "")
+
+        missing = [k for k in required_keys if k not in star_params or is_missing(star_params.get(k))]
+        if missing:
+            raise ValueError(f"Star missing required keys at construction: {missing}")
+
+        logging.info("Creating Star with parameters:")
+        for k, v in star_params.items():
+            logging.info("  %s = %r", k, v)
+
+        return cls(
+            name=star_params["name"],
+            spectral_type=star_params.get("spectral_type"),
+            effective_temperature=star_params.get("effective_temperature"),
+            radius=star_params.get("radius"),
+            mass=star_params.get("mass"),
+            metallicity=star_params.get("metallicity"),
+            surface_gravity=star_params.get("surface_gravity"),
+            right_ascension=star_params.get("right_ascension"),
+            declination=star_params.get("declination"),
+            distance=star_params.get("distance"),
+            v_magnitude=star_params.get("v_magnitude"),
+            gaia_magnitude=star_params.get("gaia_magnitude"),
+            log_r=star_params.get("log_r"),
+        )

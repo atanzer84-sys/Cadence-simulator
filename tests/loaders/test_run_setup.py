@@ -59,30 +59,32 @@ def test_load_excel_properties_with_target_name(monkeypatch, tmp_path, caplog):
         called["target"] = target
         return ({"ok": True}, target)
 
-    monkeypatch.setattr(run_setup, "load_excel_parameters", fake_loader)
+    monkeypatch.setattr(run_setup, "load_matching_excel_row_from_excel", fake_loader)
     monkeypatch.setattr(
         run_setup,
-        "load_excel_mapping",
+        "load_excel_cfg",
         lambda _path: {
             "mapping": True,
             "required_star_parameters": [],
             "required_planet_parameters": [],
         },
     )
-    monkeypatch.setattr(run_setup, "find_missing_required_parameters", lambda _p, _req: [])
+    monkeypatch.setattr(run_setup, "get_missing_properties", lambda _p, _req: [])
     monkeypatch.setattr(run_setup, "lookup_star_gaia", lambda _s: {})
+    monkeypatch.setattr(run_setup, "merge_gaia_into_star_params", lambda s, _g: s)
+    monkeypatch.setattr(run_setup, "clean_and_cast_parameters", lambda params, _cls: params)
     monkeypatch.setattr(
         run_setup,
-        "map_excel_row",
+        "map_to_planet_or_star_dictionary",
         lambda _row, _mapping, _target: ({"planetary": True}, {"stellar": True}),
     )
 
     target_name = "HD 202772 A"
     with caplog.at_level("INFO"):
-        result = run_setup.load_Excel_properties(target_name)
+        result = run_setup.load_excel_properties(target_name)
 
-    # load_Excel_properties returns (planet_param, stellar_param) — planetary first, stellar second
-    assert result == ({"planetary": True}, {"stellar": True})
+    # load_Excel_properties returns params plus required keys
+    assert result == ({"planetary": True}, {"stellar": True}, [], [])
     assert called["path"] == excel
     assert called["target"] == target_name
 
@@ -108,30 +110,32 @@ def test_load_excel_properties_with_empty_target_name(monkeypatch, tmp_path, cap
         seen["target"] = target
         return ({"ok": True}, target)
 
-    monkeypatch.setattr(run_setup, "load_excel_parameters", fake_loader)
+    monkeypatch.setattr(run_setup, "load_matching_excel_row_from_excel", fake_loader)
     monkeypatch.setattr(
         run_setup,
-        "load_excel_mapping",
+        "load_excel_cfg",
         lambda _path: {
             "mapping": True,
             "required_star_parameters": [],
             "required_planet_parameters": [],
         },
     )
-    monkeypatch.setattr(run_setup, "find_missing_required_parameters", lambda _p, _req: [])
+    monkeypatch.setattr(run_setup, "get_missing_properties", lambda _p, _req: [])
     monkeypatch.setattr(run_setup, "lookup_star_gaia", lambda _s: {})
+    monkeypatch.setattr(run_setup, "merge_gaia_into_star_params", lambda s, _g: s)
+    monkeypatch.setattr(run_setup, "clean_and_cast_parameters", lambda params, _cls: params)
     monkeypatch.setattr(
         run_setup,
-        "map_excel_row",
+        "map_to_planet_or_star_dictionary",
         lambda _row, _mapping, _target: ({"planetary": True}, {"stellar": True}),
     )
 
     target_name = ""
     with caplog.at_level("INFO"):
-        result = run_setup.load_Excel_properties(target_name)
+        result = run_setup.load_excel_properties(target_name)
 
-    # load_Excel_properties returns (planet_param, stellar_param) — planetary first, stellar second
-    assert result == ({"planetary": True}, {"stellar": True})
+    # load_Excel_properties returns params plus required keys
+    assert result == ({"planetary": True}, {"stellar": True}, [], [])
     assert seen["path"] == excel
     assert seen["target"] == target_name
 
@@ -145,7 +149,7 @@ def test_load_excel_properties_exits_on_file_not_found(monkeypatch, capsys) -> N
     monkeypatch.setattr(run_setup, "_find_excel_file", lambda repo_root: (_ for _ in ()).throw(FileNotFoundError("no excel")))
 
     with pytest.raises(SystemExit):
-        run_setup.load_Excel_properties("Target")
+        run_setup.load_excel_properties("Target")
 
     captured = capsys.readouterr()
     assert "Input error" in captured.out
@@ -154,10 +158,10 @@ def test_load_excel_properties_exits_on_file_not_found(monkeypatch, capsys) -> N
 def test_load_excel_properties_exits_on_value_error(monkeypatch, capsys) -> None:
     monkeypatch.setattr(run_setup, "get_repo_root", lambda base_dir=None: Path("/tmp"))
     monkeypatch.setattr(run_setup, "_find_excel_file", lambda repo_root: Path("/tmp/Targets.xlsx"))
-    monkeypatch.setattr(run_setup, "load_excel_parameters", lambda _p, _t: (_ for _ in ()).throw(ValueError("bad excel")))
+    monkeypatch.setattr(run_setup, "load_matching_excel_row_from_excel", lambda _p, _t: (_ for _ in ()).throw(ValueError("bad excel")))
 
     with pytest.raises(SystemExit):
-        run_setup.load_Excel_properties("Target")
+        run_setup.load_excel_properties("Target")
 
     captured = capsys.readouterr()
     assert "Input error" in captured.out
