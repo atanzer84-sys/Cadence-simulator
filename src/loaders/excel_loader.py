@@ -57,10 +57,10 @@ def load_excel_mapping(mapping_path: Path):
     Load Excel-to-canonical mapping configuration.
 
     Returns a dict with:
-      - planets: {canonical_key: excel_header}
-      - stars: {canonical_key: excel_header}
-      - required_planets: [canonical_key, ...]
-      - required_stars: [canonical_key, ...]
+      - planet: {canonical_key: excel_header}
+      - star: {canonical_key: excel_header}
+      - required_planet_parameters: [canonical_key, ...]
+      - required_star_parameters: [canonical_key, ...]
     """
     cfg = ConfigParser()
     # preserve case of canonical keys
@@ -72,6 +72,7 @@ def load_excel_mapping(mapping_path: Path):
 
     cfg.read(mapping_path)
     logging.info("Loaded Excel mapping from %s", mapping_path)
+    logging.info("Config sections found: %s", cfg.sections())
 
     # Parse required keys; missing section means "no required keys".
     def parse_required(section: str):
@@ -80,21 +81,23 @@ def load_excel_mapping(mapping_path: Path):
         raw = cfg.get(section, "keys", fallback="")
         return [k.strip() for k in raw.split(",") if k.strip()]
 
+
     mapping = {
-        "planets": dict(cfg.items("planets")) if cfg.has_section("planets") else {},
-        "stars": dict(cfg.items("stars")) if cfg.has_section("stars") else {},
-        "required_planets": parse_required("required_planets"),
-        "required_stars": parse_required("required_stars"),
+        "planet": dict(cfg.items("planets")) if cfg.has_section("planets") else {},
+        "star": dict(cfg.items("stars")) if cfg.has_section("stars") else {},
+        "required_planet_parameters": parse_required("required_planet_parameters"),
+        "required_star_parameters": parse_required("required_star_parameters"),
     }
+
     logging.info(
         "Excel mapping: %d planet keys, %d star keys, %d required planet, %d required star",
-        len(mapping["planets"]),
-        len(mapping["stars"]),
-        len(mapping["required_planets"]),
-        len(mapping["required_stars"]),
+        len(mapping["planet"]),
+        len(mapping["star"]),
+        len(mapping["required_planet_parameters"]),
+        len(mapping["required_star_parameters"]),
     )
-    logging.info("Planet mapping keys: %s", mapping["planets"].keys())
-    logging.info("Star mapping keys: %s", mapping["stars"].keys())
+    logging.info("Planet mapping keys: %s", mapping["planet"].keys())
+    logging.info("Star mapping keys: %s", mapping["star"].keys())
 
     return mapping
 
@@ -105,7 +108,7 @@ def map_excel_row(planet_star_dictionary: PlanetStarDict, mapping: dict, target_
       star_params: canonical keys -> values
 
     Uses mapping loaded by load_excel_mapping().
-    Validates required keys from [required_planets] and [required_stars].
+    Validates required keys from [required_planet_parameters] and [required_star_parameters].
     """
     # normalize if excel columns have leading or trailing spaces or upper lower case chars
     def norm(s: str) -> str:
@@ -120,8 +123,8 @@ def map_excel_row(planet_star_dictionary: PlanetStarDict, mapping: dict, target_
         return False
 
     # Build reverse lookup: excel_header -> canonical_key
-    reverse_planets = {norm(excel_header): canonical for canonical, excel_header in mapping["planets"].items()}
-    reverse_stars = {norm(excel_header): canonical for canonical, excel_header in mapping["stars"].items()}
+    reverse_planets = {norm(excel_header): canonical for canonical, excel_header in mapping["planet"].items()}
+    reverse_star = {norm(excel_header): canonical for canonical, excel_header in mapping["star"].items()}
 
     planet_params: PlanetStarDict = {}
     star_params: PlanetStarDict = {}
@@ -135,14 +138,14 @@ def map_excel_row(planet_star_dictionary: PlanetStarDict, mapping: dict, target_
         if h in reverse_planets:
             canonical = reverse_planets[h]
             if canonical in planet_params:
-                collisions.append(f"planets:{canonical}")
+                collisions.append(f"planet:{canonical}")
             planet_params[canonical] = value
             continue
 
-        if h in reverse_stars:
-            canonical = reverse_stars[h]
+        if h in reverse_star:
+            canonical = reverse_star[h]
             if canonical in star_params:
-                collisions.append(f"stars:{canonical}")
+                collisions.append(f"star:{canonical}")
             star_params[canonical] = value
             continue
 
@@ -161,16 +164,16 @@ def map_excel_row(planet_star_dictionary: PlanetStarDict, mapping: dict, target_
     # no star's name in excel, so we insert the matched star name from the row 
     star_params["name"] = target_name
 
-    missing_planet = [k for k in mapping["required_planets"] if k not in planet_params or is_missing(planet_params[k])]
-    missing_star = [k for k in mapping["required_stars"] if k not in star_params or is_missing(star_params[k])]
+    missing_planet = [k for k in mapping["required_planet_parameters"] if k not in planet_params or is_missing(planet_params[k])]
+    missing_star = [k for k in mapping["required_star_parameters"] if k not in star_params or is_missing(star_params[k])]
     logging.info("Missing required planet params: %s", missing_planet)
     logging.info("Missing required star params: %s", missing_star)
 
-    if missing_planet:
-        raise ValueError(f"Missing required planet parameters: {missing_planet}")
+    # if missing_planet:
+    #     raise ValueError(f"Missing required planet parameters: {missing_planet}")
 
-    if missing_star:
-        raise ValueError(f"Missing required star parameters: {missing_star}")
+    # if missing_star:
+    #     raise ValueError(f"Missing required star parameters: {missing_star}")
 
     logging.info("Processed planetary parameters:")
     for k, v in planet_params.items():
@@ -181,7 +184,6 @@ def map_excel_row(planet_star_dictionary: PlanetStarDict, mapping: dict, target_
         logging.info("  %s = %r", k, v)
 
     return planet_params, star_params
-
 
 def _normalize_name(name):
     """Normalize a column header: strip whitespace and remove a leading '#'."""

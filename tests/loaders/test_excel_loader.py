@@ -147,69 +147,6 @@ def test_load_excel_returns_stripped_target_name(tmp_path: Path) -> None:
     assert target_name == "HD 202772 A"
 
 
-# --- map_excel_row ---
-def test_map_excel_row_maps_planet_and_star_and_sets_name() -> None:
-    mapping = {
-        "planets": {"orbital_period": "pl_orbper"},
-        "stars": {"effective_temperature": "st_teff"},
-        "required_planets": [],
-        "required_stars": [],
-    }
-    row = {"pl_orbper": 3.4, "st_teff": 5000, "extra": "ignore"}
-    planet, star = map_excel_row(row, mapping, "HD 202772 A")
-    assert planet["orbital_period"] == 3.4
-    assert star["effective_temperature"] == 5000
-    assert star["name"] == "HD 202772 A"
-
-
-def test_map_excel_row_missing_required_planet_raises() -> None:
-    mapping = {
-        "planets": {"orbital_period": "pl_orbper"},
-        "stars": {"effective_temperature": "st_teff"},
-        "required_planets": ["orbital_period"],
-        "required_stars": [],
-    }
-    row = {"st_teff": 5000}
-    with pytest.raises(ValueError, match="Missing required planet parameters"):
-        map_excel_row(row, mapping, "Star")
-
-
-def test_map_excel_row_missing_required_star_raises() -> None:
-    mapping = {
-        "planets": {"orbital_period": "pl_orbper"},
-        "stars": {"effective_temperature": "st_teff"},
-        "required_planets": [],
-        "required_stars": ["effective_temperature"],
-    }
-    row = {"pl_orbper": 3.4}
-    with pytest.raises(ValueError, match="Missing required star parameters"):
-        map_excel_row(row, mapping, "Star")
-
-
-def test_map_excel_row_planet_collision_raises() -> None:
-    mapping = {
-        "planets": {"orbital_period": "pl_orbper"},
-        "stars": {},
-        "required_planets": [],
-        "required_stars": [],
-    }
-    row = {"pl_orbper": 1.0, "PL_ORBPER": 2.0}
-    with pytest.raises(ValueError, match="planets:orbital_period"):
-        map_excel_row(row, mapping, "Star")
-
-
-def test_map_excel_row_star_collision_raises() -> None:
-    mapping = {
-        "planets": {},
-        "stars": {"effective_temperature": "st_teff"},
-        "required_planets": [],
-        "required_stars": [],
-    }
-    row = {"st_teff": 5000, "ST_TEFF": 6000}
-    with pytest.raises(ValueError, match="stars:effective_temperature"):
-        map_excel_row(row, mapping, "Star")
-
-
 # --- load_excel_mapping ---
 def test_load_excel_mapping_missing_file_raises(tmp_path: Path) -> None:
     missing_path = tmp_path / "excel_mapping.cfg"

@@ -60,7 +60,17 @@ def test_load_excel_properties_with_target_name(monkeypatch, tmp_path, caplog):
         return ({"ok": True}, target)
 
     monkeypatch.setattr(run_setup, "load_excel_parameters", fake_loader)
-    monkeypatch.setattr(run_setup, "load_excel_mapping", lambda _path: {"mapping": True})
+    monkeypatch.setattr(
+        run_setup,
+        "load_excel_mapping",
+        lambda _path: {
+            "mapping": True,
+            "required_star_parameters": [],
+            "required_planet_parameters": [],
+        },
+    )
+    monkeypatch.setattr(run_setup, "find_missing_required_parameters", lambda _p, _req: [])
+    monkeypatch.setattr(run_setup, "lookup_star_gaia", lambda _s: {})
     monkeypatch.setattr(
         run_setup,
         "map_excel_row",
@@ -99,7 +109,17 @@ def test_load_excel_properties_with_empty_target_name(monkeypatch, tmp_path, cap
         return ({"ok": True}, target)
 
     monkeypatch.setattr(run_setup, "load_excel_parameters", fake_loader)
-    monkeypatch.setattr(run_setup, "load_excel_mapping", lambda _path: {"mapping": True})
+    monkeypatch.setattr(
+        run_setup,
+        "load_excel_mapping",
+        lambda _path: {
+            "mapping": True,
+            "required_star_parameters": [],
+            "required_planet_parameters": [],
+        },
+    )
+    monkeypatch.setattr(run_setup, "find_missing_required_parameters", lambda _p, _req: [])
+    monkeypatch.setattr(run_setup, "lookup_star_gaia", lambda _s: {})
     monkeypatch.setattr(
         run_setup,
         "map_excel_row",

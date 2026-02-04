@@ -1,6 +1,26 @@
 import logging
 from typing import Any, Dict
 
+def find_missing_required_parameters(parameters: dict, required_keys: list[str]) -> list[str]:
+    """
+    Return list of required keys that are missing in parameters.
+
+    Missing means:
+      • key not present, or
+      • value is None, or
+      • value is an empty/whitespace-only string
+    """
+    def is_missing(v: Any) -> bool:
+        if v is None:
+            return True
+        if isinstance(v, str) and v.strip() == "":
+            return True
+        return False
+
+    return [k for k in required_keys if k not in parameters or is_missing(parameters.get(k))]
+
+
+
 # TODO: REMOVE
 def process_stellar_parameter_values(stellar_parameters_excel: dict):
     cleaned_stellar_parameters: Dict[str, Any] = {}
@@ -49,7 +69,6 @@ def process_stellar_parameter_values(stellar_parameters_excel: dict):
         logging.info("  %s = %r", key, value)
 
     return cleaned_stellar_parameters
-
 
 def process_planetary_parameter_values(planetary_parameters_excel: Dict[str, Any]) -> Dict[str, Any]:
     cleaned_planetary_parameters: Dict[str, Any] = {}
