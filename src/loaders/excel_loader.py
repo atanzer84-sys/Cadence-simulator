@@ -112,7 +112,7 @@ def map_to_planet_or_star_dictionary(planet_star_dictionary: PlanetStarDict, map
       planet_params: canonical keys -> values
       star_params: canonical keys -> values
 
-    Uses mapping loaded by load_excel_mapping().
+    Uses mapping loaded by load_excel_cfg().
     Validates required keys from [required_planet_parameters] and [required_star_parameters].
     """
     # normalize if excel columns have leading or trailing spaces or upper lower case chars

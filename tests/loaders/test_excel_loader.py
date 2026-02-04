@@ -1,4 +1,4 @@
-"""Tests for excel_loader: load_excel_parameters, map_excel_row, _normalize_name."""
+"""Tests for excel_loader: load_matching_excel_row_from_excel, map_to_planet_or_star_dictionary, _normalize_name."""
 
 from pathlib import Path
 
@@ -21,7 +21,7 @@ def _write_excel(path: Path, headers: list, rows: list[list]) -> None:
     wb.save(path)
 
 
-# --- load_excel_parameters: pl_name not found ---
+# --- load_matching_excel_row_from_excel: pl_name not found ---
 def test_pl_name_not_found_raises(tmp_path: Path) -> None:
     path = tmp_path / "targets.xlsx"
     _write_excel(
@@ -35,7 +35,7 @@ def test_pl_name_not_found_raises(tmp_path: Path) -> None:
     assert "HD 202772 A" in str(exc_info.value)
 
 
-# --- load_excel_parameters: no pl_name column ---
+# --- load_matching_excel_row_from_excel: no pl_name column ---
 def test_excel_no_pl_name_column_raises(tmp_path: Path) -> None:
     path = tmp_path / "targets.xlsx"
     _write_excel(
@@ -48,7 +48,7 @@ def test_excel_no_pl_name_column_raises(tmp_path: Path) -> None:
     assert "no 'pl_name' column" in str(exc_info.value)
 
 
-# --- load_excel_parameters: empty pl_name in row ---
+# --- load_matching_excel_row_from_excel: empty pl_name in row ---
 def test_excel_empty_pl_name_in_row_raises(tmp_path: Path) -> None:
     path = tmp_path / "targets.xlsx"
     _write_excel(
@@ -61,7 +61,7 @@ def test_excel_empty_pl_name_in_row_raises(tmp_path: Path) -> None:
     assert "No target found" in str(exc_info.value)
 
 
-# --- load_excel_parameters: one found ---
+# --- load_matching_excel_row_from_excel: one found ---
 def test_pl_name_one_found_returns_row_and_target_name(tmp_path: Path) -> None:
     path = tmp_path / "targets.xlsx"
     _write_excel(
@@ -77,7 +77,7 @@ def test_pl_name_one_found_returns_row_and_target_name(tmp_path: Path) -> None:
     assert target_name == "HD 202772 A"
 
 
-# --- load_excel_parameters: two found (first match wins) ---
+# --- load_matching_excel_row_from_excel: two found (first match wins) ---
 def test_pl_name_two_found_first_wins(tmp_path: Path) -> None:
     path = tmp_path / "targets.xlsx"
     _write_excel(
@@ -94,7 +94,7 @@ def test_pl_name_two_found_first_wins(tmp_path: Path) -> None:
     assert row_dict.get("st_teff") == 5000
 
 
-# --- load_excel_parameters: case insensitive ---
+# --- load_matching_excel_row_from_excel: case insensitive ---
 def test_pl_name_match_case_insensitive(tmp_path: Path) -> None:
     path = tmp_path / "targets.xlsx"
     _write_excel(
@@ -121,7 +121,7 @@ def test_pl_name_match_target_uppercase_row_mixed(tmp_path: Path) -> None:
 
 
 
-# --- load_excel_parameters: header normalization (# prefix) ---
+# --- load_matching_excel_row_from_excel: header normalization (# prefix) ---
 def test_excel_header_with_hash_normalized(tmp_path: Path) -> None:
     path = tmp_path / "targets.xlsx"
     wb = Workbook()
@@ -134,7 +134,7 @@ def test_excel_header_with_hash_normalized(tmp_path: Path) -> None:
     assert row_dict.get("st_teff") == 5000
 
 
-# --- load_excel_parameters: returns stripped target_name ---
+# --- load_matching_excel_row_from_excel: returns stripped target_name ---
 def test_load_excel_returns_stripped_target_name(tmp_path: Path) -> None:
     path = tmp_path / "targets.xlsx"
     _write_excel(
@@ -146,8 +146,8 @@ def test_load_excel_returns_stripped_target_name(tmp_path: Path) -> None:
     assert target_name == "HD 202772 A"
 
 
-# --- load_excel_mapping ---
-def test_load_excel_mapping_missing_file_raises(tmp_path: Path) -> None:
+# --- load_excel_cfg ---
+def test_load_excel_cfg_missing_file_raises(tmp_path: Path) -> None:
     missing_path = tmp_path / "excel_mapping.cfg"
     with pytest.raises(FileNotFoundError, match="Excel mapping file not found"):
         load_excel_cfg(missing_path)
