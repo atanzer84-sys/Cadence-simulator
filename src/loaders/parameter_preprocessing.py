@@ -1,4 +1,5 @@
 import logging
+import types
 from dataclasses import fields
 from typing import Any, get_args, get_origin, Union
 
@@ -57,7 +58,9 @@ def clean_and_cast_parameters(parameters: dict[str, Any], domain_class: type) ->
     # force it to use the real type of a class property
     def base_type(tp: Any) -> Any:
         origin = get_origin(tp)
-        if origin is Union:
+
+        # Handle both typing.Union[...] and PEP604 unions (X | Y)
+        if origin is Union or origin is types.UnionType:
             args = [a for a in get_args(tp) if a is not type(None)]
             if len(args) == 1:
                 return args[0]
