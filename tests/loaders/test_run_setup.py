@@ -11,7 +11,7 @@ from loaders import run_setup
 def test_find_excel_file_no_excel(tmp_path: Path) -> None:
     """No *.xlsx files -> FileNotFoundError."""
     with pytest.raises(FileNotFoundError) as exc_info:
-        run_setup._find_excel_file(base_dir=tmp_path)
+        run_setup._find_excel_file(tmp_path)
 
     assert "No Excel file found" in str(exc_info.value)
 
@@ -21,7 +21,7 @@ def test_find_excel_file_single_excel(tmp_path: Path) -> None:
     excel = tmp_path / "Targets_V10p1.xlsx"
     excel.write_bytes(b"")  # empty file is enough for this test
 
-    found = run_setup._find_excel_file(base_dir=tmp_path)
+    found = run_setup._find_excel_file(tmp_path)
 
     assert found == excel
 
@@ -32,7 +32,7 @@ def test_find_excel_file_multiple_excels(tmp_path: Path) -> None:
     (tmp_path / "B.xlsx").write_bytes(b"")
 
     with pytest.raises(ValueError) as exc_info:
-        run_setup._find_excel_file(base_dir=tmp_path)
+        run_setup._find_excel_file(tmp_path)
 
     msg = str(exc_info.value)
     assert "Multiple Excel files found" in msg
@@ -49,7 +49,8 @@ def test_load_excel_properties_with_target_name(monkeypatch, tmp_path, caplog):
     excel.write_bytes(b"")
 
     # Use our tmp directory instead of the real repo root.
-    monkeypatch.setattr(run_setup, "_find_excel_file", lambda base_dir=None: excel)
+    monkeypatch.setattr(run_setup, "get_repo_root", lambda base_dir=None: tmp_path)
+    monkeypatch.setattr(run_setup, "_find_excel_file", lambda repo_root: excel)
 
     called = {}
 
@@ -58,13 +59,13 @@ def test_load_excel_properties_with_target_name(monkeypatch, tmp_path, caplog):
         called["target"] = target
         return ({"ok": True}, target)
 
-    def fake_split(_dict, _target):
-        return ({"stellar": True}, {"planetary": True})
-
     monkeypatch.setattr(run_setup, "load_excel_parameters", fake_loader)
-    monkeypatch.setattr(run_setup, "separate_stellar_planetary_parameters", fake_split)
-    monkeypatch.setattr(run_setup, "process_planetary_parameter_values", lambda d: d)
-    monkeypatch.setattr(run_setup, "process_stellar_parameter_values", lambda d: d)
+    monkeypatch.setattr(run_setup, "load_excel_mapping", lambda _path: {"mapping": True})
+    monkeypatch.setattr(
+        run_setup,
+        "map_excel_row",
+        lambda _row, _mapping, _target: ({"planetary": True}, {"stellar": True}),
+    )
 
     target_name = "HD 202772 A"
     with caplog.at_level("INFO"):
@@ -87,7 +88,8 @@ def test_load_excel_properties_with_empty_target_name(monkeypatch, tmp_path, cap
     excel = tmp_path / "Targets.xlsx"
     excel.write_bytes(b"")
 
-    monkeypatch.setattr(run_setup, "_find_excel_file", lambda base_dir=None: excel)
+    monkeypatch.setattr(run_setup, "get_repo_root", lambda base_dir=None: tmp_path)
+    monkeypatch.setattr(run_setup, "_find_excel_file", lambda repo_root: excel)
 
     seen = {}
 
@@ -96,13 +98,13 @@ def test_load_excel_properties_with_empty_target_name(monkeypatch, tmp_path, cap
         seen["target"] = target
         return ({"ok": True}, target)
 
-    def fake_split(_dict, _target):
-        return ({"stellar": True}, {"planetary": True})
-
     monkeypatch.setattr(run_setup, "load_excel_parameters", fake_loader)
-    monkeypatch.setattr(run_setup, "separate_stellar_planetary_parameters", fake_split)
-    monkeypatch.setattr(run_setup, "process_planetary_parameter_values", lambda d: d)
-    monkeypatch.setattr(run_setup, "process_stellar_parameter_values", lambda d: d)
+    monkeypatch.setattr(run_setup, "load_excel_mapping", lambda _path: {"mapping": True})
+    monkeypatch.setattr(
+        run_setup,
+        "map_excel_row",
+        lambda _row, _mapping, _target: ({"planetary": True}, {"stellar": True}),
+    )
 
     target_name = ""
     with caplog.at_level("INFO"):
@@ -116,3 +118,26 @@ def test_load_excel_properties_with_empty_target_name(monkeypatch, tmp_path, cap
     log_text = " ".join(caplog.messages)
     assert "Using Excel file" in log_text
     assert "Targets.xlsx" in log_text
+
+
+def test_load_excel_properties_exits_on_file_not_found(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(run_setup, "get_repo_root", lambda base_dir=None: Path("/tmp"))
+    monkeypatch.setattr(run_setup, "_find_excel_file", lambda repo_root: (_ for _ in ()).throw(FileNotFoundError("no excel")))
+
+    with pytest.raises(SystemExit):
+        run_setup.load_Excel_properties("Target")
+
+    captured = capsys.readouterr()
+    assert "Input error" in captured.out
+
+
+def test_load_excel_properties_exits_on_value_error(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(run_setup, "get_repo_root", lambda base_dir=None: Path("/tmp"))
+    monkeypatch.setattr(run_setup, "_find_excel_file", lambda repo_root: Path("/tmp/Targets.xlsx"))
+    monkeypatch.setattr(run_setup, "load_excel_parameters", lambda _p, _t: (_ for _ in ()).throw(ValueError("bad excel")))
+
+    with pytest.raises(SystemExit):
+        run_setup.load_Excel_properties("Target")
+
+    captured = capsys.readouterr()
+    assert "Input error" in captured.out

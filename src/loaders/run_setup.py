@@ -1,7 +1,7 @@
 import sys
 import logging
 from loaders.userparameter_loader import load_parameters
-from loaders.excel_loader import load_excel_parameters, separate_stellar_planetary_parameters
+from loaders.excel_loader import load_excel_parameters, load_excel_mapping, map_excel_row
 from loaders.parameter_preprocessing import process_stellar_parameter_values, process_planetary_parameter_values
 from pathlib import Path
 from datetime import datetime
@@ -89,22 +89,28 @@ def load_user_parameters():
 
 def load_Excel_properties(target_name_user_input):
     try:
-        excel_path = _find_excel_file()
+        repo_root = get_repo_root()
+
+        excel_path = _find_excel_file(repo_root)
         logging.info("Using Excel file '%s' for target '%s'", excel_path, target_name_user_input)
+        # load target matching row based on target name in a mixed dict
         planet_star_dictionary, target_name = load_excel_parameters(excel_path, target_name_user_input)
-        stellar_parameters_excel, planetary_parameters_excel = separate_stellar_planetary_parameters(planet_star_dictionary, target_name)
-        planet_param = process_planetary_parameter_values(planetary_parameters_excel)
-        stellar_parameters_excel = process_stellar_parameter_values(stellar_parameters_excel)
-        return planet_param, stellar_parameters_excel
-    except ValueError as e:
-        print(f"Input error: {e}")
-        sys.exit(1)
-    except FileNotFoundError as e:
+
+        # getting clean separate dictionaries for planetary and stellar properties
+        mapping_path = repo_root / "configs" / "excel_mapping.cfg"
+        mapping = load_excel_mapping(mapping_path)
+        planet_params, star_params = map_excel_row(planet_star_dictionary, mapping, target_name)
+
+        return planet_params, star_params
+    except (ValueError, FileNotFoundError) as e:
         print(f"Input error: {e}")
         sys.exit(1)
 
-def _find_excel_file(base_dir: Path | None = None):
-    repo_root = base_dir or Path(__file__).resolve().parents[2]
+
+def get_repo_root(base_dir: Path | None = None) -> Path:
+    return base_dir or Path(__file__).resolve().parents[2]
+
+def _find_excel_file(repo_root: Path):
     # Ignore temporary Excel lock files (e.g. \"~$Targets_V10p1.xlsx\" created while the workbook is open in Excel).
     excel_files = [
         f for f in repo_root.glob("*.xlsx") if not f.name.startswith("~$")

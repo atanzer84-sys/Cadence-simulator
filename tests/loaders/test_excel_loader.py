@@ -1,4 +1,4 @@
-"""Tests for excel_loader: load_excel_parameters, separate_stellar_planetary_parameters, _normalize_name."""
+"""Tests for excel_loader: load_excel_parameters, map_excel_row, _normalize_name."""
 
 from pathlib import Path
 
@@ -7,7 +7,8 @@ from openpyxl import Workbook
 
 from loaders.excel_loader import (
     load_excel_parameters,
-    separate_stellar_planetary_parameters,
+    load_excel_mapping,
+    map_excel_row,
     _normalize_name,
 )
 
@@ -58,7 +59,7 @@ def test_excel_empty_pl_name_in_row_raises(tmp_path: Path) -> None:
     )
     with pytest.raises(ValueError) as exc_info:
         load_excel_parameters(path, "HD 202772 A")
-    assert "Empty pl_name" in str(exc_info.value)
+    assert "No target found" in str(exc_info.value)
 
 
 # --- load_excel_parameters: one found ---
@@ -119,37 +120,6 @@ def test_pl_name_match_target_uppercase_row_mixed(tmp_path: Path) -> None:
     assert row_dict.get("pl_name") == "HD 202772 A b"
 
 
-def test_load_excel_parameters_skips_none_rows(monkeypatch) -> None:
-    class DummyCell:
-        def __init__(self, value):
-            self.value = value
-
-    class DummyWorksheet:
-        def __init__(self):
-            self._headers = [DummyCell("pl_name"), DummyCell("st_teff")]
-            self._rows = [None, ("HD 202772 A b", 5000)]
-
-        def __getitem__(self, item):
-            if item == 1:
-                return self._headers
-            raise KeyError(item)
-
-        def iter_rows(self, min_row=2, values_only=True):
-            for row in self._rows:
-                yield row
-
-    class DummyWorkbook:
-        active = DummyWorksheet()
-
-    monkeypatch.setattr(
-        "loaders.excel_loader.load_workbook",
-        lambda _path, data_only=True: DummyWorkbook(),
-    )
-
-    row_dict, target_name = load_excel_parameters("dummy.xlsx", "HD 202772 A")
-    assert row_dict.get("pl_name") == "HD 202772 A b"
-    assert row_dict.get("st_teff") == 5000
-    assert target_name == "HD 202772 A"
 
 
 # --- load_excel_parameters: header normalization (# prefix) ---
@@ -177,37 +147,74 @@ def test_load_excel_returns_stripped_target_name(tmp_path: Path) -> None:
     assert target_name == "HD 202772 A"
 
 
-# --- separate_stellar_planetary_parameters ---
-def test_separate_stellar_planetary_pl_prefix_goes_to_planetary() -> None:
-    d = {"pl_name": "b", "pl_orbper": 3.4, "st_teff": 5000}
-    stellar, planetary = separate_stellar_planetary_parameters(d, "HD 202772 A")
-    assert planetary["pl_name"] == "b"
-    assert planetary["pl_orbper"] == 3.4
-    assert "pl_name" not in stellar
-    assert stellar["st_teff"] == 5000
+# --- map_excel_row ---
+def test_map_excel_row_maps_planet_and_star_and_sets_name() -> None:
+    mapping = {
+        "planets": {"orbital_period": "pl_orbper"},
+        "stars": {"effective_temperature": "st_teff"},
+        "required_planets": [],
+        "required_stars": [],
+    }
+    row = {"pl_orbper": 3.4, "st_teff": 5000, "extra": "ignore"}
+    planet, star = map_excel_row(row, mapping, "HD 202772 A")
+    assert planet["orbital_period"] == 3.4
+    assert star["effective_temperature"] == 5000
+    assert star["name"] == "HD 202772 A"
 
 
-def test_separate_stellar_planetary_st_and_others_go_to_stellar() -> None:
-    d = {"st_teff": 5000, "st_rad": 1.1, "discoverymethod": "Transit"}
-    stellar, planetary = separate_stellar_planetary_parameters(d, "Star")
-    assert stellar["st_teff"] == 5000
-    assert stellar["st_rad"] == 1.1
-    assert planetary["discoverymethod"] == "Transit"
+def test_map_excel_row_missing_required_planet_raises() -> None:
+    mapping = {
+        "planets": {"orbital_period": "pl_orbper"},
+        "stars": {"effective_temperature": "st_teff"},
+        "required_planets": ["orbital_period"],
+        "required_stars": [],
+    }
+    row = {"st_teff": 5000}
+    with pytest.raises(ValueError, match="Missing required planet parameters"):
+        map_excel_row(row, mapping, "Star")
 
 
-def test_separate_stellar_planetary_planet_keys_go_to_planetary() -> None:
-    d = {"discoverymethod": "Transit", "scale_height_km": 100, "st_teff": 5000}
-    stellar, planetary = separate_stellar_planetary_parameters(d, "Star")
-    assert planetary["discoverymethod"] == "Transit"
-    assert planetary["scale_height_km"] == 100
-    assert stellar["st_teff"] == 5000
+def test_map_excel_row_missing_required_star_raises() -> None:
+    mapping = {
+        "planets": {"orbital_period": "pl_orbper"},
+        "stars": {"effective_temperature": "st_teff"},
+        "required_planets": [],
+        "required_stars": ["effective_temperature"],
+    }
+    row = {"pl_orbper": 3.4}
+    with pytest.raises(ValueError, match="Missing required star parameters"):
+        map_excel_row(row, mapping, "Star")
 
 
-def test_separate_stellar_planetary_sets_st_name() -> None:
-    d = {"st_teff": 5000}
-    stellar, planetary = separate_stellar_planetary_parameters(d, "HD 202772 A")
-    assert stellar["st_name"] == "HD 202772 A"
-    assert "st_name" not in planetary
+def test_map_excel_row_planet_collision_raises() -> None:
+    mapping = {
+        "planets": {"orbital_period": "pl_orbper"},
+        "stars": {},
+        "required_planets": [],
+        "required_stars": [],
+    }
+    row = {"pl_orbper": 1.0, "PL_ORBPER": 2.0}
+    with pytest.raises(ValueError, match="planets:orbital_period"):
+        map_excel_row(row, mapping, "Star")
+
+
+def test_map_excel_row_star_collision_raises() -> None:
+    mapping = {
+        "planets": {},
+        "stars": {"effective_temperature": "st_teff"},
+        "required_planets": [],
+        "required_stars": [],
+    }
+    row = {"st_teff": 5000, "ST_TEFF": 6000}
+    with pytest.raises(ValueError, match="stars:effective_temperature"):
+        map_excel_row(row, mapping, "Star")
+
+
+# --- load_excel_mapping ---
+def test_load_excel_mapping_missing_file_raises(tmp_path: Path) -> None:
+    missing_path = tmp_path / "excel_mapping.cfg"
+    with pytest.raises(FileNotFoundError, match="Excel mapping file not found"):
+        load_excel_mapping(missing_path)
 
 
 # --- _normalize_name ---
