@@ -248,3 +248,88 @@ def test_load_user_parameters_default_file(monkeypatch, tmp_path):
 
     result = run_setup.load_user_parameters()
     assert result == {"ok": True}
+
+# ------------------------------------------------------------
+# load_user_parameters tests
+# ------------------------------------------------------------
+
+def test_load_user_parameters_too_many_arguments(monkeypatch, capsys):
+    monkeypatch.setattr(sys, "argv", ["prog", "a", "b"])
+
+    with pytest.raises(SystemExit) as exc:
+        run_setup.load_user_parameters()
+
+    assert exc.value.code == 1
+    out = capsys.readouterr()
+    assert "Usage:" in out.out or "Usage:" in out.err
+
+
+def test_load_user_parameters_default_file(monkeypatch, tmp_path):
+    param_file = tmp_path / "parameters.txt"
+    param_file.write_text("target_name = HD 202772 A", encoding="utf-8")
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(sys, "argv", ["prog"])
+
+    # Fake loader
+    monkeypatch.setattr(run_setup, "load_parameters", lambda path: {"ok": path})
+
+    result = run_setup.load_user_parameters()
+    assert result == {"ok": "parameters.txt"}
+
+
+def test_load_user_parameters_custom_file(monkeypatch, tmp_path):
+    custom = tmp_path / "custom.txt"
+    custom.write_text("target_name = HD 202772 A", encoding="utf-8")
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(sys, "argv", ["prog", "custom.txt"])
+
+    monkeypatch.setattr(run_setup, "load_parameters", lambda path: {"ok": path})
+
+    result = run_setup.load_user_parameters()
+    assert result == {"ok": "custom.txt"}
+
+
+def test_load_user_parameters_missing_file(monkeypatch, tmp_path, capsys):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(sys, "argv", ["prog"])
+
+    def fake_loader(_):
+        raise FileNotFoundError("missing")
+
+    monkeypatch.setattr(run_setup, "load_parameters", fake_loader)
+
+    with pytest.raises(SystemExit) as exc:
+        run_setup.load_user_parameters()
+
+    assert exc.value.code == 1
+    out = capsys.readouterr()
+    assert "not found" in (out.out + out.err)
+
+
+def test_load_user_parameters_invalid_file(monkeypatch, tmp_path, capsys):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(sys, "argv", ["prog"])
+
+    def fake_loader(_):
+        raise ValueError("bad format")
+
+    monkeypatch.setattr(run_setup, "load_parameters", fake_loader)
+
+    with pytest.raises(SystemExit) as exc:
+        run_setup.load_user_parameters()
+
+    assert exc.value.code == 1
+    out = capsys.readouterr()
+    assert "Input error" in (out.out + out.err)
+
+
+def test_load_user_parameters_success(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(sys, "argv", ["prog"])
+
+    monkeypatch.setattr(run_setup, "load_parameters", lambda _: {"ok": True})
+
+    result = run_setup.load_user_parameters()
+    assert result == {"ok": True}
