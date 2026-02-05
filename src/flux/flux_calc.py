@@ -11,28 +11,27 @@ def calculateFluxOnEarth(star: Star, output_dir):
     model_data = load_model_for_temperature(star.effective_temperature)
     print(np.shape(model_data))
 
-    # 2. Dump cut model snapshot
-    dump_cut_array(
-        model_data,
-        output_dir,
-        filename=f"{star.name}_model_input.txt"
-    )
+    # # 2. Dump cut model snapshot
+    # dump_cut_array(
+    #     model_data,
+    #     output_dir,
+    #     filename=f"{star.name}_model_input.txt"
+    # )
 
-    # 3. Compute full luminosity
-    luminosity_lambda = convertIntensityToLuminosity(
-        model_data,
-        star.radius_sun_cm
-    )
+    # # 3. Compute full luminosity
+    # luminosity_lambda = convertIntensityToLuminosity(
+    #     model_data,
+    #     star.radius_sun_cm
+    # )
 
-    # 4. Dump cut luminosity snapshot
-    dump_cut_array(
-        luminosity_lambda,
-        output_dir,
-        filename=f"{star.name}_convertIntensityToLuminosity_snapshot.txt"
-    )
+    # # 4. Dump cut luminosity snapshot
+    # dump_cut_array(
+    #     luminosity_lambda,
+    #     output_dir,
+    #     filename=f"{star.name}_convertIntensityToLuminosity_snapshot.txt"
+    # )
 
-    # luminosity_lambda = convertIntensityToLuminosity(model_data, star.radius_sun_cm)
-    # dump_spectrum_txt(luminosity_lambda, output_dir, filename="convertIntensityToLuminosity_TIC393818343.txt")
+    luminosity_lambda = convertIntensityToLuminosity(model_data, star.radius_sun_cm)
 
 
 def load_model_for_temperature(t_star):
@@ -100,6 +99,11 @@ def convertIntensityToLuminosity(model_data, r_star):
     luminosity_lambda[:,0]  = model_data[:,0]
     luminosity_lambda[:,1]  = intensity_lambda[:,1] * 4 * np.pi * (r_star**2) * 4 * np.pi
     luminosity_lambda[:,2]  = intensity_lambda[:,2] * 4 * np.pi * (r_star**2) * 4 * np.pi
+    logging.info(
+        "Converting intensity to luminosity for r_star=%.6e cm with %d wavelength points",
+        r_star,
+        model_data.shape[0]
+    )
 
     return luminosity_lambda
 
