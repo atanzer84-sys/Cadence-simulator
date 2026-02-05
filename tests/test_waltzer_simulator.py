@@ -119,6 +119,12 @@ def test_no_argument_file_not_found_exits(monkeypatch, tmp_path):
 
 # --- One argument: param file path (different locations) ---
 def test_one_argument_absolute_path_success(monkeypatch, tmp_path):
+    import flux.flux_calc as flux_calc
+
+    def fake_calculateFluxOnEarth(*args, **kwargs):
+        return 1.0
+
+    monkeypatch.setattr(flux_calc, "calculateFluxOnEarth", fake_calculateFluxOnEarth)
     param_file = tmp_path / "params.txt"
     _write_params(param_file, VALID_PARAMS_CONTENT)
     monkeypatch.chdir(tmp_path)
@@ -138,6 +144,13 @@ def test_one_argument_absolute_path_success(monkeypatch, tmp_path):
 
 
 def test_one_argument_relative_path_success(monkeypatch, tmp_path, capsys):
+    import flux.flux_calc as flux_calc
+
+    def fake_calculateFluxOnEarth(*args, **kwargs):
+        return 1.0
+
+    monkeypatch.setattr(flux_calc, "calculateFluxOnEarth", fake_calculateFluxOnEarth)
+
     subdir = tmp_path / "param"
     subdir.mkdir()
     param_file = subdir / "Wasp 99.txt"
