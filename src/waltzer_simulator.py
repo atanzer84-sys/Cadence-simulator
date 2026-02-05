@@ -14,7 +14,7 @@ def main():
     # Loading User Parameter file
     try:
         user_parameters = load_user_parameters()
-        print(user_parameters)
+        # print(user_parameters)
         planet_param, stellar_param, required_planet_keys, required_star_keys = load_excel_properties(user_parameters["target_name"])
     except Exception as e:
         logging.exception("Input error while loading user parameters or Excel properties")

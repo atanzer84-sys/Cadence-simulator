@@ -116,11 +116,11 @@ def test_no_argument_file_not_found_exits(monkeypatch, tmp_path):
     assert exc_info.value.code == 1
 
 
-def test_no_argument_uses_default_file_success(monkeypatch, tmp_path, capsys):
+def test_no_argument_uses_default_file_success(monkeypatch, tmp_path):
     (tmp_path / "parameters.txt").write_text(VALID_PARAMS_CONTENT.strip(), encoding="utf-8")
     monkeypatch.setattr("sys.argv", ["waltzer_simulator.py"])
     monkeypatch.chdir(tmp_path)
-    # Avoid real Excel lookup (repo root has no .xlsx in test env); main() can then complete.
+
     monkeypatch.setattr(
         waltzer_simulator,
         "load_excel_properties",
@@ -149,22 +149,38 @@ def test_no_argument_uses_default_file_success(monkeypatch, tmp_path, capsys):
             ],
         ),
     )
+
     waltzer_simulator.main()
-    out = capsys.readouterr()
-    assert "target_name" in out.out
-    assert "HD 202772 A" in out.out
+
+    output_root = tmp_path / "output"
+    assert output_root.exists()
+
+    run_dirs = [p for p in output_root.iterdir() if p.is_dir()]
+    assert len(run_dirs) == 1
+
+    log_files = list(run_dirs[0].glob("waltzer_simulator_*.log"))
+    assert len(log_files) == 1
+
 
 
 # --- One argument: param file path (different locations) ---
-def test_one_argument_absolute_path_success(monkeypatch, tmp_path, capsys):
+def test_one_argument_absolute_path_success(monkeypatch, tmp_path):
     param_file = tmp_path / "params.txt"
     _write_params(param_file, VALID_PARAMS_CONTENT)
-    monkeypatch.chdir(tmp_path)  # keep output/ and log out of project root
+    monkeypatch.chdir(tmp_path)
     monkeypatch.setattr("sys.argv", ["waltzer_simulator.py", str(param_file)])
+
     waltzer_simulator.main()
-    out = capsys.readouterr()
-    assert "HD 202772 A" in out.out
-    assert "20.5" in out.out
+
+    output_root = tmp_path / "output"
+    assert output_root.exists()
+
+    run_dirs = [p for p in output_root.iterdir() if p.is_dir()]
+    assert len(run_dirs) == 1
+
+    log_files = list(run_dirs[0].glob("waltzer_simulator_*.log"))
+    assert len(log_files) == 1
+
 
 
 def test_one_argument_relative_path_success(monkeypatch, tmp_path, capsys):

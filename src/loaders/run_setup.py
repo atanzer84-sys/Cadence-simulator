@@ -31,7 +31,8 @@ def setup_output_directory():
         output_dir = output_root / f"{timestamp}{suffix}"
 
         try:
-            output_dir.mkdir(parents=True, exist_ok=False)  # atomic
+            output_dir.mkdir(parents=True, exist_ok=False)
+            print(f"Output directory created at: {output_dir.resolve()}")
             return output_dir, timestamp
         except FileExistsError:
             # Another process won this name; try the next one.
@@ -45,7 +46,9 @@ def setup_logger(output_dir, timestamp):
     Logs are written only to the file (no console). The log file is
     named ``waltzer_simulator_<timestamp>.log`` inside ``output_dir``.
     """
-    log_filename = output_dir / f"waltzer_simulator_{timestamp}.log"
+    filename = f"waltzer_simulator_{timestamp}.log"
+    log_filename = output_dir / filename
+    print(f"Log file created at: {filename}")
 
     logging.basicConfig(
         level=logging.INFO,
