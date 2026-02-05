@@ -232,3 +232,9 @@ parameters2.txt
 parameters3.txt
 parameters4.txt
 parameters5.txt
+
+# ignore all model data
+data/models/
+
+# but keep the README in data
+!data/models/readme.txt
