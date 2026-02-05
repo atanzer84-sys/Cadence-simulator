@@ -3,7 +3,7 @@ import numpy as np
 from pathlib import Path
 from loaders.run_setup import get_repo_root
 from domain.star import Star
-from domain.constants import C_LIGHT
+from domain.constants import C_LIGHT, PARSEC_CM
 
 def calculateFluxOnEarth(star: Star, output_dir):
     print("Starting to calculate Flux on Earth")
@@ -32,6 +32,8 @@ def calculateFluxOnEarth(star: Star, output_dir):
 
     luminosity_lambda = convertIntensityToLuminosity(model_data, star.radius_sun_cm)
     wavelengths = luminosity_lambda[:,0]
+    luminosity = luminosity_lambda[:,1]
+    flux_at_earth    = luminosity/(4.*np.pi*(star.distance_pc*(PARSEC_CM))**2)
 
 def load_model_for_temperature(t_star):
     """
