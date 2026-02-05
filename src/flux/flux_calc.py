@@ -1,13 +1,18 @@
 import logging
 import numpy as np
+import astropy.units as u
 from loaders.run_setup import get_repo_root
 from domain.star import Star
+from astropy.constants import c
+C_LIGHT_A_S = c.to(u.AA / u.s).value # light speed in Angstrom / second
+
 
 
 def calculateFluxOnEarth(star: Star):
     print("Starting to calculate Flux on Earth")
     model_data = load_model_for_temperature(star.effective_temperature)
-
+    print(np.shape(model_data))
+    flux_lambda = convertIntensityToLuminosity(model_data, star.radius)
 
 def load_model_for_temperature(t_star):
     """
@@ -49,3 +54,29 @@ def load_model_for_temperature(t_star):
         f"No model.flx found for T={t_star} K "
         f"(tried {subdir} and {subdir_fb})"
     )
+
+def convertIntensityToLuminosity(model_data, r_star):
+
+    '''
+    Legacy model flux:
+    frequency-based stellar model quantity, converted to per-wavelength
+    and integrated over stellar surface and solid angle.
+    Resulting quantity is stellar spectral luminosity (erg/s/A),
+    later converted to flux at Earth by geometric dilution.
+    '''
+    intensity_lambda        = np.zeros(np.shape(model_data))
+    luminosity_lambda  = np.zeros(np.shape(model_data))
+
+    # we convert from frq to wavelength using lambda in Angstrom: F_lambda = F_nu * c / lambda^2
+    # Unit before: erg/cm2/s/Hz, After:  ergs/cm2/s/A
+    intensity_lambda[:,1] = (C_LIGHT_A_S * model_data[:,1])/(model_data[:,0]**2)    
+    intensity_lambda[:,2] = (C_LIGHT_A_S * model_data[:,2])/(model_data[:,0]**2)
+
+    # Integrate over stellar surface area (4*pi*R^2) and over solid angle (4*pi)
+    # multiply with surface area of star -> ergs/cm2/s/A to ergs/s/A
+    # then multiply with 4*!pi for steradian conversion
+    luminosity_lambda[:,0]  = model_data[:,0]
+    luminosity_lambda[:,1]  = intensity_lambda[:,1] * 4 * np.pi * (r_star**2) * 4 * np.pi
+    luminosity_lambda[:,2]  = intensity_lambda[:,2] * 4 * np.pi * (r_star**2) * 4 * np.pi
+
+    return luminosity_lambda

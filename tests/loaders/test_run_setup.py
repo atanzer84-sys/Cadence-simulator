@@ -6,10 +6,6 @@ import pytest
 import sys
 from loaders import run_setup
 
-import logging
-
-
-
 def test_setup_output_directory_creates_dir(monkeypatch, tmp_path):
     # Redirect "output" to a temp directory
     monkeypatch.chdir(tmp_path)
