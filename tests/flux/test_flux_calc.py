@@ -3,7 +3,8 @@ import pytest
 from pathlib import Path
 from unittest.mock import patch
 
-from flux.flux_calc import load_model_for_temperature, convertIntensityToLuminosity,C_LIGHT_A_S
+from domain.constants import C_LIGHT
+from flux.flux_calc import load_model_for_temperature, convertIntensityToLuminosity
 
 def test_load_model_exact_match():
     fake_data = np.array([[1.0, 2.0]])
@@ -72,5 +73,5 @@ def test_frequency_to_wavelength_conversion():
     geometry = 4 * np.pi * r_star**2 * 4 * np.pi
     recovered_intensity = out[0,1] / geometry
 
-    expected_intensity = C_LIGHT_A_S / (1000.0**2)
+    expected_intensity = C_LIGHT / (1000.0**2)
     np.testing.assert_allclose(recovered_intensity, expected_intensity)

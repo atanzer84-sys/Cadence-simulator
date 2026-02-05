@@ -204,39 +204,52 @@ def test_main_calls_star_and_planet_constructors(monkeypatch, tmp_path, capsys):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr("sys.argv", ["waltzer_simulator.py"])
 
+    # Keep this minimal on purpose: this test is NOT about required keys.
     monkeypatch.setattr(
         waltzer_simulator,
         "load_excel_properties",
         lambda _target: (
-            {"name": "Planet"},
-            {"name": "Star"},
-            ["name"],
-            ["name"],
+            {"name": "Planet"},   # planet_param
+            {"name": "Star"},     # stellar_param
+            ["name"],             # required_planet_keys
+            ["name"],             # required_star_keys
         ),
     )
 
-    # ⭐ Prevent physics code from running
-    monkeypatch.setattr(waltzer_simulator, "calculateFluxOnEarth", lambda star: None)
+    calls = {
+        "star_from_params": None,
+        "planet_from_params": None,
+        "flux": None,
+    }
 
-    star_called = {}
-    planet_called = {}
+    star_obj = object()
+    planet_obj = object()
 
-    def fake_star_from_params(params, required_keys):
-        star_called["params"] = params
-        star_called["required"] = required_keys
-        class Dummy: pass
-        return Dummy()
+    def fake_star_from_params(stellar_param, required_keys):
+        calls["star_from_params"] = (stellar_param, required_keys)
+        return star_obj
 
-    def fake_planet_from_params(params, required_keys):
-        planet_called["params"] = params
-        planet_called["required"] = required_keys
-        class Dummy: pass
-        return Dummy()
+    def fake_planet_from_params(planet_param, required_keys):
+        calls["planet_from_params"] = (planet_param, required_keys)
+        return planet_obj
 
-    monkeypatch.setattr(waltzer_simulator.Star, "from_params", fake_star_from_params)
-    monkeypatch.setattr(waltzer_simulator.Planet, "from_params", fake_planet_from_params)
+    def fake_calculateFluxOnEarth(star, output_dir):
+        calls["flux"] = (star, output_dir)
+        return None
+
+    # Patch the constructors that main actually calls (they are imported into waltzer_simulator.py)
+    monkeypatch.setattr(waltzer_simulator.Star, "from_params", staticmethod(fake_star_from_params))
+    monkeypatch.setattr(waltzer_simulator.Planet, "from_params", staticmethod(fake_planet_from_params))
+
+    # Patch flux calculation
+    monkeypatch.setattr(waltzer_simulator, "calculateFluxOnEarth", fake_calculateFluxOnEarth)
 
     waltzer_simulator.main()
 
-    assert star_called["params"]["name"] == "Star"
-    assert planet_called["params"]["name"] == "Planet"
+    assert calls["star_from_params"] == ({"name": "Star"}, ["name"])
+    assert calls["planet_from_params"] == ({"name": "Planet"}, ["name"])
+
+    # main should pass the created star object into calculateFluxOnEarth
+    assert calls["flux"] is not None
+    assert calls["flux"][0] is star_obj
+

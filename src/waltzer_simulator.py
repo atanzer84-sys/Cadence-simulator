@@ -28,7 +28,7 @@ def main():
     planet = Planet.from_params(planet_param, required_keys=required_planet_keys)
 
     # TODO: fetch python code from sreejith and integrate it
-    calculateFluxOnEarth(star)
+    calculateFluxOnEarth(star, output_dir)
 
 if __name__ == "__main__":
     main()
