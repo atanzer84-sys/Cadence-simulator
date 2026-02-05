@@ -12,7 +12,7 @@ def calculateFluxOnEarth(star: Star):
     print("Starting to calculate Flux on Earth")
     model_data = load_model_for_temperature(star.effective_temperature)
     print(np.shape(model_data))
-    flux_lambda = convertIntensityToLuminosity(model_data, star.radius)
+    luminosity_lambda = convertIntensityToLuminosity(model_data, star.radius)
 
 def load_model_for_temperature(t_star):
     """
