@@ -1,6 +1,5 @@
 import logging
 import numpy as np
-import astropy.units as u
 from pathlib import Path
 from loaders.run_setup import get_repo_root
 from domain.star import Star
@@ -32,7 +31,7 @@ def calculateFluxOnEarth(star: Star, output_dir):
     # )
 
     luminosity_lambda = convertIntensityToLuminosity(model_data, star.radius_sun_cm)
-
+    wavelengths = luminosity_lambda[:,0]
 
 def load_model_for_temperature(t_star):
     """

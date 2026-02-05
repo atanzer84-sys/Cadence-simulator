@@ -15,7 +15,7 @@ class Star:
     surface_gravity: float | None
     right_ascension: float | None
     declination: float | None
-    distance: float | None
+    distance_pc: float | None
     v_magnitude: float | None
     gaia_magnitude: float | None
     log_r: float | None
@@ -54,7 +54,7 @@ class Star:
             surface_gravity=star_params.get("surface_gravity"),
             right_ascension=star_params.get("right_ascension"),
             declination=star_params.get("declination"),
-            distance=star_params.get("distance"),
+            distance_pc=star_params.get("distance"),
             v_magnitude=star_params.get("v_magnitude"),
             gaia_magnitude=star_params.get("gaia_magnitude"),
             log_r=star_params.get("log_r"),
