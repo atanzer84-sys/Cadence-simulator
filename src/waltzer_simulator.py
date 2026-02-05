@@ -2,6 +2,7 @@ from loaders.run_setup import setup_output_directory, setup_logger, load_user_pa
 from domain.star import Star
 from domain.planet import Planet
 import sys
+import logging
 
 
 def main():
@@ -16,6 +17,7 @@ def main():
         print(user_parameters)
         planet_param, stellar_param, required_planet_keys, required_star_keys = load_excel_properties(user_parameters["target_name"])
     except Exception as e:
+        logging.exception("Input error while loading user parameters or Excel properties")
         print(f"Input error: {e}")
         sys.exit(1)
 

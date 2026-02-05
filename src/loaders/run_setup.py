@@ -11,37 +11,33 @@ from pathlib import Path
 from datetime import datetime
 
 def setup_output_directory():
-    """Create a timestamped output directory under ``output/``.
-
-    Creates ``output/<YYYYMMDD_HHMMSS>``. If that path already exists,
-    uses ``output/<YYYYMMDD_HHMMSS>_01``, ``_02``, etc., until a new
-    directory is created.
-
-    Returns
-    -------
-    tuple[Path, str]
-        ``(output_dir, timestamp)`` where ``output_dir`` is the created
-        directory and ``timestamp`` is the string ``YYYYMMDD_HHMMSS``.
     """
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    Create a unique output directory under output/.
+
+    Safe for parallel runs: tries to create a directory; if it already exists,
+    retries with a different suffix until it succeeds.
+    """
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
 
     output_root = Path("output")
     output_root.mkdir(parents=True, exist_ok=True)
 
     output_dir = output_root / timestamp
 
-    if output_dir.exists():
-        i = 1
-        while True:
-            candidate = output_root / f"{timestamp}_{i:02d}"
-            if not candidate.exists():
-                output_dir = candidate
-                break
-            i += 1
+    # Try base name first, then add _01, _02, ...
+    for i in range(0, 10000):
+        suffix = "" if i == 0 else f"_{i:02d}"
+        output_dir = output_root / f"{timestamp}{suffix}"
 
-    output_dir.mkdir(parents=True, exist_ok=False)
+        try:
+            output_dir.mkdir(parents=True, exist_ok=False)  # atomic
+            return output_dir, timestamp
+        except FileExistsError:
+            # Another process won this name; try the next one.
+            continue
 
-    return output_dir, timestamp
+    raise RuntimeError("Could not create a unique output directory after many attempts.")
 
 def setup_logger(output_dir, timestamp):
     """Configure logging to a single file in the output directory.
@@ -53,7 +49,7 @@ def setup_logger(output_dir, timestamp):
 
     logging.basicConfig(
         level=logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(message)s",
+        format="%(asctime)s [%(levelname)s] %(filename)s:%(lineno)d %(message)s",
         handlers=[logging.FileHandler(log_filename)],
     )
 
@@ -74,6 +70,10 @@ def load_user_parameters():
         ``exposure_*``). Only returns on success; exits on error.
     """
     if len(sys.argv) > 2:
+        logging.error(
+            "Too many command line arguments: %s",
+            sys.argv,
+        )
         print("Usage: python waltzer_simulator.py [parameters_file]")
         sys.exit(1)
 
@@ -82,16 +82,22 @@ def load_user_parameters():
     else:
         parameter_file = "parameters.txt"
 
+    logging.info("Using parameter file: %s", parameter_file)
+
     try:
         return load_parameters(parameter_file)
     except ValueError as e:
-        print(f"Input error: {e}")
-        sys.exit(1)
+        logging.exception("Invalid parameter file format: %s", parameter_file)
+        print(f"Input error: {e}", file=sys.stderr)
+        raise SystemExit(1)
+
     except FileNotFoundError:
-        print(f"Input error: parameter file not found: {parameter_file}")
-        sys.exit(1)
+        logging.exception("Parameter file not found: %s", parameter_file)
+        print(f"Input error: parameter file not found: {parameter_file}", file=sys.stderr)
+        raise SystemExit(1)
 
 def load_excel_properties(target_name_user_input):
+    try:
         repo_root = get_repo_root()
 
         # find the excel file
@@ -135,28 +141,43 @@ def load_excel_properties(target_name_user_input):
             mapping["required_planet_parameters"],
             mapping["required_star_parameters"],
         )
+    except Exception:
+        logging.exception(
+            "Failed to load Excel/Gaia properties for target_name_user_input=%r",
+            target_name_user_input,
+        )
+        raise
 
 def get_repo_root(base_dir: Path | None = None) -> Path:
     return base_dir or Path(__file__).resolve().parents[2]
 
 def _find_excel_file(repo_root: Path):
-    # Ignore temporary Excel lock files (e.g. \"~$Targets_V10p1.xlsx\" created while the workbook is open in Excel).
-    excel_files = [
-        f for f in repo_root.glob("*.xlsx") if not f.name.startswith("~$")
-    ]
+    print("repo_root:", repo_root)
+    try:
+        # Ignore temporary Excel lock files (e.g. "~$Targets_V10p1.xlsx")
+        excel_files = [
+            f for f in repo_root.glob("*.xlsx") if not f.name.startswith("~$")
+        ]
 
-    if len(excel_files) == 0:
-        raise FileNotFoundError(
-            f"No Excel file found in repo root ({repo_root})"
+        if len(excel_files) == 0:
+            raise FileNotFoundError(
+                f"No Excel file found in repo root ({repo_root})"
+            )
+
+        if len(excel_files) > 1:
+            names = [f.name for f in excel_files]
+            raise ValueError(
+                f"Multiple Excel files found in repo root: {names}"
+            )
+
+        return excel_files[0]
+
+    except Exception:
+        logging.exception(
+            "Failed to locate Excel file in repo root: %s",
+            repo_root,
         )
-
-    if len(excel_files) > 1:
-        names = [f.name for f in excel_files]
-        raise ValueError(
-            f"Multiple Excel files found in repo root: {names}"
-        )
-
-    return excel_files[0]
+        raise
 
 # TODO: NEEDS WORK
 def merge_gaia_into_star_params(star_params, gaia_star_params):

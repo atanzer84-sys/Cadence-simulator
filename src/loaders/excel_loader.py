@@ -6,56 +6,66 @@ from pathlib import Path
 PlanetStarDict = dict[str, Any]
 
 def load_matching_excel_row_from_excel(excel_path, target_name_user_input):
-    workbook = load_workbook(excel_path, data_only=True)
+    try:
 
-    # We currently assume that the **active worksheet** is the one containing the parameters we care about.
-    worksheet = workbook.active
+        workbook = load_workbook(excel_path, data_only=True)
+        logging.info("Opening Excel file: %s", excel_path)
 
-    #normalize headers so we can match the name
-    column_headers = []
-    for cell in worksheet[1]:
-        name = _normalize_name(cell.value)
-        if name is None:
-            break
-        column_headers.append(name)
-    logging.info("Excel column headers: %s", column_headers)
+        # We currently assume that the **active worksheet** is the one containing the parameters we care about.
+        worksheet = workbook.active
 
-    if "pl_name" not in column_headers:
-        raise ValueError("Excel file has no 'pl_name' column")
+        #normalize headers so we can match the name
+        column_headers = []
+        for cell in worksheet[1]:
+            name = _normalize_name(cell.value)
+            if name is None:
+                break
+            column_headers.append(name)
+        logging.info("Excel column headers: %s", column_headers)
 
-    # Find matching row by pl_name
-    pl_name_index = column_headers.index("pl_name")
-    target_name = str(target_name_user_input).strip()
-    target_name_normalized = str(target_name).casefold()
-    logging.info("Searching for target: '%s'", target_name)
+        if "pl_name" not in column_headers:
+            raise ValueError("Excel file has no 'pl_name' column")
 
-    matching_row_dict = None
-    for row in worksheet.iter_rows(min_row=2, values_only=True):
-        # Guard: rows shorter than headers: i also want to get null values for empty cells
-        row = list(row) + [None] * (len(column_headers) - len(row))
+        # Find matching row by pl_name
+        pl_name_index = column_headers.index("pl_name")
+        target_name = str(target_name_user_input).strip()
+        target_name_normalized = str(target_name).casefold()
+        logging.info("Searching for target: '%s'", target_name)
 
-        pl_name_value = row[pl_name_index]
-        if pl_name_value is None:
-            break
+        matching_row_dict = None
+        for row in worksheet.iter_rows(min_row=2, values_only=True):
+            # Guard: rows shorter than headers: i also want to get null values for empty cells
+            row = list(row) + [None] * (len(column_headers) - len(row))
 
-        pl_name_normalized = str(pl_name_value).casefold().strip()
+            pl_name_value = row[pl_name_index]
+            if pl_name_value is None:
+                break
 
-        # First match wins. :(
-        # TODO: harden later when planetary transits are a thing.
-        if pl_name_normalized.startswith(target_name_normalized):
-            matching_row_dict = {
-                header: value
-                for header, value in zip(column_headers, row)
-                if header is not None
-            }
-            logging.info("Found matching row for target '%s':", target_name_user_input)
-            break
+            pl_name_normalized = str(pl_name_value).casefold().strip()
 
-    if matching_row_dict is None:
-        raise ValueError(
-            f"No target found for '{target_name_user_input}' (searched until row with empty pl_name)"
+            # First match wins. :(
+            # TODO: harden later when planetary transits are a thing.
+            if pl_name_normalized.startswith(target_name_normalized):
+                matching_row_dict = {
+                    header: value
+                    for header, value in zip(column_headers, row)
+                    if header is not None
+                }
+                logging.info("Found matching row for target '%s':", target_name_user_input)
+                break
+
+        if matching_row_dict is None:
+            raise ValueError(
+                f"No target found for '{target_name_user_input}' (searched until row with empty pl_name)"
+            )
+        return matching_row_dict, target_name
+    except Exception:
+        logging.exception(
+            "Failed to read matching Excel row for target_name_user_input=%r from excel_path=%s",
+            target_name_user_input,
+            excel_path,
         )
-    return matching_row_dict, target_name
+        raise
 
 def load_excel_cfg(mapping_path: Path):
     """
@@ -67,44 +77,51 @@ def load_excel_cfg(mapping_path: Path):
       - required_planet_parameters: [canonical_key, ...]
       - required_star_parameters: [canonical_key, ...]
     """
-    cfg = ConfigParser()
-    # preserve case of canonical keys
-    cfg.optionxform = str
+    try:
 
-    mapping_path = Path(mapping_path)
-    if not mapping_path.exists():
-        raise FileNotFoundError(f"Excel mapping file not found: {mapping_path}")
+        cfg = ConfigParser()
+        # preserve case of canonical keys
+        cfg.optionxform = str
 
-    cfg.read(mapping_path)
-    logging.info("Loaded Excel mapping from %s", mapping_path)
-    logging.info("Config sections found: %s", cfg.sections())
+        mapping_path = Path(mapping_path)
+        if not mapping_path.exists():
+            raise FileNotFoundError(f"Excel mapping file not found: {mapping_path}")
 
-    # Parse required keys; missing section means "no required keys".
-    def parse_required(section: str):
-        if not cfg.has_section(section):
-            return []
-        raw = cfg.get(section, "keys", fallback="")
-        return [k.strip() for k in raw.split(",") if k.strip()]
+        cfg.read(mapping_path)
+        logging.info("Loaded Excel mapping from %s", mapping_path)
+        logging.info("Config sections found: %s", cfg.sections())
+
+        # Parse required keys; missing section means "no required keys".
+        def parse_required(section: str):
+            if not cfg.has_section(section):
+                return []
+            raw = cfg.get(section, "keys", fallback="")
+            return [k.strip() for k in raw.split(",") if k.strip()]
 
 
-    mapping = {
-        "planet": dict(cfg.items("planets")) if cfg.has_section("planets") else {},
-        "star": dict(cfg.items("stars")) if cfg.has_section("stars") else {},
-        "required_planet_parameters": parse_required("required_planet_parameters"),
-        "required_star_parameters": parse_required("required_star_parameters"),
-    }
+        mapping = {
+            "planet": dict(cfg.items("planets")) if cfg.has_section("planets") else {},
+            "star": dict(cfg.items("stars")) if cfg.has_section("stars") else {},
+            "required_planet_parameters": parse_required("required_planet_parameters"),
+            "required_star_parameters": parse_required("required_star_parameters"),
+        }
 
-    logging.info(
-        "Excel mapping: %d planet keys, %d star keys, %d required planet, %d required star",
-        len(mapping["planet"]),
-        len(mapping["star"]),
-        len(mapping["required_planet_parameters"]),
-        len(mapping["required_star_parameters"]),
-    )
-    logging.info("Planet mapping keys: %s", mapping["planet"].keys())
-    logging.info("Star mapping keys: %s", mapping["star"].keys())
+        logging.info(
+            "Excel mapping: %d planet keys, %d star keys, %d required planet, %d required star",
+            len(mapping["planet"]),
+            len(mapping["star"]),
+            len(mapping["required_planet_parameters"]),
+            len(mapping["required_star_parameters"]),
+        )
+        logging.info("Planet mapping keys: %s", mapping["planet"].keys())
+        logging.info("Star mapping keys: %s", mapping["star"].keys())
 
-    return mapping
+        return mapping
+
+    except Exception:
+        logging.exception("Failed to load Excel mapping cfg from %s", mapping_path)
+        raise
+
 
 def map_to_planet_or_star_dictionary(planet_star_dictionary: PlanetStarDict, mapping: dict, target_name: str) -> tuple[dict[str, Any], dict[str, Any]]:
     """
