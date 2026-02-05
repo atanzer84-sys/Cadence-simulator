@@ -31,6 +31,9 @@ class Planet:
         for k, v in planet_params.items():
             logging.info("  %s = %r", k, v)
 
+        print("==== PLANET Created ====")
+        print(f"Planet created: {planet_params['name']}")
+
         return cls(
             name=planet_params["name"],
             discoverymethod=planet_params.get("discoverymethod"),

@@ -1,6 +1,7 @@
 from loaders.run_setup import setup_output_directory, setup_logger, load_user_parameters, load_excel_properties
 from domain.star import Star
 from domain.planet import Planet
+from flux.flux_calc import calculateFluxOnEarth
 import sys
 import logging
 
@@ -25,12 +26,9 @@ def main():
     # Create a star and a planet
     star = Star.from_params(stellar_param, required_keys=required_star_keys)
     planet = Planet.from_params(planet_param, required_keys=required_planet_keys)
-    print("==== STAR ====")
-    print(star)
-    print("==== PLANET ====")
-    print(planet)
 
     # TODO: fetch python code from sreejith and integrate it
+    calculateFluxOnEarth(star)
 
 if __name__ == "__main__":
     main()

@@ -35,6 +35,9 @@ class Star:
         logging.info("Creating Star with parameters:")
         for k, v in star_params.items():
             logging.info("  %s = %r", k, v)
+            
+        print("==== STAR Created ====")
+        print(f"Star created: {star_params['name']}")
 
         return cls(
             name=star_params["name"],

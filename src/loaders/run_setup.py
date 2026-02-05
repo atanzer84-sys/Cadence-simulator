@@ -86,7 +86,7 @@ def load_user_parameters():
         parameter_file = "parameters.txt"
 
     logging.info("Using parameter file: %s", parameter_file)
-
+    print("User parameter file loaded")
     try:
         return load_parameters(parameter_file)
     except ValueError as e:
@@ -138,6 +138,7 @@ def load_excel_properties(target_name_user_input):
         star_params = clean_and_cast_parameters(star_params, Star)
         planet_params = clean_and_cast_parameters(planet_params, Planet)
 
+        print("Excel file loaded, parsed and cleaned.")
         return (
             planet_params,
             star_params,
@@ -155,7 +156,6 @@ def get_repo_root(base_dir: Path | None = None) -> Path:
     return base_dir or Path(__file__).resolve().parents[2]
 
 def _find_excel_file(repo_root: Path):
-    print("repo_root:", repo_root)
     try:
         # Ignore temporary Excel lock files (e.g. "~$Targets_V10p1.xlsx")
         excel_files = [
