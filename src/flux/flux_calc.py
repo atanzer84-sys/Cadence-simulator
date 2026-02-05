@@ -10,8 +10,29 @@ def calculateFluxOnEarth(star: Star, output_dir):
     print("Starting to calculate Flux on Earth")
     model_data = load_model_for_temperature(star.effective_temperature)
     print(np.shape(model_data))
-    luminosity_lambda = convertIntensityToLuminosity(model_data, star.radius_sun_cm)
-    dump_spectrum_txt(luminosity_lambda, output_dir, filename="convertIntensityToLuminosity_TIC393818343.txt")
+
+    # 2. Dump cut model snapshot
+    dump_cut_array(
+        model_data,
+        output_dir,
+        filename=f"{star.name}_model_input.txt"
+    )
+
+    # 3. Compute full luminosity
+    luminosity_lambda = convertIntensityToLuminosity(
+        model_data,
+        star.radius_sun_cm
+    )
+
+    # 4. Dump cut luminosity snapshot
+    dump_cut_array(
+        luminosity_lambda,
+        output_dir,
+        filename=f"{star.name}_convertIntensityToLuminosity_snapshot.txt"
+    )
+
+    # luminosity_lambda = convertIntensityToLuminosity(model_data, star.radius_sun_cm)
+    # dump_spectrum_txt(luminosity_lambda, output_dir, filename="convertIntensityToLuminosity_TIC393818343.txt")
 
 
 def load_model_for_temperature(t_star):
@@ -34,6 +55,7 @@ def load_model_for_temperature(t_star):
             model_file.relative_to(models_dir),
             t_star,
         )
+        print(f"Loaded stellar model {model_file.relative_to(models_dir)} for Teff={t_star} K")
         return model_data
 
 
@@ -81,41 +103,24 @@ def convertIntensityToLuminosity(model_data, r_star):
 
     return luminosity_lambda
 
-def dump_spectrum_txt(spectrum, output_dir, filename):
+def dump_cut_array(array, output_dir, filename, fmt="%.18e"):
     """
-    Writes a sampled version of the spectrum focusing on specific 
-    wavelength windows: NUV, Visible, and IR.
+    Cuts the array to the NUV, VIS, IR wavelength windows and dumps it
+    with full float64 precision.
     """
-    outpath = Path(output_dir) / filename
-    data = np.asarray(spectrum)
-    
-    # The first column (index 0) is Wavelength in Angstroms
-    wl = data[:, 0]
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Define our three masks (Boolean filters)
+    wl = array[:, 0]
+
     mask_nuv = (wl >= 3500) & (wl <= 3700)
     mask_vis = (wl >= 4500) & (wl <= 4700)
     mask_ir  = (wl >= 7800) & (wl <= 8000)
 
-    # Combine the data chunks
-    # We use data[mask] to grab only the rows where the wavelength matches
-    sampled_data = np.vstack((
-        data[mask_nuv],
-        data[mask_vis],
-        data[mask_ir]
-    ))
+    cut_array = np.vstack((array[mask_nuv],
+                           array[mask_vis],
+                           array[mask_ir]))
 
-    # Safety check: if the file didn't cover these ranges, 
-    # sampled_data might be smaller than expected.
-    if sampled_data.size == 0:
-        print("Warning: No data found in the specified wavelength ranges!")
-        return
+    np.savetxt(output_dir / filename, cut_array, fmt=fmt)
 
-    # Save to file
-    np.savetxt(
-        outpath,
-        sampled_data,
-        fmt=["%.4f", "%.6E", "%.6E"],
-    )
-    
-    print(f"Saved sampled NUV, VIS, and IR windows to {filename}")
+    return cut_array

@@ -2,8 +2,7 @@ import numpy as np
 import pytest
 from pathlib import Path
 from unittest.mock import patch
-
-from domain.constants import C_LIGHT
+from domain.constants import C_LIGHT, R_SUN
 from flux.flux_calc import load_model_for_temperature, convertIntensityToLuminosity
 
 def test_load_model_exact_match():
@@ -75,3 +74,116 @@ def test_frequency_to_wavelength_conversion():
 
     expected_intensity = C_LIGHT / (1000.0**2)
     np.testing.assert_allclose(recovered_intensity, expected_intensity)
+
+
+
+
+
+def test_convertIntensityToLuminosity_snapshot_WASP69():
+    tests_dir = Path(__file__).resolve().parents[1]
+    snap_dir = tests_dir / "snapshots"
+
+    input_file = snap_dir / "WASP-69_model_input.txt"
+    expected_file = snap_dir / "WASP-69_convertIntensityToLuminosity_snapshot.txt"
+
+    assert input_file.exists(), f"Missing input snapshot: {input_file}"
+    assert expected_file.exists(), f"Missing output snapshot: {expected_file}"
+
+    model_data = np.loadtxt(input_file, dtype=np.float64)
+    expected = np.loadtxt(expected_file, dtype=np.float64)
+
+    r_star_cm = 0.801 * R_SUN
+
+    got = convertIntensityToLuminosity(model_data, r_star_cm)
+
+    assert got.shape == expected.shape
+
+    np.testing.assert_allclose(got, expected, rtol=1e-10, atol=0.0)
+
+
+def test_convertIntensityToLuminosity_snapshot_TIC393818343():
+    tests_dir = Path(__file__).resolve().parents[1]
+    snap_dir = tests_dir / "snapshots"
+
+    input_file = snap_dir / "TIC 393818343_model_input.txt"
+    expected_file = snap_dir / "TIC 393818343_convertIntensityToLuminosity_snapshot.txt"
+
+    assert input_file.exists(), f"Missing input snapshot: {input_file}"
+    assert expected_file.exists(), f"Missing output snapshot: {expected_file}"
+
+    model_data = np.loadtxt(input_file, dtype=np.float64)
+    expected = np.loadtxt(expected_file, dtype=np.float64)
+
+    r_star_cm = 1.086 * R_SUN
+
+    got = convertIntensityToLuminosity(model_data, r_star_cm)
+
+    assert got.shape == expected.shape
+
+    np.testing.assert_allclose(got, expected, rtol=1e-10, atol=0.0)
+
+
+def test_convertIntensityToLuminosity_snapshot_WASP189():
+    tests_dir = Path(__file__).resolve().parents[1]
+    snap_dir = tests_dir / "snapshots"
+
+    input_file = snap_dir / "WASP-189_model_input.txt"
+    expected_file = snap_dir / "WASP-189_convertIntensityToLuminosity_snapshot.txt"
+
+    assert input_file.exists(), f"Missing input snapshot: {input_file}"
+    assert expected_file.exists(), f"Missing output snapshot: {expected_file}"
+
+    model_data = np.loadtxt(input_file, dtype=np.float64)
+    expected = np.loadtxt(expected_file, dtype=np.float64)
+
+    r_star_cm = 2.36 * R_SUN
+
+    got = convertIntensityToLuminosity(model_data, r_star_cm)
+
+    assert got.shape == expected.shape
+
+    np.testing.assert_allclose(got, expected, rtol=1e-10, atol=0.0)
+
+def test_convertIntensityToLuminosity_snapshot_Kelt9():
+    tests_dir = Path(__file__).resolve().parents[1]
+    snap_dir = tests_dir / "snapshots"
+
+    input_file = snap_dir / "KELT-9_model_input.txt"
+    expected_file = snap_dir / "KELT-9_convertIntensityToLuminosity_snapshot.txt"
+
+    assert input_file.exists(), f"Missing input snapshot: {input_file}"
+    assert expected_file.exists(), f"Missing output snapshot: {expected_file}"
+
+    model_data = np.loadtxt(input_file, dtype=np.float64)
+    expected = np.loadtxt(expected_file, dtype=np.float64)
+
+    r_star_cm = 2.362 * R_SUN
+
+    got = convertIntensityToLuminosity(model_data, r_star_cm)
+
+    assert got.shape == expected.shape
+
+    np.testing.assert_allclose(got, expected, rtol=1e-10, atol=0.0)
+
+
+def test_convertIntensityToLuminosity_snapshot_HD2685():
+    tests_dir = Path(__file__).resolve().parents[1]
+    snap_dir = tests_dir / "snapshots"
+
+    input_file = snap_dir / "HD 2685_model_input.txt"
+    expected_file = snap_dir / "HD 2685_convertIntensityToLuminosity_snapshot.txt"
+
+    assert input_file.exists(), f"Missing input snapshot: {input_file}"
+    assert expected_file.exists(), f"Missing output snapshot: {expected_file}"
+
+    model_data = np.loadtxt(input_file, dtype=np.float64)
+    expected = np.loadtxt(expected_file, dtype=np.float64)
+
+    r_star_cm = 1.56 * R_SUN
+
+    got = convertIntensityToLuminosity(model_data, r_star_cm)
+
+    assert got.shape == expected.shape
+
+    np.testing.assert_allclose(got, expected, rtol=1e-10, atol=0.0)
+
