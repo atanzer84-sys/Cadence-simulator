@@ -27,14 +27,10 @@ class Planet:
         if missing:
             raise ValueError(f"Planet missing required keys at construction: {missing}")
 
-        logging.info("Creating Planet with parameters:")
-        for k, v in planet_params.items():
-            logging.info("  %s = %r", k, v)
-
         print("==== PLANET Created ====")
         print(f"Planet created: {planet_params['name']}")
 
-        return cls(
+        planet = cls(
             name=planet_params["name"],
             discoverymethod=planet_params.get("discoverymethod"),
             orbital_period=planet_params.get("orbital_period"),
@@ -44,3 +40,6 @@ class Planet:
             equilibrium_temperature=planet_params.get("equilibrium_temperature"),
             scale_height=planet_params.get("scale_height"),
         )
+        logging.info("Created Planet object: %s", planet)
+
+        return planet
