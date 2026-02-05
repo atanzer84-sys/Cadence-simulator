@@ -15,5 +15,3 @@ M_SUN = 1.98847e30               # kg
 L_SUN = 3.828e26                 # W
 PARSEC = 3.0856775814913673e16   # m
 
-# simulator defaults
-DEFAULT_DISTANCE_PC = 10.0

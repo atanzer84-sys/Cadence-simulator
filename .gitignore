@@ -239,3 +239,4 @@ data/models/
 # but keep the README in data
 !data/models/readme.txt
 Archive.zip
+src/excelUnits.txt
