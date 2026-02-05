@@ -1,13 +1,10 @@
 """Tests for waltzer_simulator CLI: argument handling, param file location, errors."""
 
 import pytest
-
 import waltzer_simulator
-
 
 def _write_params(path, content: str) -> None:
     path.write_text(content.strip(), encoding="utf-8")
-
 
 VALID_PARAMS_CONTENT = """
 target_name = HD 202772 A
@@ -119,12 +116,12 @@ def test_no_argument_file_not_found_exits(monkeypatch, tmp_path):
 
 # --- One argument: param file path (different locations) ---
 def test_one_argument_absolute_path_success(monkeypatch, tmp_path):
-    import flux.flux_calc as flux_calc
-
+    # IMPORTANT: patch the symbol used by waltzer_simulator (it imports calculateFluxOnEarth directly)
     def fake_calculateFluxOnEarth(*args, **kwargs):
         return 1.0
 
-    monkeypatch.setattr(flux_calc, "calculateFluxOnEarth", fake_calculateFluxOnEarth)
+    monkeypatch.setattr(waltzer_simulator, "calculateFluxOnEarth", fake_calculateFluxOnEarth)
+
     param_file = tmp_path / "params.txt"
     _write_params(param_file, VALID_PARAMS_CONTENT)
     monkeypatch.chdir(tmp_path)
@@ -143,23 +140,27 @@ def test_one_argument_absolute_path_success(monkeypatch, tmp_path):
 
 
 
-def test_one_argument_relative_path_success(monkeypatch, tmp_path, capsys):
-    import flux.flux_calc as flux_calc
 
+def test_one_argument_relative_path_success(monkeypatch, tmp_path, capsys):
+    # IMPORTANT: patch the symbol used by waltzer_simulator (it imports calculateFluxOnEarth directly)
     def fake_calculateFluxOnEarth(*args, **kwargs):
         return 1.0
 
-    monkeypatch.setattr(flux_calc, "calculateFluxOnEarth", fake_calculateFluxOnEarth)
+    monkeypatch.setattr(waltzer_simulator, "calculateFluxOnEarth", fake_calculateFluxOnEarth)
 
     subdir = tmp_path / "param"
     subdir.mkdir()
     param_file = subdir / "Wasp 99.txt"
     _write_params(param_file, VALID_PARAMS_CONTENT)
-    monkeypatch.setattr("sys.argv", ["waltzer_simulator.py", "param/Wasp 99.txt"])
+
     monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("sys.argv", ["waltzer_simulator.py", "param/Wasp 99.txt"])
+
     waltzer_simulator.main()
+
     out = capsys.readouterr()
     assert "HD 202772 A" in out.out
+
 
 
 def test_one_argument_file_not_found_exits(monkeypatch, tmp_path, capsys):
