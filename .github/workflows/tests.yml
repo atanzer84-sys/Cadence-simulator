@@ -27,8 +27,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r tests/config/requirements.txt
 
-      - name: Install package
-        run: pip install -e .
-
       - name: Run tests
         run: python -m pytest tests/
+
