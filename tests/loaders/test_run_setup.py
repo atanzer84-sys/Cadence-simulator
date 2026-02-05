@@ -3,8 +3,83 @@
 from pathlib import Path
 
 import pytest
-
+import sys
 from loaders import run_setup
+
+import logging
+
+
+
+def test_setup_output_directory_creates_dir(monkeypatch, tmp_path):
+    # Redirect "output" to a temp directory
+    monkeypatch.chdir(tmp_path)
+
+    output_dir, timestamp = run_setup.setup_output_directory()
+
+    # Directory exists
+    assert output_dir.exists()
+    assert output_dir.is_dir()
+
+    # Timestamp looks correct
+    assert len(timestamp) > 0
+    assert timestamp in output_dir.name
+
+def test_setup_output_directory_handles_collision(monkeypatch, tmp_path):
+    # Freeze datetime.now() so both calls use the same timestamp
+    class FixedDateTime:
+        @staticmethod
+        def now():
+            from datetime import datetime
+            return datetime(2025, 2, 5, 12, 0, 0, 0)
+
+        @staticmethod
+        def strftime(fmt):
+            return FixedDateTime.now().strftime(fmt)
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(run_setup, "datetime", FixedDateTime)
+
+    # First call creates output/<timestamp>
+    first_dir, ts = run_setup.setup_output_directory()
+    assert first_dir.name == ts
+
+    # Manually create the base directory again to force a collision
+    base_dir = tmp_path / "output" / ts
+    base_dir.mkdir(exist_ok=True)
+
+    # Second call should now create <timestamp>_01
+    second_dir, ts2 = run_setup.setup_output_directory()
+
+    assert ts == ts2
+    assert second_dir.name == f"{ts}_01"
+    assert second_dir.exists()
+
+def test_setup_output_directory_prints(monkeypatch, tmp_path, capsys):
+    monkeypatch.chdir(tmp_path)
+
+    run_setup.setup_output_directory()
+    captured = capsys.readouterr().out
+
+    assert "Output directory created at:" in captured
+
+def test_setup_logger_prints(monkeypatch, tmp_path, capsys):
+    output_dir = tmp_path
+    timestamp = "20250101_120000_000000"
+
+    run_setup.setup_logger(output_dir, timestamp)
+
+    captured = capsys.readouterr().out
+    assert f"Log file created at: waltzer_simulator_{timestamp}.log" in captured
+
+def test_setup_logger_creates_file(tmp_path):
+    output_dir = tmp_path
+    timestamp = "20250101_120000_000000"
+
+    run_setup.setup_logger(output_dir, timestamp)
+
+    log_file = output_dir / f"waltzer_simulator_{timestamp}.log"
+    assert log_file.exists()
+
 
 
 # --- _find_excel_file --------------------------------------------------------
@@ -159,3 +234,17 @@ def test_load_excel_properties_raises_value_error(monkeypatch):
     with pytest.raises(ValueError):
         run_setup.load_excel_properties("Target")
 
+def test_load_user_parameters_default_file(monkeypatch, tmp_path):
+    # Create default parameters.txt
+    param_file = tmp_path / "parameters.txt"
+    param_file.write_text("target_name = HD 202772 A", encoding="utf-8")
+
+    # Simulate no arguments
+    monkeypatch.setattr(sys, "argv", ["prog"])
+    monkeypatch.chdir(tmp_path)
+
+    # Fake loader so we don't depend on real parsing
+    monkeypatch.setattr(run_setup, "load_parameters", lambda path: {"ok": True})
+
+    result = run_setup.load_user_parameters()
+    assert result == {"ok": True}

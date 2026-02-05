@@ -116,52 +116,6 @@ def test_no_argument_file_not_found_exits(monkeypatch, tmp_path):
     assert exc_info.value.code == 1
 
 
-def test_no_argument_uses_default_file_success(monkeypatch, tmp_path):
-    (tmp_path / "parameters.txt").write_text(VALID_PARAMS_CONTENT.strip(), encoding="utf-8")
-    monkeypatch.setattr("sys.argv", ["waltzer_simulator.py"])
-    monkeypatch.chdir(tmp_path)
-
-    monkeypatch.setattr(
-        waltzer_simulator,
-        "load_excel_properties",
-        lambda _: (
-            {"name": "Planet"},
-            {
-                "name": "Star",
-                "effective_temperature": 1.0,
-                "radius": 1.0,
-                "mass": 1.0,
-                "surface_gravity": 1.0,
-                "right_ascension": 1.0,
-                "declination": 1.0,
-                "distance": 1.0,
-            },
-            ["name"],
-            [
-                "name",
-                "effective_temperature",
-                "radius",
-                "mass",
-                "surface_gravity",
-                "right_ascension",
-                "declination",
-                "distance",
-            ],
-        ),
-    )
-
-    waltzer_simulator.main()
-
-    output_root = tmp_path / "output"
-    assert output_root.exists()
-
-    run_dirs = [p for p in output_root.iterdir() if p.is_dir()]
-    assert len(run_dirs) == 1
-
-    log_files = list(run_dirs[0].glob("waltzer_simulator_*.log"))
-    assert len(log_files) == 1
-
-
 
 # --- One argument: param file path (different locations) ---
 def test_one_argument_absolute_path_success(monkeypatch, tmp_path):
@@ -223,7 +177,6 @@ def test_one_argument_invalid_params_exits(monkeypatch, tmp_path, capsys):
     assert "Input error" in (out.out + out.err)
 
 def test_main_calls_star_and_planet_constructors(monkeypatch, tmp_path, capsys):
-    # Valid parameters
     params = tmp_path / "parameters.txt"
     params.write_text(
         "target_name = HD 202772 A\n"
@@ -237,19 +190,20 @@ def test_main_calls_star_and_planet_constructors(monkeypatch, tmp_path, capsys):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr("sys.argv", ["waltzer_simulator.py"])
 
-    # Fake Excel loader returns minimal valid data
     monkeypatch.setattr(
         waltzer_simulator,
         "load_excel_properties",
         lambda _target: (
-            {"name": "Planet"},  # planet params
-            {"name": "Star"},    # star params
-            ["name"],            # required planet keys
-            ["name"],            # required star keys
+            {"name": "Planet"},
+            {"name": "Star"},
+            ["name"],
+            ["name"],
         ),
     )
 
-    # Track constructor calls
+    # ⭐ Prevent physics code from running
+    monkeypatch.setattr(waltzer_simulator, "calculateFluxOnEarth", lambda star: None)
+
     star_called = {}
     planet_called = {}
 
