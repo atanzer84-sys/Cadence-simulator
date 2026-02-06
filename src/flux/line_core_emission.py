@@ -16,6 +16,8 @@ def apply_line_core_emission(flux, sigmaMg22, sigmaMg21, logR, spectral_type):
         sigmaMg22,
         sigmaMg21,
     )
+    flux_before = flux[:, 1].copy()
+
     Rmg = compute_Rmg(spectral_type, logR)
     E=Rmg*AU**2
     Mg21em=E/(1.0 + Mgaratio_loggf2to1)
@@ -25,14 +27,39 @@ def apply_line_core_emission(flux, sigmaMg22, sigmaMg21, logR, spectral_type):
     gaussMg2 = gaussMg21 + gaussMg22
     flux_emission = flux[:,1] + gaussMg2
     flux[:,1]= flux_emission
-    return flux
 
+    # diff
+    diff = flux[:, 1] - flux_before
+
+    msg = (
+        f"LCE DIFF max abs (full): {float(np.max(np.abs(diff)))} | "
+        f"mean abs (full): {float(np.mean(np.abs(diff)))}"
+    )
+    print(msg)
+    logging.info(msg)
+
+    mg_mask = (flux[:, 0] >= 2790.0) & (flux[:, 0] <= 2850.0)
+    if np.any(mg_mask):
+        msg = (
+            f"LCE DIFF max abs (Mg window): {float(np.max(np.abs(diff[mg_mask])))} | "
+            f"mean abs (Mg window): {float(np.mean(np.abs(diff[mg_mask])))}"
+        )
+        print(msg)
+        logging.info(msg)
+    else:
+        msg = "LCE DIFF Mg window: EMPTY"
+        print(msg)
+        logging.info(msg)
+
+    return flux
 
 def compute_Rmg(stype, logR):
     """
     Compute Mg II line core emission scaling factor Rmg
     from spectral type and logR (log R'_HK).
     """
+
+    print("stype: ", stype)
     if (stype == 'F5V' or stype == 'F6V' or stype == 'F7V' or 
         stype == 'F8V' or stype == 'F9V' or stype == 'F9.5V' or 
         stype == 'G0V' or stype == 'G1V' or stype == 'G2V' or 

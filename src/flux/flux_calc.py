@@ -14,7 +14,9 @@ def calculateFluxOnEarth(star: Star, output_dir):
     model_data = load_model_for_temperature(star.effective_temperature)
     flux_lambda_original = convertIntensityToFlux(model_data, star.radius_sun_cm)
     # keep undiluted flux
-    flux_lambda_diluted = flux_lambda_original
+    flux_lambda_diluted = flux_lambda_original.copy()
+
+
     wavelengths = flux_lambda_original[:,0]
 
     if cfg.test_mode:
@@ -28,6 +30,7 @@ def calculateFluxOnEarth(star: Star, output_dir):
     if cfg.line_core_emission:
         flux_lambda_diluted = apply_line_core_emission(flux_lambda_diluted,cfg.sigmaMg22, 
                                         cfg.sigmaMg21, star.log_r, star.spectral_type)
+
 
     if cfg.test_mode and cfg.line_core_emission:
         logging.info("test_mode=1 -> dumping flux snapshots (apply_line_core_emission)")
