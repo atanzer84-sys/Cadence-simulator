@@ -118,9 +118,9 @@ def dump_cut_array(array, output_dir, filename, fmt="%.18e"):
 
     wl = array[:, 0]
 
-    mask_nuv = (wl >= 3500) & (wl <= 3700)
-    mask_vis = (wl >= 4500) & (wl <= 4700)
-    mask_ir  = (wl >= 7800) & (wl <= 8000)
+    mask_nuv = (wl >= 2600) & (wl <= 2900)
+    mask_vis = (wl >= 5600) & (wl <= 5800)
+    mask_ir  = (wl >= 10000) & (wl <= 10200)
 
     cut_array = np.vstack((array[mask_nuv],
                            array[mask_vis],
