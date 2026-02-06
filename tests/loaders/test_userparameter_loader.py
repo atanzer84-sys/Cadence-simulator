@@ -5,11 +5,20 @@ import pytest
 from loaders.userparameter_loader import load_parameters
 
 
-def _write_params(tmp_path, content: str):
-    """Write content to a parameters file and return its path."""
-    path = tmp_path / "parameters.txt"
-    path.write_text(content.strip(), encoding="utf-8")
-    return path
+def _write_params(tmp_path, content: str) -> str:
+    p = tmp_path / "parameters.txt"
+    p.write_text(content.strip() + "\n", encoding="utf-8")
+    return str(p)
+
+def _write_min_params_with_target(tmp_path, target_name: str) -> str:
+    content = (
+        f"target_name = {target_name}\n"
+        "total_observation_length_h = 1\n"
+        "exposure_NUV_s = 1\n"
+        "exposure_VIS_s = 1\n"
+        "exposure_IR_s = 1\n"
+    )
+    return _write_params(tmp_path, content)
 
 
 # --- Valid inputs ---
@@ -171,4 +180,53 @@ def test_load_parameters_target_name_only_quotes_raises(tmp_path):
     """
     path = _write_params(tmp_path, content)
     with pytest.raises(ValueError, match="target_name must not be empty"):
+        load_parameters(path)
+
+
+
+def test_target_name_with_planet_letter_is_rejected(tmp_path):
+    p = tmp_path / "parameters.txt"
+    p.write_text(
+        "target_name = HF 123 b\n"
+        "total_observation_length_h = 1\n"
+        "exposure_NUV_s = 1\n"
+        "exposure_VIS_s = 1\n"
+        "exposure_IR_s = 1\n"
+    )
+
+    with pytest.raises(ValueError, match="Planet designators"):
+        load_parameters(p)
+
+
+@pytest.mark.parametrize(
+    "target_name, expected",
+    [
+        ("HF 123", "HF 123"),
+        (" HF 123 ", "HF 123"),
+        ("'HF 123'", "HF 123"),
+        ('"HF 123"', "HF 123"),
+        ("' HF 123 '", "HF 123"),
+        ("HF 123B", "HF 123B"),
+    ],
+)
+def test_target_name_accepts_star_only_variants(tmp_path, target_name, expected):
+    path = _write_min_params_with_target(tmp_path, target_name)
+    params = load_parameters(path)
+    assert params["target_name"] == expected
+
+
+@pytest.mark.parametrize(
+    "target_name",
+    [
+        "HF 123 b",      # reject
+        "HF 123 B",      # reject (case-insensitive)
+        "HF 123 b ",     # reject (trailing whitespace stripped first)
+        "'HF 123 b'",    # reject (quotes stripped first)
+        '"HF 123 b"',    # reject (quotes stripped first)
+        "' HF 123 b '",  # reject (quotes + trim)
+    ],
+)
+def test_target_name_rejects_planet_designator_variants(tmp_path, target_name):
+    path = _write_min_params_with_target(tmp_path, target_name)
+    with pytest.raises(ValueError, match="Planet designators"):
         load_parameters(path)

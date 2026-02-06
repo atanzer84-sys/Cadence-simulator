@@ -33,3 +33,12 @@ K_BOLTZMANN = 1.380649e-23       # J / K
 SIGMA_SB = 5.670374419e-8        # W / (m^2 K^4)
 L_SUN = 3.828e26                 # W
 M_SUN = 1.98847e30               # kg
+
+
+# wavelengths for test_dumps and comparisons in A
+WL_NUV_min =  2790.0
+WL_NUV_max =  2850.0
+WL_VIS_min =  5550.0
+WL_VIS_max =  5630.0
+WL_IR_min  = 11000.0
+WL_IR_max  = 11100.0

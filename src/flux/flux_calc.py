@@ -3,7 +3,7 @@ import numpy as np
 from pathlib import Path
 from loaders.run_setup import get_repo_root
 from domain.star import Star
-from domain.constants import C_LIGHT_ROUNDED_m_s, PARSEC_CM
+from domain.constants import C_LIGHT_ROUNDED_m_s, PARSEC_CM, WL_NUV_max, WL_IR_max, WL_IR_min, WL_NUV_min, WL_VIS_max, WL_VIS_min
 from configs.global_config import get_global_config
 from flux.line_core_emission import apply_line_core_emission
 
@@ -12,40 +12,27 @@ def calculateFluxOnEarth(star: Star, output_dir):
     cfg = get_global_config()
 
     model_data = load_model_for_temperature(star.effective_temperature)
-
-    if cfg.test_mode:
-        logging.info("test_mode=1 -> dumping model data + flux snapshots (legacy debug mode)")
-        dump_array(
-            model_data,
-            output_dir,
-            filename=f"{star.name}_model_input.txt"
-    )
-
     flux_lambda_original = convertIntensityToFlux(model_data, star.radius_sun_cm)
     # keep undiluted flux
     flux_lambda_diluted = flux_lambda_original
     wavelengths = flux_lambda_original[:,0]
 
     if cfg.test_mode:
+        logging.info("test_mode=1 -> dumping model data (legacy debug mode)")
+        dump_spectrum_snapshots(model_data, output_dir, star.name, "model_input")
+
         logging.info("test_mode=1 -> dumping flux snapshots (convertIntensityToLuminosity)")
-        dump_array(
-            flux_lambda_original,
-            output_dir,
-            filename=f"{star.name}_convertIntensityToLuminosity_snapshot.txt"
-        )
+        dump_spectrum_snapshots(flux_lambda_original, output_dir, star.name, "convertIntensityToLuminosity")
+
 
     if cfg.line_core_emission:
         flux_lambda_diluted = apply_line_core_emission(flux_lambda_diluted,cfg.sigmaMg22, 
                                         cfg.sigmaMg21, star.log_r, star.spectral_type)
 
-    if cfg.test_mode:
-        logging.info("test_mode=1 -> dumping flux snapshots (apply_line_core_emission_snapshot)")
-        dump_array(
-            flux_lambda_diluted,
-            output_dir,
-            filename=f"{star.name}_apply_line_core_emission_snapshot.txt",
-            cut = False
-    )
+    if cfg.test_mode and cfg.line_core_emission:
+        logging.info("test_mode=1 -> dumping flux snapshots (apply_line_core_emission)")
+        dump_spectrum_snapshots(flux_lambda_diluted, output_dir, star.name, "apply_line_core_emission")
+
 
     # if cfg.add_ism_abs:
     #     flux_lambda_diluted = apply_ism_abs(...)
@@ -129,31 +116,39 @@ def convertIntensityToFlux(model_data, r_star):
 
     return flux_lambda
 
-def dump_array(array, output_dir, filename, cut=True, fmt="%.18e"):
+def dump_array(array, output_dir, filename, wl_min=None, wl_max=None, fmt="%.18e"):
     """
     Dump a spectrum array to disk.
 
-    If cut=True (default), the array is cut to the NUV, VIS, IR wavelength windows.
-    If cut=False, the full array is dumped unchanged.
+    If wl_min and wl_max are provided, dump only wavelengths in [wl_min, wl_max].
+    If either is None, dump the full array.
     """
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    if cut:
+    if wl_min is not None and wl_max is not None:
         wl = array[:, 0]
-
-        mask_nuv = (wl >= 2600) & (wl <= 2900)
-        mask_vis = (wl >= 5600) & (wl <= 5800)
-        mask_ir  = (wl >= 10000) & (wl <= 10200)
-
-        out_array = np.vstack((
-            array[mask_nuv],
-            array[mask_vis],
-            array[mask_ir],
-        ))
+        out_array = array[(wl >= wl_min) & (wl <= wl_max)]
     else:
         out_array = array
 
     np.savetxt(output_dir / filename, out_array, fmt=fmt)
 
     return out_array
+
+def dump_spectrum_snapshots(
+    array,
+    output_dir,
+    star_name: str,
+    tag: str,
+    dump_full: bool = True,
+) -> None:
+    """
+    Dump a standard set of wavelength window snapshots for legacy comparison.
+    """
+    if dump_full:
+        dump_array(array, output_dir, filename=f"{star_name}_{tag}_complete.txt")
+
+    dump_array(array, output_dir, filename=f"{star_name}_{tag}_NUV.txt", wl_min=WL_NUV_min, wl_max=WL_NUV_max)
+    dump_array(array, output_dir, filename=f"{star_name}_{tag}_VIS.txt", wl_min=WL_VIS_min, wl_max=WL_VIS_max)
+    dump_array(array, output_dir, filename=f"{star_name}_{tag}_IR.txt", wl_min=WL_IR_min, wl_max=WL_IR_max)
