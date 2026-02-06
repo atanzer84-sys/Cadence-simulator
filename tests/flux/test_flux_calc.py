@@ -3,7 +3,7 @@ import pytest
 from pathlib import Path
 from unittest.mock import patch
 from domain.constants import C_LIGHT, R_SUN
-from flux.flux_calc import load_model_for_temperature, convertIntensityToLuminosity
+from flux.flux_calc import load_model_for_temperature, convertIntensityToFlux
 
 def test_load_model_exact_match():
     fake_data = np.array([[1.0, 2.0]])
@@ -58,7 +58,7 @@ def test_convertIntensityToLuminosity_shape_and_wavelength():
     ])
     r_star = 1.0
 
-    out = convertIntensityToLuminosity(model_data, r_star)
+    out = convertIntensityToFlux(model_data, r_star)
 
     assert out.shape == model_data.shape
     np.testing.assert_allclose(out[:,0], model_data[:,0])
@@ -67,7 +67,7 @@ def test_frequency_to_wavelength_conversion():
     model_data = np.array([[1000.0, 1.0, 0.0]])
     r_star = 1.0
 
-    out = convertIntensityToLuminosity(model_data, r_star)
+    out = convertIntensityToFlux(model_data, r_star)
 
     geometry = 4 * np.pi * r_star**2 * 4 * np.pi
     recovered_intensity = out[0,1] / geometry
@@ -94,7 +94,7 @@ def test_convertIntensityToLuminosity_snapshot_WASP69():
 
     r_star_cm = 0.801 * R_SUN
 
-    got = convertIntensityToLuminosity(model_data, r_star_cm)
+    got = convertIntensityToFlux(model_data, r_star_cm)
 
     assert got.shape == expected.shape
 
@@ -116,7 +116,7 @@ def test_convertIntensityToLuminosity_snapshot_TIC393818343():
 
     r_star_cm = 1.086 * R_SUN
 
-    got = convertIntensityToLuminosity(model_data, r_star_cm)
+    got = convertIntensityToFlux(model_data, r_star_cm)
 
     assert got.shape == expected.shape
 
@@ -138,7 +138,7 @@ def test_convertIntensityToLuminosity_snapshot_WASP189():
 
     r_star_cm = 2.36 * R_SUN
 
-    got = convertIntensityToLuminosity(model_data, r_star_cm)
+    got = convertIntensityToFlux(model_data, r_star_cm)
 
     assert got.shape == expected.shape
 
@@ -159,7 +159,7 @@ def test_convertIntensityToLuminosity_snapshot_Kelt9():
 
     r_star_cm = 2.362 * R_SUN
 
-    got = convertIntensityToLuminosity(model_data, r_star_cm)
+    got = convertIntensityToFlux(model_data, r_star_cm)
 
     assert got.shape == expected.shape
 
@@ -181,7 +181,7 @@ def test_convertIntensityToLuminosity_snapshot_HD2685():
 
     r_star_cm = 1.56 * R_SUN
 
-    got = convertIntensityToLuminosity(model_data, r_star_cm)
+    got = convertIntensityToFlux(model_data, r_star_cm)
 
     assert got.shape == expected.shape
 

@@ -30,10 +30,10 @@ def calculateFluxOnEarth(star: Star, output_dir):
     #     filename=f"{star.name}_convertIntensityToLuminosity_snapshot.txt"
     # )
 
-    luminosity_lambda = convertIntensityToLuminosity(model_data, star.radius_sun_cm)
-    wavelengths = luminosity_lambda[:,0]
-    luminosity = luminosity_lambda[:,1]
-    flux_at_earth    = luminosity/(4.*np.pi*(star.distance_pc*(PARSEC_CM))**2)
+    flux_lambda = convertIntensityToFlux(model_data, star.radius_sun_cm)
+    wavelengths = flux_lambda[:,0]
+    flux = flux_lambda[:,1]
+    flux_at_earth    = flux/(4.*np.pi*(star.distance_pc*(PARSEC_CM))**2)
 
 def load_model_for_temperature(t_star):
     """
@@ -77,7 +77,7 @@ def load_model_for_temperature(t_star):
         f"(tried {subdir} and {subdir_fb})"
     )
 
-def convertIntensityToLuminosity(model_data, r_star):
+def convertIntensityToFlux(model_data, r_star):
     '''
     Legacy model flux:
     frequency-based stellar model quantity, converted to per-wavelength
@@ -86,7 +86,7 @@ def convertIntensityToLuminosity(model_data, r_star):
     later converted to flux at Earth by geometric dilution.
     '''
     intensity_lambda        = np.zeros(np.shape(model_data))
-    luminosity_lambda  = np.zeros(np.shape(model_data))
+    flux_lambda  = np.zeros(np.shape(model_data))
     print("c: ", C_LIGHT)
     print("r_star: ", r_star)
     # we convert from frq to wavelength using lambda in Angstrom: F_lambda = F_nu * c / lambda^2
@@ -97,16 +97,16 @@ def convertIntensityToLuminosity(model_data, r_star):
     # Integrate over stellar surface area (4*pi*R^2) and over solid angle (4*pi)
     # multiply with surface area of star -> ergs/cm2/s/A to ergs/s/A
     # then multiply with 4*!pi for steradian conversion
-    luminosity_lambda[:,0]  = model_data[:,0]
-    luminosity_lambda[:,1]  = intensity_lambda[:,1] * 4 * np.pi * (r_star**2) * 4 * np.pi
-    luminosity_lambda[:,2]  = intensity_lambda[:,2] * 4 * np.pi * (r_star**2) * 4 * np.pi
+    flux_lambda[:,0]  = model_data[:,0]
+    flux_lambda[:,1]  = intensity_lambda[:,1] * 4 * np.pi * (r_star**2) * 4 * np.pi
+    flux_lambda[:,2]  = intensity_lambda[:,2] * 4 * np.pi * (r_star**2) * 4 * np.pi
     logging.info(
         "Converting intensity to luminosity for r_star=%.6e cm with %d wavelength points",
         r_star,
         model_data.shape[0]
     )
 
-    return luminosity_lambda
+    return flux_lambda
 
 def dump_cut_array(array, output_dir, filename, fmt="%.18e"):
     """
