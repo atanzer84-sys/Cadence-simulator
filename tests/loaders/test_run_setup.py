@@ -111,124 +111,23 @@ def test_find_excel_file_multiple_excels(tmp_path: Path) -> None:
     assert "B.xlsx" in msg
 
 
-# --- load_Excel_properties ---------------------------------------------------
+# --- load_stellar_and_planetary_properties ---------------------------------------------------
 
 
-def test_load_excel_properties_with_target_name(monkeypatch, tmp_path, caplog):
-    """Happy path: Excel file found and loader called with target."""
-    excel = tmp_path / "Targets.xlsx"
-    excel.write_bytes(b"")
-
-    # Use our tmp directory instead of the real repo root.
-    monkeypatch.setattr(run_setup, "get_repo_root", lambda base_dir=None: tmp_path)
-    monkeypatch.setattr(run_setup, "_find_excel_file", lambda repo_root: excel)
-
-    called = {}
-
-    def fake_loader(path, target):
-        called["path"] = path
-        called["target"] = target
-        return ({"ok": True}, target)
-
-    monkeypatch.setattr(run_setup, "load_matching_excel_row_from_excel", fake_loader)
-    monkeypatch.setattr(
-        run_setup,
-        "load_excel_cfg",
-        lambda _path: {
-            "mapping": True,
-            "required_star_parameters": [],
-            "required_planet_parameters": [],
-        },
-    )
-    monkeypatch.setattr(run_setup, "get_missing_properties", lambda _p, _req: [])
-    monkeypatch.setattr(run_setup, "lookup_star_gaia", lambda _s: {})
-    monkeypatch.setattr(run_setup, "merge_gaia_into_star_params", lambda s, _g: s)
-    monkeypatch.setattr(run_setup, "clean_and_cast_parameters", lambda params, _cls: params)
-    monkeypatch.setattr(
-        run_setup,
-        "map_to_planet_or_star_dictionary",
-        lambda _row, _mapping, _target: ({"planetary": True}, {"stellar": True}),
-    )
-
-    target_name = "HD 202772 A"
-    with caplog.at_level("INFO"):
-        result = run_setup.load_excel_properties(target_name)
-
-    # load_Excel_properties returns params plus required keys
-    assert result == ({"planetary": True}, {"stellar": True}, [], [])
-    assert called["path"] == excel
-    assert called["target"] == target_name
-
-    # Check that we logged which Excel file and target were used.
-    log_text = " ".join(caplog.messages)
-    assert "Using Excel file" in log_text
-    assert "Targets.xlsx" in log_text
-    assert target_name in log_text
-
-
-def test_load_excel_properties_with_empty_target_name(monkeypatch, tmp_path, caplog):
-    """Even an empty target name is passed through and logged."""
-    excel = tmp_path / "Targets.xlsx"
-    excel.write_bytes(b"")
-
-    monkeypatch.setattr(run_setup, "get_repo_root", lambda base_dir=None: tmp_path)
-    monkeypatch.setattr(run_setup, "_find_excel_file", lambda repo_root: excel)
-
-    seen = {}
-
-    def fake_loader(path, target):
-        seen["path"] = path
-        seen["target"] = target
-        return ({"ok": True}, target)
-
-    monkeypatch.setattr(run_setup, "load_matching_excel_row_from_excel", fake_loader)
-    monkeypatch.setattr(
-        run_setup,
-        "load_excel_cfg",
-        lambda _path: {
-            "mapping": True,
-            "required_star_parameters": [],
-            "required_planet_parameters": [],
-        },
-    )
-    monkeypatch.setattr(run_setup, "get_missing_properties", lambda _p, _req: [])
-    monkeypatch.setattr(run_setup, "lookup_star_gaia", lambda _s: {})
-    monkeypatch.setattr(run_setup, "merge_gaia_into_star_params", lambda s, _g: s)
-    monkeypatch.setattr(run_setup, "clean_and_cast_parameters", lambda params, _cls: params)
-    monkeypatch.setattr(
-        run_setup,
-        "map_to_planet_or_star_dictionary",
-        lambda _row, _mapping, _target: ({"planetary": True}, {"stellar": True}),
-    )
-
-    target_name = ""
-    with caplog.at_level("INFO"):
-        result = run_setup.load_excel_properties(target_name)
-
-    # load_Excel_properties returns params plus required keys
-    assert result == ({"planetary": True}, {"stellar": True}, [], [])
-    assert seen["path"] == excel
-    assert seen["target"] == target_name
-
-    log_text = " ".join(caplog.messages)
-    assert "Using Excel file" in log_text
-    assert "Targets.xlsx" in log_text
-
-
-def test_load_excel_properties_raises_file_not_found(monkeypatch):
+def test_load_stellar_and_planetary_properties_raises_file_not_found(monkeypatch):
     monkeypatch.setattr(run_setup, "get_repo_root", lambda base_dir=None: Path("/tmp"))
     monkeypatch.setattr(run_setup, "_find_excel_file", lambda repo_root: (_ for _ in ()).throw(FileNotFoundError("no excel")))
 
     with pytest.raises(FileNotFoundError):
-        run_setup.load_excel_properties("Target")
+        run_setup.load_stellar_and_planetary_properties("Target")
 
-def test_load_excel_properties_raises_value_error(monkeypatch):
+def test_load_stellar_and_planetary_properties_raises_value_error(monkeypatch):
     monkeypatch.setattr(run_setup, "get_repo_root", lambda base_dir=None: Path("/tmp"))
     monkeypatch.setattr(run_setup, "_find_excel_file", lambda repo_root: Path("/tmp/Targets.xlsx"))
     monkeypatch.setattr(run_setup, "load_matching_excel_row_from_excel", lambda _p, _t: (_ for _ in ()).throw(ValueError("bad excel")))
 
     with pytest.raises(ValueError):
-        run_setup.load_excel_properties("Target")
+        run_setup.load_stellar_and_planetary_properties("Target")
 
 def test_load_user_parameters_default_file(monkeypatch, tmp_path):
     # Create default parameters.txt
@@ -329,3 +228,21 @@ def test_load_user_parameters_success(monkeypatch, tmp_path):
 
     result = run_setup.load_user_parameters()
     assert result == {"ok": True}
+
+def test_infer_mamajek_spectral_type_sets_spectral_type(monkeypatch, caplog):
+    # fake table with two rows
+    class FakeTable:
+        def __len__(self): return 2
+        def __getitem__(self, key):
+            if key == "col1": return ["F1V", "F2V"]
+            if key == "col2": return [6900.0, 6800.0]
+            raise KeyError(key)
+
+    monkeypatch.setattr(run_setup.ascii, "read", lambda *_args, **_kw: FakeTable())
+
+    star_params = {"effective_temperature": 6801.0}
+    with caplog.at_level("INFO"):
+        out = run_setup.infer_mamajek_spectral_type(star_params, "dummy_path.txt")
+
+    assert out["spectral_type"] == "F2V"
+    assert "Loading Mamajek table" in " ".join(caplog.messages)

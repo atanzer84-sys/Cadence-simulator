@@ -1,4 +1,4 @@
-from loaders.run_setup import setup_output_directory, setup_logger, load_user_parameters, load_excel_properties, get_repo_root
+from loaders.run_setup import setup_output_directory, setup_logger, load_user_parameters, load_stellar_and_planetary_properties, get_repo_root
 from configs.global_config import load_global_config
 
 from domain.star import Star
@@ -20,7 +20,7 @@ def main():
         load_global_config(repo_root / "configs" / "global.cfg")
         user_parameters = load_user_parameters()
         # print(user_parameters)
-        planet_param, stellar_param, required_planet_keys, required_star_keys = load_excel_properties(user_parameters["target_name"])
+        planet_param, stellar_param, required_planet_keys, required_star_keys = load_stellar_and_planetary_properties(user_parameters["target_name"])
     except Exception as e:
         logging.exception("Input error while loading user parameters or Excel properties")
         print(f"Input error: {e}")

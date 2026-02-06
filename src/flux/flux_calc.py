@@ -5,7 +5,7 @@ from loaders.run_setup import get_repo_root
 from domain.star import Star
 from domain.constants import C_LIGHT, PARSEC_CM
 from configs.global_config import get_global_config
-from flux.line_core_emission import line_core_emission
+from flux.line_core_emission import apply_line_core_emission
 
 def calculateFluxOnEarth(star: Star, output_dir):
     print("Starting to calculate Flux on Earth")
@@ -34,8 +34,10 @@ def calculateFluxOnEarth(star: Star, output_dir):
             filename=f"{star.name}_convertIntensityToLuminosity_snapshot.txt"
     )
 
-    # if cfg.line_core_emission:
-    #     flux_lambda_diluted = line_core_emission(flux_lambda_diluted)
+    if cfg.line_core_emission:
+        flux_lambda_diluted = apply_line_core_emission(flux_lambda_diluted,cfg.sigmaMgIIh, 
+                                        cfg.sigmaMgIIk, star.effective_temperature, 
+                                        star.radius_sun_cm, star.log_r, star.spectral_type)
 
     # if cfg.add_ism_abs:
     #     flux_lambda_diluted = apply_ism_abs(...)
