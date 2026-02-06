@@ -4,36 +4,50 @@ from pathlib import Path
 from loaders.run_setup import get_repo_root
 from domain.star import Star
 from domain.constants import C_LIGHT, PARSEC_CM
+from configs.global_config import get_global_config
+from flux.line_core_emission import line_core_emission
 
 def calculateFluxOnEarth(star: Star, output_dir):
     print("Starting to calculate Flux on Earth")
+    cfg = get_global_config()
+
     model_data = load_model_for_temperature(star.effective_temperature)
     print(np.shape(model_data))
 
-    # # 2. Dump cut model snapshot
-    # dump_cut_array(
-    #     model_data,
-    #     output_dir,
-    #     filename=f"{star.name}_model_input.txt"
-    # )
+    if cfg.test_mode:
+        logging.info("test_mode=1 -> dumping model + flux snapshots (legacy debug mode)")
+        dump_cut_array(
+            model_data,
+            output_dir,
+            filename=f"{star.name}_model_input.txt"
+    )
 
-    # # 3. Compute full luminosity
-    # luminosity_lambda = convertIntensityToLuminosity(
-    #     model_data,
-    #     star.radius_sun_cm
-    # )
+    flux_lambda_original = convertIntensityToFlux(model_data, star.radius_sun_cm)
+    # keep undiluted flux
+    flux_lambda_diluted = flux_lambda_original
+    wavelengths = flux_lambda_original[:,0]
 
-    # # 4. Dump cut luminosity snapshot
-    # dump_cut_array(
-    #     luminosity_lambda,
-    #     output_dir,
-    #     filename=f"{star.name}_convertIntensityToLuminosity_snapshot.txt"
-    # )
+    if cfg.test_mode:
+        dump_cut_array(
+            flux_lambda_original,
+            output_dir,
+            filename=f"{star.name}_convertIntensityToLuminosity_snapshot.txt"
+    )
 
-    flux_lambda = convertIntensityToFlux(model_data, star.radius_sun_cm)
-    wavelengths = flux_lambda[:,0]
-    flux = flux_lambda[:,1]
+    # if cfg.line_core_emission:
+    #     flux_lambda_diluted = line_core_emission(flux_lambda_diluted)
+
+    # if cfg.add_ism_abs:
+    #     flux_lambda_diluted = apply_ism_abs(...)
+
+    # if cfg.apply_extinction:
+    #     flux_lambda_diluted = apply_extinction(...)
+
+
+
+    flux = flux_lambda_original[:,1]
     flux_at_earth    = flux/(4.*np.pi*(star.distance_pc*(PARSEC_CM))**2)
+
 
 def load_model_for_temperature(t_star):
     """

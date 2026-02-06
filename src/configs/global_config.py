@@ -12,11 +12,15 @@ class GlobalConfig:
     mg2_col: float | None
     mg1_col: float | None
     fe2_col: float | None
+    sigmaMgIIh: float
+    sigmaMgIIk: float
     test_mode: bool
 
 
 _GLOBAL: GlobalConfig | None = None
 
+DEFAULT_SIGMA_MGIIH = 0.257
+DEFAULT_SIGMA_MGIIK = 0.288
 
 def load_global_config(path: Path) -> GlobalConfig:
     """
@@ -45,6 +49,8 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
     logging.info("Reading global config from %s", path)
 
     raw = _parse_simple_kv(path)
+    _warn_default_used(raw, "sigmaMgIIh", DEFAULT_SIGMA_MGIIH, path=path)
+    _warn_default_used(raw, "sigmaMgIIk", DEFAULT_SIGMA_MGIIK, path=path)
 
     cfg = GlobalConfig(
         line_core_emission=_as_bool(
@@ -58,6 +64,15 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
         mg2_col=_as_optional_float(raw.get("mg2_col", None)),
         mg1_col=_as_optional_float(raw.get("mg1_col", None)),
         fe2_col=_as_optional_float(raw.get("fe2_col", None)),
+        sigmaMgIIh=_as_float(
+            raw.get("sigmaMgIIh", DEFAULT_SIGMA_MGIIH),
+            key="sigmaMgIIh",
+        ),
+        sigmaMgIIk=_as_float(
+            raw.get("sigmaMgIIk", DEFAULT_SIGMA_MGIIK),
+            key="sigmaMgIIk",
+        ),
+
         test_mode=_as_bool(
             raw.get("test_mode", 0),
             key="test_mode",
@@ -92,6 +107,14 @@ def _as_optional_float(v: object | None) -> float | None:
         return None
     return float(s)
 
+def _as_float(value, *, key: str) -> float:
+    try:
+        return float(value)
+    except Exception as exc:
+        logging.error("Invalid float for key '%s': %r", key, value)
+        raise ValueError(f"Invalid float for key '{key}': {value!r}") from exc
+
+
 def _parse_simple_kv(path: Path) -> dict[str, str]:
     if not path.exists():
         logging.error("Global config file not found at %s", path)
@@ -109,3 +132,12 @@ def _parse_simple_kv(path: Path) -> dict[str, str]:
         k, v = (p.strip() for p in s.split("=", 1))
         data[k] = v
     return data
+
+def _warn_default_used(raw: dict, key: str, default, *, path: Path) -> None:
+    if key not in raw:
+        logging.warning(
+            "%s not provided in %s, using default value %s",
+            key,
+            path,
+            default,
+        )
