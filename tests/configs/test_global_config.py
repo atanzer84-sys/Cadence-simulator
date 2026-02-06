@@ -82,13 +82,15 @@ def test_invalid_boolean_reports_property_name(caplog):
         "line_core_emission" in rec.message and rec.levelname == "ERROR"
         for rec in caplog.records
     )
-def test_missing_sigmaMgIIh_uses_default_and_logs_warning(caplog, tmp_path):
+
+    
+def test_missing_sigmaMg22_uses_default_and_logs_warning(caplog, tmp_path):
     cfg_path = tmp_path / "global_missing_sigma_h.cfg"
     cfg_path.write_text(
         """
 line_core_emission = 1
 add_ism_abs = 0
-sigmaMgIIk = 0.288
+sigmaMg21 = 0.288
 test_mode = 0
 """,
         encoding="utf-8",
@@ -96,10 +98,6 @@ test_mode = 0
 
     cfg = global_config.load_global_config(cfg_path)
 
-    assert cfg.sigmaMgIIh == global_config.DEFAULT_SIGMA_MGIIH
+    assert cfg.sigmaMg22 == global_config.DEFAULT_SIGMA_MG22
+    assert any("sigmaMg22 not provided" in rec.message and rec.levelname == "WARNING" for rec in caplog.records)
 
-    assert any(
-        "sigmaMgIIh not provided" in rec.message
-        and rec.levelname == "WARNING"
-        for rec in caplog.records
-    )

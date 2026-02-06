@@ -1,11 +1,21 @@
 from domain.constants import AU, Mgaratio_loggf2to1, MgII2w, MgII1w
 import numpy as np
+import logging
 
 def apply_line_core_emission(flux, sigmaMg22, sigmaMg21, logR, spectral_type):
     """
     Add Mg II h & k line core emission to the stellar flux.
     Thin wrapper around legacy cute_snr_lca.
     """
+    print("Starting to apply line core emission")
+    logging.info(
+        "Applying Mg II line core emission: "
+        "spectral_type=%s, logR=%s, sigmaMg22=%.6f, sigmaMg21=%.6f",
+        spectral_type,
+        logR,
+        sigmaMg22,
+        sigmaMg21,
+    )
     Rmg = compute_Rmg(spectral_type, logR)
     E=Rmg*AU**2
     Mg21em=E/(1.0 + Mgaratio_loggf2to1)

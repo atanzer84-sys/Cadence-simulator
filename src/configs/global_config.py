@@ -12,15 +12,15 @@ class GlobalConfig:
     mg2_col: float | None
     mg1_col: float | None
     fe2_col: float | None
-    sigmaMgIIh: float
-    sigmaMgIIk: float
+    sigmaMg22: float
+    sigmaMg21: float
     test_mode: bool
 
 
 _GLOBAL: GlobalConfig | None = None
 
-DEFAULT_SIGMA_MGIIH = 0.257
-DEFAULT_SIGMA_MGIIK = 0.288
+DEFAULT_SIGMA_MG22 = 0.257
+DEFAULT_SIGMA_MG21 = 0.288
 
 def load_global_config(path: Path) -> GlobalConfig:
     """
@@ -49,8 +49,8 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
     logging.info("Reading global config from %s", path)
 
     raw = _parse_simple_kv(path)
-    _warn_default_used(raw, "sigmaMgIIh", DEFAULT_SIGMA_MGIIH, path=path)
-    _warn_default_used(raw, "sigmaMgIIk", DEFAULT_SIGMA_MGIIK, path=path)
+    _warn_default_used(raw, "sigmaMg22", DEFAULT_SIGMA_MG22, path=path)
+    _warn_default_used(raw, "sigmaMg21", DEFAULT_SIGMA_MG21, path=path)
 
     cfg = GlobalConfig(
         line_core_emission=_as_bool(
@@ -64,12 +64,12 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
         mg2_col=_as_optional_float(raw.get("mg2_col", None)),
         mg1_col=_as_optional_float(raw.get("mg1_col", None)),
         fe2_col=_as_optional_float(raw.get("fe2_col", None)),
-        sigmaMgIIh=_as_float(
-            raw.get("sigmaMgIIh", DEFAULT_SIGMA_MGIIH),
+        sigmaMg22=_as_float(
+            raw.get("sigmaMg22", DEFAULT_SIGMA_MG22),
             key="sigmaMgIIh",
         ),
-        sigmaMgIIk=_as_float(
-            raw.get("sigmaMgIIk", DEFAULT_SIGMA_MGIIK),
+        sigmaMg21=_as_float(
+            raw.get("sigmaMg21", DEFAULT_SIGMA_MG21),
             key="sigmaMgIIk",
         ),
 

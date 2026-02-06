@@ -14,7 +14,7 @@ def calculateFluxOnEarth(star: Star, output_dir):
     model_data = load_model_for_temperature(star.effective_temperature)
 
     if cfg.test_mode:
-        logging.info("test_mode=1 -> dumping model + flux snapshots (legacy debug mode)")
+        logging.info("test_mode=1 -> dumping model data + flux snapshots (legacy debug mode)")
         dump_array(
             model_data,
             output_dir,
@@ -27,17 +27,19 @@ def calculateFluxOnEarth(star: Star, output_dir):
     wavelengths = flux_lambda_original[:,0]
 
     if cfg.test_mode:
+        logging.info("test_mode=1 -> dumping flux snapshots (convertIntensityToLuminosity)")
         dump_array(
             flux_lambda_original,
             output_dir,
             filename=f"{star.name}_convertIntensityToLuminosity_snapshot.txt"
-    )
+        )
 
     if cfg.line_core_emission:
         flux_lambda_diluted = apply_line_core_emission(flux_lambda_diluted,cfg.sigmaMg22, 
                                         cfg.sigmaMg21, star.log_r, star.spectral_type)
 
     if cfg.test_mode:
+        logging.info("test_mode=1 -> dumping flux snapshots (apply_line_core_emission_snapshot)")
         dump_array(
             flux_lambda_diluted,
             output_dir,
@@ -77,7 +79,6 @@ def load_model_for_temperature(t_star):
             model_file.relative_to(models_dir),
             t_star,
         )
-        # print(f"Loaded stellar model {model_file.relative_to(models_dir)} for Teff={t_star} K")
         return model_data
 
 
