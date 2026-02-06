@@ -39,9 +39,10 @@ def calculateFluxOnEarth(star: Star, output_dir):
 
     if cfg.test_mode:
         dump_array(
-            flux_lambda_original,
+            flux_lambda_diluted,
             output_dir,
-            filename=f"{star.name}_apply_line_core_emission_snapshot.txt"
+            filename=f"{star.name}_apply_line_core_emission_snapshot.txt",
+            cut = False
     )
 
     # if cfg.add_ism_abs:
