@@ -8,6 +8,7 @@ from flux.cute_line_core_emission import apply_line_core_emission
 from flux.cute_extinction import extinction_amores
 from flux.cute_ism_abs_all import cute_ism_abs_all
 from flux.cute_unred import unred
+from utils.plot_spectra import plot_flux_and_photons_windows
 from utils.debug_dumps import dump_spectrum_snapshots, dump_diff_windows_3d, dump_spectrum_snapshots_1d, dump_diff_windows_1d
 from astropy.coordinates import SkyCoord
 from astropy import units as u
@@ -95,12 +96,23 @@ def calculateFluxOnEarth(star: Star, output_dir):
         dump_diff_windows_1d(wavelengths, flux_di_before, flux_at_earth, output_dir, star.name, tag="after_flux_at_earth")
         flux_e_before_unred = flux_at_earth.copy()
 
+    # UNRED FLUX
     flux_unred = unred(wavelengths, flux_at_earth, ebv=ebv, R_V=3.1)
 
     if cfg.test_mode:
         dump_spectrum_snapshots_1d(wavelengths, flux_unred, output_dir, star.name, "after_unred")
         dump_diff_windows_1d(wavelengths, flux_e_before_unred, flux_unred, output_dir, star.name, tag="after_unred")
 
+    photons_star = flux_unred*5.03e7*wavelengths     #from ergs/s/cm2/A to photons/s/cm2/A
+
+
+    if cfg.produce_Plots:
+        plot_flux_and_photons_windows(wavelengths, flux_lambda_original[:, 1], photons_star, output_dir, star)
+        plot_flux_and_photons_windows(wavelengths, flux_lambda_original[:, 1], photons_star, output_dir, star)
+
+    print("Flux at Earth calculation finished.")
+    logging.info("Flux at Earth calculation finished.")
+    return photons_star
 
 def load_model_for_temperature(t_star):
     """

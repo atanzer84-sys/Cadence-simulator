@@ -15,6 +15,7 @@ class GlobalConfig:
     sigmaMg22: float
     sigmaMg21: float
     test_mode: bool
+    produce_Plots: bool
 
 
 _GLOBAL: GlobalConfig | None = None
@@ -76,6 +77,10 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
         test_mode=_as_bool(
             raw.get("test_mode", 0),
             key="test_mode",
+        ),    
+        produce_Plots=_as_bool(
+            raw.get("produce_Plots", 0),
+            key="produce_Plots",
         ),    
     )
     logging.info("Global config loaded: %s", cfg)
