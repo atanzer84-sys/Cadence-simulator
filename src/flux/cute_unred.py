@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.interpolate as interpolate
+import logging
 
 def unred(wave, flux, ebv, R_V=3.1, LMC2=False, AVGLMC=False):
     """
@@ -91,8 +92,12 @@ def unred(wave, flux, ebv, R_V=3.1, LMC2=False, AVGLMC=False):
          c1 - Intercept of the linear UV extinction component 
               (default = 2.030 - 3.007*c2
     """
+  
+    logging.info("Starting unred: ebv=%s R_V=%s LMC2=%s AVGLMC=%s", ebv, R_V, LMC2, AVGLMC)
 
     x = 10000./ wave # Convert to inverse microns 
+    logging.debug("unred wavelength range: %.2f %.2f", wave.min(), wave.max())
+
     curve = x*0.
     
     # Set some standard values:
@@ -118,6 +123,8 @@ def unred(wave, flux, ebv, R_V=3.1, LMC2=False, AVGLMC=False):
         c2    = 1.11
         c1    =  -1.28
     
+    logging.info("unred params: x0=%s gamma=%s c1=%s c2=%s c3=%s c4=%s", x0, gamma, c1, c2, c3, c4)
+
     # Compute UV portion of A(lambda)/E(B-V) curve using FM fitting function and 
     # R-dependent coefficients
     xcutuv = np.array([10000.0/2700.0])
@@ -154,5 +161,7 @@ def unred(wave, flux, ebv, R_V=3.1, LMC2=False, AVGLMC=False):
     
     #Now apply extinction correction to input flux vector
     curve *= ebv
-    
+    logging.info("Applying unred extinction curve")
+    logging.info("Finished unred")
+
     return flux * 10.**(0.4*curve)

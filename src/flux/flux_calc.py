@@ -2,13 +2,13 @@ import logging
 import numpy as np
 from loaders.run_setup import get_repo_root
 from domain.star import Star
-from utils.constants import C_LIGHT_ROUNDED_m_s
+from utils.constants import C_LIGHT_ROUNDED_m_s, PARSEC_CM
 from configs.global_config import get_global_config
 from flux.cute_line_core_emission import apply_line_core_emission
 from flux.cute_extinction import extinction_amores
 from flux.cute_ism_abs_all import cute_ism_abs_all
-from utils.debug_dumps import dump_spectrum_snapshots, dump_diff_windows_3d
-# , dump_spectrum_snapshots_1d, dump_diff_windows_1d
+from flux.cute_unred import unred
+from utils.debug_dumps import dump_spectrum_snapshots, dump_diff_windows_3d, dump_spectrum_snapshots_1d, dump_diff_windows_1d
 from astropy.coordinates import SkyCoord
 from astropy import units as u
 
@@ -20,7 +20,7 @@ def calculateFluxOnEarth(star: Star, output_dir):
     flux_lambda_original = convertIntensityToFlux(model_data, star.radius_sun_cm)
     # keep undiluted flux
     flux_lambda_diluted = flux_lambda_original.copy()
-    # wavelengths = flux_lambda_original[:,0]
+    wavelengths = flux_lambda_original[:,0]
 
     if cfg.test_mode:
         logging.info("test_mode=1 -> dumping model data (legacy debug mode)")
@@ -65,7 +65,7 @@ def calculateFluxOnEarth(star: Star, output_dir):
             logging.info("test_mode=1 -> dumping flux snapshots (ism_snapshot)")
             dump_spectrum_snapshots(spectrum_before_ism, output_dir, star.name, "ism_snapshot")
 
-        # ACTUAL ISM CALL
+        # ACTUAL ISM_ABS CALL
         flux_lambda_diluted = apply_ism_absorption(flux_lambda_diluted, ebv, cfg)
 
         if cfg.test_mode:
@@ -78,8 +78,28 @@ def calculateFluxOnEarth(star: Star, output_dir):
         logging.info("Interstellar Medium absorption not applied!")
 
 
-    # flux = flux_lambda_original[:,1]
-    # flux_at_earth    = flux/(4.*np.pi*(star.distance_pc*(PARSEC_CM))**2)
+    if cfg.test_mode:
+        flux_di_before = flux_lambda_diluted[:, 1].copy()
+        dump_spectrum_snapshots_1d(wavelengths, flux_di_before, output_dir, star.name, "before_flux_at_earth")
+
+    # FINALLY FLUX ON EARTH
+    logging.info("Calculating Flux at Earth.")
+    print("Calculating Flux at Earth.")
+
+    flux_di   = flux_lambda_diluted[:,1]
+    flux_at_earth = flux_di / (4.0 * np.pi * (star.distance_pc * PARSEC_CM) ** 2)
+    ebv       = -1.*ebv
+
+    if cfg.test_mode:
+        dump_spectrum_snapshots_1d(wavelengths, flux_at_earth, output_dir, star.name, "after_flux_at_earth")
+        dump_diff_windows_1d(wavelengths, flux_di_before, flux_at_earth, output_dir, star.name, tag="after_flux_at_earth")
+        flux_e_before_unred = flux_at_earth.copy()
+
+    flux_unred = unred(wavelengths, flux_at_earth, ebv=ebv, R_V=3.1)
+
+    if cfg.test_mode:
+        dump_spectrum_snapshots_1d(wavelengths, flux_unred, output_dir, star.name, "after_unred")
+        dump_diff_windows_1d(wavelengths, flux_e_before_unred, flux_unred, output_dir, star.name, tag="after_unred")
 
 
 def load_model_for_temperature(t_star):
