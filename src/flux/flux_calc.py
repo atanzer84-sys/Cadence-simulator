@@ -1,11 +1,16 @@
 import logging
 import numpy as np
-from pathlib import Path
 from loaders.run_setup import get_repo_root
 from domain.star import Star
-from domain.constants import C_LIGHT_ROUNDED_m_s, PARSEC_CM, WL_NUV_max, WL_IR_max, WL_IR_min, WL_NUV_min, WL_VIS_max, WL_VIS_min
+from utils.constants import C_LIGHT_ROUNDED_m_s
 from configs.global_config import get_global_config
-from flux.line_core_emission import apply_line_core_emission
+from flux.cute_line_core_emission import apply_line_core_emission
+from flux.cute_extinction import extinction_amores
+from flux.cute_ism_abs_all import cute_ism_abs_all
+from utils.debug_dumps import dump_spectrum_snapshots, dump_diff_windows_3d
+# , dump_spectrum_snapshots_1d, dump_diff_windows_1d
+from astropy.coordinates import SkyCoord
+from astropy import units as u
 
 def calculateFluxOnEarth(star: Star, output_dir):
     print("Starting to calculate Flux on Earth")
@@ -15,38 +20,66 @@ def calculateFluxOnEarth(star: Star, output_dir):
     flux_lambda_original = convertIntensityToFlux(model_data, star.radius_sun_cm)
     # keep undiluted flux
     flux_lambda_diluted = flux_lambda_original.copy()
-
-
-    wavelengths = flux_lambda_original[:,0]
+    # wavelengths = flux_lambda_original[:,0]
 
     if cfg.test_mode:
         logging.info("test_mode=1 -> dumping model data (legacy debug mode)")
         dump_spectrum_snapshots(model_data, output_dir, star.name, "model_input")
-
-        logging.info("test_mode=1 -> dumping flux snapshots (convertIntensityToLuminosity)")
-        dump_spectrum_snapshots(flux_lambda_original, output_dir, star.name, "convertIntensityToLuminosity")
+        logging.info("test_mode=1 -> dumping flux snapshots (convertIntensityToLuminosity_snapshot)")
+        dump_spectrum_snapshots(flux_lambda_original, output_dir, star.name, "convertIntensityToLuminosity_snapshot")
+        logging.info("test_mode=1 -> dumping flux diffs (after_convertIntensityToLuminosity)")
+        dump_diff_windows_3d(model_data, flux_lambda_original, output_dir, star.name, tag="after_convertIntensityToLuminosity")
 
 
     if cfg.line_core_emission:
-        flux_lambda_diluted = apply_line_core_emission(flux_lambda_diluted,cfg.sigmaMg22, 
-                                        cfg.sigmaMg21, star.log_r, star.spectral_type)
+        if cfg.test_mode:
+            spectrum_before_lce = flux_lambda_diluted.copy()
+            logging.info("test_mode=1 -> dumping flux snapshots (lca_original)")
+            dump_spectrum_snapshots(spectrum_before_lce, output_dir, star.name, "lca_original")
+
+        # ACTUAL LCA EMISSION 
+        flux_lambda_diluted = apply_line_core_emission(flux_lambda_diluted, cfg.sigmaMg22, cfg.sigmaMg21, star.log_r, star.spectral_type)
+
+        if cfg.test_mode:
+            logging.info("test_mode=1 -> dumping flux snapshots (after_line_core_emission)")
+            dump_spectrum_snapshots(flux_lambda_diluted, output_dir, star.name, "after_line_core_emission")
+            logging.info("test_mode=1 -> dumping flux diffs (after_line_core_emission)")
+            dump_diff_windows_3d(spectrum_before_lce, flux_lambda_diluted, output_dir, star.name, tag="after_line_core_emission")
+    else:
+        logging.info("Line Core Emission not applied!")
 
 
-    if cfg.test_mode and cfg.line_core_emission:
-        logging.info("test_mode=1 -> dumping flux snapshots (apply_line_core_emission)")
-        dump_spectrum_snapshots(flux_lambda_diluted, output_dir, star.name, "apply_line_core_emission")
+    # Starting extinction
+    distance_kpc         = star.distance_pc/1000.0
+
+    #get extinction based on coordinates and distance
+    c      = SkyCoord(ra=star.right_ascension, dec=star.declination, unit=(u.degree, u.degree))
+    # print("c: ", c)
+    glon   = c.galactic.l.deg
+    glat   = c.galactic.b.deg
+    ebv,av = extinction_amores(glon,glat,distance_kpc) 
+
+    if cfg.add_ism_abs:
+        if cfg.test_mode:
+            spectrum_before_ism = flux_lambda_diluted.copy()
+            logging.info("test_mode=1 -> dumping flux snapshots (ism_snapshot)")
+            dump_spectrum_snapshots(spectrum_before_ism, output_dir, star.name, "ism_snapshot")
+
+        # ACTUAL ISM CALL
+        flux_lambda_diluted = apply_ism_absorption(flux_lambda_diluted, ebv, cfg)
+
+        if cfg.test_mode:
+            logging.info("test_mode=1 -> dumping flux snapshots (after_ISM)")
+            dump_spectrum_snapshots(flux_lambda_diluted, output_dir, star.name, "after_ISM")
+
+            logging.info("test_mode=1 -> dumping flux diffs (after_ISM)")
+            dump_diff_windows_3d(spectrum_before_ism, flux_lambda_diluted, output_dir, star.name, tag="after_ISM")
+    else:
+        logging.info("Interstellar Medium absorption not applied!")
 
 
-    # if cfg.add_ism_abs:
-    #     flux_lambda_diluted = apply_ism_abs(...)
-
-    # if cfg.apply_extinction:
-    #     flux_lambda_diluted = apply_extinction(...)
-
-
-
-    flux = flux_lambda_original[:,1]
-    flux_at_earth    = flux/(4.*np.pi*(star.distance_pc*(PARSEC_CM))**2)
+    # flux = flux_lambda_original[:,1]
+    # flux_at_earth    = flux/(4.*np.pi*(star.distance_pc*(PARSEC_CM))**2)
 
 
 def load_model_for_temperature(t_star):
@@ -119,39 +152,42 @@ def convertIntensityToFlux(model_data, r_star):
 
     return flux_lambda
 
-def dump_array(array, output_dir, filename, wl_min=None, wl_max=None, fmt="%.18e"):
-    """
-    Dump a spectrum array to disk.
+def apply_ism_absorption(data, ebv, cfg):
+    print("Starting ISM absorption")
+    logging.info("Starting ISM absorption")
+    logging.info("ISM input: E(B-V)=%s", ebv)
 
-    If wl_min and wl_max are provided, dump only wavelengths in [wl_min, wl_max].
-    If either is None, dump the full array.
-    """
-    output_dir = Path(output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    if wl_min is not None and wl_max is not None:
-        wl = array[:, 0]
-        out_array = array[(wl >= wl_min) & (wl <= wl_max)]
+    if cfg.mg2_col is None:
+        nh = 5.8e21 * ebv  # The Mg2 column density is
+        fractionMg2 = 0.825  # (Frisch & Slavin 2003; this is the fraction of Mg in the ISM that is singly ionised)
+        Mg_abn = -5.33  # (Frisch & Slavin 2003; this is the ISM abundance of Mg)
+        nmg2 = np.log10(nh * fractionMg2 * 10.0**Mg_abn)
+        logging.info("ISM MgII column computed: nmg2=%s", nmg2)
     else:
-        out_array = array
+        nmg2 = float(cfg.mg2_col)
+        logging.info("ISM MgII column from cfg: nmg2=%s", nmg2)
 
-    np.savetxt(output_dir / filename, out_array, fmt=fmt)
+    if cfg.mg1_col is None:
+        nh = 5.8e21 * ebv  # The Mg1 column density is
+        fractionMg1 = 0.00214  # (Frisch & Slavin 2003; this is the fraction of Mg in the ISM that is singly ionised)
+        Mg_abn = -5.33  # (Frisch & Slavin 2003; this is the ISM abundance of Mg)
+        nmg1 = np.log10(nh * fractionMg1 * 10.0**Mg_abn)
+        logging.info("ISM MgI column computed: nmg1=%s", nmg1)
+    else:
+        nmg1 = float(cfg.mg1_col)
+        logging.info("ISM MgI column from cfg: nmg1=%s", nmg1)
 
-    return out_array
+    if cfg.fe2_col is None:
+        nh = 5.8e21 * ebv  # The Fe2 column density is
+        fractionFe2 = 0.967  # (Frisch & Slavin 2003; this is the fraction of Fe in the ISM that is singly ionised)
+        Fe_abn = -5.73  # (Frisch & Slavin 2003; this is the ISM abundance of Fe)
+        nfe2 = np.log10(nh * fractionFe2 * 10.0**Fe_abn)
+        logging.info("ISM FeII column computed: nfe2=%s", nfe2)
+    else:
+        nfe2 = float(cfg.fe2_col)
+        logging.info("ISM FeII column from cfg: nfe2=%s", nfe2)
 
-def dump_spectrum_snapshots(
-    array,
-    output_dir,
-    star_name: str,
-    tag: str,
-    dump_full: bool = True,
-) -> None:
-    """
-    Dump a standard set of wavelength window snapshots for legacy comparison.
-    """
-    if dump_full:
-        dump_array(array, output_dir, filename=f"{star_name}_{tag}_complete.txt")
+    flux_data = cute_ism_abs_all(data, nmg2, nmg1, nfe2)
+    logging.info("ISM absorption applied")
 
-    dump_array(array, output_dir, filename=f"{star_name}_{tag}_NUV.txt", wl_min=WL_NUV_min, wl_max=WL_NUV_max)
-    dump_array(array, output_dir, filename=f"{star_name}_{tag}_VIS.txt", wl_min=WL_VIS_min, wl_max=WL_VIS_max)
-    dump_array(array, output_dir, filename=f"{star_name}_{tag}_IR.txt", wl_min=WL_IR_min, wl_max=WL_IR_max)
+    return flux_data

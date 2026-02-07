@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from pathlib import Path
 from unittest.mock import patch
-from domain.constants import C_LIGHT_ROUNDED_m_s, R_SUN
+from utils.constants import C_LIGHT_ROUNDED_m_s, R_SUN
 from flux.flux_calc import load_model_for_temperature, convertIntensityToFlux
 
 def test_load_model_exact_match():

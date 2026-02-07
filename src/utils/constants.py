@@ -7,11 +7,11 @@ import astropy.constants as ac
 # physical constants
 C_LIGHT_ROUNDED_m_s = 3e18                   # m / s
 C_LIGHT_cm_s    = 2.99792458e10                # cm/s (speed of light)
+C_LIGHT_km_s    = ac.c.to("km/s").value        # Speed of light, km/s
 sigma = 5.67051e-5                   # erg/cm**2/s/K**4 (stefan-boltzmann)
 k_B   = 1.380658e-16                 # erg/K = g cm**2/s**2/K (boltzmann const)
 N_A   = 6.02214179e23                # /mol (Avagadro constant)
 C_LIGHT_Angst    = 2.99792458e18                # Angstrom/s (speed of light)
-C_LIGHT_km_s    = ac.c.to("km/s").value        # Speed of light, km/s
 
 # astronomy
 R_SUN = 6.957e10                 # cm
@@ -26,6 +26,20 @@ MgII2w      = 2802.7050 #MgIIk wavelength
 MgII2_loggf = -0.210    #MgIIk loggf
 MgII2_stark =-5.680     #MgIIkStark damping constant
 Mgaratio_loggf2to1=(10**MgII2_loggf)/(10**MgII1_loggf)
+
+##Parameters for MgI
+MgIw      = 2852.127 
+MgI_loggf = 0.255
+MgI_stark = -5.640
+
+##Parameters for FeII
+FeIIw      = 2599.39515
+FeII_loggf = 0.378
+FeII_stark = -6.53
+
+#ISM fixed parameters
+ISM_b_Mg2=2.0        #b-parameter for the Ca2 ISM lines in km/s
+vr_ISM=0.            #radial velocity of the ISM absorption lines in km/s
 
 #not yet used
 H_PLANCK = 6.62607015e-34        # J s

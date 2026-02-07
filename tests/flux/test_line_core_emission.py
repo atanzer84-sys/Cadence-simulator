@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from domain.constants import MgII1w, MgII2w
-from flux.line_core_emission import apply_line_core_emission, compute_Rmg, gaussian
+from utils.constants import MgII1w, MgII2w
+from flux.cute_line_core_emission import apply_line_core_emission, compute_Rmg, gaussian
 
 
 def _make_flat_flux(wl_start=2700.0, wl_end=2900.0, step=0.01, level=1.0):

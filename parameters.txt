@@ -1,6 +1,6 @@
 # Insert the star's name. Properties from the star will be looked up in the excel file in root directory. 
 # If properties are missing, I will look them up in a catalog.
-target_name = WASP-69
+target_name = KELT-9
 
 # Total observation lengths in hours. Transit duration will be split in half. half before, half after transit.
 # float values accepted (24 or 24.5)

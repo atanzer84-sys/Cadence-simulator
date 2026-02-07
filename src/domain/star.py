@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from domain.constants import R_SUN, M_SUN
+from utils.constants import R_SUN, M_SUN
 from typing import Any, Dict
 import logging
 

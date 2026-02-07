@@ -1,4 +1,5 @@
 import numpy as np
+import logging
 
 def extinction_amores(glong,glat,distance):
 #Interstellar Extinction in the Galaxy (Amores & L�pine - 2004)
@@ -8,6 +9,10 @@ def extinction_amores(glong,glat,distance):
 #You enter longitude, latitude & distance of a point in the Galaxy & get extinction
 #Converted to python by A. G.Sreejith    
 
+    logging.info("Starting extinction calculation")
+    logging.info("Extinction inputs: distance_kpc=%s", distance)
+    logging.info("Extinction coords: glong=%s glat=%s", glong, glat)
+    
     r0=7.5 #adopted distance of the Galactic center
     conv=np.pi/180.
 
@@ -103,5 +108,6 @@ def extinction_amores(glong,glat,distance):
     #IF(status AND NOT floating_point_underflow) NE 0 THEN $
     #  Message, 'IDL Check_Math() error: ' + StrTrim(status, 2)
 
+    logging.info("Extinction results: E(B-V)=%s A_V=%s", ebv, av)
     return ebv,av
 
