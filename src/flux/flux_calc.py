@@ -9,43 +9,46 @@ from flux.cute_extinction import extinction_amores
 from flux.cute_ism_abs_all import cute_ism_abs_all
 from flux.cute_unred import unred
 from utils.plot_spectra import plot_flux_and_photons_windows
-from utils.debug_dumps import dump_spectrum_snapshots, dump_diff_windows_3d, dump_spectrum_snapshots_1d, dump_diff_windows_1d
+from utils.debug_dumps import dump_3d_array, dump_diff_3d_array, dump_1d_array, dump_diff_1d_array
 from astropy.coordinates import SkyCoord
 from astropy import units as u
+import sys
 
 def calculateFluxOnEarth(star: Star, output_dir):
     print("Starting to calculate Flux on Earth")
     cfg = get_global_config()
 
     model_data = load_model_for_temperature(star.effective_temperature)
+    if cfg.test_mode:
+        logging.info("test_mode=1 -> dumping model data (legacy debug mode)")
+        flux_before_calculations = model_data.copy()
+        dump_3d_array(model_data, output_dir, star.name, "model_input", full=True, zoom=True) 
+
+
     flux_lambda_original = convertIntensityToFlux(model_data, star.radius_sun_cm)
     # keep undiluted flux
     flux_lambda_diluted = flux_lambda_original.copy()
     wavelengths = flux_lambda_original[:,0]
 
     if cfg.test_mode:
-        logging.info("test_mode=1 -> dumping model data (legacy debug mode)")
-        dump_spectrum_snapshots(model_data, output_dir, star.name, "model_input")
         logging.info("test_mode=1 -> dumping flux snapshots (convertIntensityToLuminosity_snapshot)")
-        dump_spectrum_snapshots(flux_lambda_original, output_dir, star.name, "convertIntensityToLuminosity_snapshot")
+        dump_3d_array(flux_lambda_original, output_dir, star.name, "convertIntensityToLuminosity_snapshot")
         logging.info("test_mode=1 -> dumping flux diffs (after_convertIntensityToLuminosity)")
-        dump_diff_windows_3d(model_data, flux_lambda_original, output_dir, star.name, tag="after_convertIntensityToLuminosity")
+        dump_diff_3d_array(flux_lambda_original, flux_before_calculations, output_dir, star.name, tag="after_convertIntensityToLuminosity")
 
 
     if cfg.line_core_emission:
         if cfg.test_mode:
             spectrum_before_lce = flux_lambda_diluted.copy()
-            logging.info("test_mode=1 -> dumping flux snapshots (lca_original)")
-            dump_spectrum_snapshots(spectrum_before_lce, output_dir, star.name, "lca_original")
 
         # ACTUAL LCA EMISSION 
         flux_lambda_diluted = apply_line_core_emission(flux_lambda_diluted, cfg.sigmaMg22, cfg.sigmaMg21, star.log_r, star.spectral_type)
 
         if cfg.test_mode:
             logging.info("test_mode=1 -> dumping flux snapshots (after_line_core_emission)")
-            dump_spectrum_snapshots(flux_lambda_diluted, output_dir, star.name, "after_line_core_emission")
+            dump_3d_array(flux_lambda_diluted, output_dir, star.name, "after_line_core_emission")
             logging.info("test_mode=1 -> dumping flux diffs (after_line_core_emission)")
-            dump_diff_windows_3d(spectrum_before_lce, flux_lambda_diluted, output_dir, star.name, tag="after_line_core_emission")
+            dump_diff_3d_array(flux_lambda_diluted, spectrum_before_lce, output_dir, star.name, tag="after_line_core_emission")
     else:
         logging.info("Line Core Emission not applied!")
 
@@ -56,40 +59,38 @@ def calculateFluxOnEarth(star: Star, output_dir):
     if cfg.interstellar_absorption:
         if cfg.test_mode:
             spectrum_before_ism = flux_lambda_diluted.copy()
-            logging.info("test_mode=1 -> dumping flux snapshots (ism_snapshot)")
-            dump_spectrum_snapshots(spectrum_before_ism, output_dir, star.name, "ism_snapshot")
 
         # ACTUAL ISM_ABS CALL
         flux_lambda_diluted = apply_ism_absorption(flux_lambda_diluted, ebv, cfg)
 
         if cfg.test_mode:
             logging.info("test_mode=1 -> dumping flux snapshots (after_ISM)")
-            dump_spectrum_snapshots(flux_lambda_diluted, output_dir, star.name, "after_ISM")
+            dump_3d_array(flux_lambda_diluted, output_dir, star.name, "after_ISM")
 
             logging.info("test_mode=1 -> dumping flux diffs (after_ISM)")
-            dump_diff_windows_3d(spectrum_before_ism, flux_lambda_diluted, output_dir, star.name, tag="after_ISM")
+            dump_diff_3d_array(flux_lambda_diluted, spectrum_before_ism, output_dir, star.name, tag="after_ISM")
     else:
         logging.info("Interstellar Medium absorption not applied!")
 
 
     if cfg.test_mode:
         flux_di_before = flux_lambda_diluted[:, 1].copy()
-        dump_spectrum_snapshots_1d(wavelengths, flux_di_before, output_dir, star.name, "before_flux_at_earth")
+        dump_1d_array(wavelengths, flux_di_before, output_dir, star.name, "before_flux_at_earth")
 
     # FINALLY FLUX ON EARTH
     flux_at_earth = compute_flux_at_earth(flux_lambda_diluted, star.distance_pc)
 
     if cfg.test_mode:
-        dump_spectrum_snapshots_1d(wavelengths, flux_at_earth, output_dir, star.name, "after_flux_at_earth")
-        dump_diff_windows_1d(wavelengths, flux_di_before, flux_at_earth, output_dir, star.name, tag="after_flux_at_earth")
+        dump_1d_array(wavelengths, flux_at_earth, output_dir, star.name, "after_flux_at_earth")
+        dump_diff_1d_array(wavelengths, flux_di_before, flux_at_earth, output_dir, star.name, tag="after_flux_at_earth")
         flux_e_before_unred = flux_at_earth.copy()
 
     # UNRED FLUX
     flux_unred = apply_unred(wavelengths, flux_at_earth, ebv)
 
     if cfg.test_mode:
-        dump_spectrum_snapshots_1d(wavelengths, flux_unred, output_dir, star.name, "after_unred")
-        dump_diff_windows_1d(wavelengths, flux_e_before_unred, flux_unred, output_dir, star.name, tag="after_unred")
+        dump_1d_array(wavelengths, flux_unred, output_dir, star.name, "after_unred")
+        dump_diff_1d_array(wavelengths, flux_e_before_unred, flux_unred, output_dir, star.name, tag="after_unred")
 
     # Convert Flux to Photons
     photons_star = convert_flux_to_photons(flux_unred, wavelengths)
@@ -221,9 +222,80 @@ def compute_ebv_av(right_ascension, declination, distance_pc):
 def compute_flux_at_earth(flux_lambda_diluted, distance_pc):
     logging.info("Calculating flux at Earth")
     flux_di = flux_lambda_diluted[:,1]
+
+
+    print("Flux at Earth calculation finished.")
+
+    print("\n========== DEBUG compute_flux_at_earth ==========")
+
+    print("PYTHON:", sys.version)
+    print("NUMPY:", np.__version__)
+
+    print("\n--- distance_pc ---")
+    print("type:", type(distance_pc))
+    print("repr:", repr(distance_pc))
+
+    print("\n--- PARSEC_CM ---")
+    print("type:", type(PARSEC_CM))
+    print("repr:", repr(PARSEC_CM))
+
+    print("\n--- flux_di raw ---")
+    print("type:", type(flux_di))
+    print("has attr shape:", hasattr(flux_di, "shape"))
+    print("has attr ndim:", hasattr(flux_di, "ndim"))
+
+    try:
+        arr = np.asarray(flux_di)
+        print("\n--- flux_di asarray ---")
+        print("ndim:", arr.ndim)
+        print("shape:", arr.shape)
+        print("dtype:", arr.dtype)
+    except Exception as e:
+        print("ERROR converting flux_di to array:", e)
+        raise
+
+    print("\n--- content inspection ---")
+    if arr.ndim == 1:
+        print("1D array detected")
+        print("first 5 values repr:")
+        for i in range(min(5, arr.size)):
+            print(f"  [{i}] =", repr(float(arr[i])))
+    elif arr.ndim == 2:
+        print("2D array detected")
+        print("first row repr:")
+        for j in range(arr.shape[1]):
+            print(f"  [0,{j}] =", repr(float(arr[0, j])))
+    else:
+        print("UNEXPECTED ndim:", arr.ndim)
+
+    print("\n--- scale computation ---")
+    try:
+        scale = 1.0 / (4.0 * np.pi * (distance_pc * PARSEC_CM) ** 2)
+        print("scale repr:", repr(scale))
+    except Exception as e:
+        print("ERROR computing scale:", e)
+        raise
+
+    print("\n--- test multiply ---")
+    try:
+        if arr.ndim == 1:
+            test = float(arr[0]) * scale
+        else:
+            test = float(arr[0, -1]) * scale
+        print("test y0 repr:", repr(test))
+    except Exception as e:
+        print("ERROR computing test y0:", e)
+        raise
+
+    print("========== END DEBUG ==========\n")
+
+
+
+
     flux_at_earth = flux_di / (4.0 * np.pi * (distance_pc * PARSEC_CM) ** 2)
     logging.info("Flux at Earth calculated")
-    print("Flux at Earth calculation finished.")
+
+
 
     return flux_at_earth
 
