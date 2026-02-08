@@ -54,7 +54,7 @@ def test_boolean_fields_accept_common_spellings():
     cfg = global_config.load_global_config(_cfg_path("global_optional_blanks.cfg"))
 
     assert cfg.line_core_emission is False
-    assert cfg.add_ism_abs is True
+    assert cfg.interstellar_absorption is True
     assert cfg.test_mode is False
 
 
@@ -89,7 +89,7 @@ def test_missing_sigmaMg22_uses_default_and_logs_warning(caplog, tmp_path):
     cfg_path.write_text(
         """
 line_core_emission = 1
-add_ism_abs = 0
+interstellar_absorption = 0
 sigmaMg21 = 0.288
 test_mode = 0
 """,
@@ -106,7 +106,7 @@ def test_optional_float_parses_numeric(tmp_path):
     cfg_path.write_text(
         """
 line_core_emission = 0
-add_ism_abs = 0
+interstellar_absorption = 0
 mg2_col = 12.5
 mg1_col = 3
 fe2_col = 0.001
@@ -127,7 +127,7 @@ def test_optional_float_invalid_value_raises(tmp_path):
     cfg_path.write_text(
         """
 line_core_emission = 0
-add_ism_abs = 0
+interstellar_absorption = 0
 mg2_col = not_a_number
 test_mode = 0
 produce_Plots = 0
@@ -143,7 +143,7 @@ def test_invalid_float_reports_property_name(caplog, tmp_path):
     cfg_path.write_text(
         """
 line_core_emission = 0
-add_ism_abs = 0
+interstellar_absorption = 0
 sigmaMg22 = not_a_number
 sigmaMg21 = 0.288
 test_mode = 0
@@ -169,7 +169,7 @@ def test_parse_simple_kv_ignores_lines_without_equals(tmp_path):
         """
 line_core_emission = 1
 this line has no equals sign
-add_ism_abs = 0
+interstellar_absorption = 0
 test_mode = 0
 produce_Plots = 0
 """,
@@ -180,4 +180,4 @@ produce_Plots = 0
 
     # The invalid line should simply be ignored, not cause errors
     assert cfg.line_core_emission is True
-    assert cfg.add_ism_abs is False
+    assert cfg.interstellar_absorption is False

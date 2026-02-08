@@ -8,7 +8,7 @@ import logging
 @dataclass(frozen=True, slots=True)
 class GlobalConfig:
     line_core_emission: bool
-    add_ism_abs: bool
+    interstellar_absorption: bool
     mg2_col: float | None
     mg1_col: float | None
     fe2_col: float | None
@@ -57,9 +57,9 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
             raw.get("line_core_emission", 0),
             key="line_core_emission",
         ),
-        add_ism_abs=_as_bool(
-            raw.get("add_ism_abs", 0),
-            key="add_ism_abs",
+        interstellar_absorption=_as_bool(
+            raw.get("interstellar_absorption", 0),
+            key="interstellar_absorption",
         ),
         mg2_col=_as_optional_float(raw.get("mg2_col", None)),
         mg1_col=_as_optional_float(raw.get("mg1_col", None)),

@@ -60,7 +60,7 @@ def calculateFluxOnEarth(star: Star, output_dir):
     glat   = c.galactic.b.deg
     ebv,_ = extinction_amores(glon,glat,distance_kpc) 
 
-    if cfg.add_ism_abs:
+    if cfg.interstellar_absorption:
         if cfg.test_mode:
             spectrum_before_ism = flux_lambda_diluted.copy()
             logging.info("test_mode=1 -> dumping flux snapshots (ism_snapshot)")
