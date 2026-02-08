@@ -268,13 +268,11 @@ def test_calculateFluxOnEarth_wiring_no_optional_steps(tmp_path, monkeypatch):
     assert out.shape == (1,)
 
 def test_calculateFluxOnEarth_wiring_all_optional_steps(tmp_path, monkeypatch):
+    import numpy as np
     from types import SimpleNamespace
     from configs import global_config
-    import numpy as np
 
-    # reset global singleton
-    global_config._GLOBAL_CONFIG = None
-
+    # --- write a clean config file ---
     cfg_path = tmp_path / "global.cfg"
     cfg_path.write_text(
 """line_core_emission = True
@@ -289,8 +287,18 @@ fe2_col = None
 """,
         encoding="utf-8",
     )
-    global_config.load_global_config(cfg_path)
 
+    # --- load config and FREEZE it for the pipeline ---
+    global_config.load_global_config(cfg_path)
+    cfg = global_config.get_global_config()
+
+    # force calculateFluxOnEarth to use THIS config
+    monkeypatch.setattr(
+        "flux.flux_calc.get_global_config",
+        lambda: cfg,
+    )
+
+    # --- minimal fake inputs ---
     model_data = np.array([[100.0, 1.0, 0.0]])
     flux = np.array([[100.0, 1.0, 0.0]])
 
@@ -305,12 +313,14 @@ fe2_col = None
         spectral_type="G",
     )
 
+    # --- stub everything heavy ---
     monkeypatch.setattr("flux.flux_calc.load_model_for_temperature", lambda t: model_data)
     monkeypatch.setattr("flux.flux_calc.convertIntensityToFlux", lambda m, r: flux)
     monkeypatch.setattr("flux.flux_calc.compute_ebv_av", lambda *a: (0.1, None))
     monkeypatch.setattr("flux.flux_calc.apply_unred", lambda w, f, e: f)
     monkeypatch.setattr("flux.flux_calc.convert_flux_to_photons", lambda f, w: f)
 
+    # --- track calls ---
     called = {"lce": 0, "ism": 0}
 
     def fake_lce(data, *a):
@@ -324,8 +334,10 @@ fe2_col = None
     monkeypatch.setattr("flux.flux_calc.apply_line_core_emission", fake_lce)
     monkeypatch.setattr("flux.flux_calc.apply_ism_absorption", fake_ism)
 
+    # --- run ---
     out = calculateFluxOnEarth(star, tmp_path)
 
+    # --- assertions ---
     assert called["lce"] == 1
     assert called["ism"] == 1
     assert out.shape == (1,)
