@@ -3,3 +3,4 @@ openpyxl>=3.1
 numpy
 astropy
 scipy>=1.11
+matplotlib>=3.8
