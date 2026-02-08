@@ -32,7 +32,6 @@ def load_global_config(path: Path) -> GlobalConfig:
         _GLOBAL = _read_global_cfg(path)
     return _GLOBAL
 
-
 def get_global_config() -> GlobalConfig:
     if _GLOBAL is None:
         logging.error(
@@ -118,7 +117,6 @@ def _as_float(value, *, key: str) -> float:
     except Exception as exc:
         logging.error("Invalid float for key '%s': %r", key, value)
         raise ValueError(f"Invalid float for key '{key}': {value!r}") from exc
-
 
 def _parse_simple_kv(path: Path) -> dict[str, str]:
     if not path.exists():

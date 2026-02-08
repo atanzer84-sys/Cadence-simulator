@@ -24,9 +24,12 @@ def load_user_config(path: Path) -> UserConfig:
         _USER = _read_user_cfg(path)
     return _USER
 
-
 def get_user_config() -> UserConfig:
     if _USER is None:
+        logging.error(
+            "User config not loaded. "
+            "Call load_user_config() once during startup before using it."
+        )
         raise RuntimeError(
             "User config not loaded. Call load_user_config() once in main()."
         )
@@ -35,19 +38,28 @@ def get_user_config() -> UserConfig:
 
 def _read_user_cfg(path: Path) -> UserConfig:
     logging.info("Reading user config from %s", path)
-
     raw = _parse_simple_kv(path)
-
-    cfg = UserConfig(
-        target_name=_sanitize_target_name(raw["target_name"]),
-        total_observation_length_h=_as_float(raw["total_observation_length_h"], key="total_observation_length_h"),
-        exposure_NUV_s=_as_float(raw["exposure_NUV_s"], key="exposure_NUV_s"),
-        exposure_VIS_s=_as_float(raw["exposure_VIS_s"], key="exposure_VIS_s"),
-        exposure_IR_s=_as_float(raw["exposure_IR_s"], key="exposure_IR_s"),
-    )
-
-    logging.info("User config loaded: %s", cfg)
-    return cfg
+    try:
+        cfg = UserConfig(
+            target_name=_sanitize_target_name(raw["target_name"]),
+            total_observation_length_h=_as_float(raw["total_observation_length_h"], key="total_observation_length_h"),
+            exposure_NUV_s=_as_float(raw["exposure_NUV_s"], key="exposure_NUV_s"),
+            exposure_VIS_s=_as_float(raw["exposure_VIS_s"], key="exposure_VIS_s"),
+            exposure_IR_s=_as_float(raw["exposure_IR_s"], key="exposure_IR_s"),
+        )
+        logging.info("User config loaded: %s", cfg)
+        return cfg
+    except KeyError as e:
+        missing = e.args[0]
+        full_path = path.resolve()
+        logging.error(
+            "Required parameter '%s' is missing in %s",
+            missing,
+            full_path,
+        )
+        raise ValueError(
+            f"The parameter '{missing}' is missing in the parameter file at {full_path}"
+        )
 
 
 def _sanitize_target_name(v: str) -> str:
@@ -57,14 +69,12 @@ def _sanitize_target_name(v: str) -> str:
         s = s[1:-1].strip()
     return s
 
-
 def _as_float(value, *, key: str) -> float:
     try:
         return float(value)
     except Exception as exc:
         logging.error("Invalid float for key '%s': %r", key, value)
         raise ValueError(f"Invalid float for key '{key}': {value!r}") from exc
-
 
 def _parse_simple_kv(path: Path) -> dict[str, str]:
     if not path.exists():
