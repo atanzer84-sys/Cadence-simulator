@@ -271,21 +271,23 @@ def test_calculateFluxOnEarth_wiring_all_optional_steps(tmp_path, monkeypatch):
     from types import SimpleNamespace
     from configs import global_config
     import numpy as np
+
+    # reset global singleton
     global_config._GLOBAL_CONFIG = None
 
     cfg_path = tmp_path / "global.cfg"
     cfg_path.write_text(
-    """line_core_emission = 1
-    interstellar_absorption = 1
-    test_mode = 0
-    produce_Plots = 0
-    sigmaMg22 = 0.1
-    sigmaMg21 = 0.1
-    mg2_col = None
-    mg1_col = None
-    fe2_col = None
-    """,
-    encoding="utf-8",
+"""line_core_emission = True
+interstellar_absorption = True
+test_mode = False
+produce_Plots = False
+sigmaMg22 = 0.1
+sigmaMg21 = 0.1
+mg2_col = None
+mg1_col = None
+fe2_col = None
+""",
+        encoding="utf-8",
     )
     global_config.load_global_config(cfg_path)
 
