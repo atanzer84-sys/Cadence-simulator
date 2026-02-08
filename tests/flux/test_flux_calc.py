@@ -275,10 +275,10 @@ def test_calculateFluxOnEarth_wiring_all_optional_steps(tmp_path, monkeypatch):
     # --- write a clean config file ---
     cfg_path = tmp_path / "global.cfg"
     cfg_path.write_text(
-"""line_core_emission = True
-interstellar_absorption = True
+"""line_core_emission = 1
+interstellar_absorption = 1
 test_mode = False
-produce_Plots = False
+produce_Plots = 0
 sigmaMg22 = 0.1
 sigmaMg21 = 0.1
 mg2_col = None
