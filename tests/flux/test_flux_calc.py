@@ -2,14 +2,13 @@ import numpy as np
 import pytest
 from pathlib import Path
 from unittest.mock import patch
-from utils.constants import C_LIGHT_ROUNDED_m_s, R_SUN
-from flux.flux_calc import load_model_for_temperature, convertIntensityToFlux, calculateFluxOnEarth
-from types import SimpleNamespace
-from configs import global_config
+from utils.constants import C_LIGHT_ROUNDED_m_s, R_SUN, PARSEC_CM
+from flux.flux_calc import load_model_for_temperature, convertIntensityToFlux, compute_flux_at_earth, convert_flux_to_photons, apply_unred, calculateFluxOnEarth
 import numpy as np
 from pathlib import Path
 from unittest.mock import patch
 from configs import global_config
+from types import SimpleNamespace
 
 def test_load_model_exact_match():
     fake_data = np.array([[1.0, 2.0]])
@@ -193,96 +192,142 @@ def test_convertIntensityToLuminosity_snapshot_HD2685():
 
     np.testing.assert_allclose(got, expected, rtol=1e-10, atol=0.0)
 
+def test_compute_flux_at_earth_simple():
+    data = np.array([[100.0, 2.0], [200.0, 4.0]])
+    out = compute_flux_at_earth(data, distance_pc=10.0)
+    expected = np.array([2.0, 4.0]) / (4.0 * np.pi * (10.0 * PARSEC_CM) ** 2)
+    assert np.allclose(out, expected)
 
+def test_convert_flux_to_photons():
+    flux = np.array([1.0, 2.0])
+    wavelengths = np.array([100.0, 200.0])
+    out = convert_flux_to_photons(flux, wavelengths)
+    assert np.allclose(out, flux * 5.03e7 * wavelengths)
 
-class _StopHere(Exception):
-    pass
+def test_apply_unred_flips_ebv(monkeypatch):
+    called = {}
 
+    def fake_unred(w, f, ebv, R_V):
+        called["ebv"] = ebv
+        return f
 
+    monkeypatch.setattr("flux.flux_calc.unred", fake_unred)
 
-class _StopHere(Exception):
-    pass
+    wavelengths = np.array([100.0])
+    flux = np.array([1.0])
+    ebv = 0.2
 
+    out = apply_unred(wavelengths, flux, ebv)
 
-def test_calculateFluxOnEarth_calls_convertIntensityToFlux(tmp_path):
+    assert called["ebv"] == -0.2
+    assert np.allclose(out, flux)
+
+def test_calculateFluxOnEarth_wiring_no_optional_steps(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from configs import global_config
+    import numpy as np
+
     cfg_path = tmp_path / "global.cfg"
     cfg_path.write_text(
         """
-    line_core_emission = 1
+    line_core_emission = 0
     interstellar_absorption = 0
     test_mode = 0
-    sigmaMg22 = 0.1
-    sigmaMg21 = 0.1
+    produce_Plots = 0
     """,
         encoding="utf-8",
     )
     global_config.load_global_config(cfg_path)
 
-    model_data = np.array(
-        [
-            [1000.0, 1.0, 2.0],
-            [2000.0, 3.0, 4.0],
-        ],
-        dtype=float,
-    )
+    model_data = np.array([[100.0, 1.0, 0.0]])
+    flux = np.array([[100.0, 1.0, 0.0]])
 
     star = SimpleNamespace(
-        name="TEST_STAR",
-        effective_temperature=6000.0,
+        name="TEST",
+        effective_temperature=5000.0,
         radius_sun_cm=1.0,
+        distance_pc=10.0,
+        right_ascension=0.0,
+        declination=0.0,
         log_r=0.0,
-        spectral_type="G2V",
+        spectral_type="G",
     )
 
-    def _raise_stop(*args, **kwargs):
-        raise _StopHere()
+    # --- stubs to avoid physics / I/O ---
+    monkeypatch.setattr("flux.flux_calc.load_model_for_temperature", lambda t: model_data)
+    monkeypatch.setattr("flux.flux_calc.convertIntensityToFlux", lambda m, r: flux)
+    monkeypatch.setattr("flux.flux_calc.compute_ebv_av", lambda *a: (0.1, None))
+    monkeypatch.setattr("flux.flux_calc.apply_unred", lambda w, f, e: f)
+    monkeypatch.setattr("flux.flux_calc.convert_flux_to_photons", lambda f, w: f)
 
-    with patch("flux.flux_calc.load_model_for_temperature", return_value=model_data), \
-         patch("flux.flux_calc.apply_line_core_emission", side_effect=_raise_stop), \
-         patch("flux.flux_calc.convertIntensityToFlux", wraps=convertIntensityToFlux) as spy:
-        with pytest.raises(_StopHere):
-            calculateFluxOnEarth(star, tmp_path)
+    # --- assert optional steps are NOT called ---
+    monkeypatch.setattr(
+        "flux.flux_calc.apply_line_core_emission",
+        lambda *a, **k: (_ for _ in ()).throw(AssertionError("LCE should not be called")),
+    )
+    monkeypatch.setattr(
+        "flux.flux_calc.apply_ism_absorption",
+        lambda *a, **k: (_ for _ in ()).throw(AssertionError("ISM should not be called")),
+    )
 
-        assert spy.call_count == 1
+    out = calculateFluxOnEarth(star, tmp_path)
 
+    assert out.shape == (1,)
 
-def test_calculateFluxOnEarth_calls_line_core_emission(tmp_path):
+def test_calculateFluxOnEarth_wiring_all_optional_steps(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from configs import global_config
+    import numpy as np
+
     cfg_path = tmp_path / "global.cfg"
     cfg_path.write_text(
         """
     line_core_emission = 1
-    interstellar_absorption = 0
+    interstellar_absorption = 1
     test_mode = 0
+    produce_Plots = 0
     sigmaMg22 = 0.1
     sigmaMg21 = 0.1
     """,
-        encoding="utf-8",
+            encoding="utf-8",
     )
     global_config.load_global_config(cfg_path)
 
-    model_data = np.array(
-        [
-            [1000.0, 1.0, 2.0],
-            [2000.0, 3.0, 4.0],
-        ],
-        dtype=float,
-    )
+    model_data = np.array([[100.0, 1.0, 0.0]])
+    flux = np.array([[100.0, 1.0, 0.0]])
 
     star = SimpleNamespace(
-        name="TEST_STAR",
-        effective_temperature=6000.0,
+        name="TEST",
+        effective_temperature=5000.0,
         radius_sun_cm=1.0,
+        distance_pc=10.0,
+        right_ascension=0.0,
+        declination=0.0,
         log_r=0.0,
-        spectral_type="G2V",
+        spectral_type="G",
     )
 
-    def _raise_stop(*args, **kwargs):
-        raise _StopHere()
+    monkeypatch.setattr("flux.flux_calc.load_model_for_temperature", lambda t: model_data)
+    monkeypatch.setattr("flux.flux_calc.convertIntensityToFlux", lambda m, r: flux)
+    monkeypatch.setattr("flux.flux_calc.compute_ebv_av", lambda *a: (0.1, None))
+    monkeypatch.setattr("flux.flux_calc.apply_unred", lambda w, f, e: f)
+    monkeypatch.setattr("flux.flux_calc.convert_flux_to_photons", lambda f, w: f)
 
-    with patch("flux.flux_calc.load_model_for_temperature", return_value=model_data), \
-         patch("flux.flux_calc.convertIntensityToFlux", side_effect=lambda m, r: m), \
-         patch("flux.flux_calc.apply_line_core_emission", side_effect=_raise_stop) as spy:
-        with pytest.raises(_StopHere):
-            calculateFluxOnEarth(star, tmp_path)
+    called = {"lce": 0, "ism": 0}
 
-        assert spy.call_count == 1
+    def fake_lce(data, *a):
+        called["lce"] += 1
+        return data
+
+    def fake_ism(data, ebv, cfg):
+        called["ism"] += 1
+        return data
+
+    monkeypatch.setattr("flux.flux_calc.apply_line_core_emission", fake_lce)
+    monkeypatch.setattr("flux.flux_calc.apply_ism_absorption", fake_ism)
+
+    out = calculateFluxOnEarth(star, tmp_path)
+
+    assert called["lce"] == 1
+    assert called["ism"] == 1
+    assert out.shape == (1,)

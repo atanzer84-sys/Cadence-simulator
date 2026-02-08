@@ -77,12 +77,7 @@ def calculateFluxOnEarth(star: Star, output_dir):
         dump_spectrum_snapshots_1d(wavelengths, flux_di_before, output_dir, star.name, "before_flux_at_earth")
 
     # FINALLY FLUX ON EARTH
-    logging.info("Calculating Flux at Earth.")
-    print("Calculating Flux at Earth.")
-
-    flux_di   = flux_lambda_diluted[:,1]
-    flux_at_earth = flux_di / (4.0 * np.pi * (star.distance_pc * PARSEC_CM) ** 2)
-    ebv       = -1.*ebv
+    flux_at_earth = compute_flux_at_earth(flux_lambda_diluted, star.distance_pc)
 
     if cfg.test_mode:
         dump_spectrum_snapshots_1d(wavelengths, flux_at_earth, output_dir, star.name, "after_flux_at_earth")
@@ -90,21 +85,19 @@ def calculateFluxOnEarth(star: Star, output_dir):
         flux_e_before_unred = flux_at_earth.copy()
 
     # UNRED FLUX
-    flux_unred = unred(wavelengths, flux_at_earth, ebv=ebv, R_V=3.1)
+    flux_unred = apply_unred(wavelengths, flux_at_earth, ebv)
 
     if cfg.test_mode:
         dump_spectrum_snapshots_1d(wavelengths, flux_unred, output_dir, star.name, "after_unred")
         dump_diff_windows_1d(wavelengths, flux_e_before_unred, flux_unred, output_dir, star.name, tag="after_unred")
 
-    photons_star = flux_unred*5.03e7*wavelengths     #from ergs/s/cm2/A to photons/s/cm2/A
-
+    # Convert Flux to Photons
+    photons_star = convert_flux_to_photons(flux_unred, wavelengths)
 
     if cfg.produce_Plots:
         plot_flux_and_photons_windows(wavelengths, flux_lambda_original[:, 1], photons_star, output_dir, star)
         plot_flux_and_photons_windows(wavelengths, flux_lambda_original[:, 1], photons_star, output_dir, star)
 
-    print("Flux at Earth calculation finished.")
-    logging.info("Flux at Earth calculation finished.")
     return photons_star
 
 def load_model_for_temperature(t_star):
@@ -224,3 +217,23 @@ def compute_ebv_av(right_ascension, declination, distance_pc):
     glat = c.galactic.b.deg
     ebv, av = extinction_amores(glon, glat, distance_kpc)
     return ebv, av
+
+def compute_flux_at_earth(flux_lambda_diluted, distance_pc):
+    logging.info("Calculating flux at Earth")
+    flux_di = flux_lambda_diluted[:,1]
+    flux_at_earth = flux_di / (4.0 * np.pi * (distance_pc * PARSEC_CM) ** 2)
+    logging.info("Flux at Earth calculated")
+    print("Flux at Earth calculation finished.")
+
+    return flux_at_earth
+
+def apply_unred(wavelengths, flux_at_earth, ebv):
+    logging.info("Applying UNRED extinction correction")
+    ebv = -1.0 * ebv
+    flux_unred = unred(wavelengths, flux_at_earth, ebv=ebv, R_V=3.1)
+    logging.info("UNRED extinction correction applied")
+    return flux_unred
+
+def convert_flux_to_photons(flux_unred, wavelengths):
+    logging.info("Converting flux to photon flux")
+    return flux_unred * 5.03e7 * wavelengths #from ergs/s/cm2/A to photons/s/cm2/A
