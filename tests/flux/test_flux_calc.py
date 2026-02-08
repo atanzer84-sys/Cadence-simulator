@@ -3,7 +3,13 @@ import pytest
 from pathlib import Path
 from unittest.mock import patch
 from utils.constants import C_LIGHT_ROUNDED_m_s, R_SUN
-from flux.flux_calc import load_model_for_temperature, convertIntensityToFlux
+from flux.flux_calc import load_model_for_temperature, convertIntensityToFlux, calculateFluxOnEarth
+from types import SimpleNamespace
+from configs import global_config
+import numpy as np
+from pathlib import Path
+from unittest.mock import patch
+from configs import global_config
 
 def test_load_model_exact_match():
     fake_data = np.array([[1.0, 2.0]])
@@ -187,3 +193,96 @@ def test_convertIntensityToLuminosity_snapshot_HD2685():
 
     np.testing.assert_allclose(got, expected, rtol=1e-10, atol=0.0)
 
+
+
+class _StopHere(Exception):
+    pass
+
+
+
+class _StopHere(Exception):
+    pass
+
+
+def test_calculateFluxOnEarth_calls_convertIntensityToFlux(tmp_path):
+    cfg_path = tmp_path / "global.cfg"
+    cfg_path.write_text(
+        """
+    line_core_emission = 1
+    interstellar_absorption = 0
+    test_mode = 0
+    sigmaMg22 = 0.1
+    sigmaMg21 = 0.1
+    """,
+        encoding="utf-8",
+    )
+    global_config.load_global_config(cfg_path)
+
+    model_data = np.array(
+        [
+            [1000.0, 1.0, 2.0],
+            [2000.0, 3.0, 4.0],
+        ],
+        dtype=float,
+    )
+
+    star = SimpleNamespace(
+        name="TEST_STAR",
+        effective_temperature=6000.0,
+        radius_sun_cm=1.0,
+        log_r=0.0,
+        spectral_type="G2V",
+    )
+
+    def _raise_stop(*args, **kwargs):
+        raise _StopHere()
+
+    with patch("flux.flux_calc.load_model_for_temperature", return_value=model_data), \
+         patch("flux.flux_calc.apply_line_core_emission", side_effect=_raise_stop), \
+         patch("flux.flux_calc.convertIntensityToFlux", wraps=convertIntensityToFlux) as spy:
+        with pytest.raises(_StopHere):
+            calculateFluxOnEarth(star, tmp_path)
+
+        assert spy.call_count == 1
+
+
+def test_calculateFluxOnEarth_calls_line_core_emission(tmp_path):
+    cfg_path = tmp_path / "global.cfg"
+    cfg_path.write_text(
+        """
+    line_core_emission = 1
+    interstellar_absorption = 0
+    test_mode = 0
+    sigmaMg22 = 0.1
+    sigmaMg21 = 0.1
+    """,
+        encoding="utf-8",
+    )
+    global_config.load_global_config(cfg_path)
+
+    model_data = np.array(
+        [
+            [1000.0, 1.0, 2.0],
+            [2000.0, 3.0, 4.0],
+        ],
+        dtype=float,
+    )
+
+    star = SimpleNamespace(
+        name="TEST_STAR",
+        effective_temperature=6000.0,
+        radius_sun_cm=1.0,
+        log_r=0.0,
+        spectral_type="G2V",
+    )
+
+    def _raise_stop(*args, **kwargs):
+        raise _StopHere()
+
+    with patch("flux.flux_calc.load_model_for_temperature", return_value=model_data), \
+         patch("flux.flux_calc.convertIntensityToFlux", side_effect=lambda m, r: m), \
+         patch("flux.flux_calc.apply_line_core_emission", side_effect=_raise_stop) as spy:
+        with pytest.raises(_StopHere):
+            calculateFluxOnEarth(star, tmp_path)
+
+        assert spy.call_count == 1

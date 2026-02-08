@@ -51,14 +51,7 @@ def calculateFluxOnEarth(star: Star, output_dir):
 
 
     # Starting extinction
-    distance_kpc         = star.distance_pc/1000.0
-
-    #get extinction based on coordinates and distance
-    c      = SkyCoord(ra=star.right_ascension, dec=star.declination, unit=(u.degree, u.degree))
-    # print("c: ", c)
-    glon   = c.galactic.l.deg
-    glat   = c.galactic.b.deg
-    ebv,_ = extinction_amores(glon,glat,distance_kpc) 
+    ebv, _ = compute_ebv_av(star.right_ascension, star.declination, star.distance_pc)
 
     if cfg.interstellar_absorption:
         if cfg.test_mode:
@@ -223,3 +216,11 @@ def apply_ism_absorption(data, ebv, cfg):
     logging.info("ISM absorption applied")
 
     return flux_data
+
+def compute_ebv_av(right_ascension, declination, distance_pc):
+    distance_kpc = distance_pc / 1000.0
+    c = SkyCoord(ra=right_ascension, dec=declination, unit=(u.degree, u.degree))
+    glon = c.galactic.l.deg
+    glat = c.galactic.b.deg
+    ebv, av = extinction_amores(glon, glat, distance_kpc)
+    return ebv, av

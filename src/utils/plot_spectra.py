@@ -2,13 +2,13 @@ from typing import Any
 
 
 import matplotlib.pyplot as plt
-from utils.constants import plot_wavelength_range_ir, plot_wavelength_range_nuv, plot_wavelength_range_vis, WL_NUV_max, WL_IR_max,WL_IR_min,WL_NUV_min,WL_VIS_max,WL_VIS_min
+from utils.constants import wavelength_range_ir, wavelength_range_nuv, wavelength_range_vis, WL_NUV_max, WL_IR_max,WL_IR_min,WL_NUV_min,WL_VIS_max,WL_VIS_min
 
 def plot_flux_and_photons_windows(wavelengths, flux_undiluted, photons_star, output_dir, star):
     ranges = {
-        "nuv": tuple[Any, ...](plot_wavelength_range_nuv),
-        "vis": tuple(plot_wavelength_range_vis),
-        "ir":  tuple(plot_wavelength_range_ir),
+        "nuv": tuple[Any, ...](wavelength_range_nuv),
+        "vis": tuple(wavelength_range_vis),
+        "ir":  tuple(wavelength_range_ir),
         # zoom windows (explicit min/max constants)
         "nuv_zoom": (WL_NUV_min, WL_NUV_max),
         "vis_zoom": (WL_VIS_min, WL_VIS_max),

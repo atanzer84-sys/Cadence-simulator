@@ -58,6 +58,6 @@ WL_IR_min  = 11000.0
 WL_IR_max  = 11100.0
 
 # Wavelength ranges for plots in A
-plot_wavelength_range_nuv = [2300, 3300]
-plot_wavelength_range_vis = [4200, 8300]
-plot_wavelength_range_ir = [8200, 18000]
+wavelength_range_nuv = [2300, 3300]
+wavelength_range_vis = [4200, 8300]
+wavelength_range_ir = [8200, 18000]
