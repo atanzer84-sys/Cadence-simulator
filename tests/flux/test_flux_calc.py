@@ -7,8 +7,8 @@ from flux.flux_calc import load_model_for_temperature, convertIntensityToFlux, c
 import numpy as np
 from pathlib import Path
 from unittest.mock import patch
-from configs import global_config
-from types import SimpleNamespace
+# from configs import global_config
+# from types import SimpleNamespace
 
 def test_load_model_exact_match():
     fake_data = np.array([[1.0, 2.0]])
@@ -275,8 +275,7 @@ def test_calculateFluxOnEarth_wiring_all_optional_steps(tmp_path, monkeypatch):
 
     cfg_path = tmp_path / "global.cfg"
     cfg_path.write_text(
-    """
-    line_core_emission = 1
+    """line_core_emission = 1
     interstellar_absorption = 1
     test_mode = 0
     produce_Plots = 0
@@ -286,7 +285,7 @@ def test_calculateFluxOnEarth_wiring_all_optional_steps(tmp_path, monkeypatch):
     mg1_col = None
     fe2_col = None
     """,
-            encoding="utf-8",
+    encoding="utf-8",
     )
     global_config.load_global_config(cfg_path)
 
