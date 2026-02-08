@@ -80,10 +80,6 @@ def test_frequency_to_wavelength_conversion():
     expected_intensity = C_LIGHT_ROUNDED_m_s / (1000.0**2)
     np.testing.assert_allclose(recovered_intensity, expected_intensity)
 
-
-
-
-
 def test_convertIntensityToLuminosity_snapshot_WASP69():
     tests_dir = Path(__file__).resolve().parents[1]
     snap_dir = tests_dir / "snapshots"
@@ -105,7 +101,6 @@ def test_convertIntensityToLuminosity_snapshot_WASP69():
 
     np.testing.assert_allclose(got, expected, rtol=1e-10, atol=0.0)
 
-
 def test_convertIntensityToLuminosity_snapshot_TIC393818343():
     tests_dir = Path(__file__).resolve().parents[1]
     snap_dir = tests_dir / "snapshots"
@@ -126,7 +121,6 @@ def test_convertIntensityToLuminosity_snapshot_TIC393818343():
     assert got.shape == expected.shape
 
     np.testing.assert_allclose(got, expected, rtol=1e-10, atol=0.0)
-
 
 def test_convertIntensityToLuminosity_snapshot_WASP189():
     tests_dir = Path(__file__).resolve().parents[1]
@@ -169,7 +163,6 @@ def test_convertIntensityToLuminosity_snapshot_Kelt9():
     assert got.shape == expected.shape
 
     np.testing.assert_allclose(got, expected, rtol=1e-10, atol=0.0)
-
 
 def test_convertIntensityToLuminosity_snapshot_HD2685():
     tests_dir = Path(__file__).resolve().parents[1]
@@ -226,7 +219,7 @@ def test_calculateFluxOnEarth_wiring_no_optional_steps(tmp_path, monkeypatch):
     from types import SimpleNamespace
     from configs import global_config
     import numpy as np
-
+    global_config._GLOBAL_CONFIG = None
     cfg_path = tmp_path / "global.cfg"
     cfg_path.write_text(
         """
@@ -278,16 +271,20 @@ def test_calculateFluxOnEarth_wiring_all_optional_steps(tmp_path, monkeypatch):
     from types import SimpleNamespace
     from configs import global_config
     import numpy as np
+    global_config._GLOBAL_CONFIG = None
 
     cfg_path = tmp_path / "global.cfg"
     cfg_path.write_text(
-        """
+    """
     line_core_emission = 1
     interstellar_absorption = 1
     test_mode = 0
     produce_Plots = 0
     sigmaMg22 = 0.1
     sigmaMg21 = 0.1
+    mg2_col = None
+    mg1_col = None
+    fe2_col = None
     """,
             encoding="utf-8",
     )
