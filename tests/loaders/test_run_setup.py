@@ -66,7 +66,9 @@ def test_setup_logger_prints(monkeypatch, tmp_path, capsys):
     run_setup.setup_logger(output_dir, timestamp)
 
     captured = capsys.readouterr().out
-    assert f"Log file created at: waltzer_simulator_{timestamp}.log" in captured
+    # new: absolute path is printed
+    assert "Log file created at:" in captured
+    assert f"waltzer_simulator_{timestamp}.log" in captured
 
 def test_setup_logger_creates_file(tmp_path):
     output_dir = tmp_path
@@ -78,7 +80,6 @@ def test_setup_logger_creates_file(tmp_path):
     assert log_file.exists()
 
 
-
 # --- _find_excel_file --------------------------------------------------------
 def test_find_excel_file_no_excel(tmp_path: Path) -> None:
     """No *.xlsx files -> FileNotFoundError."""
@@ -86,7 +87,6 @@ def test_find_excel_file_no_excel(tmp_path: Path) -> None:
         run_setup._find_excel_file(tmp_path)
 
     assert "No Excel file found" in str(exc_info.value)
-
 
 def test_find_excel_file_single_excel(tmp_path: Path) -> None:
     """Exactly one *.xlsx file -> that path is returned."""
@@ -96,7 +96,6 @@ def test_find_excel_file_single_excel(tmp_path: Path) -> None:
     found = run_setup._find_excel_file(tmp_path)
 
     assert found == excel
-
 
 def test_find_excel_file_multiple_excels(tmp_path: Path) -> None:
     """More than one *.xlsx file -> ValueError with names listed."""
@@ -130,105 +129,52 @@ def test_load_stellar_and_planetary_properties_raises_value_error(monkeypatch):
     with pytest.raises(ValueError):
         run_setup.load_stellar_and_planetary_properties("Target")
 
-def test_load_user_parameters_default_file(monkeypatch, tmp_path):
-    # Create default parameters.txt
-    param_file = tmp_path / "parameters.txt"
-    param_file.write_text("target_name = HD 202772 A", encoding="utf-8")
-
-    # Simulate no arguments
-    monkeypatch.setattr(sys, "argv", ["prog"])
-    monkeypatch.chdir(tmp_path)
-
-    # Fake loader so we don't depend on real parsing
-    monkeypatch.setattr(run_setup, "load_user_config", lambda path: {"ok": True})
-
-    result = run_setup.load_user_parameters()
-    assert result == {"ok": True}
-
-# ------------------------------------------------------------
-# load_user_parameters tests
-# ------------------------------------------------------------
-
-def test_load_user_parameters_too_many_arguments(monkeypatch, capsys):
+def test_get_user_parameter_path_too_many_arguments(monkeypatch, capsys):
     monkeypatch.setattr(sys, "argv", ["prog", "a", "b"])
 
     with pytest.raises(SystemExit) as exc:
-        run_setup.load_user_parameters()
+        run_setup.get_user_parameter_path()
 
     assert exc.value.code == 1
     out = capsys.readouterr()
-    assert "Usage:" in out.out or "Usage:" in out.err
+    assert "Usage:" in (out.out + out.err)
 
-
-def test_load_user_parameters_default_file(monkeypatch, tmp_path):
-    param_file = tmp_path / "parameters.txt"
-    param_file.write_text("target_name = HD 202772 A", encoding="utf-8")
+def test_get_user_parameter_path_default_file(monkeypatch, tmp_path, capsys):
+    (tmp_path / "parameters.txt").write_text("target_name = HD 202772 A", encoding="utf-8")
 
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(sys, "argv", ["prog"])
 
-    # Fake loader
-    monkeypatch.setattr(run_setup, "load_user_config", lambda path: {"ok": path})
+    p = run_setup.get_user_parameter_path()
 
-    result = run_setup.load_user_parameters()
-    assert result == {"ok": "parameters.txt"}
+    assert p == Path("parameters.txt")
+    captured = capsys.readouterr()
+    assert "User parameter file loaded:" in (captured.out + captured.err)
+    assert "parameters.txt" in (captured.out + captured.err)
 
-
-def test_load_user_parameters_custom_file(monkeypatch, tmp_path):
-    custom = tmp_path / "custom.txt"
-    custom.write_text("target_name = HD 202772 A", encoding="utf-8")
+def test_get_user_parameter_path_custom_file(monkeypatch, tmp_path, capsys):
+    (tmp_path / "custom.txt").write_text("target_name = HD 202772 A", encoding="utf-8")
 
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(sys, "argv", ["prog", "custom.txt"])
 
-    monkeypatch.setattr(run_setup, "load_user_config", lambda path: {"ok": path})
+    p = run_setup.get_user_parameter_path()
 
-    result = run_setup.load_user_parameters()
-    assert result == {"ok": "custom.txt"}
+    assert p == Path("custom.txt")
+    captured = capsys.readouterr()
+    assert "User parameter file loaded:" in (captured.out + captured.err)
+    assert "custom.txt" in (captured.out + captured.err)
 
-
-def test_load_user_parameters_missing_file(monkeypatch, tmp_path, capsys):
+def test_get_user_parameter_path_missing_file(monkeypatch, tmp_path, capsys):
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(sys, "argv", ["prog"])
-
-    def fake_loader(_):
-        raise FileNotFoundError("missing")
-
-    monkeypatch.setattr(run_setup, "load_user_config", fake_loader)
+    monkeypatch.setattr(sys, "argv", ["prog"])  # default parameters.txt does not exist
 
     with pytest.raises(SystemExit) as exc:
-        run_setup.load_user_parameters()
+        run_setup.get_user_parameter_path()
 
     assert exc.value.code == 1
-    out = capsys.readouterr()
-    assert "not found" in (out.out + out.err)
-
-
-def test_load_user_parameters_invalid_file(monkeypatch, tmp_path, capsys):
-    monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(sys, "argv", ["prog"])
-
-    def fake_loader(_):
-        raise ValueError("bad format")
-
-    monkeypatch.setattr(run_setup, "load_user_config", fake_loader)
-
-    with pytest.raises(SystemExit) as exc:
-        run_setup.load_user_parameters()
-
-    assert exc.value.code == 1
-    out = capsys.readouterr()
-    assert "Input error" in (out.out + out.err)
-
-
-def test_load_user_parameters_success(monkeypatch, tmp_path):
-    monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(sys, "argv", ["prog"])
-
-    monkeypatch.setattr(run_setup, "load_user_config", lambda _: {"ok": True})
-
-    result = run_setup.load_user_parameters()
-    assert result == {"ok": True}
+    captured = capsys.readouterr()
+    assert "parameter file not found" in (captured.out + captured.err).lower()
 
 def test_infer_mamajek_spectral_type_sets_spectral_type(monkeypatch, caplog):
     # fake table with two rows

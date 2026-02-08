@@ -2,6 +2,7 @@
 
 import pytest
 import waltzer_simulator
+from configs import user_config
 
 def _write_params(path, content: str) -> None:
     path.write_text(content.strip(), encoding="utf-8")
@@ -176,19 +177,28 @@ def test_one_argument_file_not_found_exits(monkeypatch, tmp_path, capsys):
 
 # --- Invalid param file (ValueError) ---
 def test_one_argument_invalid_params_exits(monkeypatch, tmp_path, capsys):
+    # IMPORTANT: clear cached config so this test actually reads bad.txt
+    monkeypatch.setattr(user_config, "_USER", None)
+
     param_file = tmp_path / "bad.txt"
     param_file.write_text(
-        "target_name = Star\ntotal_observation_length_h = not_a_number\n"
-        "exposure_NUV_s = 1\nexposure_VIS_s = 1\nexposure_IR_s = 1\n",
+        "target_name = Star\n"
+        "total_observation_length_h = not_a_number\n"
+        "exposure_NUV_s = 1\n"
+        "exposure_VIS_s = 1\n"
+        "exposure_IR_s = 1\n",
         encoding="utf-8",
     )
-    monkeypatch.chdir(tmp_path)  # keep output/ and log out of project root
+    monkeypatch.chdir(tmp_path)
     monkeypatch.setattr("sys.argv", ["waltzer_simulator.py", str(param_file)])
+
     with pytest.raises(SystemExit) as exc_info:
         waltzer_simulator.main()
+
     assert exc_info.value.code == 1
     out = capsys.readouterr()
     assert "Input error" in (out.out + out.err)
+
 
 def test_main_calls_star_and_planet_constructors(monkeypatch, tmp_path, capsys):
     params = tmp_path / "parameters.txt"

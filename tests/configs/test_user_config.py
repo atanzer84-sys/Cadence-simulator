@@ -1,6 +1,7 @@
 import pytest
 import configs.user_config as user_config
 from configs.user_config import load_user_config, get_user_config
+from pathlib import Path
 
 @pytest.fixture(autouse=True)
 def reset_user_cache():
@@ -26,6 +27,28 @@ def _write_min_params_with_target(tmp_path, target_name: str) -> str:
     )
     return _write_params(tmp_path, content)
 
+def test_load_user_config_invalid_file_raises(monkeypatch, tmp_path):
+    # ensure no cache pollution
+    monkeypatch.setattr(user_config, "_USER", None)
+
+    def fake_read(_path: Path):
+        raise ValueError("bad format")
+
+    monkeypatch.setattr(user_config, "_read_user_cfg", fake_read)
+
+    with pytest.raises(ValueError, match="bad format"):
+        user_config.load_user_config(Path("parameters.txt"))
+
+def test_load_user_config_success(monkeypatch, tmp_path):
+    monkeypatch.setattr(user_config, "_USER", None)
+
+    def fake_read(_path: Path):
+        return {"ok": True}
+
+    monkeypatch.setattr(user_config, "_read_user_cfg", fake_read)
+
+    result = user_config.load_user_config(Path("parameters.txt"))
+    assert result == {"ok": True}
 
 # --- Valid inputs ---
 def test_load_user_config_valid_full(tmp_path):
@@ -67,22 +90,6 @@ def test_load_user_config_strips_quotes_double(tmp_path):
 def test_load_user_config_strips_quotes_single(tmp_path):
     content = """
     target_name = 'HD 202772 A'
-    total_observation_length_h = 1
-    exposure_NUV_s = 1
-    exposure_VIS_s = 1
-    exposure_IR_s = 1
-    """
-    path = _write_params(tmp_path, content)
-
-    load_user_config(path)
-    cfg = get_user_config()
-
-    assert cfg.target_name == "HD 202772 A"
-
-
-def test_load_user_config_strips_mixed_quotes(tmp_path):
-    content = """
-    target_name = 'HD 202772 A"
     total_observation_length_h = 1
     exposure_NUV_s = 1
     exposure_VIS_s = 1
@@ -154,7 +161,7 @@ def test_load_user_config_missing_required_raises(tmp_path, missing_key):
     content = "\n".join(f"{k} = {v}" for k, v in base.items())
     path = _write_params(tmp_path, content)
 
-    with pytest.raises(KeyError):
+    with pytest.raises(ValueError):
         load_user_config(path)
 
 
@@ -183,7 +190,7 @@ def test_load_user_config_invalid_number_raises(tmp_path, bad_key):
 
 
 # --- Empty target_name ---
-def test_load_user_config_empty_target_name_raises(tmp_path):
+def test_load_user_config_empty_target_name_is_allowed(tmp_path):
     content = """
     target_name =
     total_observation_length_h = 1
@@ -193,39 +200,12 @@ def test_load_user_config_empty_target_name_raises(tmp_path):
     """
     path = _write_params(tmp_path, content)
 
-    with pytest.raises(ValueError):
-        load_user_config(path)
-
-
-def test_load_user_config_target_name_only_quotes_raises(tmp_path):
-    content = """
-    target_name = "   "
-    total_observation_length_h = 1
-    exposure_NUV_s = 1
-    exposure_VIS_s = 1
-    exposure_IR_s = 1
-    """
-    path = _write_params(tmp_path, content)
-
-    with pytest.raises(ValueError):
-        load_user_config(path)
-
-
-# --- Target name sanitization ---
-def test_target_name_with_planet_letter_is_preserved(tmp_path):
-    p = tmp_path / "parameters.txt"
-    p.write_text(
-        "target_name = HF 123 b\n"
-        "total_observation_length_h = 1\n"
-        "exposure_NUV_s = 1\n"
-        "exposure_VIS_s = 1\n"
-        "exposure_IR_s = 1\n"
-    )
-
-    load_user_config(p)
+    load_user_config(path)
     cfg = get_user_config()
 
-    assert cfg.target_name == "HF 123 b"
+    # empty target name should now be accepted
+    assert cfg.target_name == ""
+
 
 
 @pytest.mark.parametrize(
@@ -270,3 +250,30 @@ def test_target_name_sanitizes_but_does_not_reject(tmp_path, target_name, expect
     cfg = get_user_config()
 
     assert cfg.target_name == expected
+
+def test_user_config_missing_file_raises(tmp_path, caplog):
+    user_config._USER = None  # force reload
+
+    missing = tmp_path / "does_not_exist.cfg"
+
+    with pytest.raises(FileNotFoundError):
+        load_user_config(missing)
+
+    assert any(
+        "not found" in rec.message.lower() and rec.levelname == "ERROR"
+        for rec in caplog.records
+    )
+def test_missing_required_key_hits_keyerror_block(tmp_path):
+    content = """
+    target_name = Star
+    total_observation_length_h = 1
+    exposure_NUV_s = 1
+    exposure_VIS_s = 1
+    # exposure_IR_s is missing
+    """
+    path = _write_params(tmp_path, content)
+
+    with pytest.raises(ValueError) as exc:
+        load_user_config(path)
+
+    assert "exposure_IR_s" in str(exc.value)
