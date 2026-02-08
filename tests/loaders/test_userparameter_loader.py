@@ -184,7 +184,7 @@ def test_load_parameters_target_name_only_quotes_raises(tmp_path):
 
 
 
-def test_target_name_with_planet_letter_is_rejected(tmp_path):
+def test_target_name_with_planet_letter_is_sanitized(tmp_path):
     p = tmp_path / "parameters.txt"
     p.write_text(
         "target_name = HF 123 b\n"
@@ -194,8 +194,9 @@ def test_target_name_with_planet_letter_is_rejected(tmp_path):
         "exposure_IR_s = 1\n"
     )
 
-    with pytest.raises(ValueError, match="Planet designators"):
-        load_parameters(p)
+    params = load_parameters(p)
+    assert params["target_name"] == "HF 123 b"
+
 
 
 @pytest.mark.parametrize(
@@ -216,17 +217,23 @@ def test_target_name_accepts_star_only_variants(tmp_path, target_name, expected)
 
 
 @pytest.mark.parametrize(
-    "target_name",
+    "target_name, expected",
     [
-        "HF 123 b",      # reject
-        "HF 123 B",      # reject (case-insensitive)
-        "HF 123 b ",     # reject (trailing whitespace stripped first)
-        "'HF 123 b'",    # reject (quotes stripped first)
-        '"HF 123 b"',    # reject (quotes stripped first)
-        "' HF 123 b '",  # reject (quotes + trim)
+        ("HF 123 b", "HF 123 b"),
+        ("HF 123 B", "HF 123 B"),
+        ("HF 123 b ", "HF 123 b"),
+        ("'HF 123 b'", "HF 123 b"),
+        ('"HF 123 b"', "HF 123 b"),
+        ("' HF 123 b '", "HF 123 b"),
+
+        # --- star names with multiple internal spaces ---
+        ("HF   123", "HF   123"),          # 3 spaces inside
+        ("'HF   123'", "HF   123"),        # quotes + internal spaces
+        ('HF    123', "HF    123"),        # 4 spaces inside
+        ("'HF    123 '", "HF    123"),     # quotes + trailing space trimmed
     ],
 )
-def test_target_name_rejects_planet_designator_variants(tmp_path, target_name):
+def test_target_name_sanitizes_but_does_not_reject(tmp_path, target_name, expected):
     path = _write_min_params_with_target(tmp_path, target_name)
-    with pytest.raises(ValueError, match="Planet designators"):
-        load_parameters(path)
+    params = load_parameters(path)
+    assert params["target_name"] == expected

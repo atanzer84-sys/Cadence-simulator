@@ -17,7 +17,7 @@ def load_matching_excel_row_from_excel(excel_path, target_name_user_input):
         #normalize headers so we can match the name
         column_headers = []
         for cell in worksheet[1]:
-            name = _normalize_name(cell.value)
+            name = _strip_hash_from_excel_column(cell.value)
             if name is None:
                 break
             column_headers.append(name)
@@ -28,9 +28,8 @@ def load_matching_excel_row_from_excel(excel_path, target_name_user_input):
 
         # Find matching row by pl_name
         pl_name_index = column_headers.index("pl_name")
-        target_name = str(target_name_user_input).strip()
-        target_name_normalized = str(target_name).casefold()
-        logging.info("Searching for target: '%s'", target_name)
+        target_name_normalized = str(target_name_user_input).casefold()
+        logging.info("Searching for target: '%s'", target_name_user_input)
 
         matching_row_dict = None
         for row in worksheet.iter_rows(min_row=2, values_only=True):
@@ -45,7 +44,10 @@ def load_matching_excel_row_from_excel(excel_path, target_name_user_input):
 
             # First match wins. :(
             # TODO: harden later when planetary transits are a thing.
-            if pl_name_normalized.startswith(target_name_normalized):
+            # Requirement: strip, drop last character, strip again
+            pl_base = pl_name_normalized[:-1].strip() if pl_name_normalized else ""
+
+            if pl_base == target_name_normalized:
                 matching_row_dict = {
                     header: value
                     for header, value in zip(column_headers, row)
@@ -58,7 +60,7 @@ def load_matching_excel_row_from_excel(excel_path, target_name_user_input):
             raise ValueError(
                 f"No target found for '{target_name_user_input}' (searched until row with empty pl_name)"
             )
-        return matching_row_dict, target_name
+        return matching_row_dict, target_name_user_input
     except Exception:
         logging.exception(
             "Failed to read matching Excel row for target_name_user_input=%r from excel_path=%s",
@@ -201,7 +203,7 @@ def map_to_planet_or_star_dictionary(planet_star_dictionary: PlanetStarDict, map
 
     return planet_params, star_params
 
-def _normalize_name(name):
+def _strip_hash_from_excel_column(name):
     """Normalize a column header: strip whitespace and remove a leading '#'."""
     if name is None:
         return None

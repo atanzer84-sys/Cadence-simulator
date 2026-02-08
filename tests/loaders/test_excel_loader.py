@@ -1,4 +1,4 @@
-"""Tests for excel_loader: load_matching_excel_row_from_excel, map_to_planet_or_star_dictionary, _normalize_name."""
+"""Tests for excel_loader: load_matching_excel_row_from_excel, map_to_planet_or_star_dictionary, _strip_hash_from_excel_column."""
 
 from pathlib import Path
 
@@ -8,7 +8,7 @@ from openpyxl import Workbook
 from loaders.excel_loader import (
     load_matching_excel_row_from_excel,
     load_excel_cfg,
-    _normalize_name,
+    _strip_hash_from_excel_column,
 )
 
 
@@ -207,18 +207,6 @@ def test_excel_header_with_hash_normalized(tmp_path: Path) -> None:
     assert row_dict.get("st_teff") == 5000
 
 
-# --- load_matching_excel_row_from_excel: returns stripped target_name ---
-def test_load_excel_returns_stripped_target_name(tmp_path: Path) -> None:
-    path = tmp_path / "targets.xlsx"
-    _write_excel(
-        path,
-        headers=["pl_name", "st_teff"],
-        rows=[["HD 202772 A b", 5000]],
-    )
-    _, target_name = load_matching_excel_row_from_excel(path, "  HD 202772 A  ")
-    assert target_name == "HD 202772 A"
-
-
 # --- load_excel_cfg ---
 def test_load_excel_cfg_missing_file_raises(tmp_path: Path) -> None:
     missing_path = tmp_path / "excel_mapping.cfg"
@@ -226,14 +214,119 @@ def test_load_excel_cfg_missing_file_raises(tmp_path: Path) -> None:
         load_excel_cfg(missing_path)
 
 
-# --- _normalize_name ---
-def test_normalize_name_returns_none_for_none() -> None:
-    assert _normalize_name(None) is None
+# --- _strip_hash_from_excel_column ---
+def test_strip_hash_from_excel_column_returns_none_for_none() -> None:
+    assert _strip_hash_from_excel_column(None) is None
 
 
-def test_normalize_name_strips_whitespace() -> None:
-    assert _normalize_name("  pl_name  ") == "pl_name"
+def test_strip_hash_from_excel_column_strips_whitespace() -> None:
+    assert _strip_hash_from_excel_column("  pl_name  ") == "pl_name"
 
 
-def test_normalize_name_removes_leading_hash() -> None:
-    assert _normalize_name("#pl_name") == "pl_name"
+def test_strip_hash_from_excel_column_removes_leading_hash() -> None:
+    assert _strip_hash_from_excel_column("#pl_name") == "pl_name"
+
+def test_pl_name_does_not_match_on_prefix_only(tmp_path: Path) -> None:
+    """
+    Regression: previously we used startswith(), so a short prefix like
+    'TIC 3938183' could match the wrong star ('TIC 393818343 b').
+    We now require exact basename match.
+    """
+    path = tmp_path / "targets.xlsx"
+    _write_excel(
+        path,
+        headers=["pl_name", "st_teff"],
+        rows=[
+            ["TIC 393818343 b", 5000],
+            ["TIC 393818399 b", 5100],
+        ],
+    )
+
+    with pytest.raises(ValueError) as exc_info:
+        load_matching_excel_row_from_excel(path, "TIC 3938183")
+
+    assert "No target found" in str(exc_info.value)
+    assert "TIC 3938183" in str(exc_info.value)
+
+
+def test_pl_name_matches_star_basename_ignoring_planet_designator(tmp_path: Path) -> None:
+    """
+    Star basename should match even if Excel rows are planet rows (b/c/d...).
+    """
+    path = tmp_path / "targets.xlsx"
+    _write_excel(
+        path,
+        headers=["pl_name", "st_teff", "pl_orbper"],
+        rows=[
+            ["TIC 393818343 b", 5000, 3.4],
+            ["TIC 393818343 c", 5050, 7.8],
+        ],
+    )
+
+    row_dict, target_name = load_matching_excel_row_from_excel(path, "TIC 393818343")
+
+    assert target_name == "TIC 393818343"
+    assert row_dict["pl_name"] in ("TIC 393818343 b", "TIC 393818343 c")
+
+def test_excel_strips_planet_designator_and_returns_star_basename(tmp_path: Path) -> None:
+    path = tmp_path / "targets.xlsx"
+    _write_excel(
+        path,
+        headers=["pl_name", "st_teff"],
+        rows=[["HF 123 b", 5000]],
+    )
+
+    row_dict, target_name = load_matching_excel_row_from_excel(path, "HF 123")
+
+    assert row_dict["pl_name"] == "HF 123 b"
+    assert target_name == "HF 123"
+
+def test_excel_internal_spaces_preserved_in_basename(tmp_path: Path) -> None:
+    path = tmp_path / "targets.xlsx"
+    _write_excel(
+        path,
+        headers=["pl_name", "st_teff"],
+        rows=[["HF   123    b", 5000]],
+    )
+
+    _, target_name = load_matching_excel_row_from_excel(path, "HF   123")
+    assert target_name == "HF   123"
+
+def test_excel_uppercase_planet_letter(tmp_path: Path) -> None:
+    path = tmp_path / "targets.xlsx"
+    _write_excel(
+        path,
+        headers=["pl_name", "st_teff"],
+        rows=[["HF 123 B", 5000]],
+    )
+
+    _, target_name = load_matching_excel_row_from_excel(path, "HF 123")
+    assert target_name == "HF 123"
+
+def test_excel_trailing_whitespace_in_pl_name(tmp_path: Path) -> None:
+    path = tmp_path / "targets.xlsx"
+    _write_excel(
+        path,
+        headers=["pl_name", "st_teff"],
+        rows=[["HF 123 b   ", 5000]],
+    )
+
+    _, target_name = load_matching_excel_row_from_excel(path, "HF 123")
+    assert target_name == "HF 123"
+
+def test_excel_strips_planet_designator_for_lettered_stars(tmp_path: Path) -> None:
+    """
+    KELT-19 A b must match KELT-19 A.
+    The Excel loader must strip the trailing planet letter and return the star basename.
+    """
+    path = tmp_path / "targets.xlsx"
+    _write_excel(
+        path,
+        headers=["pl_name", "st_teff"],
+        rows=[["KELT-19 A b", 5000]],
+    )
+
+    row_dict, target_name = load_matching_excel_row_from_excel(path, "KELT-19 A")
+
+    assert row_dict["pl_name"] == "KELT-19 A b"
+    assert target_name == "KELT-19 A"

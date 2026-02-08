@@ -44,20 +44,6 @@ def load_parameters(path):
         if not target_name:
             raise ValueError("target_name must not be empty")
 
-        import re
-
-        if re.search(r"\s+[b-z]$", target_name, flags=re.IGNORECASE):
-            logging.error(
-                "Invalid target_name '%s': planet designator detected. "
-                "target_name must be the star name only.",
-                target_name,
-            )
-            raise ValueError(
-                f"Invalid target_name '{target_name}'. "
-                "target_name must be the star name only. "
-                "Planet designators (b, c, d, ...) are not allowed."
-            )
-
         user_parameter["target_name"] = target_name
 
         # required: total_observation_length_h
