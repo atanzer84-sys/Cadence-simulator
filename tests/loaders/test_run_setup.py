@@ -6,6 +6,7 @@ import pytest
 import sys
 from loaders import run_setup
 
+
 def test_setup_output_directory_creates_dir(monkeypatch, tmp_path):
     # Redirect "output" to a temp directory
     monkeypatch.chdir(tmp_path)
@@ -139,7 +140,7 @@ def test_load_user_parameters_default_file(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
 
     # Fake loader so we don't depend on real parsing
-    monkeypatch.setattr(run_setup, "load_parameters", lambda path: {"ok": True})
+    monkeypatch.setattr(run_setup, "load_user_config", lambda path: {"ok": True})
 
     result = run_setup.load_user_parameters()
     assert result == {"ok": True}
@@ -167,7 +168,7 @@ def test_load_user_parameters_default_file(monkeypatch, tmp_path):
     monkeypatch.setattr(sys, "argv", ["prog"])
 
     # Fake loader
-    monkeypatch.setattr(run_setup, "load_parameters", lambda path: {"ok": path})
+    monkeypatch.setattr(run_setup, "load_user_config", lambda path: {"ok": path})
 
     result = run_setup.load_user_parameters()
     assert result == {"ok": "parameters.txt"}
@@ -180,7 +181,7 @@ def test_load_user_parameters_custom_file(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(sys, "argv", ["prog", "custom.txt"])
 
-    monkeypatch.setattr(run_setup, "load_parameters", lambda path: {"ok": path})
+    monkeypatch.setattr(run_setup, "load_user_config", lambda path: {"ok": path})
 
     result = run_setup.load_user_parameters()
     assert result == {"ok": "custom.txt"}
@@ -193,7 +194,7 @@ def test_load_user_parameters_missing_file(monkeypatch, tmp_path, capsys):
     def fake_loader(_):
         raise FileNotFoundError("missing")
 
-    monkeypatch.setattr(run_setup, "load_parameters", fake_loader)
+    monkeypatch.setattr(run_setup, "load_user_config", fake_loader)
 
     with pytest.raises(SystemExit) as exc:
         run_setup.load_user_parameters()
@@ -210,7 +211,7 @@ def test_load_user_parameters_invalid_file(monkeypatch, tmp_path, capsys):
     def fake_loader(_):
         raise ValueError("bad format")
 
-    monkeypatch.setattr(run_setup, "load_parameters", fake_loader)
+    monkeypatch.setattr(run_setup, "load_user_config", fake_loader)
 
     with pytest.raises(SystemExit) as exc:
         run_setup.load_user_parameters()
@@ -224,7 +225,7 @@ def test_load_user_parameters_success(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(sys, "argv", ["prog"])
 
-    monkeypatch.setattr(run_setup, "load_parameters", lambda _: {"ok": True})
+    monkeypatch.setattr(run_setup, "load_user_config", lambda _: {"ok": True})
 
     result = run_setup.load_user_parameters()
     assert result == {"ok": True}

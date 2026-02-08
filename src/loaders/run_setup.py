@@ -3,7 +3,7 @@ import logging
 import numpy as np
 from domain.star import Star
 from domain.planet import Planet
-from loaders.userparameter_loader import load_parameters
+# from loaders.userparameter_loader import load_parameters
 from loaders.excel_loader import load_matching_excel_row_from_excel, load_excel_cfg, map_to_planet_or_star_dictionary
 from loaders.parameter_preprocessing import get_missing_properties, clean_and_cast_parameters
 from loaders.gaia_lookup import lookup_star_gaia
@@ -49,7 +49,7 @@ def setup_logger(output_dir, timestamp):
     """
     filename = f"waltzer_simulator_{timestamp}.log"
     log_filename = output_dir / filename
-    print(f"Log file created at: {filename}")
+    print(f"Log file created at: {log_filename.resolve()}")
 
     logging.basicConfig(
         level=logging.INFO,
@@ -59,46 +59,86 @@ def setup_logger(output_dir, timestamp):
 
     logging.info("Logger initialized")
 
-def load_user_parameters():
-    """Load user parameters from commandline: optional parameter file path.
+def get_repo_root(base_dir: Path | None = None) -> Path:
+    return base_dir or Path(__file__).resolve().parents[2]
+
+def get_user_parameter_path():
+    """Determine which user parameter file to use based on CLI arguments.
 
     Reads ``sys.argv``: at most one optional argument (the parameter file path).
     If no argument is given, uses ``parameters.txt``. Prints usage and exits
-    with code 1 if too many arguments are passed, or if the file is missing or
-    invalid (ValueError or FileNotFoundError).
+    with code 1 if too many arguments are passed, or if the file is missing.
 
     Returns
     -------
-    dict
-        Parsed parameters (e.g. ``target_name``, ``total_observation_length_h``,
-        ``exposure_*``). Only returns on success; exits on error.
+    pathlib.Path
+        Path to the parameter file. Only returns on success; exits on error.
     """
+    # Too many arguments
     if len(sys.argv) > 2:
-        logging.error(
-            "Too many command line arguments: %s",
-            sys.argv,
-        )
+        logging.error("Too many command line arguments: %s", sys.argv)
         print("Usage: python waltzer_simulator.py [parameters_file]")
         sys.exit(1)
 
+    # One argument → use it
     if len(sys.argv) == 2:
-        parameter_file = sys.argv[1]
+        parameter_file = Path(sys.argv[1])
     else:
-        parameter_file = "parameters.txt"
+        # No argument → default
+        parameter_file = Path("parameters.txt")
 
-    logging.info("Using parameter file: %s", parameter_file)
-    print("User parameter file loaded")
-    try:
-        return load_parameters(parameter_file)
-    except ValueError as e:
-        logging.exception("Invalid parameter file format: %s", parameter_file)
-        print(f"Input error: {e}", file=sys.stderr)
-        raise SystemExit(1)
+    logging.info("Using parameter file: %s", parameter_file.resolve())
+    print("User parameter file loaded: ", parameter_file.resolve())
 
-    except FileNotFoundError:
+    # Validate existence
+    if not parameter_file.exists():
         logging.exception("Parameter file not found: %s", parameter_file)
         print(f"Input error: parameter file not found: {parameter_file}", file=sys.stderr)
         raise SystemExit(1)
+
+    return parameter_file
+
+
+# def load_user_parameters():
+#     """Load user parameters from commandline: optional parameter file path.
+
+#     Reads ``sys.argv``: at most one optional argument (the parameter file path).
+#     If no argument is given, uses ``parameters.txt``. Prints usage and exits
+#     with code 1 if too many arguments are passed, or if the file is missing or
+#     invalid (ValueError or FileNotFoundError).
+
+#     Returns
+#     -------
+#     dict
+#         Parsed parameters (e.g. ``target_name``, ``total_observation_length_h``,
+#         ``exposure_*``). Only returns on success; exits on error.
+#     """
+#     if len(sys.argv) > 2:
+#         logging.error(
+#             "Too many command line arguments: %s",
+#             sys.argv,
+#         )
+#         print("Usage: python waltzer_simulator.py [parameters_file]")
+#         sys.exit(1)
+
+#     if len(sys.argv) == 2:
+#         parameter_file = sys.argv[1]
+#     else:
+#         parameter_file = "parameters.txt"
+
+#     logging.info("Using parameter file: %s", parameter_file)
+#     print("User parameter file loaded")
+#     try:
+#         return load_parameters(parameter_file)
+#     except ValueError as e:
+#         logging.exception("Invalid parameter file format: %s", parameter_file)
+#         print(f"Input error: {e}", file=sys.stderr)
+#         raise SystemExit(1)
+
+#     except FileNotFoundError:
+#         logging.exception("Parameter file not found: %s", parameter_file)
+#         print(f"Input error: parameter file not found: {parameter_file}", file=sys.stderr)
+#         raise SystemExit(1)
 
 def load_stellar_and_planetary_properties(target_name_user_input):
     try:
@@ -157,8 +197,6 @@ def load_stellar_and_planetary_properties(target_name_user_input):
         )
         raise
 
-def get_repo_root(base_dir: Path | None = None) -> Path:
-    return base_dir or Path(__file__).resolve().parents[2]
 
 def _find_excel_file(repo_root: Path):
     try:
