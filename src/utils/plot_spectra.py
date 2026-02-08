@@ -1,7 +1,6 @@
 from typing import Any
 
 
-import numpy as np
 import matplotlib.pyplot as plt
 from utils.constants import plot_wavelength_range_ir, plot_wavelength_range_nuv, plot_wavelength_range_vis, WL_NUV_max, WL_IR_max,WL_IR_min,WL_NUV_min,WL_VIS_max,WL_VIS_min
 
@@ -21,7 +20,7 @@ def plot_flux_and_photons_windows(wavelengths, flux_undiluted, photons_star, out
 
 
         wl = wavelengths[mask]
-        flux_u = flux_undiluted[mask]
+        # flux_u = flux_undiluted[mask]
         photons = photons_star[mask]
 
         # # plot: undiluted flux vs photons_star

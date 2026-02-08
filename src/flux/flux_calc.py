@@ -58,7 +58,7 @@ def calculateFluxOnEarth(star: Star, output_dir):
     # print("c: ", c)
     glon   = c.galactic.l.deg
     glat   = c.galactic.b.deg
-    ebv,av = extinction_amores(glon,glat,distance_kpc) 
+    ebv,_ = extinction_amores(glon,glat,distance_kpc) 
 
     if cfg.add_ism_abs:
         if cfg.test_mode:
