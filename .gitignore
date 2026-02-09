@@ -241,3 +241,4 @@ data/models/
 Archive.zip
 src/excelUnits.txt
 excelUnits.txt
+tests/flux/test_flux_calc_snapshots.py

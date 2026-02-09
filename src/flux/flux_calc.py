@@ -74,6 +74,8 @@ def calculateFluxOnEarth(star: Star, output_dir):
 
     if cfg.test_mode:
         flux_di_before = flux_lambda_diluted[:, 1].copy()
+        flux_di_before = flux_lambda_diluted[:, 1].copy()
+        dump_1d_array(wavelengths, flux_di_before, output_dir, star.name, "before_flux_at_earth")
         dump_1d_array(wavelengths, flux_di_before, output_dir, star.name, "before_flux_at_earth")
 
     # FINALLY FLUX ON EARTH
@@ -216,6 +218,8 @@ def compute_ebv_av(right_ascension, declination, distance_pc):
     glon = c.galactic.l.deg
     glat = c.galactic.b.deg
     ebv, av = extinction_amores(glon, glat, distance_kpc)
+    logging.info("EBV=%s AV=%s (glon=%s glat=%s dist_kpc=%s)", ebv, av, glon, glat, distance_kpc)
+
     return ebv, av
 
 def compute_flux_at_earth(flux_lambda_diluted, distance_pc):
