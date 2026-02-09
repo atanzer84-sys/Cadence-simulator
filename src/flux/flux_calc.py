@@ -12,7 +12,6 @@ from utils.plot_spectra import plot_flux_and_photons_windows
 from utils.debug_dumps import dump_3d_array, dump_diff_3d_array, dump_1d_array, dump_diff_1d_array
 from astropy.coordinates import SkyCoord
 from astropy import units as u
-import sys
 
 def calculateFluxOnEarth(star: Star, output_dir):
     print("Starting to calculate Flux on Earth")
@@ -222,81 +221,9 @@ def compute_ebv_av(right_ascension, declination, distance_pc):
 def compute_flux_at_earth(flux_lambda_diluted, distance_pc):
     logging.info("Calculating flux at Earth")
     flux_di = flux_lambda_diluted[:,1]
-
-
-    print("Flux at Earth calculation finished.")
-
-    print("\n========== DEBUG compute_flux_at_earth ==========")
-
-    print("PYTHON:", sys.version)
-    print("NUMPY:", np.__version__)
-
-    print("\n--- distance_pc ---")
-    print("type:", type(distance_pc))
-    print("repr:", repr(distance_pc))
-
-    print("\n--- PARSEC_CM ---")
-    print("type:", type(PARSEC_CM))
-    print("repr:", repr(PARSEC_CM))
-
-    print("\n--- flux_di raw ---")
-    print("type:", type(flux_di))
-    print("has attr shape:", hasattr(flux_di, "shape"))
-    print("has attr ndim:", hasattr(flux_di, "ndim"))
-
-    try:
-        arr = np.asarray(flux_di)
-        print("\n--- flux_di asarray ---")
-        print("ndim:", arr.ndim)
-        print("shape:", arr.shape)
-        print("dtype:", arr.dtype)
-    except Exception as e:
-        print("ERROR converting flux_di to array:", e)
-        raise
-
-    print("\n--- content inspection ---")
-    if arr.ndim == 1:
-        print("1D array detected")
-        print("first 5 values repr:")
-        for i in range(min(5, arr.size)):
-            print(f"  [{i}] =", repr(float(arr[i])))
-    elif arr.ndim == 2:
-        print("2D array detected")
-        print("first row repr:")
-        for j in range(arr.shape[1]):
-            print(f"  [0,{j}] =", repr(float(arr[0, j])))
-    else:
-        print("UNEXPECTED ndim:", arr.ndim)
-
-    print("\n--- scale computation ---")
-    try:
-        scale = 1.0 / (4.0 * np.pi * (distance_pc * PARSEC_CM) ** 2)
-        print("scale repr:", repr(scale))
-    except Exception as e:
-        print("ERROR computing scale:", e)
-        raise
-
-    print("\n--- test multiply ---")
-    try:
-        if arr.ndim == 1:
-            test = float(arr[0]) * scale
-        else:
-            test = float(arr[0, -1]) * scale
-        print("test y0 repr:", repr(test))
-    except Exception as e:
-        print("ERROR computing test y0:", e)
-        raise
-
-    print("========== END DEBUG ==========\n")
-
-
-
-
     flux_at_earth = flux_di / (4.0 * np.pi * (distance_pc * PARSEC_CM) ** 2)
-    logging.info("Flux at Earth calculated")
-
-
-
+    print("Flux at Earth calculation finished.")
+    logging.info("Flux at Earth calculation finished")
     return flux_at_earth
 
 def apply_unred(wavelengths, flux_at_earth, ebv):
