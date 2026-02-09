@@ -8,7 +8,6 @@ import numpy as np
 from pathlib import Path
 from unittest.mock import patch
 from types import SimpleNamespace
-from configs import global_config
 import numpy as np
 # from configs import global_config
 # from types import SimpleNamespace
