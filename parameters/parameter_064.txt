@@ -1,0 +1,12 @@
+# Insert the star's name. Properties from the star will be looked up in the excel file in root directory. 
+# If properties are missing, I will look them up in a catalog.
+target_name = WASP-166
+
+# Total observation lengths in hours. Transit duration will be split in half. half before, half after transit.
+# float values accepted (24 or 24.5)
+total_observation_length_h = 11.11
+
+#Exposure time of the three Channels in seconds
+exposure_NUV_s = 1.01
+exposure_VIS_s = 11.02
+exposure_IR_s = 111.2
