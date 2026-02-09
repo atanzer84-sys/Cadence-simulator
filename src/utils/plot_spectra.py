@@ -2,17 +2,18 @@ from typing import Any
 
 
 import matplotlib.pyplot as plt
-from utils.constants import wavelength_range_ir, wavelength_range_nuv, wavelength_range_vis, WL_NUV_max, WL_IR_max,WL_IR_min,WL_NUV_min,WL_VIS_max,WL_VIS_min
+from utils.constants import debug_wavelength_range_ir, debug_wavelength_range_nuv, debug_wavelength_range_vis, DEBUG_WL_A_NUV, DEBUG_WL_A_VIS, DEBUG_WL_A_IR
 
 def plot_flux_and_photons_windows(wavelengths, flux_undiluted, photons_star, output_dir, star):
     ranges = {
-        "nuv": tuple[Any, ...](wavelength_range_nuv),
-        "vis": tuple(wavelength_range_vis),
-        "ir":  tuple(wavelength_range_ir),
+        "nuv": tuple[Any, ...](debug_wavelength_range_nuv),
+        "vis": tuple(debug_wavelength_range_vis),
+        "ir":  tuple(debug_wavelength_range_ir),
         # zoom windows (explicit min/max constants)
-        "nuv_zoom": (WL_NUV_min, WL_NUV_max),
-        "vis_zoom": (WL_VIS_min, WL_VIS_max),
-        "ir_zoom":  (WL_IR_min,  WL_IR_max),
+    # zoom / debug windows
+        "nuv_zoom": DEBUG_WL_A_NUV,
+        "vis_zoom": DEBUG_WL_A_VIS,
+        "ir_zoom":  DEBUG_WL_A_IR,
     }
 
     for key, (wmin, wmax) in ranges.items():

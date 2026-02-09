@@ -1,6 +1,6 @@
 import numpy as np
 from pathlib import Path
-from utils.constants import WL_NUV_max, WL_IR_max, WL_IR_min, WL_NUV_min, WL_VIS_max, WL_VIS_min, wavelength_range_nuv, wavelength_range_ir
+from utils.constants import DEBUG_WL_A_NUV, DEBUG_WL_A_VIS, DEBUG_WL_A_IR, debug_wavelength_range_nuv, debug_wavelength_range_ir
 
 def dump_3d_array(array, output_dir, star_name: str, tag: str, full: bool = True, zoom: bool = True, fmt="%.18e"):
     # print(f"[DEBUG] dump_spectrum_snapshots: star='{star_name}', tag='{tag}'")
@@ -15,11 +15,11 @@ def dump_3d_array(array, output_dir, star_name: str, tag: str, full: bool = True
         np.savetxt(output_dir / filename, out, fmt=fmt)
 
     if full:
-        _dump(f"{star_name}_{tag}_complete.txt", wavelength_range_nuv[0], wavelength_range_ir[1])
+        _dump(f"{star_name}_{tag}_complete.txt", debug_wavelength_range_nuv[0], debug_wavelength_range_ir[1])
     if zoom:
-        _dump(f"{star_name}_{tag}_NUV.txt", WL_NUV_min, WL_NUV_max)
-        _dump(f"{star_name}_{tag}_VIS.txt", WL_VIS_min, WL_VIS_max)
-        _dump(f"{star_name}_{tag}_IR.txt",  WL_IR_min,  WL_IR_max)
+        _dump(f"{star_name}_{tag}_NUV.txt", *DEBUG_WL_A_NUV)
+        _dump(f"{star_name}_{tag}_VIS.txt", *DEBUG_WL_A_VIS)
+        _dump(f"{star_name}_{tag}_IR.txt",  *DEBUG_WL_A_IR)
 
 def dump_1d_array(wave, values, output_dir, star_name: str, tag: str, full: bool = True, zoom: bool = True, fmt="%.18e"):
     # print(f"[DEBUG] dump_spectrum_snapshots_1d: star='{star_name}', tag='{tag}'")
@@ -37,11 +37,12 @@ def dump_1d_array(wave, values, output_dir, star_name: str, tag: str, full: bool
         np.savetxt(output_dir / filename, out, fmt=fmt)
 
     if full:
-        _dump(f"{star_name}_{tag}_complete.txt", wavelength_range_nuv[0], wavelength_range_ir[1])
+        _dump(f"{star_name}_{tag}_complete.txt", debug_wavelength_range_nuv[0], debug_wavelength_range_ir[1])
     if zoom:
-        _dump(f"{star_name}_{tag}_NUV.txt", WL_NUV_min, WL_NUV_max)
-        _dump(f"{star_name}_{tag}_VIS.txt", WL_VIS_min, WL_VIS_max)
-        _dump(f"{star_name}_{tag}_IR.txt",  WL_IR_min,  WL_IR_max)
+        _dump(f"{star_name}_{tag}_NUV.txt", *DEBUG_WL_A_NUV)
+        _dump(f"{star_name}_{tag}_VIS.txt", *DEBUG_WL_A_VIS)
+        _dump(f"{star_name}_{tag}_IR.txt",  *DEBUG_WL_A_IR)
+
 
 def dump_diff_3d_array(spectrum_before, spectrum_after, output_dir, star_name, tag, full: bool = True, zoom: bool = True, fmt="%.18e"):
     # print(f"[DEBUG] dump_diff_windows_3d: star='{star_name}', tag='{tag}'")
@@ -63,11 +64,11 @@ def dump_diff_3d_array(spectrum_before, spectrum_after, output_dir, star_name, t
         np.savetxt(output_dir / f"{star_name}_{tag}_DIFF_{win}.txt", out, fmt=fmt)
 
     if full:
-        _dump("FULL", wavelength_range_nuv[0], wavelength_range_ir[1])
+        _dump("FULL", debug_wavelength_range_nuv[0], debug_wavelength_range_ir[1])
     if zoom:
-        _dump("NUV", WL_NUV_min, WL_NUV_max)
-        _dump("VIS", WL_VIS_min, WL_VIS_max)
-        _dump("IR",  WL_IR_min,  WL_IR_max)
+        _dump("NUV", *DEBUG_WL_A_NUV)
+        _dump("VIS", *DEBUG_WL_A_VIS)
+        _dump("IR",  *DEBUG_WL_A_IR)
 
 def dump_diff_1d_array(wave, before, after, output_dir, star_name, tag, full: bool = True, zoom: bool = True, fmt="%.18e"):
     # print(f"[DEBUG] dump_diff_windows_1d: star='{star_name}', tag='{tag}'")
@@ -86,8 +87,8 @@ def dump_diff_1d_array(wave, before, after, output_dir, star_name, tag, full: bo
         np.savetxt(output_dir / f"{star_name}_{tag}_DIFF_{win}.txt", out, fmt=fmt)
 
     if full:
-        _dump("FULL", wavelength_range_nuv[0], wavelength_range_ir[1])
+        _dump("FULL", debug_wavelength_range_nuv[0], debug_wavelength_range_ir[1])
     if zoom:
-        _dump("NUV", WL_NUV_min, WL_NUV_max)
-        _dump("VIS", WL_VIS_min, WL_VIS_max)
-        _dump("IR",  WL_IR_min,  WL_IR_max)
+        _dump("NUV", *DEBUG_WL_A_NUV)
+        _dump("VIS", *DEBUG_WL_A_VIS)
+        _dump("IR",  *DEBUG_WL_A_IR)
