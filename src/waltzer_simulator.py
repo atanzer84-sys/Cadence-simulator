@@ -21,7 +21,7 @@ def main():
         user_parameter_path = get_user_parameter_path()
         load_user_config(user_parameter_path)
         user_cfg = get_user_config()
-        planet_param, stellar_param, required_planet_keys, required_star_keys = load_stellar_and_planetary_properties(user_cfg.target_name)
+        planet_param, stellar_param, required_planetary_parameters, required_stellar_parameters = load_stellar_and_planetary_properties(user_cfg.target_name)
     except Exception as e:
         logging.exception("Input error while loading user parameters or Excel properties")
         print(f"Input error: {e}")
@@ -29,8 +29,8 @@ def main():
 
 
     # Create a star and a planet
-    star = Star.from_params(stellar_param, required_keys=required_star_keys)
-    _ = Planet.from_params(planet_param, required_keys=required_planet_keys)
+    star = Star.from_params(stellar_param, required_keys=required_stellar_parameters)
+    _ = Planet.from_params(planet_param, required_keys=required_planetary_parameters)
 
     # TODO: fetch python code from sreejith and integrate it
     calculateFluxOnEarth(star, output_dir)

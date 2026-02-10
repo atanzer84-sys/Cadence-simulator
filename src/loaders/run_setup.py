@@ -121,7 +121,7 @@ def load_stellar_and_planetary_properties(target_name_user_input):
 
         # TODO: MISSING PLANET WHEN NEEDED 
         # list all properties that are required by config, empty in excel to prep for gaia lookup
-        missing_star = get_missing_properties(star_params, mapping["required_star_parameters"])
+        missing_star = get_missing_properties(star_params, mapping["required_stellar_parameters"])
 
         # TODO: GAIA LOOKUP
         if missing_star:
@@ -131,7 +131,7 @@ def load_stellar_and_planetary_properties(target_name_user_input):
             star_params = merge_gaia_into_star_params(star_params, gaia_star_params)
 
         # now we finally have a list on missing parameters and can throw exceptions, because with missing parameters we can not do our simulation run.
-        missing_star_final = get_missing_properties(star_params, mapping["required_star_parameters"])
+        missing_star_final = get_missing_properties(star_params, mapping["required_stellar_parameters"])
         logging.info("Missing required star params after enrichment: %s", missing_star_final)
 
         if missing_star_final:
@@ -144,8 +144,8 @@ def load_stellar_and_planetary_properties(target_name_user_input):
         return (
             planet_params,
             star_params,
-            mapping["required_planet_parameters"],
-            mapping["required_star_parameters"],
+            mapping["required_planetary_parameters"],
+            mapping["required_stellar_parameters"],
         )
     except Exception:
         logging.exception(

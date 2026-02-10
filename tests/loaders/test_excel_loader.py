@@ -33,8 +33,8 @@ def test_map_to_planet_or_star_dictionary_logs_unknown_headers(tmp_path, caplog)
     mapping = {
         "planet": {"orbital_period": "pl_orbper"},
         "star": {"effective_temperature": "st_teff"},
-        "required_planet_parameters": [],
-        "required_star_parameters": [],
+        "required_planetary_parameters": [],
+        "required_stellar_parameters": [],
     }
 
     with caplog.at_level("WARNING"):
@@ -57,8 +57,8 @@ def test_map_to_planet_or_star_dictionary_detects_missing_required_keys():
     mapping = {
         "planet": {"orbital_period": "pl_orbper"},  # missing in row
         "star": {"effective_temperature": "st_teff"},
-        "required_planet_parameters": ["orbital_period"],
-        "required_star_parameters": ["effective_temperature", "radius"],
+        "required_planetary_parameters": ["orbital_period"],
+        "required_stellar_parameters": ["effective_temperature", "radius"],
     }
 
     planet_params, star_params = map_to_planet_or_star_dictionary(row, mapping, "Star X")
@@ -85,8 +85,8 @@ def test_map_to_planet_or_star_dictionary_inserts_star_name():
     mapping = {
         "planet": {},
         "star": {"effective_temperature": "st_teff"},
-        "required_planet_parameters": [],
-        "required_star_parameters": [],
+        "required_planetary_parameters": [],
+        "required_stellar_parameters": [],
     }
 
     _, star_params = map_to_planet_or_star_dictionary(row, mapping, "Star X")

@@ -76,8 +76,8 @@ def load_excel_cfg(mapping_path: Path):
     Returns a dict with:
       - planet: {canonical_key: excel_header}
       - star: {canonical_key: excel_header}
-      - required_planet_parameters: [canonical_key, ...]
-      - required_star_parameters: [canonical_key, ...]
+      - required_planetary_parameters: [canonical_key, ...]
+      - required_stellar_parameters: [canonical_key, ...]
     """
     try:
 
@@ -104,16 +104,16 @@ def load_excel_cfg(mapping_path: Path):
         mapping = {
             "planet": dict(cfg.items("planets")) if cfg.has_section("planets") else {},
             "star": dict(cfg.items("stars")) if cfg.has_section("stars") else {},
-            "required_planet_parameters": parse_required("required_planet_parameters"),
-            "required_star_parameters": parse_required("required_star_parameters"),
+            "required_planetary_parameters": parse_required("required_planetary_parameters"),
+            "required_stellar_parameters": parse_required("required_stellar_parameters"),
         }
 
         logging.info(
             "Excel mapping: %d planet keys, %d star keys, %d required planet, %d required star",
             len(mapping["planet"]),
             len(mapping["star"]),
-            len(mapping["required_planet_parameters"]),
-            len(mapping["required_star_parameters"]),
+            len(mapping["required_planetary_parameters"]),
+            len(mapping["required_stellar_parameters"]),
         )
         logging.info("Planet mapping keys: %s", mapping["planet"].keys())
         logging.info("Star mapping keys: %s", mapping["star"].keys())
@@ -132,7 +132,7 @@ def map_to_planet_or_star_dictionary(planet_star_dictionary: PlanetStarDict, map
       star_params: canonical keys -> values
 
     Uses mapping loaded by load_excel_cfg().
-    Validates required keys from [required_planet_parameters] and [required_star_parameters].
+    Validates required keys from [required_planetary_parameters] and [required_stellar_parameters].
     """
     # normalize if excel columns have leading or trailing spaces or upper lower case chars
     def norm(s: str) -> str:
@@ -188,8 +188,8 @@ def map_to_planet_or_star_dictionary(planet_star_dictionary: PlanetStarDict, map
     # no star's name in excel, so we insert the matched star name from the row 
     star_params["name"] = target_name
 
-    missing_planet = [k for k in mapping["required_planet_parameters"] if k not in planet_params or is_missing(planet_params[k])]
-    missing_star = [k for k in mapping["required_star_parameters"] if k not in star_params or is_missing(star_params[k])]
+    missing_planet = [k for k in mapping["required_planetary_parameters"] if k not in planet_params or is_missing(planet_params[k])]
+    missing_star = [k for k in mapping["required_stellar_parameters"] if k not in star_params or is_missing(star_params[k])]
     logging.info("Missing required planet params: %s", missing_planet)
     logging.info("Missing required star params: %s", missing_star)
 

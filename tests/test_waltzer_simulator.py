@@ -221,8 +221,8 @@ def test_main_calls_star_and_planet_constructors(monkeypatch, tmp_path, capsys):
         lambda _target: (
             {"name": "Planet"},   # planet_param
             {"name": "Star"},     # stellar_param
-            ["name"],             # required_planet_keys
-            ["name"],             # required_star_keys
+            ["name"],             # required_planetary_parameters
+            ["name"],             # required_stellar_parameters
         ),
     )
 
