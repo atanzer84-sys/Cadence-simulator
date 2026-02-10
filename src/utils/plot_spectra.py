@@ -1,6 +1,5 @@
 from typing import Any
-
-
+import logging
 import matplotlib.pyplot as plt
 from utils.constants import debug_wavelength_range_ir, debug_wavelength_range_nuv, debug_wavelength_range_vis, DEBUG_WL_A_NUV, DEBUG_WL_A_VIS, DEBUG_WL_A_IR
 
@@ -15,6 +14,8 @@ def plot_flux_and_photons_windows(wavelengths, flux_undiluted, photons_star, out
         "vis_zoom": DEBUG_WL_A_VIS,
         "ir_zoom":  DEBUG_WL_A_IR,
     }
+    print(f"Producing photon plots for {star.name}")
+    logging.info("Producing photon plots for %s", star.name)
 
     for key, (wmin, wmax) in ranges.items():
         mask = (wavelengths >= wmin) & (wavelengths <= wmax)
