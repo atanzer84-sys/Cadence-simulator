@@ -14,7 +14,7 @@ def main():
     output_dir, timestamp = setup_output_directory()
     setup_logger(output_dir, timestamp)
 
-    # Loading User Parameter file
+    # Loading Parameter, Config and Excel
     try:
         repo_root = get_repo_root()
         load_global_config(repo_root / "configs" / "global.cfg")

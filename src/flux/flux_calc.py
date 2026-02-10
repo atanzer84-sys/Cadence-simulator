@@ -24,7 +24,7 @@ def calculateFluxOnEarth(star: Star, output_dir):
         dump_3d_array(model_data, output_dir, star.name, "model_input", full=True, zoom=True) 
 
 
-    flux_lambda_original = convertIntensityToFlux(model_data, star.radius_sun_cm)
+    flux_lambda_original = convertStellarModelToFlux(model_data, star.radius_sun_cm)
     # keep undiluted flux
     flux_lambda_diluted = flux_lambda_original.copy()
     wavelengths = flux_lambda_original[:,0]
@@ -143,7 +143,7 @@ def load_model_for_temperature(t_star):
         f"(tried {subdir} and {subdir_fb})"
     )
 
-def convertIntensityToFlux(model_data, r_star):
+def convertStellarModelToFlux(model_data, r_star):
     '''
     Legacy model flux:
     frequency-based stellar model quantity, converted to per-wavelength

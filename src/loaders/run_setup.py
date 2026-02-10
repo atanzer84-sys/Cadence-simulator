@@ -97,7 +97,6 @@ def get_user_parameter_path():
 
     return parameter_file
 
-
 def load_stellar_and_planetary_properties(target_name_user_input):
     try:
         repo_root = get_repo_root()
@@ -154,7 +153,6 @@ def load_stellar_and_planetary_properties(target_name_user_input):
             target_name_user_input,
         )
         raise
-
 
 def _find_excel_file(repo_root: Path):
     try:

@@ -2,15 +2,13 @@ import numpy as np
 import pytest
 from pathlib import Path
 from unittest.mock import patch
-from utils.constants import C_LIGHT_ROUNDED_m_s, R_SUN, PARSEC_CM
-from flux.flux_calc import load_model_for_temperature, convertIntensityToFlux, compute_flux_at_earth, convert_flux_to_photons, apply_unred, calculateFluxOnEarth
+from utils.constants import C_LIGHT_ROUNDED_m_s, PARSEC_CM
+from flux.flux_calc import load_model_for_temperature, convertStellarModelToFlux, compute_flux_at_earth, convert_flux_to_photons, apply_unred, calculateFluxOnEarth
 import numpy as np
 from pathlib import Path
 from unittest.mock import patch
 from types import SimpleNamespace
 import numpy as np
-# from configs import global_config
-# from types import SimpleNamespace
 
 def test_load_model_exact_match():
     fake_data = np.array([[1.0, 2.0]])
@@ -65,7 +63,7 @@ def test_convertIntensityToLuminosity_shape_and_wavelength():
     ])
     r_star = 1.0
 
-    out = convertIntensityToFlux(model_data, r_star)
+    out = convertStellarModelToFlux(model_data, r_star)
 
     assert out.shape == model_data.shape
     np.testing.assert_allclose(out[:,0], model_data[:,0])
@@ -74,7 +72,7 @@ def test_frequency_to_wavelength_conversion():
     model_data = np.array([[1000.0, 1.0, 0.0]])
     r_star = 1.0
 
-    out = convertIntensityToFlux(model_data, r_star)
+    out = convertStellarModelToFlux(model_data, r_star)
 
     geometry = 4 * np.pi * r_star**2 * 4 * np.pi
     recovered_intensity = out[0,1] / geometry
@@ -137,7 +135,7 @@ def test_calculateFluxOnEarth_no_optional_steps_called(monkeypatch, tmp_path):
 
     monkeypatch.setattr("flux.flux_calc.load_model_for_temperature",
                         lambda _: np.array([[100.0, 1.0, 1.0]]))
-    monkeypatch.setattr("flux.flux_calc.convertIntensityToFlux",
+    monkeypatch.setattr("flux.flux_calc.convertStellarModelToFlux",
                         lambda d, _: d)
     monkeypatch.setattr("flux.flux_calc.compute_ebv_av",
                         lambda *a: (0.0, 0.0))
@@ -194,7 +192,7 @@ def test_calculateFluxOnEarth_optional_steps_called(monkeypatch, tmp_path):
 
     monkeypatch.setattr("flux.flux_calc.load_model_for_temperature",
                         lambda _: np.array([[100.0, 1.0, 1.0]]))
-    monkeypatch.setattr("flux.flux_calc.convertIntensityToFlux",
+    monkeypatch.setattr("flux.flux_calc.convertStellarModelToFlux",
                         lambda d, _: d)
     monkeypatch.setattr("flux.flux_calc.compute_ebv_av",
                         lambda *a: (0.1, 0.0))
