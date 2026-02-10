@@ -1,0 +1,68 @@
+Setup Phase
+- Output dir (timestamed, collision safe) - no argument
+
+- Logger init
+
+- load user parameter and sanitize target name: either argument with path or no argument = parameters.txt
+
+- load global cfg
+
+- load stellar and planetary parameters (Excel file)
+-- no argument for Excel file
+-- excel mapper because of column changes and code changes
+-- required parameters for star
+-- match target name to planet name with last character
+-- load excel row as properties in one dict
+-- map properties of this dict into a planet or star dict based on excel config
+--- not all excel properties are stored (spectral type)
+-- load mamjeck file for spectral types and store it to star dict
+-- now check if some required params are still missing. If so, do Gaia lookup (logR for example). Faked it into excel.
+--- Gaia not yet implemented
+-- Fallback LogR not yet implemented
+-- if parameters are missing (required means I rely on them for later calculations) - throw error and can not proceed
+-- if parameters are invalid (string, but number expected) throw error (happens while looking up missing parameters)
+
+- Create Star and Planet based on separated star and planet dicts, where now all required parameters are stored.
+
+- calculate Flux on Earth
+-- load stellar model
+-- convert stellar model to flux
+-- apply line core emission (if true)
+-- compute EBV interstellar reddening and extinction
+-- apply interstellar absorption (if true)
+-- compute flux at earth
+-- apply unreddening
+-- convert flux to photons
+
+
+
+Next:
+
+convert to counts per second.
+info about angstrom per pixel
+first : wl in a, corrpons to wl of each pixel
+col in the middle - not worry about thatlast col = effective area in cm^2
+read in take wl, then interpolate photons with new wl and create new photon grid
+multiply A with const number
+then effictive arecounts
+-> then counts per seconds per pixel
+-> cpp
+
+now step of convolving into instrument
+cospro
+FWHM
+ccdcountspersec
+
+
+other params: size of ccd, dark value, noise value.
+bias, darkspectrum spread info access. 
+bias: two values: bias and great noise value (defines std deviation of values)
+bias value: amplitude 
+FITS File
+create all values based on this principle
+IDL
+dark: catch: bias zero sec. dark because exposure. fark value fct time. exposure time also 
+
+pos / spread in python.
+
+
