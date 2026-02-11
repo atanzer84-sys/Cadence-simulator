@@ -225,7 +225,6 @@ __pycache__/
 .venv/
 
 output/
-Targets_V10p1.xlsx
 notes.txt
 parameters1.txt
 parameters2.txt
