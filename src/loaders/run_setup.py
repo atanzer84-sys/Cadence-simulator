@@ -84,7 +84,7 @@ def get_user_parameter_path():
         parameter_file = Path(sys.argv[1])
     else:
         # No argument → default
-        parameter_file = Path("parameters.txt")
+        parameter_file = Path("input/parameters.txt")
 
     logging.info("Using parameter file: %s", parameter_file.resolve())
     print("User parameter file loaded: ", parameter_file.resolve())
@@ -102,7 +102,7 @@ def load_stellar_and_planetary_properties(target_name_user_input):
         repo_root = get_repo_root()
 
         # find the excel file
-        excel_path = _find_excel_file(repo_root)
+        excel_path = _find_excel_file(repo_root / "input")
         logging.info("Using Excel file '%s' for target '%s'", excel_path, target_name_user_input)
         
         # load the star's matching row in a mixed dictionary

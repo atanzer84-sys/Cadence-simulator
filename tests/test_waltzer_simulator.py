@@ -15,9 +15,15 @@ exposure_VIS_s = 4.25
 exposure_IR_s = 10
 """
 
+
+
 def test_excel_error_exits(monkeypatch, tmp_path, capsys):
     monkeypatch.chdir(tmp_path)
-    (tmp_path / "parameters.txt").write_text(VALID_PARAMS_CONTENT.strip())
+
+    input_dir = tmp_path / "input"
+    input_dir.mkdir(parents=True, exist_ok=True)
+
+    (input_dir / "parameters.txt").write_text(VALID_PARAMS_CONTENT.strip(), encoding="utf-8")
 
     monkeypatch.setattr("sys.argv", ["waltzer_simulator.py"])
 
@@ -30,13 +36,16 @@ def test_excel_error_exits(monkeypatch, tmp_path, capsys):
     with pytest.raises(SystemExit):
         waltzer_simulator.main()
 
-    out = capsys.readouterr().out
+    captured = capsys.readouterr()
+    out = captured.out + captured.err
     assert "Input error" in out
     assert "excel broken" in out
 
 def test_excel_value_error_exits(monkeypatch, tmp_path, capsys):
-    # Create valid parameters.txt so load_user_parameters succeeds
-    params = tmp_path / "parameters.txt"
+    input_dir = tmp_path / "input"
+    input_dir.mkdir(parents=True, exist_ok=True)
+
+    params = input_dir / "parameters.txt"
     params.write_text(
         "target_name = HD 202772 A\n"
         "total_observation_length_h = 1\n"
@@ -49,7 +58,6 @@ def test_excel_value_error_exits(monkeypatch, tmp_path, capsys):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr("sys.argv", ["waltzer_simulator.py"])
 
-    # Force Excel loader to fail
     monkeypatch.setattr(
         waltzer_simulator,
         "load_stellar_and_planetary_properties",
@@ -60,12 +68,16 @@ def test_excel_value_error_exits(monkeypatch, tmp_path, capsys):
         waltzer_simulator.main()
 
     assert exc.value.code == 1
-    out = capsys.readouterr().out
+    captured = capsys.readouterr()
+    out = captured.out + captured.err
     assert "Input error" in out
     assert "excel broken" in out
 
 def test_excel_file_not_found_exits(monkeypatch, tmp_path, capsys):
-    params = tmp_path / "parameters.txt"
+    input_dir = tmp_path / "input"
+    input_dir.mkdir(parents=True, exist_ok=True)
+
+    params = input_dir / "parameters.txt"
     params.write_text(
         "target_name = HD 202772 A\n"
         "total_observation_length_h = 1\n"
@@ -88,9 +100,11 @@ def test_excel_file_not_found_exits(monkeypatch, tmp_path, capsys):
         waltzer_simulator.main()
 
     assert exc.value.code == 1
-    out = capsys.readouterr().out
+    captured = capsys.readouterr()
+    out = captured.out + captured.err
     assert "Input error" in out
     assert "no excel" in out
+
 
 
 # --- Too many arguments ---
@@ -201,7 +215,10 @@ def test_one_argument_invalid_params_exits(monkeypatch, tmp_path, capsys):
 
 
 def test_main_calls_star_and_planet_constructors(monkeypatch, tmp_path, capsys):
-    params = tmp_path / "parameters.txt"
+    input_dir = tmp_path / "input"
+    input_dir.mkdir(parents=True, exist_ok=True)
+
+    params = input_dir / "parameters.txt"
     params.write_text(
         "target_name = HD 202772 A\n"
         "total_observation_length_h = 1\n"
@@ -214,7 +231,6 @@ def test_main_calls_star_and_planet_constructors(monkeypatch, tmp_path, capsys):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr("sys.argv", ["waltzer_simulator.py"])
 
-    # Keep this minimal on purpose: this test is NOT about required keys.
     monkeypatch.setattr(
         waltzer_simulator,
         "load_stellar_and_planetary_properties",
@@ -247,19 +263,13 @@ def test_main_calls_star_and_planet_constructors(monkeypatch, tmp_path, capsys):
         calls["flux"] = (star, output_dir)
         return None
 
-    # Patch the constructors that main actually calls (they are imported into waltzer_simulator.py)
     monkeypatch.setattr(waltzer_simulator.Star, "from_params", staticmethod(fake_star_from_params))
     monkeypatch.setattr(waltzer_simulator.Planet, "from_params", staticmethod(fake_planet_from_params))
-
-    # Patch flux calculation
     monkeypatch.setattr(waltzer_simulator, "calculateFluxOnEarth", fake_calculateFluxOnEarth)
 
     waltzer_simulator.main()
 
     assert calls["star_from_params"] == ({"name": "Star"}, ["name"])
     assert calls["planet_from_params"] == ({"name": "Planet"}, ["name"])
-
-    # main should pass the created star object into calculateFluxOnEarth
     assert calls["flux"] is not None
     assert calls["flux"][0] is star_obj
-

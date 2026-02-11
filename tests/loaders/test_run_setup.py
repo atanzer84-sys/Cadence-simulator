@@ -140,14 +140,17 @@ def test_get_user_parameter_path_too_many_arguments(monkeypatch, capsys):
     assert "Usage:" in (out.out + out.err)
 
 def test_get_user_parameter_path_default_file(monkeypatch, tmp_path, capsys):
-    (tmp_path / "parameters.txt").write_text("target_name = HD 202772 A", encoding="utf-8")
+    input_dir = tmp_path / "input"
+    input_dir.mkdir()
+
+    (input_dir / "parameters.txt").write_text("target_name = HD 202772 A", encoding="utf-8")
 
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(sys, "argv", ["prog"])
 
     p = run_setup.get_user_parameter_path()
 
-    assert p == Path("parameters.txt")
+    assert p == Path("input") / "parameters.txt"
     captured = capsys.readouterr()
     assert "User parameter file loaded:" in (captured.out + captured.err)
     assert "parameters.txt" in (captured.out + captured.err)
