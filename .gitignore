@@ -225,12 +225,6 @@ __pycache__/
 .venv/
 
 output/
-notes.txt
-parameters1.txt
-parameters2.txt
-parameters3.txt
-parameters4.txt
-parameters5.txt
 
 # ignore all model data
 data/models/
@@ -238,5 +232,5 @@ data/models/
 # but keep the README in data
 !data/models/readme.txt
 Archive.zip
-src/excelUnits.txt
 excelUnits.txt
+notes.txt
