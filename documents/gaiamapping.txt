@@ -1,0 +1,12 @@
+name = 
+effective_temperature = teff_gspphot
+radius = radius_gspphot
+mass = mass_flame
+metallicity = 
+surface_gravity = logg_gspphot
+right_ascension = ra
+declination = dec
+distance = distance_gspphot
+v_magnitude = phot_g_mean_mag
+gaia_magnitude = phot_g_mean_mag
+log_r = 
