@@ -40,7 +40,7 @@ def setup_output_directory():
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
 
-    output_root = Path("output")
+    output_root = get_repo_root() / "output"
     output_root.mkdir(parents=True, exist_ok=True)
 
     output_dir = output_root / timestamp
