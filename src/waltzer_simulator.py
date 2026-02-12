@@ -17,11 +17,11 @@ def main():
     # Loading Parameter, Config and Excel
     try:
         repo_root = get_repo_root()
-        load_global_config(repo_root / "configs" / "global.cfg")
+        global_cfg = load_global_config(repo_root / "configs" / "global.cfg")
         user_parameter_path = get_user_parameter_path()
         load_user_config(user_parameter_path)
         user_cfg = get_user_config()
-        planet_param, stellar_param, required_planetary_parameters, required_stellar_parameters = load_stellar_and_planetary_properties(user_cfg.target_name)
+        planet_param, stellar_param, required_planetary_parameters, required_stellar_parameters = load_stellar_and_planetary_properties(user_cfg.target_name, global_cfg)
     except Exception as e:
         logging.exception("Input error while loading user parameters or Excel properties")
         print(f"Input error: {e}")

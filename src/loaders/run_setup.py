@@ -3,6 +3,7 @@ import logging
 import numpy as np
 from domain.star import Star
 from domain.planet import Planet
+from configs.global_config import GlobalConfig
 from loaders.excel_loader import load_matching_excel_row_from_excel, load_excel_cfg, map_to_planet_or_star_dictionary
 from loaders.parameter_preprocessing import get_missing_properties, clean_and_cast_parameters
 from loaders.gaia_lookup import lookup_star_gaia
@@ -97,13 +98,12 @@ def get_user_parameter_path():
 
     return parameter_file
 
-def load_stellar_and_planetary_properties(target_name_user_input):
+def load_stellar_and_planetary_properties(target_name_user_input, global_cfg):
     try:
         repo_root = get_repo_root()
 
         # find the excel file
         excel_path = _find_excel_file(repo_root / "input")
-        logging.info("Using Excel file '%s' for target '%s'", excel_path, target_name_user_input)
         
         # load the star's matching row in a mixed dictionary
         planet_star_dictionary, target_name = load_matching_excel_row_from_excel(excel_path, target_name_user_input)
@@ -115,27 +115,25 @@ def load_stellar_and_planetary_properties(target_name_user_input):
         # getting (still dirty) separate dictionaries for planetary and stellar properties
         planet_params, star_params = map_to_planet_or_star_dictionary(planet_star_dictionary, mapping, target_name)
 
-        # getting spectral type from mamjeck table.
-        mamajek_path = repo_root / "data" / "stellar_param_mamjeck.txt"
-        star_params = infer_mamajek_spectral_type(star_params, mamajek_path)
-
         # TODO: MISSING PLANET WHEN NEEDED 
         # list all properties that are required by config, empty in excel to prep for gaia lookup
         missing_star = get_missing_properties(star_params, mapping["required_stellar_parameters"])
-
-        # TODO: GAIA LOOKUP
+        
         if missing_star:
-            logging.info("Missing required star keys -> Gaia lookup: %s", missing_star)
-            gaia_star_params = lookup_star_gaia(star_params)
+            gaia_star_params = lookup_star_gaia(star_params, missing_star)
             # merge missing only (Excel wins)
             star_params = merge_gaia_into_star_params(star_params, gaia_star_params)
 
+        # getting spectral type from mamjeck table.
+        mamajek_path = repo_root / "data" / "stellar_param_mamjeck.txt"
+        star_params = infer_mamajek_spectral_type(star_params, mamajek_path)
+        star_params = apply_log_r_fallback(star_params, global_cfg)
+
         # now we finally have a list on missing parameters and can throw exceptions, because with missing parameters we can not do our simulation run.
         missing_star_final = get_missing_properties(star_params, mapping["required_stellar_parameters"])
-        logging.info("Missing required star params after enrichment: %s", missing_star_final)
 
         if missing_star_final:
-            raise ValueError(f"Missing required star parameters after GAIA  lookup: {missing_star_final}")
+            raise ValueError(f"Missing required star parameters after GAIA lookup: {missing_star_final}")
 
         star_params = clean_and_cast_parameters(star_params, Star)
         planet_params = clean_and_cast_parameters(planet_params, Planet)
@@ -149,7 +147,7 @@ def load_stellar_and_planetary_properties(target_name_user_input):
         )
     except Exception:
         logging.exception(
-            "Failed to load Excel/Gaia properties for target_name_user_input=%r",
+            "Failed to load all required properties after Excel/Mamjeck/Gaia lookup for target_name_user_input=%r",
             target_name_user_input,
         )
         raise
@@ -172,6 +170,8 @@ def _find_excel_file(repo_root: Path):
                 f"Multiple Excel files found in repo root: {names}"
             )
 
+        logging.info("Using Excel file to look up target: '%s'", excel_files[0])
+
         return excel_files[0]
 
     except Exception:
@@ -181,42 +181,89 @@ def _find_excel_file(repo_root: Path):
         )
         raise
 
-# TODO: NEEDS WORK
 def merge_gaia_into_star_params(star_params, gaia_star_params):
     if not gaia_star_params:
+        logging.info("No Gaia parameters to merge.")
         return star_params
 
     for k, v in gaia_star_params.items():
         current = star_params.get(k)
-        if current is None:
+
+        if current is None or (isinstance(current, str) and current.strip() == ""):
+            logging.info("Gaia merge: setting %s = %r", k, v)
             star_params[k] = v
-        elif isinstance(current, str) and current.strip() == "":
-            star_params[k] = v
+        else:
+            logging.info("Gaia merge: keeping existing %s = %r", k, current)
 
     return star_params
 
 def infer_mamajek_spectral_type(star_params, mamajek_path):
     mamajek_path = str(mamajek_path)
-
     logging.info("Loading Mamajek table from %s", mamajek_path)
 
     data = ascii.read(mamajek_path, comment="#")
-
     logging.info("Mamajek table loaded successfully (%d rows)", len(data))
-
     Sp = np.array(data["col1"])
     T_book = np.array(data["col2"], dtype=float)
 
-    Teff = float(star_params["effective_temperature"])
+    Teff_raw = star_params.get("effective_temperature")
+
+    if Teff_raw is None:
+        logging.error(
+            "Mamajek inference aborted: 'effective_temperature' is missing. Current star_params keys: %s", list(star_params.keys()),
+        )
+        raise ValueError(
+                "Cannot infer spectral type: effective_temperature is None. "
+            )
+    try:
+        Teff = float(Teff_raw)
+
+    except (TypeError, ValueError) as e:
+        logging.error(
+            "Mamajek inference failed: effective_temperature=%r is not convertible to float.",
+            Teff_raw,
+        )
+        raise ValueError(
+            f"Cannot infer spectral type: invalid effective_temperature value {Teff_raw!r}"
+        ) from e
+
     idx = int(np.abs(T_book - Teff).argmin())
     spectral_type = str(Sp[idx])
 
     star_params["spectral_type"] = spectral_type
 
-    logging.info(
-        "Set spectral_type=%s inferred from Teff=%s K",
-        spectral_type,
-        Teff,
-    )
+    logging.info("Set spectral_type=%s inferred from Teff=%s K",spectral_type,Teff)
+
+    return star_params
+
+def apply_log_r_fallback(star_params: dict, global_config: GlobalConfig) -> dict:
+    if not global_config.enable_log_r_fallback:
+        logging.info("log_r fallback skipped: enable_log_r_fallback=%s", global_config.enable_log_r_fallback)
+        return star_params
+
+    if star_params.get("log_r") is not None:
+        return star_params
+
+    Teff = star_params.get("effective_temperature")
+    if Teff is None:
+        logging.info("log_r fallback skipped: effective_temperature missing.")
+        return star_params
+
+    try:
+        Teff = float(Teff)
+    except Exception:
+        logging.exception("log_r fallback failed: invalid Teff=%r", Teff)
+        return star_params
+
+    threshold = global_config.log_r_teff_threshold
+    hot_val = global_config.log_r_hot_value
+    cool_val = global_config.log_r_cool_value
+
+    if Teff > threshold:
+        star_params["log_r"] = hot_val
+    else:
+        star_params["log_r"] = cool_val
+
+    logging.info("log_r fallback applied: Teff=%s threshold=%s -> log_r=%s", Teff, threshold, star_params["log_r"])
 
     return star_params
