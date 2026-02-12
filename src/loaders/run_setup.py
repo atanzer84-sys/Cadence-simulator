@@ -3,7 +3,7 @@ import logging
 import numpy as np
 from domain.star import Star
 from domain.planet import Planet
-from configs.global_config import GlobalConfig
+from configs.global_config import get_global_config
 from loaders.excel_loader import load_matching_excel_row_from_excel, load_excel_cfg, map_to_planet_or_star_dictionary
 from loaders.parameter_preprocessing import get_missing_properties, clean_and_cast_parameters
 from loaders.gaia_lookup import lookup_star_gaia
@@ -98,7 +98,7 @@ def get_user_parameter_path():
 
     return parameter_file
 
-def load_stellar_and_planetary_properties(target_name_user_input, global_cfg):
+def load_stellar_and_planetary_properties(target_name_user_input):
     try:
         repo_root = get_repo_root()
 
@@ -127,7 +127,7 @@ def load_stellar_and_planetary_properties(target_name_user_input, global_cfg):
         # getting spectral type from mamjeck table.
         mamajek_path = repo_root / "data" / "stellar_param_mamjeck.txt"
         star_params = infer_mamajek_spectral_type(star_params, mamajek_path)
-        star_params = apply_log_r_fallback(star_params, global_cfg)
+        star_params = apply_log_r_fallback(star_params)
 
         # now we finally have a list on missing parameters and can throw exceptions, because with missing parameters we can not do our simulation run.
         missing_star_final = get_missing_properties(star_params, mapping["required_stellar_parameters"])
@@ -236,7 +236,8 @@ def infer_mamajek_spectral_type(star_params, mamajek_path):
 
     return star_params
 
-def apply_log_r_fallback(star_params: dict, global_config: GlobalConfig) -> dict:
+def apply_log_r_fallback(star_params: dict) -> dict:
+    global_config = get_global_config()
     if not global_config.enable_log_r_fallback:
         logging.info("log_r fallback skipped: enable_log_r_fallback=%s", global_config.enable_log_r_fallback)
         return star_params

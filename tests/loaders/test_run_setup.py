@@ -5,7 +5,8 @@ from pathlib import Path
 import pytest
 import sys
 from loaders import run_setup
-from src.configs.global_config import GlobalConfig
+import configs.global_config as gc
+from configs.global_config import GlobalConfig
 from src.loaders.run_setup import apply_log_r_fallback
 
 
@@ -121,7 +122,7 @@ def test_load_stellar_and_planetary_properties_raises_file_not_found(monkeypatch
     monkeypatch.setattr(run_setup, "_find_excel_file", lambda repo_root: (_ for _ in ()).throw(FileNotFoundError("no excel")))
 
     with pytest.raises(FileNotFoundError):
-        run_setup.load_stellar_and_planetary_properties("Target", object())
+        run_setup.load_stellar_and_planetary_properties("Target")
 
 
 def test_load_stellar_and_planetary_properties_raises_value_error(monkeypatch):
@@ -130,7 +131,7 @@ def test_load_stellar_and_planetary_properties_raises_value_error(monkeypatch):
     monkeypatch.setattr(run_setup, "load_matching_excel_row_from_excel", lambda _p, _t: (_ for _ in ()).throw(ValueError("bad excel")))
 
     with pytest.raises(ValueError):
-        run_setup.load_stellar_and_planetary_properties("Target", object())
+        run_setup.load_stellar_and_planetary_properties("Target")
 
 
 def test_get_user_parameter_path_too_many_arguments(monkeypatch, capsys):
@@ -202,14 +203,9 @@ def test_infer_mamajek_spectral_type_sets_spectral_type(monkeypatch, caplog):
     assert "Loading Mamajek table" in " ".join(caplog.messages)
 
 
-def _make_global_cfg_for_log_r(
-    *,
-    enable_log_r_fallback: bool = True,
-    log_r_teff_threshold: float = 5500.0,
-    log_r_hot_value: float = -4.2,
-    log_r_cool_value: float = -4.8,
-) -> GlobalConfig:
-    return GlobalConfig(
+@pytest.fixture
+def global_cfg_log_r(monkeypatch):
+    cfg = GlobalConfig(
         line_core_emission=False,
         interstellar_absorption=False,
         mg2_col=None,
@@ -217,49 +213,62 @@ def _make_global_cfg_for_log_r(
         fe2_col=None,
         sigmaMg22=0.257,
         sigmaMg21=0.288,
-        enable_log_r_fallback=enable_log_r_fallback,
-        log_r_teff_threshold=log_r_teff_threshold,
-        log_r_hot_value=log_r_hot_value,
-        log_r_cool_value=log_r_cool_value,
+        enable_log_r_fallback=True,
+        log_r_teff_threshold=5500.0,
+        log_r_hot_value=-4.2,
+        log_r_cool_value=-4.8,
         test_mode=True,
         produce_Plots=False,
     )
+    monkeypatch.setattr(gc, "_GLOBAL", cfg, raising=False)
+    return cfg
 
+@pytest.fixture
+def global_cfg_log_r_disabled(monkeypatch):
+    cfg = GlobalConfig(
+        line_core_emission=False,
+        interstellar_absorption=False,
+        mg2_col=None,
+        mg1_col=None,
+        fe2_col=None,
+        sigmaMg22=0.257,
+        sigmaMg21=0.288,
+        enable_log_r_fallback=False,
+        log_r_teff_threshold=5500.0,
+        log_r_hot_value=-4.2,
+        log_r_cool_value=-4.8,
+        test_mode=True,
+        produce_Plots=False,
+    )
+    monkeypatch.setattr(gc, "_GLOBAL", cfg, raising=False)
+    return cfg
 
-def test_apply_log_r_fallback_disabled_does_not_modify_dict():
-    global_cfg = _make_global_cfg_for_log_r(enable_log_r_fallback=False)
+def test_apply_log_r_fallback_disabled_does_not_modify_dict(global_cfg_log_r_disabled):
     star_params = {"effective_temperature": 6000}
-
-    out = apply_log_r_fallback(star_params, global_cfg)
+    out = apply_log_r_fallback(star_params)
 
     assert out is star_params
     assert "log_r" not in star_params
 
 
-def test_apply_log_r_fallback_does_not_override_existing_log_r():
-    global_cfg = _make_global_cfg_for_log_r(enable_log_r_fallback=True)
+def test_apply_log_r_fallback_does_not_override_existing_log_r(global_cfg_log_r):
     star_params = {"effective_temperature": 6000, "log_r": -9.9}
 
-    out = apply_log_r_fallback(star_params, global_cfg)
+    out = apply_log_r_fallback(star_params)
 
     assert out is star_params
     assert star_params["log_r"] == -9.9
 
 
-def test_apply_log_r_fallback_sets_hot_or_cool_value_based_on_threshold():
-    global_cfg = _make_global_cfg_for_log_r(
-        enable_log_r_fallback=True,
-        log_r_teff_threshold=5500.0,
-        log_r_hot_value=-4.2,
-        log_r_cool_value=-4.8,
-    )
-
+def test_apply_log_r_fallback_sets_hot_or_cool_value_based_on_threshold(monkeypatch, global_cfg_log_r):
+    # hot branch
     star_hot = {"effective_temperature": "6000"}
-    out_hot = apply_log_r_fallback(star_hot, global_cfg)
+    out_hot = apply_log_r_fallback(star_hot)
     assert out_hot is star_hot
     assert star_hot["log_r"] == -4.2
 
+    # cool branch
     star_cool = {"effective_temperature": "5000"}
-    out_cool = apply_log_r_fallback(star_cool, global_cfg)
+    out_cool = apply_log_r_fallback(star_cool)
     assert out_cool is star_cool
     assert star_cool["log_r"] == -4.8
