@@ -1,0 +1,56 @@
+# run coverage analysis 
+/Users/andreatanzer/.venvs/shared/bin/python -m pytest --cov=src --cov-report=term-missing
+
+# get all failing tests
+/Users/andreatanzer/.venvs/shared/bin/python -m pytest -q
+
+#venvs
+/Users/andreatanzer/.venvs/shared/bin/python -m pip install astroquery
+
+
+git switch -c feature/next-thing
+git switch main
+git merge
+
+
+# parallel run from terminal
+
+for i in {1..5}; do
+    /Users/andreatanzer/.venvs/shared/bin/python src/waltzer_simulator.py parameters${i}.txt &
+done
+wait
+
+for i in {001..005}; do
+    /Users/andreatanzer/.venvs/shared/bin/python src/waltzer_simulator.py "parameters/parameter_${i}.txt" &
+done
+wait
+
+for i in {001..025}; do
+    /Users/andreatanzer/.venvs/shared/bin/python src/waltzer_simulator.py "parameters/parameter_${i}.txt" &
+done
+wait
+
+
+# cute call
+cd "/Users/andreatanzer/Documents/Space Science/MasterThesis/Sreejith_Repos/CUTE-SNR/Python"
+/Users/andreatanzer/.venvs/shared/bin/python cute_snr_wrapper.py
+
+
+# copy out to comparison and delete
+for f in *_*; do
+  d="${f%%_*}"
+  mkdir -p "/Users/andreatanzer/Documents/Space Science/compare/Sreejith/$d"
+  cp -- "$f" "/Users/andreatanzer/Documents/Space Science/compare/Sreejith/$d/"
+  rm -f -- "$f"
+done
+
+
+
+# copy waltzer to comparison + delete
+BASE="/Users/andreatanzer/Documents/Space Science/compare/waltzer"
+find . -type f -print0 | while IFS= read -r -d '' f; do
+  b="$(basename "$f")"
+  d="${b%%_*}"
+  mkdir -p "$BASE/$d"
+  mv "$f" "$BASE/$d/"
+done

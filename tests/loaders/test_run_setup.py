@@ -5,6 +5,8 @@ from pathlib import Path
 import pytest
 import sys
 from loaders import run_setup
+from src.configs.global_config import GlobalConfig
+from src.loaders.run_setup import apply_log_r_fallback
 
 
 def test_setup_output_directory_creates_dir(monkeypatch, tmp_path):
@@ -198,3 +200,66 @@ def test_infer_mamajek_spectral_type_sets_spectral_type(monkeypatch, caplog):
 
     assert out["spectral_type"] == "F2V"
     assert "Loading Mamajek table" in " ".join(caplog.messages)
+
+
+def _make_global_cfg_for_log_r(
+    *,
+    enable_log_r_fallback: bool = True,
+    log_r_teff_threshold: float = 5500.0,
+    log_r_hot_value: float = -4.2,
+    log_r_cool_value: float = -4.8,
+) -> GlobalConfig:
+    return GlobalConfig(
+        line_core_emission=False,
+        interstellar_absorption=False,
+        mg2_col=None,
+        mg1_col=None,
+        fe2_col=None,
+        sigmaMg22=0.257,
+        sigmaMg21=0.288,
+        enable_log_r_fallback=enable_log_r_fallback,
+        log_r_teff_threshold=log_r_teff_threshold,
+        log_r_hot_value=log_r_hot_value,
+        log_r_cool_value=log_r_cool_value,
+        test_mode=True,
+        produce_Plots=False,
+    )
+
+
+def test_apply_log_r_fallback_disabled_does_not_modify_dict():
+    global_cfg = _make_global_cfg_for_log_r(enable_log_r_fallback=False)
+    star_params = {"effective_temperature": 6000}
+
+    out = apply_log_r_fallback(star_params, global_cfg)
+
+    assert out is star_params
+    assert "log_r" not in star_params
+
+
+def test_apply_log_r_fallback_does_not_override_existing_log_r():
+    global_cfg = _make_global_cfg_for_log_r(enable_log_r_fallback=True)
+    star_params = {"effective_temperature": 6000, "log_r": -9.9}
+
+    out = apply_log_r_fallback(star_params, global_cfg)
+
+    assert out is star_params
+    assert star_params["log_r"] == -9.9
+
+
+def test_apply_log_r_fallback_sets_hot_or_cool_value_based_on_threshold():
+    global_cfg = _make_global_cfg_for_log_r(
+        enable_log_r_fallback=True,
+        log_r_teff_threshold=5500.0,
+        log_r_hot_value=-4.2,
+        log_r_cool_value=-4.8,
+    )
+
+    star_hot = {"effective_temperature": "6000"}
+    out_hot = apply_log_r_fallback(star_hot, global_cfg)
+    assert out_hot is star_hot
+    assert star_hot["log_r"] == -4.2
+
+    star_cool = {"effective_temperature": "5000"}
+    out_cool = apply_log_r_fallback(star_cool, global_cfg)
+    assert out_cool is star_cool
+    assert star_cool["log_r"] == -4.8
