@@ -1,12 +1,7 @@
-from astroquery.gaia import Gaia
-from astropy.coordinates import SkyCoord
-import astropy.units as u
 import numpy as np
 import logging
 import math
 
-
-# TODO: GAIA LOOKUP
 def lookup_star_gaia(star_params: dict, missing_star) -> dict:
     
     target_name = star_params["name"]
@@ -44,6 +39,10 @@ def lookup_star_gaia(star_params: dict, missing_star) -> dict:
 
 
 def query_gaia_by_name(target_name, radius_arcsec=2.0):
+    from astroquery.gaia import Gaia
+    from astropy.coordinates import SkyCoord
+    import astropy.units as u
+
     coord = SkyCoord.from_name(target_name)
     
     job = Gaia.cone_search_async(coord, radius=radius_arcsec * u.arcsec)
@@ -58,6 +57,7 @@ def select_source_id_from_best_gaia_match(gaia_table):
     return int(sourceID["source_id"])
 
 def query_gaia(sourceID):
+    from astroquery.gaia import Gaia
     query = f"""
         SELECT
             gs.source_id,
