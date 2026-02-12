@@ -19,6 +19,12 @@ def get_missing_properties(parameters: dict, required_keys: list[str]) -> list[s
             return True
         return False
 
+
+    logging.info("Checking missing properties...")
+    logging.info("Required keys: %s", required_keys)
+    logging.info("Current parameters: %s", parameters)
+    logging.info("Missing properties result: %s", [k for k in required_keys if k not in parameters or is_missing(parameters.get(k))])
+
     return [k for k in required_keys if k not in parameters or is_missing(parameters.get(k))]
 
 def clean_and_cast_parameters(parameters: dict[str, Any], domain_class: type) -> dict[str, Any]:
