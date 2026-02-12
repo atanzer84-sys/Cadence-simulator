@@ -119,7 +119,8 @@ def test_load_stellar_and_planetary_properties_raises_file_not_found(monkeypatch
     monkeypatch.setattr(run_setup, "_find_excel_file", lambda repo_root: (_ for _ in ()).throw(FileNotFoundError("no excel")))
 
     with pytest.raises(FileNotFoundError):
-        run_setup.load_stellar_and_planetary_properties("Target")
+        run_setup.load_stellar_and_planetary_properties("Target", object())
+
 
 def test_load_stellar_and_planetary_properties_raises_value_error(monkeypatch):
     monkeypatch.setattr(run_setup, "get_repo_root", lambda base_dir=None: Path("/tmp"))
@@ -127,7 +128,8 @@ def test_load_stellar_and_planetary_properties_raises_value_error(monkeypatch):
     monkeypatch.setattr(run_setup, "load_matching_excel_row_from_excel", lambda _p, _t: (_ for _ in ()).throw(ValueError("bad excel")))
 
     with pytest.raises(ValueError):
-        run_setup.load_stellar_and_planetary_properties("Target")
+        run_setup.load_stellar_and_planetary_properties("Target", object())
+
 
 def test_get_user_parameter_path_too_many_arguments(monkeypatch, capsys):
     monkeypatch.setattr(sys, "argv", ["prog", "a", "b"])

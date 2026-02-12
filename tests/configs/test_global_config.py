@@ -92,6 +92,10 @@ line_core_emission = 1
 interstellar_absorption = 0
 sigmaMg21 = 0.288
 test_mode = 0
+enable_log_r_fallback = 0
+log_r_teff_threshold = 5500
+log_r_hot_value = 0.0
+log_r_cool_value = 0.0
 """,
         encoding="utf-8",
     )
@@ -112,6 +116,10 @@ mg1_col = 3
 fe2_col = 0.001
 test_mode = 0
 produce_Plots = 0
+enable_log_r_fallback = 0
+log_r_teff_threshold = 5500
+log_r_hot_value = 0.0
+log_r_cool_value = 0.0
 """,
         encoding="utf-8",
     )
@@ -172,6 +180,10 @@ this line has no equals sign
 interstellar_absorption = 0
 test_mode = 0
 produce_Plots = 0
+enable_log_r_fallback = 0
+log_r_teff_threshold = 5500
+log_r_hot_value = 0.0
+log_r_cool_value = 0.0
 """,
         encoding="utf-8",
     )
@@ -181,3 +193,71 @@ produce_Plots = 0
     # The invalid line should simply be ignored, not cause errors
     assert cfg.line_core_emission is True
     assert cfg.interstellar_absorption is False
+
+def test_required_log_r_fields_reject_non_numeric(tmp_path):
+    base_cfg = """
+line_core_emission = 0
+interstellar_absorption = 0
+enable_log_r_fallback = 1
+log_r_teff_threshold = 5500
+log_r_hot_value = -4.2
+log_r_cool_value = -4.8
+test_mode = 0
+produce_Plots = 0
+"""
+
+    # 1) bad teff threshold
+    cfg_path = tmp_path / "bad_teff.cfg"
+    cfg_path.write_text(
+        base_cfg.replace("log_r_teff_threshold = 5500", "log_r_teff_threshold = banana"),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError) as exc:
+        global_config.load_global_config(cfg_path)
+    assert "log_r_teff_threshold" in str(exc.value)
+
+    # 2) bad hot value
+    cfg_path = tmp_path / "bad_hot.cfg"
+    cfg_path.write_text(
+        base_cfg.replace("log_r_hot_value = -4.2", "log_r_hot_value = banana"),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError) as exc:
+        global_config.load_global_config(cfg_path)
+    assert "log_r_hot_value" in str(exc.value)
+
+    # 3) bad cool value
+    cfg_path = tmp_path / "bad_cool.cfg"
+    cfg_path.write_text(
+        base_cfg.replace("log_r_cool_value = -4.8", "log_r_cool_value = banana"),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError) as exc:
+        global_config.load_global_config(cfg_path)
+    assert "log_r_cool_value" in str(exc.value)
+
+def test_required_log_r_fields_parse_numeric(tmp_path):
+    cfg_path = tmp_path / "global_required_log_r_numeric.cfg"
+    cfg_path.write_text(
+        """
+line_core_emission = 0
+interstellar_absorption = 0
+enable_log_r_fallback = 1
+log_r_teff_threshold = 5500
+log_r_hot_value = -4.2
+log_r_cool_value = -4.8
+test_mode = 0
+produce_Plots = 0
+""",
+        encoding="utf-8",
+    )
+
+    cfg = global_config.load_global_config(cfg_path)
+
+    assert cfg.enable_log_r_fallback is True
+    assert cfg.log_r_teff_threshold == 5500.0
+    assert cfg.log_r_hot_value == -4.2
+    assert cfg.log_r_cool_value == -4.8

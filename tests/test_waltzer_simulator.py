@@ -30,7 +30,7 @@ def test_excel_error_exits(monkeypatch, tmp_path, capsys):
     monkeypatch.setattr(
         waltzer_simulator,
         "load_stellar_and_planetary_properties",
-        lambda _: (_ for _ in ()).throw(ValueError("excel broken")),
+        lambda _target, _global_cfg: (_ for _ in ()).throw(ValueError("excel broken"))
     )
 
     with pytest.raises(SystemExit):
@@ -61,7 +61,7 @@ def test_excel_value_error_exits(monkeypatch, tmp_path, capsys):
     monkeypatch.setattr(
         waltzer_simulator,
         "load_stellar_and_planetary_properties",
-        lambda _target: (_ for _ in ()).throw(ValueError("excel broken")),
+        lambda _target, _global_cfg: (_ for _ in ()).throw(ValueError("excel broken"))
     )
 
     with pytest.raises(SystemExit) as exc:
@@ -93,7 +93,7 @@ def test_excel_file_not_found_exits(monkeypatch, tmp_path, capsys):
     monkeypatch.setattr(
         waltzer_simulator,
         "load_stellar_and_planetary_properties",
-        lambda _target: (_ for _ in ()).throw(FileNotFoundError("no excel")),
+        lambda _target, _global_cfg: (_ for _ in ()).throw(ValueError("no excel"))
     )
 
     with pytest.raises(SystemExit) as exc:
@@ -234,7 +234,7 @@ def test_main_calls_star_and_planet_constructors(monkeypatch, tmp_path, capsys):
     monkeypatch.setattr(
         waltzer_simulator,
         "load_stellar_and_planetary_properties",
-        lambda _target: (
+       lambda _target, _global_cfg: (
             {"name": "Planet"},   # planet_param
             {"name": "Star"},     # stellar_param
             ["name"],             # required_planetary_parameters
