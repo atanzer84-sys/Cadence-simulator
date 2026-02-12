@@ -2,7 +2,6 @@ from loaders.run_setup import initialize_waltzer_runtime, load_cfg_and_user_conf
 from domain.star import Star
 from domain.planet import Planet
 from flux.flux_calc import calculateFluxOnEarth
-
 import sys
 import logging
 
