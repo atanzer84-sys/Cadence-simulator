@@ -38,6 +38,7 @@ def test_setup_output_directory_handles_collision(monkeypatch, tmp_path):
 
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(run_setup, "datetime", FixedDateTime)
+    monkeypatch.setattr(run_setup, "get_repo_root", lambda base_dir=None: tmp_path)
 
     # First call creates output/<timestamp>
     first_dir, ts = run_setup.setup_output_directory()
@@ -45,7 +46,8 @@ def test_setup_output_directory_handles_collision(monkeypatch, tmp_path):
 
     # Manually create the base directory again to force a collision
     base_dir = tmp_path / "output" / ts
-    base_dir.mkdir(exist_ok=True)
+    base_dir.mkdir(parents=True, exist_ok=True)
+
 
     # Second call should now create <timestamp>_01
     second_dir, ts2 = run_setup.setup_output_directory()
@@ -151,11 +153,13 @@ def test_get_user_parameter_path_default_file(monkeypatch, tmp_path, capsys):
     (input_dir / "parameters.txt").write_text("target_name = HD 202772 A", encoding="utf-8")
 
     monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(run_setup, "get_repo_root", lambda base_dir=None: tmp_path)
+
     monkeypatch.setattr(sys, "argv", ["prog"])
 
     p = run_setup.get_user_parameter_path()
 
-    assert p == Path("input") / "parameters.txt"
+    assert p.resolve() == (tmp_path / "input" / "parameters.txt").resolve()
     captured = capsys.readouterr()
     assert "User parameter file loaded:" in (captured.out + captured.err)
     assert "parameters.txt" in (captured.out + captured.err)
@@ -175,6 +179,8 @@ def test_get_user_parameter_path_custom_file(monkeypatch, tmp_path, capsys):
 
 def test_get_user_parameter_path_missing_file(monkeypatch, tmp_path, capsys):
     monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(run_setup, "get_repo_root", lambda base_dir=None: tmp_path)
+    
     monkeypatch.setattr(sys, "argv", ["prog"])  # default parameters.txt does not exist
 
     with pytest.raises(SystemExit) as exc:

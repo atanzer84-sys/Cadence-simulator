@@ -104,7 +104,7 @@ def get_user_parameter_path():
         parameter_file = Path(sys.argv[1])
     else:
         # No argument → default
-        parameter_file = Path("input/parameters.txt")
+        parameter_file = get_repo_root() / "input" / "parameters.txt"
 
     logging.info("Using parameter file: %s", parameter_file.resolve())
     print("User parameter file loaded: ", parameter_file.resolve())
