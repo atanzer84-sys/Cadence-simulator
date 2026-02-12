@@ -33,63 +33,50 @@ def test_excel_file_not_found_exits(monkeypatch, tmp_path, capsys):
     assert "Input error" in out
     assert "no excel" in out
 
+def test_main_calls_star_and_planet_constructors(monkeypatch):
+    import waltzer_simulator
 
-def test_main_calls_star_and_planet_constructors(monkeypatch, tmp_path, capsys):
-    input_dir = tmp_path / "input"
-    input_dir.mkdir(parents=True, exist_ok=True)
+    # isolate main from filesystem
+    monkeypatch.setattr(waltzer_simulator, "initialize_waltzer_runtime", lambda: "OUTDIR")
 
-    params = input_dir / "parameters.txt"
-    params.write_text(
-        "target_name = HD 202772 A\n"
-        "total_observation_length_h = 1\n"
-        "exposure_NUV_s = 1\n"
-        "exposure_VIS_s = 1\n"
-        "exposure_IR_s = 1\n",
-        encoding="utf-8",
-    )
+    class DummyCfg:
+        target_name = "SomeTarget"
 
-    monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr("sys.argv", ["waltzer_simulator.py"])
+    monkeypatch.setattr(waltzer_simulator, "load_cfg_and_user_config", lambda: DummyCfg())
 
     monkeypatch.setattr(
         waltzer_simulator,
         "load_stellar_and_planetary_properties",
-       lambda _target: (
-            {"name": "Planet"},   # planet_param
-            {"name": "Star"},     # stellar_param
-            ["name"],             # required_planetary_parameters
-            ["name"],             # required_stellar_parameters
+        lambda _target: (
+            {"name": "Planet"},
+            {"name": "Star"},
+            ["name"],
+            ["name"],
         ),
     )
 
-    calls = {
-        "star_from_params": None,
-        "planet_from_params": None,
-        "flux": None,
-    }
-
+    calls = {"star": None, "planet": None, "flux": None}
     star_obj = object()
     planet_obj = object()
 
-    def fake_star_from_params(stellar_param, required_keys):
-        calls["star_from_params"] = (stellar_param, required_keys)
-        return star_obj
-
-    def fake_planet_from_params(planet_param, required_keys):
-        calls["planet_from_params"] = (planet_param, required_keys)
-        return planet_obj
-
-    def fake_calculateFluxOnEarth(star, output_dir):
-        calls["flux"] = (star, output_dir)
-        return None
-
-    monkeypatch.setattr(waltzer_simulator.Star, "from_params", staticmethod(fake_star_from_params))
-    monkeypatch.setattr(waltzer_simulator.Planet, "from_params", staticmethod(fake_planet_from_params))
-    monkeypatch.setattr(waltzer_simulator, "calculateFluxOnEarth", fake_calculateFluxOnEarth)
+    monkeypatch.setattr(
+        waltzer_simulator.Star,
+        "from_params",
+        staticmethod(lambda p, required_keys: calls.update(star=(p, required_keys)) or star_obj),
+    )
+    monkeypatch.setattr(
+        waltzer_simulator.Planet,
+        "from_params",
+        staticmethod(lambda p, required_keys: calls.update(planet=(p, required_keys)) or planet_obj),
+    )
+    monkeypatch.setattr(
+        waltzer_simulator,
+        "calculateFluxOnEarth",
+        lambda star, outdir: calls.update(flux=(star, outdir)),
+    )
 
     waltzer_simulator.main()
 
-    assert calls["star_from_params"] == ({"name": "Star"}, ["name"])
-    assert calls["planet_from_params"] == ({"name": "Planet"}, ["name"])
-    assert calls["flux"] is not None
-    assert calls["flux"][0] is star_obj
+    assert calls["star"] == ({"name": "Star"}, ["name"])
+    assert calls["planet"] == ({"name": "Planet"}, ["name"])
+    assert calls["flux"] == (star_obj, "OUTDIR")

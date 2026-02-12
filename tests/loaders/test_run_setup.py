@@ -7,14 +7,14 @@ import sys
 from loaders import run_setup
 import configs.global_config as gc
 from configs.global_config import GlobalConfig
-from src.loaders.run_setup import apply_log_r_fallback
+from loaders.run_setup import apply_log_r_fallback
 from configs import user_config
 
 
 def test_setup_output_directory_creates_dir(monkeypatch, tmp_path):
     # Redirect "output" to a temp directory
     monkeypatch.chdir(tmp_path)
-
+    monkeypatch.setattr(run_setup, "get_repo_root", lambda base_dir=None: tmp_path)
     output_dir, timestamp = run_setup.setup_output_directory()
 
     # Directory exists
@@ -59,6 +59,7 @@ def test_setup_output_directory_handles_collision(monkeypatch, tmp_path):
 
 def test_setup_output_directory_prints(monkeypatch, tmp_path, capsys):
     monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(run_setup, "get_repo_root", lambda base_dir=None: tmp_path)
 
     run_setup.setup_output_directory()
     captured = capsys.readouterr().out
@@ -136,16 +137,19 @@ def test_load_stellar_and_planetary_properties_raises_value_error(monkeypatch):
     with pytest.raises(ValueError):
         run_setup.load_stellar_and_planetary_properties("Target")
 
+# --- Too many arguments ---
+def test_too_many_arguments_exits_with_usage(monkeypatch, tmp_path, capsys):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("sys.argv", ["waltzer_simulator.py", "a.txt", "b.txt"])
 
-def test_get_user_parameter_path_too_many_arguments(monkeypatch, capsys):
-    monkeypatch.setattr(sys, "argv", ["prog", "a", "b"])
-
-    with pytest.raises(SystemExit) as exc:
+    with pytest.raises(SystemExit) as exc_info:
         run_setup.get_user_parameter_path()
 
-    assert exc.value.code == 1
+    assert exc_info.value.code == 1
     out = capsys.readouterr()
-    assert "Usage:" in (out.out + out.err)
+    text = out.out + out.err
+    assert "Usage:" in text
+    assert "parameters_file" in text
 
 def test_get_user_parameter_path_default_file(monkeypatch, tmp_path, capsys):
     input_dir = tmp_path / "input"
@@ -281,16 +285,6 @@ def test_apply_log_r_fallback_sets_hot_or_cool_value_based_on_threshold(monkeypa
     assert star_cool["log_r"] == -4.8
 
 
-def test_get_user_parameter_path_no_argument_file_not_found_exits(monkeypatch, tmp_path):
-    # Default path is repo_root/input/parameters.txt
-    monkeypatch.setattr(run_setup, "get_repo_root", lambda base_dir=None: tmp_path)
-    monkeypatch.setattr("sys.argv", ["waltzer_simulator.py"])
-    monkeypatch.chdir(tmp_path)  # doesn't matter, default is repo_root-based
-
-    with pytest.raises(SystemExit) as exc_info:
-        run_setup.get_user_parameter_path()
-
-    assert exc_info.value.code == 1
 
 
 def test_get_user_parameter_path_one_argument_absolute_path_success(monkeypatch, tmp_path):
@@ -320,20 +314,18 @@ def test_get_user_parameter_path_one_argument_relative_path_success(monkeypatch,
     assert got.resolve() == param_file.resolve()
 
 
-# --- Too many arguments ---
-def test_too_many_arguments_exits_with_usage(monkeypatch, tmp_path, capsys):
-    monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr("sys.argv", ["waltzer_simulator.py", "a.txt", "b.txt"])
+
+def test_get_user_parameter_path_no_argument_file_not_found_exits(monkeypatch, tmp_path):
+    # Default path is repo_root/input/parameters.txt
+    monkeypatch.setattr(run_setup, "get_repo_root", lambda base_dir=None: tmp_path)
+    monkeypatch.setattr("sys.argv", ["waltzer_simulator.py"])
+    monkeypatch.chdir(tmp_path)  # doesn't matter, default is repo_root-based
 
     with pytest.raises(SystemExit) as exc_info:
         run_setup.get_user_parameter_path()
 
     assert exc_info.value.code == 1
-    out = capsys.readouterr()
-    text = out.out + out.err
-    assert "Usage:" in text
-    assert "parameters_file" in text
-
+    
 def test_one_argument_file_not_found_exits(monkeypatch, tmp_path, capsys):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr("sys.argv", ["waltzer_simulator.py", "/nonexistent/params.txt"])
