@@ -60,6 +60,8 @@ def load_matching_excel_row_from_excel(excel_path, target_name_user_input):
             raise ValueError(
                 f"No target found for '{target_name_user_input}' (searched until row with empty pl_name)"
             )
+
+        print("matching_row_dict ", matching_row_dict)    
         return matching_row_dict, target_name_user_input
     except Exception:
         logging.exception(
@@ -190,16 +192,11 @@ def map_to_planet_or_star_dictionary(planet_star_dictionary: PlanetStarDict, map
 
     missing_planet = [k for k in mapping["required_planetary_parameters"] if k not in planet_params or is_missing(planet_params[k])]
     missing_star = [k for k in mapping["required_stellar_parameters"] if k not in star_params or is_missing(star_params[k])]
-    logging.info("Missing required planet params: %s", missing_planet)
-    logging.info("Missing required star params: %s", missing_star)
+    logging.info("Missing required planet properties after Excel import: %s", missing_planet)
+    logging.info("Missing required star properties after Excel import: %s", missing_star)
 
-    logging.info("Processed planetary parameters:")
-    for k, v in planet_params.items():
-        logging.info("  %s = %r", k, v)
-
-    logging.info("Processed stellar parameters:")
-    for k, v in star_params.items():
-        logging.info("  %s = %r", k, v)
+    logging.info("Processed planetary parameters after Excel import: %s", planet_params)
+    logging.info("Processed stellar parameters after Excel import: %s", star_params)
 
     return planet_params, star_params
 
