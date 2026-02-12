@@ -234,3 +234,7 @@ data/models/
 Archive.zip
 excelUnits.txt
 notes.txt
+src.zip
+tests.zip
+.gitignore
+input/~$Targets_V10p1.xlsx
