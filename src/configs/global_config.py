@@ -9,11 +9,18 @@ import logging
 class GlobalConfig:
     line_core_emission: bool
     interstellar_absorption: bool
+
     mg2_col: float | None
     mg1_col: float | None
     fe2_col: float | None
     sigmaMg22: float
     sigmaMg21: float
+    
+    enable_log_r_fallback: bool
+    log_r_teff_threshold: float
+    log_r_hot_value: float
+    log_r_cool_value: float
+    
     test_mode: bool
     produce_Plots: bool
 
@@ -53,34 +60,19 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
     _warn_default_used(raw, "sigmaMg21", DEFAULT_SIGMA_MG21, path=path)
 
     cfg = GlobalConfig(
-        line_core_emission=_as_bool(
-            raw.get("line_core_emission", 0),
-            key="line_core_emission",
-        ),
-        interstellar_absorption=_as_bool(
-            raw.get("interstellar_absorption", 0),
-            key="interstellar_absorption",
-        ),
+        line_core_emission=_as_bool(raw.get("line_core_emission", 0), key="line_core_emission"),
+        interstellar_absorption=_as_bool(raw.get("interstellar_absorption", 0), key="interstellar_absorption"),
         mg2_col=_as_optional_float(raw.get("mg2_col", None)),
         mg1_col=_as_optional_float(raw.get("mg1_col", None)),
         fe2_col=_as_optional_float(raw.get("fe2_col", None)),
-        sigmaMg22=_as_float(
-            raw.get("sigmaMg22", DEFAULT_SIGMA_MG22),
-            key="sigmaMgIIh",
-        ),
-        sigmaMg21=_as_float(
-            raw.get("sigmaMg21", DEFAULT_SIGMA_MG21),
-            key="sigmaMgIIk",
-        ),
-
-        test_mode=_as_bool(
-            raw.get("test_mode", 0),
-            key="test_mode",
-        ),    
-        produce_Plots=_as_bool(
-            raw.get("produce_Plots", 0),
-            key="produce_Plots",
-        ),    
+        sigmaMg22=_as_float(raw.get("sigmaMg22", DEFAULT_SIGMA_MG22), key="sigmaMgIIh"),
+        sigmaMg21=_as_float(raw.get("sigmaMg21", DEFAULT_SIGMA_MG21), key="sigmaMgIIk"),
+        enable_log_r_fallback=_as_bool(raw.get("enable_log_r_fallback", 0), key="enable_log_r_fallback"),
+        log_r_teff_threshold=_as_float(raw["log_r_teff_threshold"], key="log_r_teff_threshold"),
+        log_r_hot_value=_as_float(raw["log_r_hot_value"], key="log_r_hot_value"),
+        log_r_cool_value=_as_float(raw["log_r_cool_value"], key="log_r_cool_value"),
+        test_mode=_as_bool(raw.get("test_mode", 0), key="test_mode"),    
+        produce_Plots=_as_bool(raw.get("produce_Plots", 0), key="produce_Plots",),    
     )
     logging.info("Global config loaded: %s", cfg)
     return cfg
