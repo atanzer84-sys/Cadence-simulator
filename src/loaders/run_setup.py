@@ -3,13 +3,32 @@ import logging
 import numpy as np
 from domain.star import Star
 from domain.planet import Planet
-from configs.global_config import get_global_config
+from configs.global_config import load_global_config, get_global_config
 from loaders.excel_loader import load_matching_excel_row_from_excel, load_excel_cfg, map_to_planet_or_star_dictionary
 from loaders.parameter_preprocessing import get_missing_properties, clean_and_cast_parameters
 from loaders.gaia_lookup import lookup_star_gaia
 from astropy.io import ascii
 from pathlib import Path
 from datetime import datetime
+from configs.user_config import load_user_config, get_user_config
+
+
+def initialize_waltzer_runtime():
+    print("Getting started...")
+    output_dir, timestamp = setup_output_directory()
+    setup_logger(output_dir, timestamp)
+    return output_dir
+
+def load_cfg_and_user_config():
+    repo_root = get_repo_root()
+    load_global_config(repo_root / "configs" / "global.cfg")
+
+    user_parameter_path = get_user_parameter_path()
+    load_user_config(user_parameter_path)
+    user_cfg = get_user_config()
+
+    return user_cfg
+
 
 def setup_output_directory():
     """
