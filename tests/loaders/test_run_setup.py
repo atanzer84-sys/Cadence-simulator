@@ -8,6 +8,7 @@ from loaders import run_setup
 import configs.global_config as gc
 from configs.global_config import GlobalConfig
 from src.loaders.run_setup import apply_log_r_fallback
+from configs import user_config
 
 
 def test_setup_output_directory_creates_dir(monkeypatch, tmp_path):
@@ -278,3 +279,92 @@ def test_apply_log_r_fallback_sets_hot_or_cool_value_based_on_threshold(monkeypa
     out_cool = apply_log_r_fallback(star_cool)
     assert out_cool is star_cool
     assert star_cool["log_r"] == -4.8
+
+
+def test_get_user_parameter_path_no_argument_file_not_found_exits(monkeypatch, tmp_path):
+    # Default path is repo_root/input/parameters.txt
+    monkeypatch.setattr(run_setup, "get_repo_root", lambda base_dir=None: tmp_path)
+    monkeypatch.setattr("sys.argv", ["waltzer_simulator.py"])
+    monkeypatch.chdir(tmp_path)  # doesn't matter, default is repo_root-based
+
+    with pytest.raises(SystemExit) as exc_info:
+        run_setup.get_user_parameter_path()
+
+    assert exc_info.value.code == 1
+
+
+def test_get_user_parameter_path_one_argument_absolute_path_success(monkeypatch, tmp_path):
+    param_file = tmp_path / "params.txt"
+    param_file.write_text("target_name = HD 202772 A\n", encoding="utf-8")
+
+    monkeypatch.setattr("sys.argv", ["waltzer_simulator.py", str(param_file)])
+    monkeypatch.chdir(tmp_path)
+
+    got = run_setup.get_user_parameter_path()
+
+    assert got == param_file
+
+
+def test_get_user_parameter_path_one_argument_relative_path_success(monkeypatch, tmp_path):
+    subdir = tmp_path / "param"
+    subdir.mkdir()
+    param_file = subdir / "Wasp 99.txt"
+    param_file.write_text("target_name = HD 202772 A\n", encoding="utf-8")
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("sys.argv", ["waltzer_simulator.py", "param/Wasp 99.txt"])
+
+    got = run_setup.get_user_parameter_path()
+
+    assert got == Path("param/Wasp 99.txt")
+    assert got.resolve() == param_file.resolve()
+
+
+# --- Too many arguments ---
+def test_too_many_arguments_exits_with_usage(monkeypatch, tmp_path, capsys):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("sys.argv", ["waltzer_simulator.py", "a.txt", "b.txt"])
+
+    with pytest.raises(SystemExit) as exc_info:
+        run_setup.get_user_parameter_path()
+
+    assert exc_info.value.code == 1
+    out = capsys.readouterr()
+    text = out.out + out.err
+    assert "Usage:" in text
+    assert "parameters_file" in text
+
+def test_one_argument_file_not_found_exits(monkeypatch, tmp_path, capsys):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("sys.argv", ["waltzer_simulator.py", "/nonexistent/params.txt"])
+
+    with pytest.raises(SystemExit) as exc_info:
+        run_setup.get_user_parameter_path()
+
+    assert exc_info.value.code == 1
+    out = capsys.readouterr()
+    text = out.out + out.err
+    assert "not found" in text.lower()
+    assert "nonexistent" in text or "parameter" in text.lower()
+
+
+def test_invalid_params_raises_value_error(monkeypatch, tmp_path):
+    monkeypatch.setattr(user_config, "_USER", None)
+
+    param_file = tmp_path / "bad.txt"
+    param_file.write_text(
+        "target_name = Star\n"
+        "total_observation_length_h = not_a_number\n"
+        "exposure_NUV_s = 1\n"
+        "exposure_VIS_s = 1\n"
+        "exposure_IR_s = 1\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(run_setup, "get_user_parameter_path", lambda: Path(param_file))
+
+    with pytest.raises(ValueError) as exc_info:
+        run_setup.load_cfg_and_user_config()
+
+    assert "Invalid float for key 'total_observation_length_h'" in str(exc_info.value)
