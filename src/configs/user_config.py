@@ -37,7 +37,6 @@ def get_user_config() -> UserConfig:
 
 
 def _read_user_cfg(path: Path) -> UserConfig:
-    logging.info("Reading user config from %s", path)
     raw = _parse_simple_kv(path)
     try:
         cfg = UserConfig(
