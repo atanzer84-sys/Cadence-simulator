@@ -1,11 +1,7 @@
 import logging
-import re
 from pathlib import Path
 import numpy as np
 from loaders.run_setup import get_repo_root
-
-
-_PIXEL_SCALE_RE = re.compile(r"^\s*#\s*Pixel\s*scale\s*:\s*([0-9]*\.?[0-9]+(?:[eE][+\-]?\d+)?)\s*$")
 
 
 def load_effective_area_file(effective_area_filename: str) -> tuple[np.ndarray, np.ndarray, float]:
@@ -53,8 +49,13 @@ def load_effective_area_file(effective_area_filename: str) -> tuple[np.ndarray, 
         raise ValueError(msg) from exc
 
     if data.ndim == 1:
-        # Single row -> make it (1, N) for consistent slicing
-        data = data.reshape(1, -1)
+        msg = (
+            f"Invalid effective area table structure in file: {path}. "
+            "Expected at least 2 rows and 2 columns."
+        )
+        logging.error(msg)
+        raise ValueError(msg)
+
 
     if data.size == 0 or data.shape[0] == 0:
         msg = f"No numeric data rows found in effective area file: {path}"
@@ -82,12 +83,16 @@ def load_effective_area_file(effective_area_filename: str) -> tuple[np.ndarray, 
     return wavelength, eff_area, pixel_scale
 
 
+
 def _parse_pixel_scale(lines: list[str], path: Path) -> float:
     for line in lines:
-        m = _PIXEL_SCALE_RE.match(line)
-        if m:
+        s = line.strip()
+        if s.startswith("# Pixel scale:"):
             try:
-                return float(m.group(1))
+                value_str = s.split(":", 1)[1].strip()
+                pixel_scale = float(value_str)
+                logging.info("Parsed pixel scale from effective area header: %s (file: %s)", pixel_scale, path)
+                return pixel_scale
             except Exception as exc:
                 msg = f"Invalid pixel scale value in effective area file header: {path}"
                 logging.error(msg)
@@ -96,7 +101,6 @@ def _parse_pixel_scale(lines: list[str], path: Path) -> float:
     msg = f"Missing required header line '# Pixel scale: <value>' in effective area file: {path}"
     logging.error(msg)
     raise ValueError(msg)
-
 
 def _find_first_numeric_row_index(lines: list[str], path: Path) -> int:
     """
