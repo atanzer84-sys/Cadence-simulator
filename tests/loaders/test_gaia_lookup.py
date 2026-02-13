@@ -54,56 +54,6 @@ class FakeResultTable:
         return self._rows[idx]
 
 
-def test_lookup_star_gaia_returns_only_missing_keys(monkeypatch):
-    from loaders import gaia_lookup
-
-    # prevent network coordinate resolution
-    # monkeypatch.setattr(gaia_lookup.SkyCoord, "from_name", lambda _name: object())
-    monkeypatch.setattr(gaia_lookup, "query_gaia", lambda _source_id: gaia_row)
-
-    cone_rows = [
-        {"phot_g_mean_mag": 12.0, "source_id": 111},
-        {"phot_g_mean_mag": 10.0, "source_id": 222},
-        {"phot_g_mean_mag": 11.0, "source_id": 333},
-    ]
-    cone_table = FakeGaiaTable(cone_rows)
-
-    gaia_row = {
-        "ra": 1.0,
-        "dec": 2.0,
-        "phot_g_mean_mag": 10.0,
-        "teff_gspphot": 5777.0,
-        "radius_gspphot": 1.01,
-        "mass_flame": 1.0,
-        "mh_gspphot": 0.1,
-        "logg_gspphot": 4.4,
-        "distance_gspphot": 10.0,
-    }
-    result_table = FakeResultTable([gaia_row])
-
-    class FakeGaia:
-        @staticmethod
-        def cone_search_async(coord, radius):
-            return FakeConeJob(cone_table)
-
-        @staticmethod
-        def launch_job_async(query):
-            return FakeQueryJob(result_table)
-
-    # monkeypatch.setattr(gaia_lookup, "Gaia", FakeGaia, raising=True)
-    monkeypatch.setattr(gaia_lookup, "query_gaia", lambda _source_id: gaia_row)
-
-
-    star_params = {"name": "HD 202772 A"}
-    missing = ["effective_temperature", "radius"]  # log_r exists but is None by design
-
-    out = gaia_lookup.lookup_star_gaia(star_params, missing_star=missing)
-
-    assert out == {
-        "effective_temperature": 5777.0,
-        "radius": 1.01,
-    }
-
 
 def test_lookup_star_gaia_returns_empty_dict_when_cone_search_empty(monkeypatch):
     from loaders import gaia_lookup
@@ -159,3 +109,32 @@ def test_get_gaia_stellar_properties_converts_nan_to_none():
     assert out["mass"] is None
     assert out["distance"] is None
     assert out["gaia_magnitude"] == 10.0
+
+def test_lookup_star_gaia_returns_only_missing_keys(monkeypatch):
+    from loaders import gaia_lookup
+
+    gaia_row = {
+        "ra": 1.0,
+        "dec": 2.0,
+        "phot_g_mean_mag": 10.0,
+        "teff_gspphot": 5777.0,
+        "radius_gspphot": 1.01,
+        "mass_flame": 1.0,
+        "mh_gspphot": 0.1,
+        "logg_gspphot": 4.4,
+        "distance_gspphot": 10.0,
+    }
+
+    monkeypatch.setattr(gaia_lookup, "query_gaia_by_name", lambda *_a, **_k: object())
+    monkeypatch.setattr(gaia_lookup, "select_source_id_from_best_gaia_match", lambda *_a, **_k: 222)
+    monkeypatch.setattr(gaia_lookup, "query_gaia", lambda *_a, **_k: gaia_row)
+
+    star_params = {"name": "HD 202772 A"}
+    missing = ["effective_temperature", "radius"]
+
+    out = gaia_lookup.lookup_star_gaia(star_params, missing_star=missing)
+
+    assert out == {
+        "effective_temperature": 5777.0,
+        "radius": 1.01,
+    }

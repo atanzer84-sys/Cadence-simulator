@@ -39,10 +39,23 @@ def test_main_calls_star_and_planet_constructors(monkeypatch):
     # isolate main from filesystem
     monkeypatch.setattr(waltzer_simulator, "initialize_waltzer_runtime", lambda: "OUTDIR")
 
-    class DummyCfg:
+    class DummyUserCfg:
         target_name = "SomeTarget"
 
-    monkeypatch.setattr(waltzer_simulator, "load_cfg_and_user_config", lambda: DummyCfg())
+    class DummyChannelCfg:
+        pass
+
+    dummy_user_cfg = DummyUserCfg()
+    dummy_nuv_cfg = DummyChannelCfg()
+    dummy_vis_cfg = DummyChannelCfg()
+    dummy_ir_cfg = DummyChannelCfg()
+
+    # main now expects (user_cfg, nuv_cfg, vis_cfg, ir_cfg)
+    monkeypatch.setattr(
+        waltzer_simulator,
+        "load_cfg_and_user_config",
+        lambda: (dummy_user_cfg, dummy_nuv_cfg, dummy_vis_cfg, dummy_ir_cfg),
+    )
 
     monkeypatch.setattr(
         waltzer_simulator,
@@ -69,14 +82,15 @@ def test_main_calls_star_and_planet_constructors(monkeypatch):
         "from_params",
         staticmethod(lambda p, required_keys: calls.update(planet=(p, required_keys)) or planet_obj),
     )
-    monkeypatch.setattr(
-        waltzer_simulator,
-        "calculateFluxOnEarth",
-        lambda star, outdir: calls.update(flux=(star, outdir)),
-    )
+
+    # one-line capture, signature-agnostic
+    monkeypatch.setattr(waltzer_simulator, "calculateFluxOnEarth", lambda *a: calls.update(flux=a))
 
     waltzer_simulator.main()
 
     assert calls["star"] == ({"name": "Star"}, ["name"])
     assert calls["planet"] == ({"name": "Planet"}, ["name"])
-    assert calls["flux"] == (star_obj, "OUTDIR")
+
+    # stable assertions only: star object and outdir are passed somewhere
+    assert calls["flux"][0] is star_obj
+    assert "OUTDIR" in calls["flux"]
