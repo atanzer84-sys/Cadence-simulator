@@ -10,7 +10,7 @@ def main():
     try:
 
         output_dir = initialize_waltzer_runtime()
-        user_cfg = load_cfg_and_user_config()
+        user_cfg, nuv_cfg, vis_cfg, ir_cfg = load_cfg_and_user_config()
 
         planet_param, stellar_param, required_planetary_parameters, required_stellar_parameters = load_stellar_and_planetary_properties(user_cfg.target_name)
 

@@ -1,0 +1,8 @@
+Questions
+
+- logR Fallback ok?
+- where should i get logR?
+- gaia params ok?
+
+Channels:
+- IR Channel?
