@@ -45,6 +45,9 @@ def test_main_calls_star_and_planet_constructors(monkeypatch):
     class DummyChannelCfg:
         pass
 
+    class DummyCal:
+        pixel_scale = 1.0
+
     dummy_user_cfg = DummyUserCfg()
     dummy_nuv_cfg = DummyChannelCfg()
     dummy_vis_cfg = DummyChannelCfg()
@@ -56,6 +59,7 @@ def test_main_calls_star_and_planet_constructors(monkeypatch):
         "load_cfg_and_user_config",
         lambda: (dummy_user_cfg, dummy_nuv_cfg, dummy_vis_cfg, dummy_ir_cfg),
     )
+    monkeypatch.setattr(waltzer_simulator, "load_instrument_calibration", lambda *a, **k: (DummyCal(), DummyCal(), DummyCal()))
 
     monkeypatch.setattr(
         waltzer_simulator,
