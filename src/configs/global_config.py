@@ -51,7 +51,6 @@ def get_global_config() -> GlobalConfig:
         )
     return _GLOBAL
 
-
 def _read_global_cfg(path: Path) -> GlobalConfig:
     logging.info("Reading global config from %s", path)
 
@@ -76,7 +75,6 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
     )
     logging.info("Global config loaded: %s", cfg)
     return cfg
-
 
 def _as_bool(v: object, *, key: str) -> bool:
     s = str(v).strip().casefold()
