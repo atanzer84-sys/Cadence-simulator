@@ -6,7 +6,7 @@ from domain.planet import Planet
 from configs.global_config import load_global_config, get_global_config
 from loaders.excel_loader import load_matching_excel_row_from_excel, load_excel_cfg, map_to_planet_or_star_dictionary
 from loaders.parameter_preprocessing import get_missing_properties, clean_and_cast_parameters
-from loaders.gaia_lookup import lookup_star_gaia
+from loaders.gaia_lookup import lookup_star_gaia, GAIA_PROVIDES
 from astropy.io import ascii
 from pathlib import Path
 from datetime import datetime
@@ -28,7 +28,6 @@ def load_cfg_and_user_config():
     user_cfg = get_user_config()
 
     return user_cfg
-
 
 def setup_output_directory():
     """
@@ -137,9 +136,10 @@ def load_stellar_and_planetary_properties(target_name_user_input):
         # TODO: MISSING PLANET WHEN NEEDED 
         # list all properties that are required by config, empty in excel to prep for gaia lookup
         missing_star = get_missing_properties(star_params, mapping["required_stellar_parameters"])
-        
-        if missing_star:
-            gaia_star_params = lookup_star_gaia(star_params, missing_star)
+        missing_for_gaia = [k for k in missing_star if k in GAIA_PROVIDES]
+
+        if missing_for_gaia:
+            gaia_star_params = lookup_star_gaia(star_params, missing_for_gaia)
             # merge missing only (Excel wins)
             star_params = merge_gaia_into_star_params(star_params, gaia_star_params)
 
@@ -152,7 +152,7 @@ def load_stellar_and_planetary_properties(target_name_user_input):
         missing_star_final = get_missing_properties(star_params, mapping["required_stellar_parameters"])
 
         if missing_star_final:
-            raise ValueError(f"Missing required star parameters after GAIA lookup: {missing_star_final}")
+            raise ValueError(f"Missing required star parameters after Excel, GAIA, Mamjeck and LogR lookup: {missing_star_final}")
 
         star_params = clean_and_cast_parameters(star_params, Star)
         planet_params = clean_and_cast_parameters(planet_params, Planet)

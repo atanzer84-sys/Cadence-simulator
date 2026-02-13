@@ -95,14 +95,13 @@ def test_lookup_star_gaia_returns_only_missing_keys(monkeypatch):
 
 
     star_params = {"name": "HD 202772 A"}
-    missing = ["effective_temperature", "radius", "log_r"]  # log_r exists but is None by design
+    missing = ["effective_temperature", "radius"]  # log_r exists but is None by design
 
     out = gaia_lookup.lookup_star_gaia(star_params, missing_star=missing)
 
     assert out == {
         "effective_temperature": 5777.0,
         "radius": 1.01,
-        "log_r": None,
     }
 
 
@@ -160,4 +159,3 @@ def test_get_gaia_stellar_properties_converts_nan_to_none():
     assert out["mass"] is None
     assert out["distance"] is None
     assert out["gaia_magnitude"] == 10.0
-    assert "log_r" in out

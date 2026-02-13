@@ -2,6 +2,20 @@ import numpy as np
 import logging
 import math
 
+GAIA_PROVIDES = {
+    "right_ascension",
+    "declination",
+    "gaia_magnitude",
+    "v_magnitude",
+    "effective_temperature",
+    "radius",
+    "mass",
+    "metallicity",
+    "surface_gravity",
+    "distance",
+}
+
+
 def lookup_star_gaia(star_params: dict, missing_star) -> dict:
     
     target_name = star_params["name"]
@@ -107,7 +121,6 @@ def get_gaia_stellar_properties(gaia_row):
         "distance": _to_float(gaia_row.get("distance_gspphot")),
         "v_magnitude": _to_float(gaia_row.get("phot_g_mean_mag")),
         "gaia_magnitude": _to_float(gaia_row.get("phot_g_mean_mag")),
-        "log_r": None
     }
     logging.info("Gaia stellar parameters extracted: %s", gaia_star_params)
     return gaia_star_params
