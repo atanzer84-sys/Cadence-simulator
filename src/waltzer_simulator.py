@@ -2,7 +2,7 @@ from loaders.run_setup import initialize_waltzer_runtime, load_cfg_and_user_conf
 from domain.star import Star
 from domain.planet import Planet
 from flux.flux_calc import calculateFluxOnEarth
-from instrument.calibration import load_instrument_calibration
+from instrument.detector import load_instrument_calibration, photons_to_counts_per_pixel_all
 import sys
 import logging
 
@@ -18,7 +18,9 @@ def main():
         star = Star.from_params(stellar_param, required_keys=required_stellar_parameters)
         _ = Planet.from_params(planet_param, required_keys=required_planetary_parameters)
 
-        calculateFluxOnEarth(star, output_dir)
+        photon_flux_at_earth_A, wavelengths_total = calculateFluxOnEarth(star, output_dir)
+
+        nuv_counts_s_pixel,vis_counts_s_pixel,ir_counts_s_pixel = photons_to_counts_per_pixel_all(photon_flux_at_earth_A, wavelengths_total, nuv_cal,vis_cal,ir_cal)
 
 
 

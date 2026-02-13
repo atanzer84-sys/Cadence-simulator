@@ -101,7 +101,7 @@ def calculateFluxOnEarth(star: Star, output_dir):
     if cfg.produce_Plots:
         plot_flux_and_photons_windows(wavelengths, photons_star, output_dir, star, "photons", "Photon flux [photons s⁻¹ cm⁻² Å⁻¹]")
 
-    return photons_star
+    return photons_star, wavelengths
 
 def load_model_for_temperature(t_star):
     """
@@ -240,4 +240,7 @@ def apply_unred(wavelengths, flux_at_earth, ebv):
 
 def convert_flux_to_photons(flux_unred, wavelengths):
     logging.info("Converting flux to photon flux")
-    return flux_unred * 5.03e7 * wavelengths #from ergs/s/cm2/A to photons/s/cm2/A
+    photon_flux = flux_unred * 5.03e7 * wavelengths #from ergs/s/cm2/A to photons/s/cm2/A
+
+    logging.info(f"photon_flux_at_earth_A shape: {photon_flux.shape}")
+    return photon_flux
