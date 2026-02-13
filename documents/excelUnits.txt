@@ -11,19 +11,6 @@ https://vizier.cds.unistra.fr/viz-bin/VizieR-S?Gaia%20DR2%206339097679918871168
 
 https://exoplanetarchive.ipac.caltech.edu/cgi-bin/TblView/nph-tblView?app=ExoTbls&config=PSCompPars
 
-
-https://exoplanetarchive.ipac.caltech.edu/overview/wasp%20189b
-From: Aickara Gopinathan, Sreejith
-Sent: Monday, February 2, 2026 3:11:36 PM
-To: Andrea Tanzer
-Subject: Re: WALTzER in-person meeting
- 
-
-https://github.com/pcubillos/waltzer_etc/tree/main/waltzer_etc/data
-From: Aickara Gopinathan, Sreejith
-Sent: Monday, February 2, 2026 2:47:12 PM
-To: Andrea Tanzer
-Subject: Re: WALTzER in-person meeting
  
 
 # User preference: * 																																																																																		
@@ -118,40 +105,3 @@ Subject: Re: WALTzER in-person meeting
 # COLUMN sy_kmagerr2:    Ks (2MASS) Magnitude Lower Unc 																																																																														
 # COLUMN sy_gaiamag:     Gaia Magnitude 																																																																																
 # COLUMN sy_gaiamagerr1: Gaia Magnitude Upper Unc 																																																																														
-# COLUMN sy_gaiamagerr2: Gaia Magnitude Lower Unc 																																																																														
-
-From: Aickara Gopinathan, Sreejith
-Sent: Monday, February 2, 2026 2:42:44 PM
-To: Andrea Tanzer
-Subject: Re: WALTzER in-person meeting
- 
-
-
-From: Luca Fossati <luca.fossati@oeaw.ac.at>
-Sent: Friday, January 30, 2026 12:35:06 PM
-To: Andrea Tanzer
-Cc: Aickara Gopinathan, Sreejith
-Subject: Re: WALTzER in-person meeting
- 
-Great.
-Here it is:
-https://www.oeaw.ac.at/iwf/events/waltzer
-
-Luca
-
-
-
-
-On Fri, Jan 30, 2026 at 12:33 PM Andrea Tanzer <atanzer84@gmail.com> wrote:
-
-
--- 
-Doz. Dr. Luca Fossati
-Group Leader
-Deputy Director
-Space Research Institute, Austrian Academy of Sciences
-Schmiedlstrasse 6
-A-8042, Graz, Austria
-Phone: +43 316 4120 601
-Cell phone: +43 676 3386700
-Email: luca.fossati@oeaw.ac.at

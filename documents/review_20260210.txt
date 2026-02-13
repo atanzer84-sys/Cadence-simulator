@@ -64,5 +64,3 @@ IDL
 dark: catch: bias zero sec. dark because exposure. fark value fct time. exposure time also 
 
 pos / spread in python.
-
-
