@@ -64,3 +64,13 @@ IDL
 dark: catch: bias zero sec. dark because exposure. fark value fct time. exposure time also 
 
 pos / spread in python.
+
+
+
+Next Steps:
+1. photons (per s, cm2, A) 
+2. read in eff area file and 1st col = wl, last = eff area
+3. interpolate photons with new wl grid to get photons on new wl grid
+4. multiply with pixel scale
+5. multiply with efficiency -> counts per second
+6. convolving it to instrumental resolution -> gauss broad. give FWHM

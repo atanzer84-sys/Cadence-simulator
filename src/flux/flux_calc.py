@@ -100,6 +100,8 @@ def calculateFluxOnEarth(star: Star, output_dir):
 
     if cfg.produce_Plots:
         plot_flux_and_photons_windows(wavelengths, photons_star, output_dir, star, "photons", "Photon flux [photons s⁻¹ cm⁻² Å⁻¹]")
+    if cfg.test_mode:
+        dump_1d_array(wavelengths, photons_star, output_dir, star.name, "photons_star")
 
     return photons_star, wavelengths
 
