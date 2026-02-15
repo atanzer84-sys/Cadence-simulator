@@ -4,13 +4,13 @@ import pytest
 from instrument import detector
 
 class _Cfg:
-    def __init__(self, effective_area_file: str, x_pixels: int = 2):
+    def __init__(self, effective_area_file: str, x_pixels: int = 2, source_file: str = "channel.cfg"):
         self.effective_area_file = effective_area_file
         self.x_pixels = x_pixels
+        self.source_file = source_file
 
 
 class _DummyGlobalCfg:
-    # detector.counts_per_s_px_conv_all_channels_per_channel checks only this
     test_mode = False
 
 def test_channel_calibration_is_frozen_and_has_expected_fields():
@@ -254,3 +254,110 @@ def test_all_channels_counts_identity_gaussbroad():
         assert np.allclose(ir_counts, np.array([0.30, 0.90]))
     finally:
         monkeypatch.undo()
+
+
+def test_load_instrument_calibration_raises_if_nuv_length_does_not_match_x_pixels(monkeypatch):
+    # Verifies that a ValueError is raised if NUV wavelength grid length does not match x_pixels.
+
+    def _fake_loader(filename):
+        return np.array([1.0, 2.0, 3.0]), np.array([0.1, 0.2, 0.3]), 0.01
+
+    monkeypatch.setattr(detector, "load_effective_area_file", _fake_loader)
+
+    nuv_cfg = _Cfg("nuv.txt", x_pixels=2, source_file="nuv.cfg")
+    vis_cfg = _Cfg("vis.txt", x_pixels=3, source_file="vis.cfg")
+    ir_cfg  = _Cfg("ir.txt",  x_pixels=3, source_file="ir.cfg")
+
+    with pytest.raises(ValueError) as exc:
+        detector.load_instrument_calibration(nuv_cfg, vis_cfg, ir_cfg, out="OUTDIR")
+
+    assert "NUV:" in str(exc.value)
+    assert "nuv.txt" in str(exc.value)
+
+
+def test_load_instrument_calibration_raises_if_vis_length_does_not_match_x_pixels(monkeypatch):
+    # Verifies that a ValueError is raised if VIS wavelength grid length does not match x_pixels.
+
+    def _fake_loader(filename):
+        if filename == "vis.txt":
+            return np.array([10.0, 20.0, 30.0]), np.array([1.0, 1.0, 1.0]), 0.02
+        return np.array([1.0, 2.0]), np.array([0.1, 0.2]), 0.01
+
+    monkeypatch.setattr(detector, "load_effective_area_file", _fake_loader)
+
+    nuv_cfg = _Cfg("nuv.txt", x_pixels=2, source_file="nuv.cfg")
+    vis_cfg = _Cfg("vis.txt", x_pixels=2, source_file="vis.cfg")
+    ir_cfg  = _Cfg("ir.txt",  x_pixels=2, source_file="ir.cfg")
+
+    with pytest.raises(ValueError) as exc:
+        detector.load_instrument_calibration(nuv_cfg, vis_cfg, ir_cfg, out="OUTDIR")
+
+    assert "VIS:" in str(exc.value)
+    assert "vis.txt" in str(exc.value)
+    assert "vis.cfg" in str(exc.value)
+
+
+def test_load_instrument_calibration_raises_if_ir_length_does_not_match_x_pixels(monkeypatch):
+    # Verifies that a ValueError is raised if IR wavelength grid length does not match x_pixels.
+
+    def _fake_loader(filename):
+        if filename == "ir.txt":
+            return np.array([100.0, 200.0, 300.0]), np.array([2.0, 2.0, 2.0]), 0.03
+        return np.array([1.0, 2.0]), np.array([0.1, 0.2]), 0.01
+
+    monkeypatch.setattr(detector, "load_effective_area_file", _fake_loader)
+
+    nuv_cfg = _Cfg("nuv.txt", x_pixels=2, source_file="nuv.cfg")
+    vis_cfg = _Cfg("vis.txt", x_pixels=2, source_file="vis.cfg")
+    ir_cfg  = _Cfg("ir.txt",  x_pixels=2, source_file="ir.cfg")
+
+    with pytest.raises(ValueError) as exc:
+        detector.load_instrument_calibration(nuv_cfg, vis_cfg, ir_cfg, out="OUTDIR")
+
+    assert "IR:" in str(exc.value)
+    assert "ir.txt" in str(exc.value)
+    assert "ir.cfg" in str(exc.value)
+
+
+def test_load_instrument_calibration_succeeds_when_lengths_match(monkeypatch):
+    # Verifies that no error is raised when wavelength grid length matches x_pixels for all channels.
+
+    def _fake_loader(filename):
+        return np.array([1.0, 2.0]), np.array([0.1, 0.2]), 0.01
+
+    monkeypatch.setattr(detector, "load_effective_area_file", _fake_loader)
+
+    nuv_cfg = _Cfg("nuv.txt", x_pixels=2, source_file="nuv.cfg")
+    vis_cfg = _Cfg("vis.txt", x_pixels=2, source_file="vis.cfg")
+    ir_cfg  = _Cfg("ir.txt",  x_pixels=2, source_file="ir.cfg")
+
+    nuv_cal, vis_cal, ir_cal = detector.load_instrument_calibration(
+        nuv_cfg, vis_cfg, ir_cfg, out="OUTDIR"
+    )
+
+    assert nuv_cal.name == "NUV"
+    assert vis_cal.name == "VIS"
+    assert ir_cal.name == "IR"
+
+def test_counts_per_channel_uses_cal_wavelength_grid_and_returns_same_length():
+    # Verifies the function interpolates onto cal.wavelength and returns an array of identical length.
+
+    wavelengths_total = np.array([100.0, 200.0, 300.0], dtype=float)
+    photon_flux = np.array([10.0, 20.0, 30.0], dtype=float)
+
+    cal = detector.ChannelCalibration(
+        name="NUV",
+        wavelength=np.array([150.0, 250.0], dtype=float),
+        effective_area=np.array([1.0, 1.0], dtype=float),
+        pixel_scale=0.01,   # small so gaussbroad is identity (nhalf=0)
+    )
+
+    out = detector.counts_per_s_px_conv_all_channels_per_channel(
+        photon_flux, wavelengths_total, cal, output_dir="OUTDIR", cfg=_DummyGlobalCfg()
+    )
+
+    # interp at 150 -> 15, at 250 -> 25
+    expected = np.array([15.0, 25.0], dtype=float) * 0.01 * 1.0
+
+    assert out.shape == cal.wavelength.shape
+    assert np.allclose(out, expected)
