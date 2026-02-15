@@ -12,7 +12,7 @@ def test_channel_calibration_is_frozen_and_has_expected_fields():
     # Verifies the ChannelCalibration dataclass stores wavelength, effective_area, and pixel_scale and is immutable (frozen).
     wl = np.array([1.0, 2.0])
     ea = np.array([0.1, 0.2])
-    cal = detector.ChannelCalibration(wavelength=wl, effective_area=ea, pixel_scale=0.5)
+    cal = detector.ChannelCalibration("Test", wavelength=wl, effective_area=ea, pixel_scale=0.5)
 
     assert cal.wavelength is wl
     assert cal.effective_area is ea
