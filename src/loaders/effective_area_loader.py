@@ -63,6 +63,7 @@ def load_effective_area_file(effective_area_filename: str) -> tuple[np.ndarray, 
         raise ValueError(msg)
 
     wavelength = data[:, 0].astype(float, copy=False)
+
     eff_area = data[:, -1].astype(float, copy=False)
 
     if wavelength.shape[0] != eff_area.shape[0]:

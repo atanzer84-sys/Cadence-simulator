@@ -21,11 +21,11 @@ def dump_3d_array(array, output_dir, star_name: str, tag: str, full: bool = True
         _dump(f"{star_name}_{tag}_VIS.txt", *DEBUG_WL_A_VIS)
         _dump(f"{star_name}_{tag}_IR.txt",  *DEBUG_WL_A_IR)
 
-def dump_1d_array(wave, values, output_dir, star_name: str, tag: str, full: bool = True, zoom: bool = True, fmt="%.18e"):
+def dump_1d_array(wave, array, output_dir, star_name: str, tag: str, full: bool = True, zoom: bool = True, fmt="%.18e"):
     # print(f"[DEBUG] dump_spectrum_snapshots_1d: star='{star_name}', tag='{tag}'")
 
 
-    if wave.shape != values.shape:
+    if wave.shape != array.shape:
         raise ValueError("wave / values shape mismatch")
 
     output_dir = Path(output_dir)
@@ -33,7 +33,7 @@ def dump_1d_array(wave, values, output_dir, star_name: str, tag: str, full: bool
 
     def _dump(filename, wmin, wmax):
         mask = (wave >= wmin) & (wave <= wmax)
-        out = np.column_stack((wave[mask], values[mask]))
+        out = np.column_stack((wave[mask], array[mask]))
         np.savetxt(output_dir / filename, out, fmt=fmt)
 
     if full:

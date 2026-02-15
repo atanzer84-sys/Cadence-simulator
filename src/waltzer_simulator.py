@@ -2,17 +2,16 @@ from loaders.run_setup import initialize_waltzer_runtime, load_cfg_and_user_conf
 from domain.star import Star
 from domain.planet import Planet
 from flux.flux_calc import calculateFluxOnEarth
-from instrument.detector import load_instrument_calibration, convoluteToInstrument
+from instrument.detector import load_instrument_calibration, counts_per_s_px_conv_all_channels
 import sys
 import logging
-
 
 def main():
     try:
 
         output_dir = initialize_waltzer_runtime()
         user_cfg, nuv_cfg, vis_cfg, ir_cfg = load_cfg_and_user_config()
-        nuv_cal, vis_cal, ir_cal = load_instrument_calibration(nuv_cfg, vis_cfg, ir_cfg)
+        nuv_cal, vis_cal, ir_cal = load_instrument_calibration(nuv_cfg, vis_cfg, ir_cfg, output_dir)
         planet_param, stellar_param, required_planetary_parameters, required_stellar_parameters = load_stellar_and_planetary_properties(user_cfg.target_name)
 
         star = Star.from_params(stellar_param, required_keys=required_stellar_parameters)
@@ -20,7 +19,7 @@ def main():
 
         photon_flux_at_earth_A, wavelengths_total = calculateFluxOnEarth(star, output_dir)
 
-        nuv_counts_s_pixel, vis_counts_s_pixel, ir_counts_s_pixel = convoluteToInstrument(photon_flux_at_earth_A, wavelengths_total, nuv_cal, vis_cal, ir_cal, output_dir)
+        counts_s_pixel_convolved_nuv, counts_s_pixel_convolved_vis, counts_s_pixel_convolved_ir = counts_per_s_px_conv_all_channels(photon_flux_at_earth_A, wavelengths_total, nuv_cal, vis_cal, ir_cal, output_dir)
 
 
 
@@ -31,3 +30,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+

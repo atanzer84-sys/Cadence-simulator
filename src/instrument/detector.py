@@ -3,17 +3,18 @@ from loaders.effective_area_loader import load_effective_area_file
 import numpy as np
 import logging
 from configs.global_config import get_global_config
-from utils.debug_dumps import dump_3d_array, dump_diff_3d_array, dump_1d_array, dump_diff_1d_array
+from utils.debug_dumps import dump_1d_array
 
 
 
 @dataclass(frozen=True, slots=True)
 class ChannelCalibration:
+    name: str
     wavelength: np.ndarray
     effective_area: np.ndarray
     pixel_scale: float
 
-def load_instrument_calibration(nuv_cfg, vis_cfg, ir_cfg):
+def load_instrument_calibration(nuv_cfg, vis_cfg, ir_cfg, out):
 
     nuv_wl, nuv_eff, nuv_pixel_scale = load_effective_area_file(nuv_cfg.effective_area_file)
 
@@ -26,84 +27,50 @@ def load_instrument_calibration(nuv_cfg, vis_cfg, ir_cfg):
     logging.info("IR: rows(WL)=%d, rows(EA)=%d, pixel_scale=%s", len(ir_wl), len(ir_eff), ir_pixel_scale)
     logging.info("Instrument calibration loaded for NUV, VIS, IR")
 
-    nuv_cal = ChannelCalibration(wavelength=nuv_wl, effective_area=nuv_eff, pixel_scale=nuv_pixel_scale)
-    vis_cal = ChannelCalibration(wavelength=vis_wl, effective_area=vis_eff, pixel_scale=vis_pixel_scale)
-    ir_cal = ChannelCalibration(wavelength=ir_wl, effective_area=ir_eff, pixel_scale=ir_pixel_scale)
+    nuv_cal = ChannelCalibration(name="NUV", wavelength=nuv_wl, effective_area=nuv_eff, pixel_scale=nuv_pixel_scale)
+    vis_cal = ChannelCalibration(name="VIS", wavelength=vis_wl, effective_area=vis_eff, pixel_scale=vis_pixel_scale)
+    ir_cal  = ChannelCalibration(name="IR",  wavelength=ir_wl,  effective_area=ir_eff,  pixel_scale=ir_pixel_scale)
 
     return nuv_cal, vis_cal, ir_cal
 
 
-def convoluteToInstrument(photon_flux_at_earth: np.ndarray, wavelengths_total: np.ndarray, nuv_cal, vis_cal, ir_cal, output_dir):
-    logging.info("Starting convolution to instrument response")
-    print("Starting convolution to instrument response")
-
+def counts_per_s_px_conv_all_channels(photon_flux_at_earth: np.ndarray, wavelengths_total: np.ndarray, nuv_cal, vis_cal, ir_cal, output_dir):
+    logging.info("Starting convolution to instrument")
+    print("Starting convolution to instrument")
     cfg = get_global_config()
 
-    nuv_counts_s_pixel, vis_counts_s_pixel, ir_counts_s_pixel = photons_to_counts_per_pixel_all(
-        photon_flux_at_earth, wavelengths_total, nuv_cal, vis_cal, ir_cal
-    )
-    if cfg.test_mode:
-        dump_1d_array(nuv_cal.wavelength, nuv_counts_s_pixel, output_dir, "", "photons_to_counts_per_pixel_NUV", full = True, zoom = False)
-        dump_1d_array(vis_cal.wavelength, vis_counts_s_pixel, output_dir, "", "photons_to_counts_per_pixel_VIS", full = True, zoom = False)
-        dump_1d_array(ir_cal.wavelength, ir_counts_s_pixel, output_dir, "", "photons_to_counts_per_pixel_IR", full = True, zoom = False)
+    counts_s_pixel_convolved_nuv = counts_per_s_px_conv_all_channels_per_channel(photon_flux_at_earth, wavelengths_total, nuv_cal, output_dir, cfg)
+    counts_s_pixel_convolved_vis = counts_per_s_px_conv_all_channels_per_channel(photon_flux_at_earth, wavelengths_total, vis_cal, output_dir, cfg)
+    counts_s_pixel_convolved_ir = counts_per_s_px_conv_all_channels_per_channel(photon_flux_at_earth, wavelengths_total, ir_cal, output_dir, cfg)
 
-    logging.info("Counts per second per pixel computed for all channels")
-
-    nuv_counts_s_pixel, vis_counts_s_pixel, ir_counts_s_pixel = gauss_broad_all_channels(
-        nuv_counts_s_pixel, vis_counts_s_pixel, ir_counts_s_pixel, nuv_cal, vis_cal, ir_cal
-    )
-    if cfg.test_mode:
-        dump_1d_array(nuv_cal.wavelength, nuv_counts_s_pixel, output_dir, "", "gauss_broad_NUV", full = True, zoom = False)
-        dump_1d_array(vis_cal.wavelength, vis_counts_s_pixel, output_dir, "", "gauss_broad_VIS", full = True, zoom = False)
-        dump_1d_array(ir_cal.wavelength, ir_counts_s_pixel, output_dir, "", "gauss_broad_IR", full = True, zoom = False)
-
-    logging.info("Instrument convolution complete")
-
-    return nuv_counts_s_pixel, vis_counts_s_pixel, ir_counts_s_pixel
+    return counts_s_pixel_convolved_nuv, counts_s_pixel_convolved_vis, counts_s_pixel_convolved_ir
 
 
-def photons_to_counts_per_pixel_all(photon_flux_at_earth, wavelengths_total, nuv_cal, vis_cal, ir_cal):
-    logging.info("Converting Earth flux to counts/s/pixel")
-    nuv_counts_per_pixel_s = photons_to_counts_per_pixel(photon_flux_at_earth, wavelengths_total, nuv_cal)
-    vis_counts_per_pixel_s = photons_to_counts_per_pixel(photon_flux_at_earth, wavelengths_total, vis_cal)
-    ir_counts_per_pixel_s  = photons_to_counts_per_pixel(photon_flux_at_earth, wavelengths_total, ir_cal)
-    return nuv_counts_per_pixel_s, vis_counts_per_pixel_s, ir_counts_per_pixel_s
+def counts_per_s_px_conv_all_channels_per_channel(photon_flux_at_earth: np.ndarray, wavelengths_total: np.ndarray, cal, output_dir, cfg):
 
-def photons_to_counts_per_pixel(photon_flux_at_earth: np.ndarray, wavelengths_total: np.ndarray, cal: ChannelCalibration) -> np.ndarray:
     """
-    Convert photon flux at Earth [photons/cm²/s/Å] into counts/s/pixel for a single channel.
+    Convert photon flux at Earth [photons/cm²/s/Å] into counts/s/pixel for a single channel and gauss broaden it.
     """
-
     # Step 1: get the pixel wavelength grid from the channel
-    pixel_wavelengths = cal.wavelength  # 1D array, length = number of pixels
-
     # Step 2: interpolate Earth flux onto the pixel wavelength grid
-    flux_on_pixel = np.interp(pixel_wavelengths, wavelengths_total, photon_flux_at_earth)
+    flux_on_pixel = np.interp(cal.wavelength, wavelengths_total, photon_flux_at_earth)
+    logging.info("Channel %s flux_on_pixel sum=%g mean=%g min=%g max=%g", cal.name, flux_on_pixel.sum(), flux_on_pixel.mean(), flux_on_pixel.min(), flux_on_pixel.max())
 
     # Step 3: convert flux per Angstrom into flux per pixel
     photons_per_pixel_cm2_s = flux_on_pixel * cal.pixel_scale
 
     # Step 4: apply effective area to get detector counts per second per pixel
     counts_per_s_per_pixel = photons_per_pixel_cm2_s * cal.effective_area
+    logging.info("Channel %s counts_per_s_per_pixel sum=%g mean=%g min=%g max=%g", cal.name, counts_per_s_per_pixel.sum(), counts_per_s_per_pixel.mean(), counts_per_s_per_pixel.min(), counts_per_s_per_pixel.max())
 
-    # Step 5: return the counts per pixel array
-    return counts_per_s_per_pixel
+    counts_s_pixel_convolved_per_channel =  gaussbroad(cal.wavelength, counts_per_s_per_pixel, cal.pixel_scale)
+    logging.info("Channel %s counts_per_s_per_pixel_smoothed sum=%g mean=%g min=%g max=%g", cal.name, counts_s_pixel_convolved_per_channel.sum(), counts_s_pixel_convolved_per_channel.mean(), counts_s_pixel_convolved_per_channel.min(), counts_s_pixel_convolved_per_channel.max())
+    
 
-def gauss_broad_all_channels(nuv_counts_s_pixel, vis_counts_s_pixel, ir_counts_s_pixel, nuv_cal, vis_cal, ir_cal):
-    logging.info("Applying instrumental Gaussian broadening to all channels")
+    if cfg.test_mode:
+        dump_1d_array(cal.wavelength, counts_s_pixel_convolved_per_channel, output_dir, "HD 2685", f"counts_per_s_per_pixel_smoothed_{cal.name}", full=True, zoom=False)
 
-    logging.info("NUV: Applying Gaussian broadening (HWHM=%s Å)", nuv_cal.pixel_scale)
-    nuv_counts_s_pixel = gaussbroad(nuv_cal.wavelength, nuv_counts_s_pixel, nuv_cal.pixel_scale)
-
-    logging.info("VIS: Applying Gaussian broadening (HWHM=%s Å)", vis_cal.pixel_scale)
-    vis_counts_s_pixel = gaussbroad(vis_cal.wavelength, vis_counts_s_pixel, vis_cal.pixel_scale)
-
-    logging.info("IR: Applying Gaussian broadening (HWHM=%s Å)", ir_cal.pixel_scale)
-    ir_counts_s_pixel  = gaussbroad(ir_cal.wavelength,  ir_counts_s_pixel,  ir_cal.pixel_scale)
-
-    logging.info("Gaussian broadening complete for all channels")
-
-    return nuv_counts_s_pixel, vis_counts_s_pixel, ir_counts_s_pixel
+    return counts_s_pixel_convolved_per_channel
 
 
 def gaussbroad(w,s,hwhm):

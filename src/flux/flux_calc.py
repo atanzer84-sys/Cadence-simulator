@@ -9,7 +9,7 @@ from flux.cute_extinction import extinction_amores
 from flux.cute_ism_abs_all import cute_ism_abs_all
 from flux.cute_unred import unred
 from utils.plot_spectra import plot_flux_and_photons_windows
-from utils.debug_dumps import dump_3d_array, dump_diff_3d_array, dump_1d_array, dump_diff_1d_array
+from utils.debug_dumps import dump_3d_array, dump_1d_array
 from astropy.coordinates import SkyCoord
 from astropy import units as u
 
@@ -20,7 +20,6 @@ def calculateFluxOnEarth(star: Star, output_dir):
     model_data = load_model_for_temperature(star.effective_temperature)
     if cfg.test_mode:
         logging.info("test_mode=1 -> dumping model data (legacy debug mode)")
-        flux_before_calculations = model_data.copy()
         dump_3d_array(model_data, output_dir, star.name, "model_input", full=True, zoom=True) 
 
 
@@ -32,13 +31,9 @@ def calculateFluxOnEarth(star: Star, output_dir):
     if cfg.test_mode:
         logging.info("test_mode=1 -> dumping flux snapshots (convertIntensityToLuminosity_snapshot)")
         dump_3d_array(flux_lambda_original, output_dir, star.name, "convertIntensityToLuminosity_snapshot")
-        logging.info("test_mode=1 -> dumping flux diffs (after_convertIntensityToLuminosity)")
-        dump_diff_3d_array(flux_lambda_original, flux_before_calculations, output_dir, star.name, tag="after_convertIntensityToLuminosity")
 
 
     if cfg.line_core_emission:
-        if cfg.test_mode:
-            spectrum_before_lce = flux_lambda_diluted.copy()
 
         # ACTUAL LCA EMISSION 
         flux_lambda_diluted = apply_line_core_emission(flux_lambda_diluted, cfg.sigmaMg22, cfg.sigmaMg21, star.log_r, star.spectral_type)
@@ -46,8 +41,6 @@ def calculateFluxOnEarth(star: Star, output_dir):
         if cfg.test_mode:
             logging.info("test_mode=1 -> dumping flux snapshots (after_line_core_emission)")
             dump_3d_array(flux_lambda_diluted, output_dir, star.name, "after_line_core_emission")
-            logging.info("test_mode=1 -> dumping flux diffs (after_line_core_emission)")
-            dump_diff_3d_array(flux_lambda_diluted, spectrum_before_lce, output_dir, star.name, tag="after_line_core_emission")
     else:
         logging.info("Line Core Emission not applied!")
 
@@ -56,8 +49,6 @@ def calculateFluxOnEarth(star: Star, output_dir):
     ebv, _ = compute_ebv_av(star.right_ascension, star.declination, star.distance_pc)
 
     if cfg.interstellar_absorption:
-        if cfg.test_mode:
-            spectrum_before_ism = flux_lambda_diluted.copy()
 
         # ACTUAL ISM_ABS CALL
         flux_lambda_diluted = apply_ism_absorption(flux_lambda_diluted, ebv, cfg)
@@ -66,16 +57,12 @@ def calculateFluxOnEarth(star: Star, output_dir):
             logging.info("test_mode=1 -> dumping flux snapshots (after_ISM)")
             dump_3d_array(flux_lambda_diluted, output_dir, star.name, "after_ISM")
 
-            logging.info("test_mode=1 -> dumping flux diffs (after_ISM)")
-            dump_diff_3d_array(flux_lambda_diluted, spectrum_before_ism, output_dir, star.name, tag="after_ISM")
     else:
         logging.info("Interstellar Medium absorption not applied!")
 
 
     if cfg.test_mode:
         flux_di_before = flux_lambda_diluted[:, 1].copy()
-        flux_di_before = flux_lambda_diluted[:, 1].copy()
-        dump_1d_array(wavelengths, flux_di_before, output_dir, star.name, "before_flux_at_earth")
         dump_1d_array(wavelengths, flux_di_before, output_dir, star.name, "before_flux_at_earth")
 
     # FINALLY FLUX ON EARTH
@@ -83,15 +70,12 @@ def calculateFluxOnEarth(star: Star, output_dir):
 
     if cfg.test_mode:
         dump_1d_array(wavelengths, flux_at_earth, output_dir, star.name, "after_flux_at_earth")
-        dump_diff_1d_array(wavelengths, flux_di_before, flux_at_earth, output_dir, star.name, tag="after_flux_at_earth")
-        flux_e_before_unred = flux_at_earth.copy()
 
     # UNRED FLUX
     flux_unred = apply_unred(wavelengths, flux_at_earth, ebv)
 
     if cfg.test_mode:
         dump_1d_array(wavelengths, flux_unred, output_dir, star.name, "after_unred")
-        dump_diff_1d_array(wavelengths, flux_e_before_unred, flux_unred, output_dir, star.name, tag="after_unred")
     if cfg.produce_Plots:
         plot_flux_and_photons_windows(wavelengths, flux_unred, output_dir, star, "Flux", "Flux [erg s⁻¹ cm⁻² Å⁻¹]")
 
