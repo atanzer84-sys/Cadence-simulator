@@ -20,13 +20,13 @@ for i in {1..5}; do
 done
 wait
 
-for i in {001..005}; do
-    /Users/andreatanzer/.venvs/shared/bin/python src/waltzer_simulator.py "parameters/parameter_${i}.txt" &
+for i in {001..003}; do
+    /Users/andreatanzer/.venvs/shared/bin/python src/waltzer_simulator.py "input/parameters/parameter_${i}.txt" &
 done
 wait
 
 for i in {001..025}; do
-    /Users/andreatanzer/.venvs/shared/bin/python src/waltzer_simulator.py "parameters/parameter_${i}.txt" &
+    /Users/andreatanzer/.venvs/shared/bin/python src/waltzer_simulator.py "input/parameters/parameter_${i}.txt" &
 done
 wait
 

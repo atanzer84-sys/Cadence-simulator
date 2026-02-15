@@ -1,6 +1,7 @@
 import numpy as np
 from pathlib import Path
-from flux.flux_calc import convertStellarModelToFlux, apply_line_core_emission, apply_ism_absorption, compute_flux_at_earth, apply_unred
+from flux.flux_calc import convertStellarModelToFlux, apply_line_core_emission, apply_ism_absorption, compute_flux_at_earth, apply_unred, convert_flux_to_photons
+
 from utils.constants import R_SUN
 from types import SimpleNamespace
 
@@ -135,6 +136,23 @@ def run_snapshot_apply_unred(star_name, band):
     assert out.shape == expected.shape
     np.testing.assert_allclose(out, expected, rtol=1e-10, atol=0.0)
 
+def run_snapshot_convert_flux_to_photons(star_name, band):
+    # Verifies convert_flux_to_photons produces the expected photon flux snapshot from after_unred input.
+    base = SNAPSHOT_BASE
+    before_file = base / f"{star_name}_after_unred_{band}.txt"
+    expected_file = base / f"{star_name}_photons_star_{band}.txt"
+
+    before_2d = np.loadtxt(before_file, dtype=np.float64)
+    expected = np.loadtxt(expected_file, dtype=np.float64)
+
+    wavelengths = before_2d[:, 0]
+    flux_unred = before_2d[:, 1]
+
+    photons_star = convert_flux_to_photons(flux_unred, wavelengths)
+    out = np.column_stack((wavelengths, photons_star))
+
+    assert out.shape == expected.shape
+    np.testing.assert_allclose(out, expected, rtol=1e-10, atol=0.0)
 
 def test_WASP189_convertIntensityToLuminosity_IR():
     run_snapshot_convertIntensityToLuminosity("WASP-189", STARS["WASP-189"]["radius_rsun"], "IR")
@@ -225,3 +243,21 @@ def test_HD2685_apply_unred_NUV():
 
 def test_HD2685_apply_unred_VIS():
     run_snapshot_apply_unred("HD 2685", "VIS")
+
+def test_HD2685_convert_flux_to_photons_NUV():
+    run_snapshot_convert_flux_to_photons("HD 2685", "NUV")
+
+def test_HD2685_convert_flux_to_photons_VIS():
+    run_snapshot_convert_flux_to_photons("HD 2685", "VIS")
+
+def test_HD2685_convert_flux_to_photons_IR():
+    run_snapshot_convert_flux_to_photons("HD 2685", "IR")
+
+def test_WASP69_convert_flux_to_photons_NUV():
+    run_snapshot_convert_flux_to_photons("WASP-69", "NUV")
+
+def test_WASP69_convert_flux_to_photons_VIS():
+    run_snapshot_convert_flux_to_photons("WASP-69", "VIS")
+
+def test_WASP69_convert_flux_to_photons_IR():
+    run_snapshot_convert_flux_to_photons("WASP-69", "IR")
