@@ -164,8 +164,7 @@ def load_stellar_and_planetary_properties(target_name_user_input):
 
         star_params = clean_and_cast_parameters(star_params, Star)
         planet_params = clean_and_cast_parameters(planet_params, Planet)
-
-        print("Excel file loaded, parsed and cleaned.")
+        print("Configurations loaded, checked and parsed.")
         return (
             planet_params,
             star_params,

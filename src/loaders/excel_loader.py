@@ -61,7 +61,6 @@ def load_matching_excel_row_from_excel(excel_path, target_name_user_input):
                 f"No target found for '{target_name_user_input}' (searched until row with empty pl_name)"
             )
 
-        print("matching_row_dict ", matching_row_dict)    
         return matching_row_dict, target_name_user_input
     except Exception:
         logging.exception(

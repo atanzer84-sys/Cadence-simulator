@@ -17,10 +17,26 @@ class ChannelCalibration:
 def load_instrument_calibration(nuv_cfg, vis_cfg, ir_cfg, out):
 
     nuv_wl, nuv_eff, nuv_pixel_scale = load_effective_area_file(nuv_cfg.effective_area_file)
+    if len(nuv_wl) != nuv_cfg.x_pixels:
+        msg = f"NUV wavelength length {len(nuv_wl)} != x_pixels {nuv_cfg.x_pixels} ({nuv_cfg.effective_area_file})"
+        logging.error(msg)
+        print(msg)
+        raise ValueError(msg)
 
     vis_wl, vis_eff, vis_pixel_scale = load_effective_area_file(vis_cfg.effective_area_file)
+    if len(vis_wl) != vis_cfg.x_pixels:
+        msg = f"VIS wavelength length {len(vis_wl)} != x_pixels {vis_cfg.x_pixels} ({vis_cfg.effective_area_file})"
+        logging.error(msg)
+        print(msg)
+        raise ValueError(msg)
+
 
     ir_wl, ir_eff, ir_pixel_scale = load_effective_area_file(ir_cfg.effective_area_file)
+    if len(ir_wl) != ir_cfg.x_pixels:
+        msg = f"IR wavelength length {len(ir_wl)} != x_pixels {ir_cfg.x_pixels} ({ir_cfg.effective_area_file})"
+        logging.error(msg)
+        print(msg)
+        raise ValueError(msg)
 
     logging.info("NUV: rows(WL)=%d, rows(EA)=%d, pixel_scale=%s", len(nuv_wl), len(nuv_eff), nuv_pixel_scale)
     logging.info("VIS: rows(WL)=%d, rows(EA)=%d, pixel_scale=%s", len(vis_wl), len(vis_eff), vis_pixel_scale)

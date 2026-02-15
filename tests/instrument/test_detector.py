@@ -4,8 +4,10 @@ import pytest
 from instrument import detector
 
 class _Cfg:
-    def __init__(self, effective_area_file: str):
+    def __init__(self, effective_area_file: str, x_pixels: int = 2):
         self.effective_area_file = effective_area_file
+        self.x_pixels = x_pixels
+
 
 class _DummyGlobalCfg:
     # detector.counts_per_s_px_conv_all_channels_per_channel checks only this
@@ -72,9 +74,10 @@ def test_load_instrument_calibration_returns_calibrations_with_correct_values(mo
 
     monkeypatch.setattr(detector, "load_effective_area_file", _fake_loader)
 
-    nuv_cfg = _Cfg("nuv.txt")
-    vis_cfg = _Cfg("vis.txt")
-    ir_cfg = _Cfg("ir.txt")
+    nuv_cfg = _Cfg("nuv.txt", x_pixels=len(nuv_wl))
+    vis_cfg = _Cfg("vis.txt", x_pixels=len(vis_wl))
+    ir_cfg = _Cfg("ir.txt", x_pixels=len(ir_wl))
+
 
     nuv_cal, vis_cal, ir_cal = detector.load_instrument_calibration(nuv_cfg, vis_cfg, ir_cfg, out="OUTDIR")
 
