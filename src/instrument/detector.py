@@ -18,14 +18,14 @@ def load_instrument_calibration(nuv_cfg, vis_cfg, ir_cfg, out):
 
     nuv_wl, nuv_eff, nuv_pixel_scale = load_effective_area_file(nuv_cfg.effective_area_file)
     if len(nuv_wl) != nuv_cfg.x_pixels:
-        msg = f"NUV wavelength length {len(nuv_wl)} != x_pixels {nuv_cfg.x_pixels} ({nuv_cfg.effective_area_file})"
+        msg = f"NUV: wavelength grid length {len(nuv_wl)} loaded from effective area file '{nuv_cfg.effective_area_file}' does not match x_pixels={nuv_cfg.x_pixels} from channel cfg '{getattr(nuv_cfg, 'source_file', '')}'"
         logging.error(msg)
         print(msg)
         raise ValueError(msg)
 
     vis_wl, vis_eff, vis_pixel_scale = load_effective_area_file(vis_cfg.effective_area_file)
     if len(vis_wl) != vis_cfg.x_pixels:
-        msg = f"VIS wavelength length {len(vis_wl)} != x_pixels {vis_cfg.x_pixels} ({vis_cfg.effective_area_file})"
+        msg = f"VIS: wavelength grid length {len(vis_wl)} loaded from effective area file '{vis_cfg.effective_area_file}' does not match x_pixels={vis_cfg.x_pixels} from channel cfg '{vis_cfg.source_file}'"
         logging.error(msg)
         print(msg)
         raise ValueError(msg)
@@ -33,7 +33,7 @@ def load_instrument_calibration(nuv_cfg, vis_cfg, ir_cfg, out):
 
     ir_wl, ir_eff, ir_pixel_scale = load_effective_area_file(ir_cfg.effective_area_file)
     if len(ir_wl) != ir_cfg.x_pixels:
-        msg = f"IR wavelength length {len(ir_wl)} != x_pixels {ir_cfg.x_pixels} ({ir_cfg.effective_area_file})"
+        msg = f"IR: wavelength grid length {len(ir_wl)} loaded from effective area file '{ir_cfg.effective_area_file}' does not match x_pixels={ir_cfg.x_pixels} from channel cfg '{ir_cfg.source_file}'"
         logging.error(msg)
         print(msg)
         raise ValueError(msg)

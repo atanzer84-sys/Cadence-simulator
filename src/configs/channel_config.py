@@ -9,13 +9,11 @@ import logging
 class ChannelConfig:
     x_pixels: int
     y_pixels: int
-
     resolution_factor: float
-
     dark_current_e_per_s_per_pix: float
     read_noise_e_rms_per_pix: float
-
     effective_area_file: str
+    source_file: str = ""
 
 
 def load_channel_config(path: Path) -> ChannelConfig:
@@ -30,6 +28,7 @@ def load_channel_config(path: Path) -> ChannelConfig:
         dark_current_e_per_s_per_pix=_as_float(raw["dark_current_e_per_s_per_pix"], key="dark_current_e_per_s_per_pix"),
         read_noise_e_rms_per_pix=_as_float(raw["read_noise_e_rms_per_pix"], key="read_noise_e_rms_per_pix"),
         effective_area_file=raw["effective_area_file"],
+        source_file=str(path),
     )
 
     logging.info("Channel config loaded: %s", cfg)
