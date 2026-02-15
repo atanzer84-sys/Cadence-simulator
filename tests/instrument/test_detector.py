@@ -7,6 +7,9 @@ class _Cfg:
     def __init__(self, effective_area_file: str):
         self.effective_area_file = effective_area_file
 
+class _DummyGlobalCfg:
+    # detector.counts_per_s_px_conv_all_channels_per_channel checks only this
+    test_mode = False
 
 def test_channel_calibration_is_frozen_and_has_expected_fields():
     # Verifies the ChannelCalibration dataclass stores wavelength, effective_area, and pixel_scale and is immutable (frozen).
@@ -14,12 +17,14 @@ def test_channel_calibration_is_frozen_and_has_expected_fields():
     ea = np.array([0.1, 0.2])
     cal = detector.ChannelCalibration("Test", wavelength=wl, effective_area=ea, pixel_scale=0.5)
 
+    assert cal.name == "Test"
     assert cal.wavelength is wl
     assert cal.effective_area is ea
     assert cal.pixel_scale == pytest.approx(0.5)
 
     with pytest.raises(Exception):
         cal.pixel_scale = 0.6  # frozen dataclass should reject reassignment
+
 
 
 def test_load_instrument_calibration_calls_loader_three_times_with_cfg_filenames(monkeypatch):
@@ -36,12 +41,15 @@ def test_load_instrument_calibration_calls_loader_three_times_with_cfg_filenames
     vis_cfg = _Cfg("vis.txt")
     ir_cfg = _Cfg("ir.txt")
 
-    nuv_cal, vis_cal, ir_cal = detector.load_instrument_calibration(nuv_cfg, vis_cfg, ir_cfg)
+    nuv_cal, vis_cal, ir_cal = detector.load_instrument_calibration(nuv_cfg, vis_cfg, ir_cfg, out="OUTDIR")
 
     assert calls == ["nuv.txt", "vis.txt", "ir.txt"]
     assert isinstance(nuv_cal, detector.ChannelCalibration)
     assert isinstance(vis_cal, detector.ChannelCalibration)
     assert isinstance(ir_cal, detector.ChannelCalibration)
+    assert nuv_cal.name == "NUV"
+    assert vis_cal.name == "VIS"
+    assert ir_cal.name == "IR"
 
 
 def test_load_instrument_calibration_returns_calibrations_with_correct_values(monkeypatch):
@@ -68,19 +76,22 @@ def test_load_instrument_calibration_returns_calibrations_with_correct_values(mo
     vis_cfg = _Cfg("vis.txt")
     ir_cfg = _Cfg("ir.txt")
 
-    nuv_cal, vis_cal, ir_cal = detector.load_instrument_calibration(nuv_cfg, vis_cfg, ir_cfg)
+    nuv_cal, vis_cal, ir_cal = detector.load_instrument_calibration(nuv_cfg, vis_cfg, ir_cfg, out="OUTDIR")
 
     assert np.allclose(nuv_cal.wavelength, nuv_wl)
     assert np.allclose(nuv_cal.effective_area, nuv_ea)
     assert nuv_cal.pixel_scale == pytest.approx(0.01)
+    assert nuv_cal.name == "NUV"
 
     assert np.allclose(vis_cal.wavelength, vis_wl)
     assert np.allclose(vis_cal.effective_area, vis_ea)
     assert vis_cal.pixel_scale == pytest.approx(0.02)
+    assert vis_cal.name == "VIS"
 
     assert np.allclose(ir_cal.wavelength, ir_wl)
     assert np.allclose(ir_cal.effective_area, ir_ea)
     assert ir_cal.pixel_scale == pytest.approx(0.03)
+    assert ir_cal.name == "IR"
 
 
 def test_load_instrument_calibration_propagates_loader_error(monkeypatch):
@@ -97,7 +108,7 @@ def test_load_instrument_calibration_propagates_loader_error(monkeypatch):
     ir_cfg = _Cfg("ir.txt")
 
     with pytest.raises(ValueError) as exc:
-        detector.load_instrument_calibration(nuv_cfg, vis_cfg, ir_cfg)
+        detector.load_instrument_calibration(nuv_cfg, vis_cfg, ir_cfg, out="OUTDIR")
 
     assert "boom" in str(exc.value)
 
@@ -114,7 +125,7 @@ def test_loader_raises_for_first_channel_propagates(monkeypatch):
     ir_cfg = _Cfg("ir.txt")
 
     with pytest.raises(ValueError) as exc:
-        detector.load_instrument_calibration(nuv_cfg, vis_cfg, ir_cfg)
+        detector.load_instrument_calibration(nuv_cfg, vis_cfg, ir_cfg, out="OUTDIR")
 
     assert "nuv failed" in str(exc.value)
 
@@ -133,7 +144,7 @@ def test_loader_raises_for_second_channel_propagates(monkeypatch):
     ir_cfg = _Cfg("ir.txt")
 
     with pytest.raises(ValueError) as exc:
-        detector.load_instrument_calibration(nuv_cfg, vis_cfg, ir_cfg)
+        detector.load_instrument_calibration(nuv_cfg, vis_cfg, ir_cfg, out="OUTDIR")
 
     assert "vis failed" in str(exc.value)
 
@@ -152,7 +163,7 @@ def test_loader_raises_for_third_channel_propagates(monkeypatch):
     ir_cfg = _Cfg("ir.txt")
 
     with pytest.raises(ValueError) as exc:
-        detector.load_instrument_calibration(nuv_cfg, vis_cfg, ir_cfg)
+        detector.load_instrument_calibration(nuv_cfg, vis_cfg, ir_cfg, out="OUTDIR")
 
     assert "ir failed" in str(exc.value)
 
@@ -163,50 +174,80 @@ def test_channel_calibration_rejects_wrong_field_names():
         detector.ChannelCalibration(wl=np.array([1.0]), ea=np.array([0.1]), pixel_scale=0.01)
 
 
-def test_single_channel_counts():
-    # Verifies that a single channel correctly interpolates flux, applies pixel scale, and multiplies by effective area.
-    model_wl = np.array([100, 101, 102], dtype=float)
-    flux = np.array([10, 20, 30], dtype=float)
+def test_single_channel_counts_identity_gaussbroad():
+    """
+    Verifies per-channel pipeline:
+      interp onto cal.wavelength
+      multiply by pixel_scale
+      multiply by effective_area
+      gaussbroad is identity when nhalf == 0
+
+    We choose pixel_scale small enough to make nhalf==0 for this grid,
+    so the expected array is exact and deterministic.
+    """
+    wavelengths_total = np.array([100.0, 101.0, 102.0], dtype=float)
+    photon_flux = np.array([10.0, 20.0, 30.0], dtype=float)
 
     cal = detector.ChannelCalibration(
-        wavelength=np.array([100, 100.5, 101], dtype=float),
-        effective_area=np.array([2, 2, 2], dtype=float),
-        pixel_scale=0.5
+        name="NUV",
+        wavelength=np.array([100.0, 100.5, 101.0], dtype=float),
+        effective_area=np.array([2.0, 2.0, 2.0], dtype=float),
+        pixel_scale=0.01,
     )
 
-    counts = detector.photons_to_counts_per_pixel(flux, model_wl, cal)
-    expected = np.array([10, 15, 20], dtype=float)
+    counts = detector.counts_per_s_px_conv_all_channels_per_channel(
+        photon_flux, wavelengths_total, cal, output_dir="OUTDIR", cfg=_DummyGlobalCfg()
+    )
+
+    # interp: [10, 15, 20]
+    # per-pixel: *0.01 -> [0.10, 0.15, 0.20]
+    # apply EA: *2 -> [0.20, 0.30, 0.40]
+    expected = np.array([0.20, 0.30, 0.40], dtype=float)
     assert np.allclose(counts, expected)
 
-def test_all_channels_counts():
-    # Verifies that the wrapper function returns correct counts per pixel for NUV, VIS, and IR channels simultaneously.
-    model_wl = np.array([100, 101, 102], dtype=float)
-    flux = np.array([10, 20, 30], dtype=float)
 
-    nuv_cal = detector.ChannelCalibration(
-        wavelength=np.array([100, 100.5], dtype=float),
-        effective_area=np.array([2, 2], dtype=float),
-        pixel_scale=0.5
-    )
-    vis_cal = detector.ChannelCalibration(
-        wavelength=np.array([101, 102], dtype=float),
-        effective_area=np.array([1, 1], dtype=float),
-        pixel_scale=1.0
-    )
-    ir_cal = detector.ChannelCalibration(
-        wavelength=np.array([100, 102], dtype=float),
-        effective_area=np.array([3, 3], dtype=float),
-        pixel_scale=0.5
-    )
+def test_all_channels_counts_identity_gaussbroad():
+    """
+    Same as single-channel, but for 3 channels at once using the wrapper.
+    We monkeypatch get_global_config so the wrapper doesn't depend on real config state.
+    """
+    monkeypatch = pytest.MonkeyPatch()
+    try:
+        monkeypatch.setattr(detector, "get_global_config", lambda: _DummyGlobalCfg())
 
-    nuv_counts, vis_counts, ir_counts = detector.photons_to_counts_per_pixel_all(
-        flux, model_wl, nuv_cal, vis_cal, ir_cal
-    )
+        wavelengths_total = np.array([100.0, 101.0, 102.0], dtype=float)
+        photon_flux = np.array([10.0, 20.0, 30.0], dtype=float)
 
-    expected_nuv = np.array([10, 15], dtype=float)  # corrected
-    expected_vis = np.array([20, 30], dtype=float)  # already correct
-    expected_ir  = np.array([15, 45], dtype=float)  # already correct
+        nuv_cal = detector.ChannelCalibration(
+            name="NUV",
+            wavelength=np.array([100.0, 100.5], dtype=float),
+            effective_area=np.array([2.0, 2.0], dtype=float),
+            pixel_scale=0.01,
+        )
+        vis_cal = detector.ChannelCalibration(
+            name="VIS",
+            wavelength=np.array([101.0, 102.0], dtype=float),
+            effective_area=np.array([1.0, 1.0], dtype=float),
+            pixel_scale=0.01,
+        )
+        ir_cal = detector.ChannelCalibration(
+            name="IR",
+            wavelength=np.array([100.0, 102.0], dtype=float),
+            effective_area=np.array([3.0, 3.0], dtype=float),
+            pixel_scale=0.01,
+        )
 
-    assert np.allclose(nuv_counts, expected_nuv)
-    assert np.allclose(vis_counts, expected_vis)
-    assert np.allclose(ir_counts, expected_ir)
+        nuv_counts, vis_counts, ir_counts = detector.counts_per_s_px_conv_all_channels(
+            photon_flux, wavelengths_total, nuv_cal, vis_cal, ir_cal, output_dir="OUTDIR"
+        )
+
+        # NUV: interp [10, 15] -> *0.01 -> [0.10,0.15] -> *2 -> [0.20,0.30]
+        assert np.allclose(nuv_counts, np.array([0.20, 0.30]))
+
+        # VIS: interp [20, 30] -> *0.01 -> [0.20,0.30] -> *1 -> [0.20,0.30]
+        assert np.allclose(vis_counts, np.array([0.20, 0.30]))
+
+        # IR:  interp [10, 30] -> *0.01 -> [0.10,0.30] -> *3 -> [0.30,0.90]
+        assert np.allclose(ir_counts, np.array([0.30, 0.90]))
+    finally:
+        monkeypatch.undo()
