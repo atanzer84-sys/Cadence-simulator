@@ -361,3 +361,62 @@ def test_counts_per_channel_uses_cal_wavelength_grid_and_returns_same_length():
 
     assert out.shape == cal.wavelength.shape
     assert np.allclose(out, expected)
+
+def test_counts_per_channel_interpolates_scales_and_applies_effective_area(monkeypatch):
+    import numpy as np
+    from types import SimpleNamespace
+    from instrument import detector
+
+    monkeypatch.setattr(detector, "gaussbroad", lambda wl, y, pixel_scale: y)
+
+    wavelengths_total = np.array([100.0, 101.0, 102.0], dtype=float)
+    photon_flux_at_earth = np.array([10.0, 20.0, 30.0], dtype=float)
+
+    cal = SimpleNamespace(
+        name="NUV",
+        wavelength=np.array([100.0, 100.5, 101.0], dtype=float),
+        effective_area=np.array([2.0, 2.0, 2.0], dtype=float),
+        pixel_scale=0.5,
+    )
+
+    cfg = SimpleNamespace(test_mode=False)
+
+    out = detector.counts_per_s_px_conv_all_channels_per_channel(photon_flux_at_earth, wavelengths_total, cal, output_dir=None, cfg=cfg)
+
+    flux_on_pixel = np.interp(cal.wavelength, wavelengths_total, photon_flux_at_earth)
+    expected = flux_on_pixel * cal.pixel_scale * cal.effective_area
+
+    assert out.shape == expected.shape
+    np.testing.assert_allclose(out, expected, rtol=0.0, atol=0.0)
+
+def test_counts_per_channel_calls_gaussbroad_with_pixel_grid_and_pixel_scale(monkeypatch):
+    import numpy as np
+    from types import SimpleNamespace
+    from instrument import detector
+
+    calls = []
+
+    def _fake_gaussbroad(wl, y, pixel_scale):
+        calls.append((wl.copy(), y.copy(), float(pixel_scale)))
+        return y
+
+    monkeypatch.setattr(detector, "gaussbroad", _fake_gaussbroad)
+
+    wavelengths_total = np.array([1.0, 2.0], dtype=float)
+    photon_flux_at_earth = np.array([10.0, 20.0], dtype=float)
+
+    cal = SimpleNamespace(
+        name="VIS",
+        wavelength=np.array([1.5], dtype=float),
+        effective_area=np.array([3.0], dtype=float),
+        pixel_scale=0.2,
+    )
+
+    cfg = SimpleNamespace(test_mode=False)
+
+    _ = detector.counts_per_s_px_conv_all_channels_per_channel(photon_flux_at_earth, wavelengths_total, cal, output_dir=None, cfg=cfg)
+
+    assert len(calls) == 1
+    wl_arg, y_arg, ps_arg = calls[0]
+    assert np.allclose(wl_arg, cal.wavelength)
+    assert ps_arg == cal.pixel_scale
