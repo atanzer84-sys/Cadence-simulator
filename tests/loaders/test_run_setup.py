@@ -230,7 +230,10 @@ def global_cfg_log_r(monkeypatch):
         log_r_cool_value=-4.8,
         test_mode=True,
         produce_Plots=False,
-    )
+        n_bias_frames = 0,
+        n_dark_frames = 0,
+        write_dark_and_bias_png = False,
+        write_dark_and_bias_histograms = False,    )
     monkeypatch.setattr(gc, "_GLOBAL", cfg, raising=False)
     return cfg
 
@@ -250,6 +253,10 @@ def global_cfg_log_r_disabled(monkeypatch):
         log_r_cool_value=-4.8,
         test_mode=True,
         produce_Plots=False,
+        n_bias_frames = 0,
+        n_dark_frames = 0,
+        write_dark_and_bias_png = False,
+        write_dark_and_bias_histograms = False,
     )
     monkeypatch.setattr(gc, "_GLOBAL", cfg, raising=False)
     return cfg

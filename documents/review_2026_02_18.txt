@@ -11,3 +11,7 @@ Channels:
 -- In the meeting you said the instrumental resolution would be provided as FWHM and that I should pass it to the Gaussian broadening. In the legacy code you actually pass FWHM divided by two into gaussbroad, since that function expects HWHM.
 -- In my implementation I currently pass the pixel scale directly as HWHM. That is equivalent as long as FWHM equals two times the pixel scale.
 -- At the moment I am not using the resolution factor from the channel config, so the effective resolution is implicitly fixed through the pixel scale. I just want to confirm that this assumption is correct for all channels going forward.
+
+
+TODO: Tests for global config (int)
+TODO: Tests for channe lconfig (bool)
