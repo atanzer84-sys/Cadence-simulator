@@ -16,6 +16,7 @@ class ChannelConfig:
     bias_pattern_enable: bool = False
     bias_pattern_type: str = "columns"
     bias_pattern_sigma_e: float = 0.0
+    channel_name: str = ""
 
     source_file: str = ""
 
@@ -36,6 +37,7 @@ def load_channel_config(path: Path) -> ChannelConfig:
         bias_pattern_enable=_as_bool(raw.get("bias_pattern_enable", 0), key="bias_pattern_enable"),
         bias_pattern_type=str(raw.get("bias_pattern_type", "columns")).strip(),
         bias_pattern_sigma_e=_as_float(raw.get("bias_pattern_sigma_e", 0.0), key="bias_pattern_sigma_e"),
+        channel_name=str(raw["channel_name"]).strip(),
         source_file=str(path),
     )
 

@@ -24,6 +24,7 @@ def test_load_channel_config_ok(tmp_path):
         dark_current_e_per_s_per_pix = 0.01
         read_noise_e_rms_per_pix = 3.2
         effective_area_file = ir_effective_area.txt
+        channel_name = A
         """,
     )
 
@@ -100,6 +101,7 @@ def test_comments_and_inline_comments_are_ignored(tmp_path):
         dark_current_e_per_s_per_pix = 0.01
         read_noise_e_rms_per_pix = 3.2
         effective_area_file = ir.txt   # calibration file
+        channel_name = X
         """,
     )
 
@@ -141,6 +143,7 @@ def test_channel_config_is_frozen(tmp_path):
         dark_current_e_per_s_per_pix = 0.01
         read_noise_e_rms_per_pix = 3.2
         effective_area_file = test.txt
+        channel_name = A
         """,
     )
 
