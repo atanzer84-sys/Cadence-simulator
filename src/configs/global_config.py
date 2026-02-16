@@ -19,10 +19,8 @@ class GlobalConfig:
     log_r_hot_value: float
     log_r_cool_value: float
     
-    n_bias_frames: int
-    n_dark_frames: int
+    n_bias_and_darkframes: int
     write_dark_and_bias_png: bool
-    write_dark_and_bias_histograms: bool
 
     test_mode: bool
     produce_Plots: bool
@@ -76,10 +74,8 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
         log_r_hot_value=_as_float(raw["log_r_hot_value"], key="log_r_hot_value"),
         log_r_cool_value=_as_float(raw["log_r_cool_value"], key="log_r_cool_value"),
         
-        n_bias_frames=_as_int(raw.get("n_bias_frames", 0), key="n_bias_frames"),
-        n_dark_frames=_as_int(raw.get("n_dark_frames", 0), key="n_dark_frames"),
+        n_bias_and_darkframes=_as_int(raw.get("n_bias_and_darkframes", 0), key="n_bias_and_darkframes"),
         write_dark_and_bias_png=_as_bool(raw.get("write_dark_and_bias_png", 0), key="write_dark_and_bias_png"),
-        write_dark_and_bias_histograms=_as_bool(raw.get("write_dark_and_bias_histograms", 0), key="write_dark_and_bias_histograms"),
 
         test_mode=_as_bool(raw.get("test_mode", 0), key="test_mode"),    
         produce_Plots=_as_bool(raw.get("produce_Plots", 0), key="produce_Plots",),    
