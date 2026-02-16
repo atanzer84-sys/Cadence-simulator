@@ -13,6 +13,12 @@ class ChannelConfig:
     dark_current_e_per_s_per_pix: float
     read_noise_e_rms_per_pix: float
     effective_area_file: str
+
+    bias_offset_e: float = 0.0
+    bias_pattern_enable: bool = False
+    bias_pattern_type: str = "columns"
+    bias_pattern_sigma_e: float = 0.0
+
     source_file: str = ""
 
 
@@ -28,12 +34,28 @@ def load_channel_config(path: Path) -> ChannelConfig:
         dark_current_e_per_s_per_pix=_as_float(raw["dark_current_e_per_s_per_pix"], key="dark_current_e_per_s_per_pix"),
         read_noise_e_rms_per_pix=_as_float(raw["read_noise_e_rms_per_pix"], key="read_noise_e_rms_per_pix"),
         effective_area_file=raw["effective_area_file"],
+        bias_offset_e=_as_float(raw.get("bias_offset_e", 0.0), key="bias_offset_e"),
+        bias_pattern_enable=_as_bool(raw.get("bias_pattern_enable", 0), key="bias_pattern_enable"),
+        bias_pattern_type=str(raw.get("bias_pattern_type", "columns")).strip(),
+        bias_pattern_sigma_e=_as_float(raw.get("bias_pattern_sigma_e", 0.0), key="bias_pattern_sigma_e"),
         source_file=str(path),
     )
 
     logging.info("Channel config loaded: %s", cfg)
     return cfg
 
+def _as_bool(v: object, *, key: str) -> bool:
+    s = str(v).strip().casefold()
+    if s in {"1", "true", "yes", "y", "on"}:
+        return True
+    if s in {"0", "false", "no", "n", "off", ""}:
+        return False
+
+    logging.error("Invalid boolean value for config key '%s': %r", key, v)
+    raise ValueError(
+        f"Invalid boolean value for config key '{key}': {v!r}. "
+        "Expected one of: 0, 1, true, false, yes, no."
+    )
 
 def _as_int(value, *, key: str) -> int:
     try:

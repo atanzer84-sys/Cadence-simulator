@@ -21,6 +21,11 @@ class GlobalConfig:
     log_r_hot_value: float
     log_r_cool_value: float
     
+    n_bias_frames: int
+    n_dark_frames: int
+    write_dark_and_bias_png: bool
+    write_dark_and_bias_histograms: bool
+
     test_mode: bool
     produce_Plots: bool
 
@@ -61,20 +66,35 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
     cfg = GlobalConfig(
         line_core_emission=_as_bool(raw.get("line_core_emission", 0), key="line_core_emission"),
         interstellar_absorption=_as_bool(raw.get("interstellar_absorption", 0), key="interstellar_absorption"),
+        
         mg2_col=_as_optional_float(raw.get("mg2_col", None)),
         mg1_col=_as_optional_float(raw.get("mg1_col", None)),
         fe2_col=_as_optional_float(raw.get("fe2_col", None)),
         sigmaMg22=_as_float(raw.get("sigmaMg22", DEFAULT_SIGMA_MG22), key="sigmaMgIIh"),
         sigmaMg21=_as_float(raw.get("sigmaMg21", DEFAULT_SIGMA_MG21), key="sigmaMgIIk"),
+        
         enable_log_r_fallback=_as_bool(raw.get("enable_log_r_fallback", 0), key="enable_log_r_fallback"),
         log_r_teff_threshold=_as_float(raw["log_r_teff_threshold"], key="log_r_teff_threshold"),
         log_r_hot_value=_as_float(raw["log_r_hot_value"], key="log_r_hot_value"),
         log_r_cool_value=_as_float(raw["log_r_cool_value"], key="log_r_cool_value"),
+        
+        n_bias_frames=_as_int(raw.get("n_bias_frames", 0), key="n_bias_frames"),
+        n_dark_frames=_as_int(raw.get("n_dark_frames", 0), key="n_dark_frames"),
+        write_dark_and_bias_png=_as_bool(raw.get("write_dark_and_bias_png", 0), key="write_dark_and_bias_png"),
+        write_dark_and_bias_histograms=_as_bool(raw.get("write_dark_and_bias_histograms", 0), key="write_dark_and_bias_histograms"),
+
         test_mode=_as_bool(raw.get("test_mode", 0), key="test_mode"),    
         produce_Plots=_as_bool(raw.get("produce_Plots", 0), key="produce_Plots",),    
     )
     logging.info("Global config loaded: %s", cfg)
     return cfg
+
+def _as_int(value, *, key: str) -> int:
+    try:
+        return int(value)
+    except Exception as exc:
+        logging.error("Invalid int for key '%s': %r", key, value)
+        raise ValueError(f"Invalid int for key '{key}': {value!r}") from exc
 
 def _as_bool(v: object, *, key: str) -> bool:
     s = str(v).strip().casefold()
