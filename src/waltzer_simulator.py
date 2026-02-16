@@ -3,6 +3,7 @@ from domain.star import Star
 from domain.planet import Planet
 from flux.flux_calc import calculateFluxOnEarth
 from instrument.detector import load_channel_response_from_effective_area, counts_per_s_px_conv_all_channels
+from instrument.detector_images import generate_bias_dark_frames
 import sys
 import logging
 
@@ -21,6 +22,7 @@ def main():
 
         counts_s_pixel_convolved_nuv, counts_s_pixel_convolved_vis, counts_s_pixel_convolved_ir = counts_per_s_px_conv_all_channels(photon_flux_at_earth_A, wavelengths_total, nuv_cal, vis_cal, ir_cal, output_dir)
 
+        generate_bias_dark_frames(nuv_cfg, vis_cfg, user_cfg, output_dir)
 
 
     except Exception as e:
