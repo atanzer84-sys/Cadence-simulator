@@ -29,8 +29,8 @@ def test_channel_calibration_is_frozen_and_has_expected_fields():
 
 
 
-def test_load_instrument_calibration_calls_loader_three_times_with_cfg_filenames(monkeypatch):
-    # Verifies load_instrument_calibration calls load_effective_area_file exactly three times with the effective_area_file from each cfg.
+def test_load_channel_response_from_effective_area_calls_loader_three_times_with_cfg_filenames(monkeypatch):
+    # Verifies load_channel_response_from_effective_area calls load_effective_area_file exactly three times with the effective_area_file from each cfg.
     calls = []
 
     def _fake_loader(filename):
@@ -43,7 +43,7 @@ def test_load_instrument_calibration_calls_loader_three_times_with_cfg_filenames
     vis_cfg = _Cfg("vis.txt")
     ir_cfg = _Cfg("ir.txt")
 
-    nuv_cal, vis_cal, ir_cal = detector.load_instrument_calibration(nuv_cfg, vis_cfg, ir_cfg, out="OUTDIR")
+    nuv_cal, vis_cal, ir_cal = detector.load_channel_response_from_effective_area(nuv_cfg, vis_cfg, ir_cfg)
 
     assert calls == ["nuv.txt", "vis.txt", "ir.txt"]
     assert isinstance(nuv_cal, detector.ChannelCalibration)
@@ -54,7 +54,7 @@ def test_load_instrument_calibration_calls_loader_three_times_with_cfg_filenames
     assert ir_cal.name == "IR"
 
 
-def test_load_instrument_calibration_returns_calibrations_with_correct_values(monkeypatch):
+def test_load_channel_response_from_effective_area_returns_calibrations_with_correct_values(monkeypatch):
     # Verifies the returned ChannelCalibration objects contain exactly the arrays and pixel scales returned by the loader for each channel.
     nuv_wl = np.array([1.0, 2.0, 3.0])
     nuv_ea = np.array([0.1, 0.2, 0.3])
@@ -79,7 +79,7 @@ def test_load_instrument_calibration_returns_calibrations_with_correct_values(mo
     ir_cfg = _Cfg("ir.txt", x_pixels=len(ir_wl))
 
 
-    nuv_cal, vis_cal, ir_cal = detector.load_instrument_calibration(nuv_cfg, vis_cfg, ir_cfg, out="OUTDIR")
+    nuv_cal, vis_cal, ir_cal = detector.load_channel_response_from_effective_area(nuv_cfg, vis_cfg, ir_cfg)
 
     assert np.allclose(nuv_cal.wavelength, nuv_wl)
     assert np.allclose(nuv_cal.effective_area, nuv_ea)
@@ -97,8 +97,8 @@ def test_load_instrument_calibration_returns_calibrations_with_correct_values(mo
     assert ir_cal.name == "IR"
 
 
-def test_load_instrument_calibration_propagates_loader_error(monkeypatch):
-    # Verifies that if load_effective_area_file raises for any channel, load_instrument_calibration propagates the same exception.
+def test_load_channel_response_from_effective_area_propagates_loader_error(monkeypatch):
+    # Verifies that if load_effective_area_file raises for any channel, load_channel_response_from_effective_area propagates the same exception.
     def _fake_loader(filename):
         if filename == "vis.txt":
             raise ValueError("boom")
@@ -111,7 +111,7 @@ def test_load_instrument_calibration_propagates_loader_error(monkeypatch):
     ir_cfg = _Cfg("ir.txt")
 
     with pytest.raises(ValueError) as exc:
-        detector.load_instrument_calibration(nuv_cfg, vis_cfg, ir_cfg, out="OUTDIR")
+        detector.load_channel_response_from_effective_area(nuv_cfg, vis_cfg, ir_cfg)
 
     assert "boom" in str(exc.value)
 
@@ -128,7 +128,7 @@ def test_loader_raises_for_first_channel_propagates(monkeypatch):
     ir_cfg = _Cfg("ir.txt")
 
     with pytest.raises(ValueError) as exc:
-        detector.load_instrument_calibration(nuv_cfg, vis_cfg, ir_cfg, out="OUTDIR")
+        detector.load_channel_response_from_effective_area(nuv_cfg, vis_cfg, ir_cfg)
 
     assert "nuv failed" in str(exc.value)
 
@@ -147,7 +147,7 @@ def test_loader_raises_for_second_channel_propagates(monkeypatch):
     ir_cfg = _Cfg("ir.txt")
 
     with pytest.raises(ValueError) as exc:
-        detector.load_instrument_calibration(nuv_cfg, vis_cfg, ir_cfg, out="OUTDIR")
+        detector.load_channel_response_from_effective_area(nuv_cfg, vis_cfg, ir_cfg)
 
     assert "vis failed" in str(exc.value)
 
@@ -166,7 +166,7 @@ def test_loader_raises_for_third_channel_propagates(monkeypatch):
     ir_cfg = _Cfg("ir.txt")
 
     with pytest.raises(ValueError) as exc:
-        detector.load_instrument_calibration(nuv_cfg, vis_cfg, ir_cfg, out="OUTDIR")
+        detector.load_channel_response_from_effective_area(nuv_cfg, vis_cfg, ir_cfg)
 
     assert "ir failed" in str(exc.value)
 
@@ -256,7 +256,7 @@ def test_all_channels_counts_identity_gaussbroad():
         monkeypatch.undo()
 
 
-def test_load_instrument_calibration_raises_if_nuv_length_does_not_match_x_pixels(monkeypatch):
+def test_load_channel_response_from_effective_area_raises_if_nuv_length_does_not_match_x_pixels(monkeypatch):
     # Verifies that a ValueError is raised if NUV wavelength grid length does not match x_pixels.
 
     def _fake_loader(filename):
@@ -269,13 +269,13 @@ def test_load_instrument_calibration_raises_if_nuv_length_does_not_match_x_pixel
     ir_cfg  = _Cfg("ir.txt",  x_pixels=3, source_file="ir.cfg")
 
     with pytest.raises(ValueError) as exc:
-        detector.load_instrument_calibration(nuv_cfg, vis_cfg, ir_cfg, out="OUTDIR")
+        detector.load_channel_response_from_effective_area(nuv_cfg, vis_cfg, ir_cfg)
 
     assert "NUV:" in str(exc.value)
     assert "nuv.txt" in str(exc.value)
 
 
-def test_load_instrument_calibration_raises_if_vis_length_does_not_match_x_pixels(monkeypatch):
+def test_load_channel_response_from_effective_area_raises_if_vis_length_does_not_match_x_pixels(monkeypatch):
     # Verifies that a ValueError is raised if VIS wavelength grid length does not match x_pixels.
 
     def _fake_loader(filename):
@@ -290,14 +290,14 @@ def test_load_instrument_calibration_raises_if_vis_length_does_not_match_x_pixel
     ir_cfg  = _Cfg("ir.txt",  x_pixels=2, source_file="ir.cfg")
 
     with pytest.raises(ValueError) as exc:
-        detector.load_instrument_calibration(nuv_cfg, vis_cfg, ir_cfg, out="OUTDIR")
+        detector.load_channel_response_from_effective_area(nuv_cfg, vis_cfg, ir_cfg)
 
     assert "VIS:" in str(exc.value)
     assert "vis.txt" in str(exc.value)
     assert "vis.cfg" in str(exc.value)
 
 
-def test_load_instrument_calibration_raises_if_ir_length_does_not_match_x_pixels(monkeypatch):
+def test_load_channel_response_from_effective_area_raises_if_ir_length_does_not_match_x_pixels(monkeypatch):
     # Verifies that a ValueError is raised if IR wavelength grid length does not match x_pixels.
 
     def _fake_loader(filename):
@@ -312,14 +312,14 @@ def test_load_instrument_calibration_raises_if_ir_length_does_not_match_x_pixels
     ir_cfg  = _Cfg("ir.txt",  x_pixels=2, source_file="ir.cfg")
 
     with pytest.raises(ValueError) as exc:
-        detector.load_instrument_calibration(nuv_cfg, vis_cfg, ir_cfg, out="OUTDIR")
+        detector.load_channel_response_from_effective_area(nuv_cfg, vis_cfg, ir_cfg)
 
     assert "IR:" in str(exc.value)
     assert "ir.txt" in str(exc.value)
     assert "ir.cfg" in str(exc.value)
 
 
-def test_load_instrument_calibration_succeeds_when_lengths_match(monkeypatch):
+def test_load_channel_response_from_effective_area_succeeds_when_lengths_match(monkeypatch):
     # Verifies that no error is raised when wavelength grid length matches x_pixels for all channels.
 
     def _fake_loader(filename):
@@ -331,9 +331,7 @@ def test_load_instrument_calibration_succeeds_when_lengths_match(monkeypatch):
     vis_cfg = _Cfg("vis.txt", x_pixels=2, source_file="vis.cfg")
     ir_cfg  = _Cfg("ir.txt",  x_pixels=2, source_file="ir.cfg")
 
-    nuv_cal, vis_cal, ir_cal = detector.load_instrument_calibration(
-        nuv_cfg, vis_cfg, ir_cfg, out="OUTDIR"
-    )
+    nuv_cal, vis_cal, ir_cal = detector.load_channel_response_from_effective_area(nuv_cfg, vis_cfg, ir_cfg)
 
     assert nuv_cal.name == "NUV"
     assert vis_cal.name == "VIS"

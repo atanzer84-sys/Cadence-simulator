@@ -14,7 +14,7 @@ class ChannelCalibration:
     effective_area: np.ndarray
     pixel_scale: float
 
-def load_instrument_calibration(nuv_cfg, vis_cfg, ir_cfg, out):
+def load_channel_response_from_effective_area(nuv_cfg, vis_cfg, ir_cfg):
 
     nuv_wl, nuv_eff, nuv_pixel_scale = load_effective_area_file(nuv_cfg.effective_area_file)
     if len(nuv_wl) != nuv_cfg.x_pixels:
