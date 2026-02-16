@@ -17,6 +17,9 @@ def generate_bias_dark_frames(nuv_cfg, vis_cfg, user_cfg, output_dir):
 
     bias_nuv_frames = generate_bias_frames(nuv_cfg, n_frames)
     bias_vis_frames = generate_bias_frames(vis_cfg, n_frames)
+    dark_nuv_frames = generate_dark_frames(nuv_cfg, n_frames, user_cfg.exposure_NUV_s)
+    dark_vis_frames = generate_dark_frames(vis_cfg, n_frames, user_cfg.exposure_VIS_s)
+
     
     if global_cfg.write_dark_and_bias_png:
         write_frames_png(bias_nuv_frames, "bias", nuv_cfg.channel_name, output_dir)
@@ -38,13 +41,30 @@ def generate_bias_frames(channel_cfg, n_frames):
 
     return frames
 
-
 def generate_bias_frame(channel_cfg):
+    '''
+    Bias = Offset + Gaussian Noise
+    '''
     nx = channel_cfg.x_pixels
     ny = channel_cfg.y_pixels
-    bias_offset = channel_cfg.bias_offset_e
-    read_noise = channel_cfg.read_noise_e_rms_per_pix
+    bias_offset = channel_cfg.bias_offset
+    read_noise = channel_cfg.read_noise
 
     bias = bias_offset + np.random.normal(0.0, read_noise, size=(ny, nx))
 
     return bias
+
+
+def generate_dark_frame(channel_cfg, exptime_s):
+    '''
+    Dark = Bias + (dark_current * exptime)
+    '''
+
+    dark_current = channel_cfg.dark_noise
+
+    bias = generate_bias_frame(channel_cfg)
+    dark_signal = dark_current * exptime_s
+
+    dark = bias + dark_signal
+
+    return dark

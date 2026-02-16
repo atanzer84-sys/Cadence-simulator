@@ -21,8 +21,8 @@ def test_load_channel_config_ok(tmp_path):
         x_pixels = 2048
         y_pixels = 1024
         resolution_factor = 1.5
-        dark_current_e_per_s_per_pix = 0.01
-        read_noise_e_rms_per_pix = 3.2
+        dark_noise = 0.01
+        read_noise = 3.2
         effective_area_file = ir_effective_area.txt
         channel_name = A
         """,
@@ -34,8 +34,8 @@ def test_load_channel_config_ok(tmp_path):
     assert cfg.x_pixels == 2048
     assert cfg.y_pixels == 1024
     assert cfg.resolution_factor == pytest.approx(1.5)
-    assert cfg.dark_current_e_per_s_per_pix == pytest.approx(0.01)
-    assert cfg.read_noise_e_rms_per_pix == pytest.approx(3.2)
+    assert cfg.dark_noise == pytest.approx(0.01)
+    assert cfg.read_noise == pytest.approx(3.2)
     assert cfg.effective_area_file == "ir_effective_area.txt"
 
 
@@ -57,8 +57,8 @@ def test_invalid_int_value_raises_valueerror(tmp_path):
         x_pixels = not_an_int
         y_pixels = 1024
         resolution_factor = 1.0
-        dark_current_e_per_s_per_pix = 0.01
-        read_noise_e_rms_per_pix = 3.2
+        dark_noise = 0.01
+        read_noise = 3.2
         effective_area_file = ir.txt
         """,
     )
@@ -77,8 +77,8 @@ def test_invalid_float_value_raises_valueerror(tmp_path):
         x_pixels = 2048
         y_pixels = 1024
         resolution_factor = not_a_float
-        dark_current_e_per_s_per_pix = 0.01
-        read_noise_e_rms_per_pix = 3.2
+        dark_noise = 0.01
+        read_noise = 3.2
         effective_area_file = ir.txt
         """,
     )
@@ -98,8 +98,8 @@ def test_comments_and_inline_comments_are_ignored(tmp_path):
         x_pixels = 2048      # detector width
         y_pixels = 1024
         resolution_factor = 1.0
-        dark_current_e_per_s_per_pix = 0.01
-        read_noise_e_rms_per_pix = 3.2
+        dark_noise = 0.01
+        read_noise = 3.2
         effective_area_file = ir.txt   # calibration file
         channel_name = X
         """,
@@ -121,8 +121,8 @@ def test_missing_required_key_raises_keyerror(tmp_path):
         x_pixels = 2048
         y_pixels = 1024
         resolution_factor = 1.0
-        dark_current_e_per_s_per_pix = 0.01
-        read_noise_e_rms_per_pix = 3.2
+        dark_noise = 0.01
+        read_noise = 3.2
         """,
     )
 
@@ -140,8 +140,8 @@ def test_channel_config_is_frozen(tmp_path):
         x_pixels = 100
         y_pixels = 100
         resolution_factor = 1.0
-        dark_current_e_per_s_per_pix = 0.01
-        read_noise_e_rms_per_pix = 3.2
+        dark_noise = 0.01
+        read_noise = 3.2
         effective_area_file = test.txt
         channel_name = A
         """,

@@ -2,6 +2,7 @@ import pytest
 import waltzer_simulator
 import numpy as np
 
+
 def test_excel_file_not_found_exits(monkeypatch, tmp_path, capsys):
     input_dir = tmp_path / "input"
     input_dir.mkdir(parents=True, exist_ok=True)
@@ -18,6 +19,13 @@ def test_excel_file_not_found_exits(monkeypatch, tmp_path, capsys):
 
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr("sys.argv", ["waltzer_simulator.py"])
+
+    # prevent logging setup / file creation
+    monkeypatch.setattr(
+        waltzer_simulator,
+        "initialize_waltzer_runtime",
+        lambda: tmp_path
+    )
 
     monkeypatch.setattr(
         waltzer_simulator,

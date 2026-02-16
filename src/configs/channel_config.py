@@ -8,14 +8,14 @@ class ChannelConfig:
     x_pixels: int
     y_pixels: int
     resolution_factor: float
-    dark_current_e_per_s_per_pix: float
-    read_noise_e_rms_per_pix: float
+    dark_noise: float
+    read_noise: float
     effective_area_file: str
 
-    bias_offset_e: float = 0.0
+    bias_offset: float = 0.0
     bias_pattern_enable: bool = False
     bias_pattern_type: str = "columns"
-    bias_pattern_sigma_e: float = 0.0
+    bias_pattern_sigma: float = 0.0
     channel_name: str = ""
 
     source_file: str = ""
@@ -30,13 +30,13 @@ def load_channel_config(path: Path) -> ChannelConfig:
         x_pixels=_as_int(raw["x_pixels"], key="x_pixels"),
         y_pixels=_as_int(raw["y_pixels"], key="y_pixels"),
         resolution_factor=_as_float(raw["resolution_factor"], key="resolution_factor"),
-        dark_current_e_per_s_per_pix=_as_float(raw["dark_current_e_per_s_per_pix"], key="dark_current_e_per_s_per_pix"),
-        read_noise_e_rms_per_pix=_as_float(raw["read_noise_e_rms_per_pix"], key="read_noise_e_rms_per_pix"),
+        dark_noise=_as_float(raw["dark_noise"], key="dark_noise"),
+        read_noise=_as_float(raw["read_noise"], key="read_noise"),
         effective_area_file=raw["effective_area_file"],
-        bias_offset_e=_as_float(raw.get("bias_offset_e", 0.0), key="bias_offset_e"),
+        bias_offset=_as_float(raw.get("bias_offset", 0.0), key="bias_offset"),
         bias_pattern_enable=_as_bool(raw.get("bias_pattern_enable", 0), key="bias_pattern_enable"),
         bias_pattern_type=str(raw.get("bias_pattern_type", "columns")).strip(),
-        bias_pattern_sigma_e=_as_float(raw.get("bias_pattern_sigma_e", 0.0), key="bias_pattern_sigma_e"),
+        bias_pattern_sigma=_as_float(raw.get("bias_pattern_sigma", 0.0), key="bias_pattern_sigma"),
         channel_name=str(raw["channel_name"]).strip(),
         source_file=str(path),
     )
