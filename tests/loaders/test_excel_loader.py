@@ -330,3 +330,29 @@ def test_excel_strips_planet_designator_for_lettered_stars(tmp_path: Path) -> No
 
     assert row_dict["pl_name"] == "KELT-19 A b"
     assert target_name == "KELT-19 A"
+
+# Ensures load_excel_cfg preserves the case of canonical keys and trims required key lists correctly.
+def test_load_excel_cfg_preserves_case_and_parses_required_keys(tmp_path):
+    from loaders.excel_loader import load_excel_cfg
+
+    cfg_path = tmp_path / "excel_mapping.cfg"
+    cfg_path.write_text(
+        "\n".join(
+            [
+                "[stars]",
+                "effective_temperature = st_teff",
+                "log_R = st_logr",
+                "",
+                "[required_stellar_parameters]",
+                "keys = effective_temperature, log_R ,  ",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    mapping = load_excel_cfg(cfg_path)
+
+    assert mapping["star"]["effective_temperature"] == "st_teff"
+    assert mapping["star"]["log_R"] == "st_logr"
+    assert mapping["required_stellar_parameters"] == ["effective_temperature", "log_R"]

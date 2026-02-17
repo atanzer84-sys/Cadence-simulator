@@ -54,6 +54,19 @@ class FakeResultTable:
         return self._rows[idx]
 
 
+# Ensures Gaia best match selection chooses the row with the lowest phot_g_mean_mag and returns its source_id.
+def test_select_source_id_from_best_gaia_match_picks_lowest_gmag():
+    from loaders.gaia_lookup import select_source_id_from_best_gaia_match
+
+    table = FakeGaiaTable(
+        [
+            {"phot_g_mean_mag": 12.0, "source_id": 111},
+            {"phot_g_mean_mag": 10.0, "source_id": 222},
+            {"phot_g_mean_mag": 11.0, "source_id": 333},
+        ]
+    )
+
+    assert select_source_id_from_best_gaia_match(table) == 222
 
 def test_lookup_star_gaia_returns_empty_dict_when_cone_search_empty(monkeypatch):
     from loaders import gaia_lookup

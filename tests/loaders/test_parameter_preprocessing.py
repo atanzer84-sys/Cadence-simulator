@@ -153,3 +153,22 @@ class TestCleanAndCastParameters:
         cleaned = clean_and_cast_parameters(params, Star)
         assert cleaned["effective_temperature"] == 8000.0
         assert cleaned["totally_new_key"] == "keep me"
+
+
+def test_clean_and_cast_parameters_handles_union_and_pep604_float_fields(monkeypatch):
+# Covers missing key detection semantics and strict, non mutating normalization plus type casting
+# against Star and Planet dataclasses including logging and error contracts.
+
+    from dataclasses import dataclass
+    from typing import Union
+
+    @dataclass
+    class Dummy:
+        a: Union[float, None]      # typing.Union
+        b: float | None            # PEP604
+
+    params = {"a": "1.5", "b": "2.5"}
+    cleaned = clean_and_cast_parameters(params, Dummy)
+
+    assert cleaned["a"] == 1.5
+    assert cleaned["b"] == 2.5

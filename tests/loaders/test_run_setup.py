@@ -360,3 +360,90 @@ def test_invalid_params_raises_value_error(monkeypatch, tmp_path):
         run_setup.load_cfg_and_user_config()
 
     assert "Invalid float for key 'total_observation_length_h'" in str(exc_info.value)
+
+
+def test_infer_mamajek_spectral_type_missing_teff_raises(monkeypatch):
+    class FakeTable:
+        def __len__(self): return 1
+        def __getitem__(self, key):
+            if key == "col1": return ["F1V"]
+            if key == "col2": return [6900.0]
+            raise KeyError(key)
+
+    monkeypatch.setattr(run_setup.ascii, "read", lambda *_args, **_kw: FakeTable())
+
+    with pytest.raises(ValueError) as exc_info:
+        run_setup.infer_mamajek_spectral_type({}, "dummy_path.txt")
+
+    assert "effective_temperature" in str(exc_info.value)
+
+
+def test_infer_mamajek_spectral_type_invalid_teff_raises(monkeypatch):
+    class FakeTable:
+        def __len__(self): return 1
+        def __getitem__(self, key):
+            if key == "col1": return ["F1V"]
+            if key == "col2": return [6900.0]
+            raise KeyError(key)
+
+    monkeypatch.setattr(run_setup.ascii, "read", lambda *_args, **_kw: FakeTable())
+
+    with pytest.raises(ValueError) as exc_info:
+        run_setup.infer_mamajek_spectral_type({"effective_temperature": "nope"}, "dummy_path.txt")
+
+    assert "invalid effective_temperature" in str(exc_info.value)
+
+
+def test_apply_log_r_fallback_missing_teff_does_not_modify_dict(global_cfg_log_r):
+    star_params = {}
+    out = apply_log_r_fallback(star_params)
+
+    assert out is star_params
+    assert "log_r" not in star_params
+
+
+def test_apply_log_r_fallback_invalid_teff_does_not_modify_dict(global_cfg_log_r):
+    star_params = {"effective_temperature": "nope"}
+    out = apply_log_r_fallback(star_params)
+
+    assert out is star_params
+    assert "log_r" not in star_params
+
+
+def test_find_excel_file_ignores_excel_lock_files(tmp_path: Path) -> None:
+    (tmp_path / "~$Targets_V10p1.xlsx").write_bytes(b"")
+    real = tmp_path / "Targets_V10p1.xlsx"
+    real.write_bytes(b"")
+
+    found = run_setup._find_excel_file(tmp_path)
+
+    assert found == real
+
+
+def test_merge_gaia_into_star_params_excel_wins_and_fills_blanks(caplog):
+    star_params = {
+        "teff": 5000,          # existing non-empty -> keep
+        "log_g": "",           # empty string -> replace
+        "radius": None,        # None -> replace
+    }
+    gaia_star_params = {
+        "teff": 9999,
+        "log_g": 4.5,
+        "radius": 0.9,
+    }
+
+    out = run_setup.merge_gaia_into_star_params(star_params, gaia_star_params)
+
+    assert out is star_params
+    assert star_params["teff"] == 5000
+    assert star_params["log_g"] == 4.5
+    assert star_params["radius"] == 0.9
+
+
+def test_merge_gaia_into_star_params_none_gaia_returns_original():
+    star_params = {"teff": 5000}
+
+    out = run_setup.merge_gaia_into_star_params(star_params, None)
+
+    assert out is star_params
+    assert star_params == {"teff": 5000}
