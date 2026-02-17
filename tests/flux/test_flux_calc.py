@@ -267,3 +267,54 @@ def test_calculateFluxOnEarth_returns_photons_and_wavelengths_same_length(monkey
     assert len(photons) == len(wavelengths)
     assert np.all(np.isfinite(photons))
     assert np.all(np.isfinite(wavelengths))
+
+
+# Ensures that setting cfg.test_mode=True triggers debug dump instrumentation.
+def test_calculateFluxOnEarth_executes_test_mode_instrumentation(monkeypatch, tmp_path):
+    import numpy as np
+    from types import SimpleNamespace
+    from flux import flux_calc
+
+    called = {"dumped": False}
+
+    # Stub dump function to detect execution
+    def fake_dump_3d_array(*args, **kwargs):
+        called["dumped"] = True
+
+    monkeypatch.setattr(flux_calc, "dump_3d_array", fake_dump_3d_array)
+    monkeypatch.setattr(flux_calc, "dump_1d_array", lambda *a, **k: None)
+
+    # Minimal stubs for heavy dependencies
+    monkeypatch.setattr(flux_calc, "load_model_for_temperature",
+                        lambda _t: np.column_stack((np.array([1000.0, 1100.0]), np.array([1.0, 1.0]))))
+    monkeypatch.setattr(flux_calc, "convertStellarModelToFlux", lambda model, _r: model)
+    monkeypatch.setattr(flux_calc, "compute_ebv_av", lambda *_a: (0.0, 0.0))
+    monkeypatch.setattr(flux_calc, "compute_flux_at_earth", lambda data, _d: data[:, 1])
+    monkeypatch.setattr(flux_calc, "apply_unred", lambda _w, f, _e: f)
+    monkeypatch.setattr(flux_calc, "convert_flux_to_photons", lambda f, _w: f)
+
+    cfg = SimpleNamespace(
+        test_mode=True,
+        line_core_emission=False,
+        interstellar_absorption=False,
+        produce_Plots=False,
+        sigmaMg22=0.0,
+        sigmaMg21=0.0,
+    )
+    monkeypatch.setattr(flux_calc, "get_global_config", lambda: cfg)
+
+    star = SimpleNamespace(
+        name="Star",
+        effective_temperature=5000.0,
+        radius_sun_cm=1.0,
+        distance_pc=10.0,
+        right_ascension=0.0,
+        declination=0.0,
+        log_r=-4.8,
+        spectral_type="G2V",
+        mass=1.0,
+    )
+
+    flux_calc.calculateFluxOnEarth(star, tmp_path)
+
+    assert called["dumped"] is True
