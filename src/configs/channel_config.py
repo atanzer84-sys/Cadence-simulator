@@ -13,9 +13,6 @@ class ChannelConfig:
     effective_area_file: str
 
     bias_offset: float = 0.0
-    bias_pattern_enable: bool = False
-    bias_pattern_type: str = "columns"
-    bias_pattern_sigma: float = 0.0
     channel_name: str = ""
 
     source_file: str = ""
@@ -34,9 +31,6 @@ def load_channel_config(path: Path) -> ChannelConfig:
         read_noise=_as_float(raw["read_noise"], key="read_noise"),
         effective_area_file=raw["effective_area_file"],
         bias_offset=_as_float(raw.get("bias_offset", 0.0), key="bias_offset"),
-        bias_pattern_enable=_as_bool(raw.get("bias_pattern_enable", 0), key="bias_pattern_enable"),
-        bias_pattern_type=str(raw.get("bias_pattern_type", "columns")).strip(),
-        bias_pattern_sigma=_as_float(raw.get("bias_pattern_sigma", 0.0), key="bias_pattern_sigma"),
         channel_name=str(raw["channel_name"]).strip(),
         source_file=str(path),
     )

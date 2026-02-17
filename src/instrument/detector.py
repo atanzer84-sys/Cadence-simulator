@@ -87,11 +87,6 @@ def counts_per_s_px_conv_all_channels_per_channel(photon_flux_at_earth: np.ndarr
 
     if cfg.test_mode:
         dump_1d_array(cal.wavelength, counts_s_pixel_convolved_per_channel, output_dir, star.name, f"counts_per_s_per_pixel_smoothed_{cal.name}", full=True, zoom=False)
-        # np.savetxt(output_dir / f"input_totalgrid_{cal.name}.txt", np.column_stack((wavelengths_total, photon_flux_at_earth)), fmt="%.18e")
-        # np.savetxt(output_dir / f"cal_wavelength_{cal.name}.txt", cal.wavelength, fmt="%.18e")
-        # np.savetxt(output_dir / f"cal_effective_area_{cal.name}.txt", cal.effective_area, fmt="%.18e")
-        # np.savetxt(output_dir / f"cal_pixel_scale_{cal.name}.txt", np.array([cal.pixel_scale], dtype=np.float64), fmt="%.18e")
-        # np.savetxt(output_dir / f"expected_counts_per_s_per_pixel_convolved_{cal.name}.txt", np.column_stack((cal.wavelength, counts_s_pixel_convolved_per_channel)), fmt="%.18e")
 
     if cfg.produce_Plots:
         plot_flux_and_photons_windows(cal.wavelength, counts_s_pixel_convolved_per_channel, output_dir, star, filename_tag=f"counts_per_s_px_{cal.name}", title_text="Convolved Counts", y_label="Counts s⁻¹ pixel⁻¹", cut = False )
@@ -122,7 +117,7 @@ def gaussbroad(w,s,hwhm):
     #Calculate (uniform) dispersion.
     dw = (w[-1] - w[0]) / len(w)		#wavelength change per pixel
     #gauus=make
-    for i in range(0, len(w)):
+    for _ in range(0, len(w)):
         #Make smoothing gaussian# extend to 4 sigma.
         #Note: 4.0 / sqrt(2.0*numpy.log(2.0)) = 3.3972872 & sqrt(numpy.log(2.0))=0.83255461
         #  sqrt(numpy.log(2.0)/pi)=0.46971864 (*1.0000632 to correct for >4 sigma wings)

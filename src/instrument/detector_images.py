@@ -1,12 +1,10 @@
 import numpy as np
 import logging
 from configs.global_config import get_global_config
-from utils.images import write_frames_png
 from astropy.io import fits
 from astropy.coordinates import Angle
 from astropy.time import Time
-import astropy.units as u
-from utils.images import write_frames_png, write_frames_fits
+from utils.images import write_frames_fits
 from domain.star import Star
 import loaders.run_setup
 
@@ -34,20 +32,12 @@ def generate_bias_dark_frames(nuv_cfg, vis_cfg, user_cfg, output_dir, star: Star
     dark_vis_frames, dark_vis_headers = generate_dark_frames(vis_cfg, n_frames, user_cfg.exposure_VIS_s, header)
     
     if global_cfg.write_dark_and_bias_png:
-        write_frames_png(bias_nuv_frames, "bias", nuv_cfg.channel_name, output_dir)
-        write_frames_png(bias_vis_frames, "bias", vis_cfg.channel_name, output_dir)
-        write_frames_png(dark_nuv_frames, "dark", nuv_cfg.channel_name, output_dir)
-        write_frames_png(dark_vis_frames, "dark", vis_cfg.channel_name, output_dir)        
+        write_frames_fits(bias_nuv_frames, bias_nuv_headers, "bias", nuv_cfg.channel_name, output_dir)
+        write_frames_fits(bias_vis_frames, bias_vis_headers, "bias", vis_cfg.channel_name, output_dir)
+        write_frames_fits(dark_nuv_frames, dark_nuv_headers, "dark", nuv_cfg.channel_name, output_dir)
+        write_frames_fits(dark_vis_frames, dark_vis_headers, "dark", vis_cfg.channel_name, output_dir)
 
-
-    # write_frames_fits(bias_nuv_frames, "bias", nuv_cfg.channel_name, output_dir, bias_nuv_headers)
-    # write_frames_fits(bias_vis_frames, "bias", vis_cfg.channel_name, output_dir, bias_vis_headers)
-    # write_frames_fits(dark_nuv_frames, "dark", nuv_cfg.channel_name, output_dir, dark_nuv_headers)
-    # write_frames_fits(dark_vis_frames, "dark", vis_cfg.channel_name, output_dir, dark_vis_headers)
-
-
-    return bias_nuv_frames, bias_vis_frames
-    # , dark_nuv_frames, dark_vis_frames
+    return bias_nuv_frames, bias_vis_frames, dark_nuv_frames, dark_vis_frames
 
 
 def generate_bias_frames(channel_cfg, n_frames, base_header):
@@ -91,8 +81,6 @@ def generate_bias_frame(channel_cfg, header=None):
         header.append(("MIN",       float(bias.min()),      "Minimum value of the frame"))
         header.append(("B_OFFSET",  float(bias_offset),     "Threshold bias value applied"))
         header.append(("RNOISE",    float(read_noise),      "Readout noise"))
-        header.append(("NXPIX",     nx,                     "Number of pixels in X"))
-        header.append(("NYPIX",     ny,                     "Number of pixels in Y"))
         header.append(("EXPTIME",   0.0,                    "Exposure time of observation"))
 
     return bias, header
@@ -140,9 +128,9 @@ def generate_dark_frame(channel_cfg, exptime_s, header=None):
         header.append(("MAX",      float(dark.max()),       "Maximum value of the frame"))
         header.append(("MIN",      float(dark.min()),       "Minimum value of the frame"))
         header.append(("DARKVAL",  float(dark_current),     "Input dark value"))
-        header.append(("NXPIX",    nx,                      "Number of pixels in X"))
-        header.append(("NYPIX",    ny,                      "Number of pixels in Y"))
         header.append(("EXPTIME",  float(exptime_s),        "Exposure time of observation"))
+        header.append(("B_OFFSET", float(channel_cfg.bias_offset), "Bias offset used to generate frame"))
+        header.append(("RNOISE",   float(channel_cfg.read_noise),  "Read noise sigma used to generate frame"))
 
     return dark, header
 
