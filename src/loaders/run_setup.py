@@ -13,11 +13,12 @@ from datetime import datetime
 from configs.user_config import load_user_config, get_user_config
 from configs.channel_config import load_channel_config
 
+GLOBAL_TIMESTAMP = None
 
 def initialize_waltzer_runtime():
     print("Getting started...")
-    output_dir, timestamp = setup_output_directory()
-    setup_logger(output_dir, timestamp)
+    output_dir = setup_output_directory()
+    setup_logger(output_dir, GLOBAL_TIMESTAMP)
     return output_dir
 
 def load_cfg_and_user_config():
@@ -44,23 +45,26 @@ def setup_output_directory():
     Safe for parallel runs: tries to create a directory; if it already exists,
     retries with a different suffix until it succeeds.
     """
+    global GLOBAL_TIMESTAMP
 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+    timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+    base_time = datetime.now() 
+    logging.info("Output timestamp set: %s", timestamp_str)
+    GLOBAL_TIMESTAMP = base_time
 
     output_root = get_repo_root() / "output"
     output_root.mkdir(parents=True, exist_ok=True)
-
-    output_dir = output_root / timestamp
+    output_dir = output_root / timestamp_str
 
     # Try base name first, then add _01, _02, ...
     for i in range(0, 10000):
         suffix = "" if i == 0 else f"_{i:02d}"
-        output_dir = output_root / f"{timestamp}{suffix}"
+        output_dir = output_root / f"{timestamp_str}{suffix}"
 
         try:
             output_dir.mkdir(parents=True, exist_ok=False)
             print(f"Output directory created at: {output_dir.resolve()}")
-            return output_dir, timestamp
+            return output_dir
         except FileExistsError:
             # Another process won this name; try the next one.
             continue

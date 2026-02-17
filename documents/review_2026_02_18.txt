@@ -6,6 +6,7 @@ Questions
 
 Channels:
 - IR Channel? NIR does not have a detector i gather from the proposal. Right now i blindly implemented all three channels as if they were the same. what do we do with IR? i also calculated counts per s per pixel. which s wrong i guess. So from then on, i should handle that differently
+- no gain cfg? in IDL bias * G / dark * G
 
 - FWHM vs resolution scale as pixel_sclae * 2
 -- In the meeting you said the instrumental resolution would be provided as FWHM and that I should pass it to the Gaussian broadening. In the legacy code you actually pass FWHM divided by two into gaussbroad, since that function expects HWHM.

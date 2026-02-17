@@ -1,6 +1,5 @@
 import pytest
 import waltzer_simulator
-import numpy as np
 
 
 def test_excel_file_not_found_exits(monkeypatch, tmp_path, capsys):

@@ -4,6 +4,8 @@ import numpy as np
 import logging
 from configs.global_config import get_global_config
 from utils.debug_dumps import dump_1d_array
+from utils.plot_spectra import plot_flux_and_photons_windows
+from domain.star import Star
 
 
 
@@ -50,19 +52,19 @@ def load_channel_response_from_effective_area(nuv_cfg, vis_cfg, ir_cfg):
     return nuv_cal, vis_cal, ir_cal
 
 
-def counts_per_s_px_conv_all_channels(photon_flux_at_earth: np.ndarray, wavelengths_total: np.ndarray, nuv_cal, vis_cal, ir_cal, output_dir):
+def counts_per_s_px_conv_all_channels(photon_flux_at_earth: np.ndarray, wavelengths_total: np.ndarray, nuv_cal, vis_cal, ir_cal, output_dir, star: Star):
     logging.info("Starting convolution to instrument")
     print("Starting convolution to instrument")
     cfg = get_global_config()
 
-    counts_s_pixel_convolved_nuv = counts_per_s_px_conv_all_channels_per_channel(photon_flux_at_earth, wavelengths_total, nuv_cal, output_dir, cfg)
-    counts_s_pixel_convolved_vis = counts_per_s_px_conv_all_channels_per_channel(photon_flux_at_earth, wavelengths_total, vis_cal, output_dir, cfg)
-    counts_s_pixel_convolved_ir = counts_per_s_px_conv_all_channels_per_channel(photon_flux_at_earth, wavelengths_total, ir_cal, output_dir, cfg)
+    counts_s_pixel_convolved_nuv = counts_per_s_px_conv_all_channels_per_channel(photon_flux_at_earth, wavelengths_total, nuv_cal, output_dir, cfg, star)
+    counts_s_pixel_convolved_vis = counts_per_s_px_conv_all_channels_per_channel(photon_flux_at_earth, wavelengths_total, vis_cal, output_dir, cfg, star)
+    counts_s_pixel_convolved_ir = counts_per_s_px_conv_all_channels_per_channel(photon_flux_at_earth, wavelengths_total, ir_cal, output_dir, cfg, star)
 
     return counts_s_pixel_convolved_nuv, counts_s_pixel_convolved_vis, counts_s_pixel_convolved_ir
 
 
-def counts_per_s_px_conv_all_channels_per_channel(photon_flux_at_earth: np.ndarray, wavelengths_total: np.ndarray, cal, output_dir, cfg):
+def counts_per_s_px_conv_all_channels_per_channel(photon_flux_at_earth: np.ndarray, wavelengths_total: np.ndarray, cal, output_dir, cfg, star: Star):
 
     """
     Convert photon flux at Earth [photons/cm²/s/Å] into counts/s/pixel for a single channel and gauss broaden it.
@@ -84,12 +86,16 @@ def counts_per_s_px_conv_all_channels_per_channel(photon_flux_at_earth: np.ndarr
     
 
     if cfg.test_mode:
-        dump_1d_array(cal.wavelength, counts_s_pixel_convolved_per_channel, output_dir, "", f"counts_per_s_per_pixel_smoothed_{cal.name}", full=True, zoom=False)
-        np.savetxt(output_dir / f"input_totalgrid_{cal.name}.txt", np.column_stack((wavelengths_total, photon_flux_at_earth)), fmt="%.18e")
-        np.savetxt(output_dir / f"cal_wavelength_{cal.name}.txt", cal.wavelength, fmt="%.18e")
-        np.savetxt(output_dir / f"cal_effective_area_{cal.name}.txt", cal.effective_area, fmt="%.18e")
-        np.savetxt(output_dir / f"cal_pixel_scale_{cal.name}.txt", np.array([cal.pixel_scale], dtype=np.float64), fmt="%.18e")
-        np.savetxt(output_dir / f"expected_counts_per_s_per_pixel_convolved_{cal.name}.txt", np.column_stack((cal.wavelength, counts_s_pixel_convolved_per_channel)), fmt="%.18e")
+        dump_1d_array(cal.wavelength, counts_s_pixel_convolved_per_channel, output_dir, star.name, f"counts_per_s_per_pixel_smoothed_{cal.name}", full=True, zoom=False)
+        # np.savetxt(output_dir / f"input_totalgrid_{cal.name}.txt", np.column_stack((wavelengths_total, photon_flux_at_earth)), fmt="%.18e")
+        # np.savetxt(output_dir / f"cal_wavelength_{cal.name}.txt", cal.wavelength, fmt="%.18e")
+        # np.savetxt(output_dir / f"cal_effective_area_{cal.name}.txt", cal.effective_area, fmt="%.18e")
+        # np.savetxt(output_dir / f"cal_pixel_scale_{cal.name}.txt", np.array([cal.pixel_scale], dtype=np.float64), fmt="%.18e")
+        # np.savetxt(output_dir / f"expected_counts_per_s_per_pixel_convolved_{cal.name}.txt", np.column_stack((cal.wavelength, counts_s_pixel_convolved_per_channel)), fmt="%.18e")
+
+    if cfg.produce_Plots:
+        plot_flux_and_photons_windows(cal.wavelength, counts_s_pixel_convolved_per_channel, output_dir, star, filename_tag=f"counts_per_s_px_{cal.name}", title_text="Convolved Counts", y_label="Counts s⁻¹ pixel⁻¹", cut = False )
+
 
     return counts_s_pixel_convolved_per_channel
 

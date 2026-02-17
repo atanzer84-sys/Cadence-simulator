@@ -77,13 +77,13 @@ def calculateFluxOnEarth(star: Star, output_dir):
     if cfg.test_mode:
         dump_1d_array(wavelengths, flux_unred, output_dir, star.name, "after_unred")
     if cfg.produce_Plots:
-        plot_flux_and_photons_windows(wavelengths, flux_unred, output_dir, star, "Flux", "Flux [erg s⁻¹ cm⁻² Å⁻¹]")
+        plot_flux_and_photons_windows(wavelengths, flux_unred, output_dir, star, "Flux", "Flux", "Flux [erg s⁻¹ cm⁻² Å⁻¹]")
 
     # Convert Flux to Photons
     photons_star = convert_flux_to_photons(flux_unred, wavelengths)
 
     if cfg.produce_Plots:
-        plot_flux_and_photons_windows(wavelengths, photons_star, output_dir, star, "photons", "Photon flux [photons s⁻¹ cm⁻² Å⁻¹]")
+        plot_flux_and_photons_windows(wavelengths, photons_star, output_dir, star, "photons",  "Photon Flux", "Photon flux [photons s⁻¹ cm⁻² Å⁻¹]")
     if cfg.test_mode:
         dump_1d_array(wavelengths, photons_star, output_dir, star.name, "photons_star")
 

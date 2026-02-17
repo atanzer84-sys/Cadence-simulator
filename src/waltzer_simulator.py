@@ -20,9 +20,9 @@ def main():
 
         photon_flux_at_earth_A, wavelengths_total = calculateFluxOnEarth(star, output_dir)
 
-        counts_s_pixel_convolved_nuv, counts_s_pixel_convolved_vis, counts_s_pixel_convolved_ir = counts_per_s_px_conv_all_channels(photon_flux_at_earth_A, wavelengths_total, nuv_cal, vis_cal, ir_cal, output_dir)
+        counts_s_pixel_convolved_nuv, counts_s_pixel_convolved_vis, counts_s_pixel_convolved_ir = counts_per_s_px_conv_all_channels(photon_flux_at_earth_A, wavelengths_total, nuv_cal, vis_cal, ir_cal, output_dir, star)
 
-        generate_bias_dark_frames(nuv_cfg, vis_cfg, user_cfg, output_dir)
+        generate_bias_dark_frames(nuv_cfg, vis_cfg, user_cfg, output_dir, star)
 
 
     except Exception as e:
