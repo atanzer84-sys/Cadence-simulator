@@ -4,10 +4,8 @@ import numpy as np
 import logging
 from configs.global_config import get_global_config
 from utils.debug_dumps import dump_1d_array
-from utils.plot_spectra import plot_flux_and_photons_windows
+from utils.images import plot_flux_and_photons_windows
 from domain.star import Star
-
-
 
 @dataclass(frozen=True, slots=True)
 class ChannelCalibration:

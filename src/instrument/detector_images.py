@@ -121,8 +121,6 @@ def generate_dark_frame(channel_cfg, exptime_s, header=None):
     logging.info("DARK STATS %s mean=%g std=%g min=%g max=%g", channel_cfg.channel_name, dark.mean(), dark.std(), dark.min(), dark.max())
 
     if header is not None:
-        nx = channel_cfg.x_pixels
-        ny = channel_cfg.y_pixels
         header.append(("MEAN",     float(dark.mean()),      "Mean value of the frame"))
         header.append(("MEDIAN",   float(np.median(dark)),  "Median value of the frame"))
         header.append(("MAX",      float(dark.max()),       "Maximum value of the frame"))

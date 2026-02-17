@@ -8,7 +8,7 @@ from flux.cute_line_core_emission import apply_line_core_emission
 from flux.cute_extinction import extinction_amores
 from flux.cute_ism_abs_all import cute_ism_abs_all
 from flux.cute_unred import unred
-from utils.plot_spectra import plot_flux_and_photons_windows
+from utils.images import plot_flux_and_photons_windows
 from utils.debug_dumps import dump_3d_array, dump_1d_array
 from astropy.coordinates import SkyCoord
 from astropy import units as u

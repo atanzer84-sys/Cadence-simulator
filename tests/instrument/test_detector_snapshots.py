@@ -1,16 +1,16 @@
 
 import numpy as np
 from pathlib import Path
-
+from types import SimpleNamespace 
 from instrument.detector import ChannelCalibration, counts_per_s_px_conv_all_channels_per_channel
-
 
 class _Cfg:
     test_mode = False
-
+    produce_Plots = False
 
 SNAPSHOT_DIR = Path("tests/instrument/snapshots")
 
+star = SimpleNamespace(name="star_name")
 
 def run_detector_snapshot(star_name, channel):
     inp = np.loadtxt(SNAPSHOT_DIR / f"{star_name}_input_totalgrid_{channel}.txt", dtype=np.float64)
@@ -27,7 +27,7 @@ def run_detector_snapshot(star_name, channel):
 
     cal = ChannelCalibration(channel, cal_wavelength, cal_effective_area, pixel_scale)
 
-    out = counts_per_s_px_conv_all_channels_per_channel(photon_flux_at_earth, wavelengths_total, cal, SNAPSHOT_DIR, _Cfg())
+    out = counts_per_s_px_conv_all_channels_per_channel(photon_flux_at_earth, wavelengths_total, cal, SNAPSHOT_DIR, _Cfg(), star)
 
     assert out.shape == expected_counts.shape
     np.testing.assert_allclose(out, expected_counts, rtol=1e-10, atol=0.0)

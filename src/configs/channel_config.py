@@ -38,19 +38,6 @@ def load_channel_config(path: Path) -> ChannelConfig:
     logging.info("Channel config loaded: %s", cfg)
     return cfg
 
-def _as_bool(v: object, *, key: str) -> bool:
-    s = str(v).strip().casefold()
-    if s in {"1", "true", "yes", "y", "on"}:
-        return True
-    if s in {"0", "false", "no", "n", "off", ""}:
-        return False
-
-    logging.error("Invalid boolean value for config key '%s': %r", key, v)
-    raise ValueError(
-        f"Invalid boolean value for config key '{key}': {v!r}. "
-        "Expected one of: 0, 1, true, false, yes, no."
-    )
-
 def _as_int(value, *, key: str) -> int:
     try:
         return int(value)

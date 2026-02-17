@@ -15,7 +15,8 @@ def test_setup_output_directory_creates_dir(monkeypatch, tmp_path):
     # Redirect "output" to a temp directory
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(run_setup, "get_repo_root", lambda base_dir=None: tmp_path)
-    output_dir, timestamp = run_setup.setup_output_directory()
+    output_dir = run_setup.setup_output_directory()
+    timestamp = output_dir.name
 
     # Directory exists
     assert output_dir.exists()
@@ -42,20 +43,16 @@ def test_setup_output_directory_handles_collision(monkeypatch, tmp_path):
     monkeypatch.setattr(run_setup, "get_repo_root", lambda base_dir=None: tmp_path)
 
     # First call creates output/<timestamp>
-    first_dir, ts = run_setup.setup_output_directory()
-    assert first_dir.name == ts
+    first_dir = run_setup.setup_output_directory()
+    ts = first_dir.name
 
-    # Manually create the base directory again to force a collision
-    base_dir = tmp_path / "output" / ts
-    base_dir.mkdir(parents=True, exist_ok=True)
+    assert first_dir.exists()
 
-
-    # Second call should now create <timestamp>_01
-    second_dir, ts2 = run_setup.setup_output_directory()
-
-    assert ts == ts2
+    # Second call should detect collision and create <timestamp>_01
+    second_dir = run_setup.setup_output_directory()
     assert second_dir.name == f"{ts}_01"
     assert second_dir.exists()
+
 
 def test_setup_output_directory_prints(monkeypatch, tmp_path, capsys):
     monkeypatch.chdir(tmp_path)
