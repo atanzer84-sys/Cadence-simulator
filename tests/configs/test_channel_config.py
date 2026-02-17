@@ -25,6 +25,8 @@ def test_load_channel_config_ok(tmp_path):
         read_noise = 3.2
         effective_area_file = ir_effective_area.txt
         channel_name = A
+        bias_offset = 0.0
+        channel_name=""
         """,
     )
 
@@ -37,7 +39,8 @@ def test_load_channel_config_ok(tmp_path):
     assert cfg.dark_noise == pytest.approx(0.01)
     assert cfg.read_noise == pytest.approx(3.2)
     assert cfg.effective_area_file == "ir_effective_area.txt"
-
+    assert cfg.bias_offset == 0.0
+    assert cfg.channel_name == '""'
 
 def test_missing_config_file_raises(tmp_path):
     # Verifies that loading a non-existent config file raises FileNotFoundError.
@@ -151,3 +154,25 @@ def test_channel_config_is_frozen(tmp_path):
 
     with pytest.raises(Exception):
         cfg.x_pixels = 200
+
+
+def test_duplicate_keys_last_value_wins(tmp_path):
+    # Verifies that when a key appears multiple times, the last occurrence overwrites earlier ones.
+    cfg_file = tmp_path / "channel.cfg"
+    cfg_file.write_text(
+        """
+        effective_area_file = ea.txt
+        x_pixels = 1024
+        y_pixels = 512
+        resolution_factor = 1.0
+        dark_noise = 0.0
+        read_noise = 3.5
+        channel_name = NUV
+        x_pixels = 2048
+        """
+    )
+
+    cfg = load_channel_config(cfg_file)
+
+    assert cfg.x_pixels == 2048
+

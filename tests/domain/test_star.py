@@ -11,7 +11,7 @@ def test_star_from_params_ok_and_unit_conversion():
         "mass": 3.0,
     }
 
-    star = Star.from_params(params, required_keys=["name", "radius"])
+    star = Star.from_params(params, required_keys=["name", "radius", "mass"])
 
     assert star.radius == 2.0
     assert star.mass == 3.0
@@ -26,7 +26,7 @@ def test_star_missing_required_key_raises():
     }
 
     with pytest.raises(ValueError):
-        Star.from_params(params, required_keys=["name", "radius"])
+        Star.from_params(params, required_keys=["name", "radius", "mass"])
 
 
 def test_star_empty_required_key_raises():
@@ -37,7 +37,7 @@ def test_star_empty_required_key_raises():
     }
 
     with pytest.raises(ValueError):
-        Star.from_params(params, required_keys=["name", "radius"])
+        Star.from_params(params, required_keys=["name", "radius", "mass"])
 
 
 def test_star_is_frozen():
@@ -48,7 +48,19 @@ def test_star_is_frozen():
         "mass": 1.0,
     }
 
-    star = Star.from_params(params, required_keys=["name", "radius"])
+    star = Star.from_params(params, required_keys=["name", "radius", "mass"])
 
     with pytest.raises(Exception):
         star.radius = 5.0
+
+
+
+def test_star_missing_mass_raises():
+    # Verifies that Star.from_params raises ValueError when mass is missing.
+    params = {
+        "name": "HD 1234",
+        "radius": 2.0,
+    }
+
+    with pytest.raises(ValueError):
+        Star.from_params(params, required_keys=["name", "radius", "mass"])

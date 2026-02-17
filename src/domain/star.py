@@ -3,7 +3,6 @@ from utils.constants import R_SUN, M_SUN
 from typing import Any, Dict
 import logging
 
-
 @dataclass(frozen=True)
 class Star:
     name: str
@@ -38,8 +37,14 @@ class Star:
         print("==== STAR Created ====")
         print(f"Star created: {star_params['name']}")
 
-        radius = star_params["radius"]
+        radius = star_params.get("radius")
         mass = star_params.get("mass")
+
+        if radius is None:
+            raise ValueError("Star missing required key at construction: ['radius']")
+
+        if mass is None:
+            raise ValueError("Star missing required key at construction: ['mass']")
 
         radius_sun_cm = radius * R_SUN
         mass_sun_kg = mass * M_SUN

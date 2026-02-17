@@ -11,6 +11,7 @@ from types import SimpleNamespace
 import numpy as np
 
 def test_load_model_exact_match():
+# Verifies load_model_for_temperature loads the exact rounded-temperature model when it exists.
     fake_data = np.array([[1.0, 2.0]])
 
     with patch("flux.flux_calc.get_repo_root") as mock_root, \
@@ -28,6 +29,7 @@ def test_load_model_exact_match():
         mock_load.assert_called_once()
 
 def test_load_model_fallback_used():
+    # Verifies load_model_for_temperature falls back to the +100 K directory when the exact model is missing.
     fake_data = np.array([[3.0, 4.0]])
 
     with patch("flux.flux_calc.get_repo_root") as mock_root, \
@@ -45,6 +47,7 @@ def test_load_model_fallback_used():
         mock_load.assert_called_once()
 
 def test_load_model_not_found():
+    # Verifies load_model_for_temperature raises FileNotFoundError when neither exact nor fallback model exists.
     with patch("flux.flux_calc.get_repo_root") as mock_root, \
          patch("pathlib.Path.is_file") as mock_is_file:
 
@@ -57,6 +60,7 @@ def test_load_model_not_found():
             load_model_for_temperature(5756.0)
 
 def test_convertIntensityToLuminosity_shape_and_wavelength():
+    # Verifies convertStellarModelToFlux preserves input shape and keeps wavelength column unchanged.
     model_data = np.array([
         [1000.0, 1.0, 2.0],
         [2000.0, 3.0, 4.0],
@@ -69,6 +73,7 @@ def test_convertIntensityToLuminosity_shape_and_wavelength():
     np.testing.assert_allclose(out[:,0], model_data[:,0])
 
 def test_frequency_to_wavelength_conversion():
+    # Verifies convertStellarModelToFlux applies the c/lambda^2 conversion and geometric scaling consistently.
     model_data = np.array([[1000.0, 1.0, 0.0]])
     r_star = 1.0
 
@@ -82,18 +87,21 @@ def test_frequency_to_wavelength_conversion():
 
 
 def test_compute_flux_at_earth_simple():
+    # Verifies compute_flux_at_earth divides by 4*pi*(d*pc)^2 for a simple input.
     data = np.array([[100.0, 2.0], [200.0, 4.0]])
     out = compute_flux_at_earth(data, distance_pc=10.0)
     expected = np.array([2.0, 4.0]) / (4.0 * np.pi * (10.0 * PARSEC_CM) ** 2)
     assert np.allclose(out, expected)
 
 def test_convert_flux_to_photons():
+    # Verifies convert_flux_to_photons applies the fixed conversion factor 5.03e7*wavelengths.
     flux = np.array([1.0, 2.0])
     wavelengths = np.array([100.0, 200.0])
     out = convert_flux_to_photons(flux, wavelengths)
     assert np.allclose(out, flux * 5.03e7 * wavelengths)
 
 def test_apply_unred_flips_ebv(monkeypatch):
+    # Verifies apply_unred flips the sign of EBV before calling unred.
     called = {}
 
     def fake_unred(w, f, ebv, R_V):
@@ -112,6 +120,7 @@ def test_apply_unred_flips_ebv(monkeypatch):
     assert np.allclose(out, flux)
 
 def test_calculateFluxOnEarth_no_optional_steps_called(monkeypatch, tmp_path):
+    # Verifies calculateFluxOnEarth does not call line core emission or ISM absorption when flags are False.
     called = {"lce": False, "ism": False}
 
     def fake_lce(data, *args, **kwargs):
@@ -164,6 +173,7 @@ def test_calculateFluxOnEarth_no_optional_steps_called(monkeypatch, tmp_path):
 
 
 def test_calculateFluxOnEarth_optional_steps_called(monkeypatch, tmp_path):
+    # Verifies calculateFluxOnEarth calls line core emission and ISM absorption when flags are True.
     called = {"lce": False, "ism": False}
 
     def fake_lce(data, *args, **kwargs):
@@ -218,3 +228,42 @@ def test_calculateFluxOnEarth_optional_steps_called(monkeypatch, tmp_path):
 
     assert called["lce"] is True
     assert called["ism"] is True
+
+
+def test_calculateFluxOnEarth_returns_photons_and_wavelengths_same_length(monkeypatch, tmp_path):
+    # Verifies calculateFluxOnEarth returns photons and wavelength arrays of identical length.
+    from types import SimpleNamespace
+    import numpy as np
+    from flux.flux_calc import calculateFluxOnEarth
+
+    cfg = SimpleNamespace(
+        line_core_emission=False,
+        interstellar_absorption=False,
+        test_mode=False,
+        produce_Plots=False,
+    )
+
+    monkeypatch.setattr("flux.flux_calc.get_global_config", lambda: cfg)
+    monkeypatch.setattr("flux.flux_calc.load_model_for_temperature", lambda _: np.array([[100.0, 1.0, 1.0]]))
+    monkeypatch.setattr("flux.flux_calc.convertStellarModelToFlux", lambda d, _: d)
+    monkeypatch.setattr("flux.flux_calc.compute_ebv_av", lambda *a: (0.0, 0.0))
+    monkeypatch.setattr("flux.flux_calc.compute_flux_at_earth", lambda d, _: d[:, 1])
+    monkeypatch.setattr("flux.flux_calc.apply_unred", lambda w, f, e: f)
+    monkeypatch.setattr("flux.flux_calc.convert_flux_to_photons", lambda f, w: f)
+
+    star = SimpleNamespace(
+        effective_temperature=5000,
+        radius_sun_cm=1.0,
+        distance_pc=10.0,
+        right_ascension=0.0,
+        declination=0.0,
+        log_r=0.0,
+        spectral_type="G",
+        name="TEST",
+    )
+
+    photons, wavelengths = calculateFluxOnEarth(star, tmp_path)
+
+    assert len(photons) == len(wavelengths)
+    assert np.all(np.isfinite(photons))
+    assert np.all(np.isfinite(wavelengths))
