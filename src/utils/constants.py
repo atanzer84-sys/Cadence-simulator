@@ -52,8 +52,8 @@ M_SUN = 1.98847e30               # kg
 # Complete Wavelength ranges for plots or datadumps in A
 # should be the complete WL range we actually want to see with Waltzer. 
 # However, this is also just for data dumps, plots and checks
-debug_wavelength_range_nuv = [2300, 3300]
-debug_wavelength_range_vis = [4200, 8300]
+debug_wavelength_range_nuv = [2290, 3360]
+debug_wavelength_range_vis = [4200, 8310]
 debug_wavelength_range_ir = [8200, 18000]
 # wavelengths for test_dumps and comparisons in A
 DEBUG_WL_A_NUV = (2790.0, 2850.0)
