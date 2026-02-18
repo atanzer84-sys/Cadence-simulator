@@ -121,6 +121,7 @@ def generate_bias_frame(channel_cfg, header=None):
     if header is not None:
         header.append(("MEAN",      float(bias.mean()),     "Mean value of the frame"))
         header.append(("MEDIAN",    float(np.median(bias)), "Median value of the frame"))
+        header.append(("STDDEV",    float(bias.std()),      "Standard deviation of the frame"))
         header.append(("MAX",       float(bias.max()),      "Maximum value of the frame"))
         header.append(("MIN",       float(bias.min()),      "Minimum value of the frame"))
         header.append(("B_OFFSET",  float(bias_offset),     "Threshold bias value applied"))
@@ -172,13 +173,14 @@ def generate_dark_frame(channel_cfg, exptime_s, header=None):
     if header is not None:
         header.append(("MEAN",     float(dark.mean()),      "Mean value of the frame"))
         header.append(("MEDIAN",   float(np.median(dark)),  "Median value of the frame"))
+        header.append(("STDDEV",   float(dark.std()),      "Standard deviation of the frame"))
         header.append(("MAX",      float(dark.max()),       "Maximum value of the frame"))
         header.append(("MIN",      float(dark.min()),       "Minimum value of the frame"))
         header.append(("DARKVAL",  float(dark_noise),     "Input dark value"))
+        header.append(("DARKSIG",  float(dark_current_sigma), "Dark noise sigma (e-/s/pixel)"))
         header.append(("EXPTIME",  float(exptime_s),        "Exposure time of observation"))
         header.append(("B_OFFSET", float(channel_cfg.bias_offset), "Bias offset used to generate frame"))
         header.append(("RNOISE",   float(channel_cfg.read_noise),  "Read noise sigma used to generate frame"))
-
     return dark, header
 
 def build_science_frames(counts_s_pixel_convolved, channel_cfg, n_frames, exposure_time_s, base_header):

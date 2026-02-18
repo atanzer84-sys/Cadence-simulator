@@ -65,6 +65,9 @@ Channels:
 
 - DONE: put stddev in bias + dark # TODO: use cfg param for that and generate dark like that
 
+
+- REDO headers
+
 TODO: SPREADING:
 - centroid param for each channel
 - two values: slit position and centroid param
