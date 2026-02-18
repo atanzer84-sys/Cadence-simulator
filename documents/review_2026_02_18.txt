@@ -92,3 +92,8 @@ create empty class for exdendedObjects, empty class
 
 
 TODO: Rework cfg tests to write a file with minimum params, optional and error params. no monkeypatch anymore
+
+
+
+QUESTIONS: 
+Cut Wavelength before Gaussian? 

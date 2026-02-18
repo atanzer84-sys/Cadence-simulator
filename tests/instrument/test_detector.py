@@ -203,7 +203,7 @@ def test_single_channel_counts_identity_gaussbroad():
         pixel_scale=0.01,
     )
 
-    counts = detector.counts_per_s_px_conv_all_channels_per_channel(
+    counts = detector.counts_per_s_px_conv_per_channel(
         photon_flux, wavelengths_total, cal, output_dir="OUTDIR", cfg=_DummyGlobalCfg(), star=_dummy_star()
     )
 
@@ -355,7 +355,7 @@ def test_counts_per_channel_uses_cal_wavelength_grid_and_returns_same_length():
         pixel_scale=0.01,   # small so gaussbroad is identity (nhalf=0)
     )
 
-    out = detector.counts_per_s_px_conv_all_channels_per_channel(
+    out = detector.counts_per_s_px_conv_per_channel(
         photon_flux, wavelengths_total, cal, output_dir="OUTDIR", cfg=_DummyGlobalCfg(), star=_dummy_star())
 
 
@@ -379,7 +379,7 @@ def test_counts_per_channel_interpolates_scales_and_applies_effective_area(monke
         pixel_scale=0.5,
     )
 
-    out = detector.counts_per_s_px_conv_all_channels_per_channel(photon_flux_at_earth, wavelengths_total, cal, output_dir=None, cfg=_DummyGlobalCfg(), star=_dummy_star())
+    out = detector.counts_per_s_px_conv_per_channel(photon_flux_at_earth, wavelengths_total, cal, output_dir=None, cfg=_DummyGlobalCfg(), star=_dummy_star())
 
     flux_on_pixel = np.interp(cal.wavelength, wavelengths_total, photon_flux_at_earth)
     expected = flux_on_pixel * cal.pixel_scale * cal.effective_area
@@ -387,7 +387,9 @@ def test_counts_per_channel_interpolates_scales_and_applies_effective_area(monke
     assert out.shape == expected.shape
     np.testing.assert_allclose(out, expected, rtol=0.0, atol=0.0)
 
-def test_counts_per_channel_calls_gaussbroad_with_pixel_grid_and_pixel_scale(monkeypatch):
+def test_counts_per_channel_calls_gaussbroad_with_cut_window_and_pixel_scale(monkeypatch):
+    # Ensures gaussbroad is called once with the cut wavelength grid and original flux using the channel pixel_scale.
+
     import numpy as np
     from types import SimpleNamespace
     from instrument import detector
@@ -403,24 +405,13 @@ def test_counts_per_channel_calls_gaussbroad_with_pixel_grid_and_pixel_scale(mon
     wavelengths_total = np.array([1.0, 2.0], dtype=float)
     photon_flux_at_earth = np.array([10.0, 20.0], dtype=float)
 
-    cal = SimpleNamespace(
-        name="VIS",
-        wavelength=np.array([1.5], dtype=float),
-        effective_area=np.array([3.0], dtype=float),
-        pixel_scale=0.2,
-    )
+    cal = SimpleNamespace(name="VIS", wavelength=np.array([1.5], dtype=float), effective_area=np.array([3.0], dtype=float), pixel_scale=0.2)
 
-    _ = detector.counts_per_s_px_conv_all_channels_per_channel(
-        photon_flux_at_earth, wavelengths_total, cal, output_dir=None, cfg=_DummyGlobalCfg(), star=_dummy_star()
-    )
+    _ = detector.counts_per_s_px_conv_per_channel(photon_flux_at_earth, wavelengths_total, cal, output_dir=None, cfg=_DummyGlobalCfg(), star=_dummy_star())
 
     assert len(calls) == 1
     wl_arg, y_arg, ps_arg = calls[0]
 
-    assert np.allclose(wl_arg, cal.wavelength)
+    assert np.allclose(wl_arg, wavelengths_total)
+    assert np.allclose(y_arg, photon_flux_at_earth)
     assert ps_arg == cal.pixel_scale
-
-    # expected y passed to gaussbroad: interp onto cal.wavelength, then *pixel_scale, then *effective_area
-    expected_flux_on_pixel = np.interp(cal.wavelength, wavelengths_total, photon_flux_at_earth)
-    expected_y = expected_flux_on_pixel * cal.pixel_scale * cal.effective_area
-    assert np.allclose(y_arg, expected_y)
