@@ -15,6 +15,7 @@ class ChannelConfig:
 
     bias_offset: float = 0.0
     channel_name: str = ""
+    ccd_gain: float = 1.0   # electrons per ADU
 
     source_file: str = ""
 
@@ -34,6 +35,7 @@ def load_channel_config(path: Path) -> ChannelConfig:
         effective_area_file=raw["effective_area_file"],
         bias_offset=_as_float(raw.get("bias_offset", 0.0), key="bias_offset"),
         channel_name=str(raw["channel_name"]).strip(),
+        ccd_gain=_as_float(raw.get("ccd_gain", 1.0), key="ccd_gain"),
         source_file=str(path),
     )
 

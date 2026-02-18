@@ -113,8 +113,9 @@ def generate_bias_frame(channel_cfg, header=None):
     ny = channel_cfg.y_pixels
     bias_offset = channel_cfg.bias_offset
     read_noise = channel_cfg.read_noise
+    ccd_gain = channel_cfg.ccd_gain
 
-    bias = bias_offset + np.random.normal(0.0, read_noise, size=(ny, nx))
+    bias = (bias_offset + np.random.normal(0.0, read_noise, size=(ny, nx))) * ccd_gain
 
     logging.info("BIAS STATS %s mean=%g std=%g min=%g max=%g", channel_cfg.channel_name, bias.mean(), bias.std(), bias.min(), bias.max())
 
@@ -127,6 +128,7 @@ def generate_bias_frame(channel_cfg, header=None):
         header.append(("B_OFFSET",  float(bias_offset),     "Threshold bias value applied"))
         header.append(("RNOISE",    float(read_noise),      "Readout noise"))
         header.append(("EXPTIME",   0.0,                    "Exposure time of observation"))
+        header.append(("CCDGAIN",   ccd_gain,                    "CCD gain"))
 
     return bias, header
 
@@ -161,40 +163,46 @@ def generate_dark_frame(channel_cfg, exptime_s, header=None):
     dark_current_sigma = channel_cfg.dark_current_sigma
     nx = channel_cfg.x_pixels
     ny = channel_cfg.y_pixels
+    ccd_gain = channel_cfg.ccd_gain
 
     bias, _ = generate_bias_frame(channel_cfg, header=None)
     
     dark_base = np.random.normal(dark_noise, dark_current_sigma, size=(ny, nx))
 
-    dark = bias + dark_base + (dark_noise * exptime_s)
+    dark = (bias + dark_base + (dark_noise * exptime_s)) * ccd_gain
 
     logging.info("DARK STATS %s mean=%g std=%g min=%g max=%g", channel_cfg.channel_name, dark.mean(), dark.std(), dark.min(), dark.max())
 
     if header is not None:
-        header.append(("MEAN",     float(dark.mean()),      "Mean value of the frame"))
-        header.append(("MEDIAN",   float(np.median(dark)),  "Median value of the frame"))
-        header.append(("STDDEV",   float(dark.std()),      "Standard deviation of the frame"))
-        header.append(("MAX",      float(dark.max()),       "Maximum value of the frame"))
-        header.append(("MIN",      float(dark.min()),       "Minimum value of the frame"))
-        header.append(("DARKVAL",  float(dark_noise),     "Input dark value"))
-        header.append(("DARKSIG",  float(dark_current_sigma), "Dark noise sigma (e-/s/pixel)"))
-        header.append(("EXPTIME",  float(exptime_s),        "Exposure time of observation"))
-        header.append(("B_OFFSET", float(channel_cfg.bias_offset), "Bias offset used to generate frame"))
-        header.append(("RNOISE",   float(channel_cfg.read_noise),  "Read noise sigma used to generate frame"))
+        header.append(("MEAN",     float(dark.mean()),              "Mean value of the frame"))
+        header.append(("MEDIAN",   float(np.median(dark)),          "Median value of the frame"))
+        header.append(("STDDEV",   float(dark.std()),               "Standard deviation of the frame"))
+        header.append(("MAX",      float(dark.max()),               "Maximum value of the frame"))
+        header.append(("MIN",      float(dark.min()),               "Minimum value of the frame"))
+        header.append(("DARKVAL",  float(dark_noise),               "Input dark value"))
+        header.append(("DARKSIG",  float(dark_current_sigma),       "Dark noise sigma (e-/s/pixel)"))
+        header.append(("EXPTIME",  float(exptime_s),                "Exposure time of observation"))
+        header.append(("B_OFFSET", float(channel_cfg.bias_offset),  "Bias offset used to generate frame"))
+        header.append(("RNOISE",   float(channel_cfg.read_noise),   "Read noise sigma used to generate frame"))
+        header.append(("CCDGAIN",  ccd_gain,                        "CCD gain"))
+
     return dark, header
 
 def build_science_frames(counts_s_pixel_convolved, channel_cfg, n_frames, exposure_time_s, base_header):
+
+    ccd_gain = channel_cfg.ccd_gain
 
     science_frames = []
     science_headers = []
 
     for i in range(n_frames):
         header = base_header.copy()
-        header.append(("FILETYPE", "SCIENCE", "Type of observation"))
-        header.append(("CHANNEL", channel_cfg.channel_name, "Detector channel"))
-        header.append(("EXP_ID", f"Science {i+1}", "Exposure ID"))
-        header.append(("OBS_ID", f"Obs Science {i+1}", "Observation ID"))
-        header.append(("EXPTIME",  float(exposure_time_s),        "Exposure time of observation"))
+        header.append(("FILETYPE", "SCIENCE",                   "Type of observation"))
+        header.append(("CHANNEL", channel_cfg.channel_name,     "Detector channel"))
+        header.append(("EXP_ID", f"Science {i+1}",              "Exposure ID"))
+        header.append(("OBS_ID", f"Obs Science {i+1}",          "Observation ID"))
+        header.append(("EXPTIME",  float(exposure_time_s),      "Exposure time of observation"))
+        header.append(("CCDGAIN",  ccd_gain,                    "CCD gain"))
 
         # generate new detector image
         detector_image, header = spread_1d_spectrum_to_2d(counts_s_pixel_convolved, channel_cfg, header)
@@ -204,7 +212,7 @@ def build_science_frames(counts_s_pixel_convolved, channel_cfg, n_frames, exposu
         dark_frame, _ = generate_dark_frame(channel_cfg, exposure_time_s, header = None)
 
         # combine into science
-        science = detector_image * exposure_time_s + dark_frame + bias_frame
+        science = (detector_image * exposure_time_s + dark_frame + bias_frame) * ccd_gain
         science_frames.append(science)
         science_headers.append(header)
 
