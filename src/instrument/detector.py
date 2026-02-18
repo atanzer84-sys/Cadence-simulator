@@ -55,31 +55,40 @@ def counts_per_s_px_conv_all_channels(photon_flux_at_earth: np.ndarray, waveleng
     print("Starting convolution to instrument")
     cfg = get_global_config()
 
-    counts_s_px_convolved_nuv = counts_per_s_px_conv_per_channel(photon_flux_at_earth, wavelengths_total, nuv_cal, output_dir, cfg, star)
-    counts_s_px_convolved_vis = counts_per_s_px_conv_per_channel(photon_flux_at_earth, wavelengths_total, vis_cal, output_dir, cfg, star)
-    counts_s_px_convolved_ir = counts_per_s_px_conv_per_channel(photon_flux_at_earth, wavelengths_total, ir_cal, output_dir, cfg, star)
+    broadened_flux_nuv, wavelength_nuv = compute_broadened_channel_flux(photon_flux_at_earth, wavelengths_total, nuv_cal, output_dir, cfg, star)
+    broadened_flux_vis, wavelength_vis = compute_broadened_channel_flux(photon_flux_at_earth, wavelengths_total, vis_cal, output_dir, cfg, star)
+    broadened_flux_ir, wavelength_ir = compute_broadened_channel_flux(photon_flux_at_earth, wavelengths_total, ir_cal, output_dir, cfg, star)
+
+    counts_s_px_convolved_nuv = counts_per_s_px_conv_per_channel(broadened_flux_nuv, wavelength_nuv, nuv_cal, output_dir, cfg, star)
+    counts_s_px_convolved_vis = counts_per_s_px_conv_per_channel(broadened_flux_vis, wavelength_vis, vis_cal, output_dir, cfg, star)
+    counts_s_px_convolved_ir = counts_per_s_px_conv_per_channel(broadened_flux_ir, wavelength_ir, ir_cal, output_dir, cfg, star)
 
     return counts_s_px_convolved_nuv, counts_s_px_convolved_vis, counts_s_px_convolved_ir
 
 
-def counts_per_s_px_conv_per_channel(photon_flux_at_earth: np.ndarray, wavelengths_total: np.ndarray, cal, output_dir, cfg, star: Star):
+def compute_broadened_channel_flux(photon_flux_at_earth: np.ndarray, wavelengths_total: np.ndarray, cal, output_dir, cfg, star: Star):
+
+    # Cut up array to broaden with gauss later
+    cut_photon_flux, wavelength = cut_wavelength_window_with_margin(photon_flux_at_earth, wavelengths_total, cal, output_dir, cfg, star)
+
+    # Gaussian Broadening of flux over wavelengths
+    photon_flux_smoothed =  gaussbroad(wavelength, cut_photon_flux, cal.pixel_scale)
+
+    logging.info("Channel %s photon_flux_smoothed sum=%g mean=%g min=%g max=%g", cal.name, photon_flux_smoothed.sum(), photon_flux_smoothed.mean(), photon_flux_smoothed.min(), photon_flux_smoothed.max())
+
+    if cfg.test_mode:
+        print(f"Channel {cal.name} wavelength range: min={wavelength.min()} max={wavelength.max()} n={len(wavelength)}")
+        dump_1d_array(wavelength, photon_flux_smoothed, output_dir, star.name, f"photon_flux_smoothed_{cal.name}", full=False, zoom=True)
+
+    return photon_flux_smoothed, wavelength
+
+
+def counts_per_s_px_conv_per_channel(broadened_photon_flux: np.ndarray, wavelength: np.ndarray, cal, output_dir, cfg, star: Star):
     """
     Convert photon flux at Earth [photons/cm²/s/Å] into counts/s/pixel for a single channel and gauss broaden it.
     """
-    # Step 0: Cut up array to broaden with gauss later
-    wavelength, flux = cut_wavelength_window_with_margin(photon_flux_at_earth, wavelengths_total, cal, output_dir, cfg, star)
-
-    # Step 1: Gaussian Broadening of flux over wavelengths
-    counts_per_s_per_pixel_smoothed =  gaussbroad(wavelength, flux, cal.pixel_scale)
-
-    logging.info("Channel %s counts_per_s_per_pixel_smoothed sum=%g mean=%g min=%g max=%g", cal.name, counts_per_s_per_pixel_smoothed.sum(), counts_per_s_per_pixel_smoothed.mean(), counts_per_s_per_pixel_smoothed.min(), counts_per_s_per_pixel_smoothed.max())
-
-    if cfg.test_mode:
-        dump_1d_array(wavelength, counts_per_s_per_pixel_smoothed, output_dir, star.name, f"counts_per_s_per_pixel_smoothed_{cal.name}", full=True, zoom=False)
-
-    
-    # Step 2: get the pixel wavelength grid from the channel and interpolate smoothed Earth flux onto the pixel wavelength grid
-    flux_on_pixel = np.interp(cal.wavelength, wavelength, counts_per_s_per_pixel_smoothed)
+    # Get the pixel wavelength grid from the channel and interpolate smoothed Earth flux onto the pixel wavelength grid
+    flux_on_pixel = np.interp(cal.wavelength, wavelength, broadened_photon_flux)
     
     logging.info("Channel %s flux_on_pixel sum=%g mean=%g min=%g max=%g", cal.name, flux_on_pixel.sum(), flux_on_pixel.mean(), flux_on_pixel.min(), flux_on_pixel.max())
 
@@ -87,17 +96,17 @@ def counts_per_s_px_conv_per_channel(photon_flux_at_earth: np.ndarray, wavelengt
     photons_per_pixel_cm2_s = flux_on_pixel * cal.pixel_scale
 
     # Step 4: apply effective area to get detector counts per second per pixel
-    counts_s_pixel_convolved = photons_per_pixel_cm2_s * cal.effective_area
-    logging.info("Channel %s counts_per_s_per_pixel sum=%g mean=%g min=%g max=%g", cal.name, counts_s_pixel_convolved.sum(), counts_s_pixel_convolved.mean(), counts_s_pixel_convolved.min(), counts_s_pixel_convolved.max())
+    counts_s_px_convolved = photons_per_pixel_cm2_s * cal.effective_area
+    logging.info("Channel %s counts_per_s_per_pixel sum=%g mean=%g min=%g max=%g", cal.name, counts_s_px_convolved.sum(), counts_s_px_convolved.mean(), counts_s_px_convolved.min(), counts_s_px_convolved.max())
 
     if cfg.test_mode:
-        dump_1d_array(cal.wavelength, counts_s_pixel_convolved, output_dir, star.name, f"counts_s_pixel_convolved_{cal.name}", full=True, zoom=False)
+        dump_1d_array(cal.wavelength, counts_s_px_convolved, output_dir, star.name, f"counts_s_px_convolved_{cal.name}", full=True, zoom=True)
     if cfg.produce_Plots:
-        plot_flux_and_photons_windows(cal.wavelength, counts_s_pixel_convolved, output_dir, star, filename_tag=f"counts_per_s_px_{cal.name}", title_text="Convolved Counts", y_label="Counts s⁻¹ pixel⁻¹", cut = False )
+        plot_flux_and_photons_windows(cal.wavelength, counts_s_px_convolved, output_dir, star, filename_tag=f"counts_s_px_convolved_{cal.name}", title_text="Convolved Counts", y_label="Counts s⁻¹ pixel⁻¹", cut = False )
 
-    return counts_s_pixel_convolved
+    return counts_s_px_convolved
 
-def cut_wavelength_window_with_margin(photon_flux_at_earth: np.ndarray, wavelengths_total: np.ndarray, cal, output_dir, cfg, star: Star, margin_A: float = 500.0):
+def cut_wavelength_window_with_margin(photon_flux_at_earth: np.ndarray, wavelengths_total: np.ndarray, cal, output_dir, cfg, star: Star, margin_A: float = 100.0):
     wl_min = cal.wavelength[0]
     wl_max = cal.wavelength[-1]
 
@@ -118,14 +127,14 @@ def cut_wavelength_window_with_margin(photon_flux_at_earth: np.ndarray, waveleng
     logging.info("indices after clamping: i0=%d i1=%d", i0, i1)
     logging.info("wavelengths_total[i0]=%g wavelengths_total[i1-1]=%g", wavelengths_total[i0], wavelengths_total[i1 - 1])
 
-    w_cut = wavelengths_total[i0:i1]
-    f_cut = photon_flux_at_earth[i0:i1]
+    wavelength_cut = wavelengths_total[i0:i1]
+    flux_cut = photon_flux_at_earth[i0:i1]
 
-    logging.info("cut size=%d first=%g last=%g", len(w_cut), w_cut[0], w_cut[-1])
+    logging.info("cut size=%d first=%g last=%g", len(wavelength_cut), wavelength_cut[0], wavelength_cut[-1])
     if cfg.test_mode:
-        dump_1d_array(w_cut, f_cut, output_dir, star.name, f"cutUpArray_{cal.name}", full=True, zoom=False)
+        dump_1d_array(wavelength_cut, flux_cut, output_dir, star.name, f"cutUpArray_{cal.name}", full=True, zoom=True)
 
-    return w_cut, f_cut
+    return flux_cut, wavelength_cut
 
 def gaussbroad(w,s,hwhm):
     #Smooths a spectrum by convolution with a gaussian of specified hwhm.
@@ -169,3 +178,5 @@ def gaussbroad(w,s,hwhm):
     sout = np.convolve(spad,gpro,mode='full')			#convolve with gaussian
     sout = sout[npad:npad+len(w)]			#trim to original data/length
     return sout					#return broadened spectrum.
+
+

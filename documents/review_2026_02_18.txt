@@ -90,12 +90,4 @@ introduce mode in channel cfgs, standard mode = 1, add if for doing spread of sp
 
 create empty class for exdendedObjects, empty class
 
-
-TODO: Rework cfg tests to write a file with minimum params, optional and error params. no monkeypatch anymore
-
-
-
-QUESTIONS: 
-Cut Wavelength before Gaussian?  DID That
-do tests again for snapshots
-
+TODO: Photon Noise
