@@ -223,6 +223,7 @@ def spread_1d_spectrum_to_2d(counts_s_pixel_convolved, channel_cfg, header=None)
     counts = counts_s_pixel_convolved
     nx = channel_cfg.x_pixels
     ny = channel_cfg.y_pixels
+    spread_mode = channel_cfg.spread_mode
 
     if len(counts) != nx:
         msg = f"counts length {len(counts)} != nx {nx}"
@@ -230,38 +231,43 @@ def spread_1d_spectrum_to_2d(counts_s_pixel_convolved, channel_cfg, header=None)
         print(msg)
         raise ValueError(msg)
 
-    # choose a fixed trace center (placeholder)
-    y0 = ny // 2
+    if spread_mode == 1:
+        # choose a fixed trace center (placeholder)
+        y0 = ny // 2
 
-    # choose a spatial width in pixels (placeholder)
-    spatial_sigma_pix = 5.0
+        # choose a spatial width in pixels (placeholder)
+        spatial_sigma_pix = 5.0
 
-    # build a normalized vertical profile w[y] with sum(w)=1
-    w = np.zeros(ny, dtype=np.float64)
-    for y in range(ny):
-        dy = y - y0
-        w[y] = np.exp(-0.5 * (dy / spatial_sigma_pix) * (dy / spatial_sigma_pix))
-
-    w_sum = w.sum()
-    if w_sum <= 0.0:
-        logging.info("vertical profile w_sum=%g, normalizing", w_sum)
-        raise ValueError("vertical profile sum <= 0")
-    for y in range(ny):
-        w[y] = w[y] / w_sum
-
-    # fill the 2D image: for each x-column, distribute counts[x] over y using w[y]
-    image = np.zeros((ny, nx), dtype=np.float64)
-    for x in range(nx):
+        # build a normalized vertical profile w[y] with sum(w)=1
+        w = np.zeros(ny, dtype=np.float64)
         for y in range(ny):
-            image[y, x] = counts[x] * w[y]
+            dy = y - y0
+            w[y] = np.exp(-0.5 * (dy / spatial_sigma_pix) * (dy / spatial_sigma_pix))
 
-    if header is not None:
-        header.append(("MEAN",     float(image.mean()),      "Mean value of the frame"))
-        header.append(("MEDIAN",   float(np.median(image)),  "Median value of the frame"))
-        header.append(("MAX",      float(image.max()),       "Maximum value of the frame"))
-        header.append(("MIN",      float(image.min()),       "Minimum value of the frame"))
-        header.append(("DARKVAL",  float(channel_cfg.dark_noise),     "Input dark value"))
-        header.append(("B_OFFSET", float(channel_cfg.bias_offset), "Bias offset used to generate frame"))
-        header.append(("RNOISE",   float(channel_cfg.read_noise),  "Read noise sigma used to generate frame"))
+        w_sum = w.sum()
+        if w_sum <= 0.0:
+            logging.info("vertical profile w_sum=%g, normalizing", w_sum)
+            raise ValueError("vertical profile sum <= 0")
+        for y in range(ny):
+            w[y] = w[y] / w_sum
 
-    return image, header
+        # fill the 2D image: for each x-column, distribute counts[x] over y using w[y]
+        image = np.zeros((ny, nx), dtype=np.float64)
+        for x in range(nx):
+            for y in range(ny):
+                image[y, x] = counts[x] * w[y]
+
+        if header is not None:
+            header.append(("MEAN",     float(image.mean()),      "Mean value of the frame"))
+            header.append(("MEDIAN",   float(np.median(image)),  "Median value of the frame"))
+            header.append(("MAX",      float(image.max()),       "Maximum value of the frame"))
+            header.append(("MIN",      float(image.min()),       "Minimum value of the frame"))
+            header.append(("DARKVAL",  float(channel_cfg.dark_noise),     "Input dark value"))
+            header.append(("B_OFFSET", float(channel_cfg.bias_offset), "Bias offset used to generate frame"))
+            header.append(("RNOISE",   float(channel_cfg.read_noise),  "Read noise sigma used to generate frame"))
+
+        return image, header
+
+    msg = f"spread_mode={spread_mode} not implemented yet (only spread_mode=1 is supported)"
+    logging.error(msg)
+    raise NotImplementedError(msg)
