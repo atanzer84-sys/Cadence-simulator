@@ -96,4 +96,6 @@ TODO: Rework cfg tests to write a file with minimum params, optional and error p
 
 
 QUESTIONS: 
-Cut Wavelength before Gaussian? 
+Cut Wavelength before Gaussian?  DID That
+do tests again for snapshots
+
