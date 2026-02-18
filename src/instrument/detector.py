@@ -50,20 +50,18 @@ def load_channel_response_from_effective_area(nuv_cfg, vis_cfg, ir_cfg):
     return nuv_cal, vis_cal, ir_cal
 
 
-def counts_per_s_px_conv_all_channels(photon_flux_at_earth: np.ndarray, wavelengths_total: np.ndarray, nuv_cal, vis_cal, ir_cal, output_dir, star: Star):
+def counts_per_s_px_conv_all_channels(photon_flux_at_earth: np.ndarray, wavelengths_total: np.ndarray, nuv_cal, vis_cal, output_dir, star: Star):
     logging.info("Starting convolution to instrument")
     print("Starting convolution to instrument")
     cfg = get_global_config()
 
     broadened_flux_nuv, wavelength_nuv = compute_broadened_channel_flux(photon_flux_at_earth, wavelengths_total, nuv_cal, output_dir, cfg, star)
     broadened_flux_vis, wavelength_vis = compute_broadened_channel_flux(photon_flux_at_earth, wavelengths_total, vis_cal, output_dir, cfg, star)
-    broadened_flux_ir, wavelength_ir = compute_broadened_channel_flux(photon_flux_at_earth, wavelengths_total, ir_cal, output_dir, cfg, star)
 
     counts_s_px_convolved_nuv = counts_per_s_px_conv_per_channel(broadened_flux_nuv, wavelength_nuv, nuv_cal, output_dir, cfg, star)
     counts_s_px_convolved_vis = counts_per_s_px_conv_per_channel(broadened_flux_vis, wavelength_vis, vis_cal, output_dir, cfg, star)
-    counts_s_px_convolved_ir = counts_per_s_px_conv_per_channel(broadened_flux_ir, wavelength_ir, ir_cal, output_dir, cfg, star)
 
-    return counts_s_px_convolved_nuv, counts_s_px_convolved_vis, counts_s_px_convolved_ir
+    return counts_s_px_convolved_nuv, counts_s_px_convolved_vis
 
 
 def compute_broadened_channel_flux(photon_flux_at_earth: np.ndarray, wavelengths_total: np.ndarray, cal, output_dir, cfg, star: Star):

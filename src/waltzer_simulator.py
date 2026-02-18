@@ -20,8 +20,10 @@ def main():
 
         photon_flux_at_earth_A, wavelengths_total = calculateFluxOnEarth(star, output_dir)
 
-        counts_s_pixel_convolved_nuv, counts_s_pixel_convolved_vis, _ = counts_per_s_px_conv_all_channels(photon_flux_at_earth_A, wavelengths_total, nuv_cal, vis_cal, ir_cal, output_dir, star)
+        # counts per pixel per second convolved to NUV and VIS
+        counts_s_pixel_convolved_nuv, counts_s_pixel_convolved_vis = counts_per_s_px_conv_all_channels(photon_flux_at_earth_A, wavelengths_total, nuv_cal, vis_cal, output_dir, star)
 
+        # generating bias, dark and science frames for NUV, VIS
         generate_detector_images_and_write_fits(counts_s_pixel_convolved_nuv, counts_s_pixel_convolved_vis, nuv_cfg, vis_cfg, user_cfg, output_dir, star)
 
 

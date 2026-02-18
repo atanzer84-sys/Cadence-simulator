@@ -238,15 +238,9 @@ def test_all_channels_counts_identity_gaussbroad():
             effective_area=np.array([1.0, 1.0], dtype=float),
             pixel_scale=0.01,
         )
-        ir_cal = detector.ChannelCalibration(
-            name="IR",
-            wavelength=np.array([100.0, 102.0], dtype=float),
-            effective_area=np.array([3.0, 3.0], dtype=float),
-            pixel_scale=0.01,
-        )
-
-        nuv_counts, vis_counts, ir_counts = detector.counts_per_s_px_conv_all_channels(
-            photon_flux, wavelengths_total, nuv_cal, vis_cal, ir_cal, output_dir="OUTDIR", star=_dummy_star()
+        
+        nuv_counts, vis_counts = detector.counts_per_s_px_conv_all_channels(
+            photon_flux, wavelengths_total, nuv_cal, vis_cal, output_dir="OUTDIR", star=_dummy_star()
         )
 
         # NUV: interp [10, 15] -> *0.01 -> [0.10,0.15] -> *2 -> [0.20,0.30]
@@ -255,8 +249,6 @@ def test_all_channels_counts_identity_gaussbroad():
         # VIS: interp [20, 30] -> *0.01 -> [0.20,0.30] -> *1 -> [0.20,0.30]
         assert np.allclose(vis_counts, np.array([0.20, 0.30]))
 
-        # IR:  interp [10, 30] -> *0.01 -> [0.10,0.30] -> *3 -> [0.30,0.90]
-        assert np.allclose(ir_counts, np.array([0.30, 0.90]))
     finally:
         monkeypatch.undo()
 
@@ -503,7 +495,6 @@ def test_counts_per_s_px_conv_all_channels_calls_broaden_then_convert_for_each_c
 
     nuv_cal = SimpleNamespace(name="NUV")
     vis_cal = SimpleNamespace(name="VIS")
-    ir_cal = SimpleNamespace(name="IR")
 
     call_sequence = []
 
@@ -522,12 +513,11 @@ def test_counts_per_s_px_conv_all_channels_calls_broaden_then_convert_for_each_c
     monkeypatch.setattr(detector, "compute_broadened_channel_flux", _fake_broaden)
     monkeypatch.setattr(detector, "counts_per_s_px_conv_per_channel", _fake_conv)
 
-    out_nuv, out_vis, out_ir = detector.counts_per_s_px_conv_all_channels(
+    out_nuv, out_vis = detector.counts_per_s_px_conv_all_channels(
         photon_flux_at_earth=np.array([0.0]),
         wavelengths_total=np.array([0.0]),
         nuv_cal=nuv_cal,
         vis_cal=vis_cal,
-        ir_cal=ir_cal,
         output_dir="OUT",
         star=star,
     )
@@ -535,15 +525,12 @@ def test_counts_per_s_px_conv_all_channels_calls_broaden_then_convert_for_each_c
     assert call_sequence == [
         ("broaden", "NUV"),
         ("broaden", "VIS"),
-        ("broaden", "IR"),
         ("convert", "NUV"),
         ("convert", "VIS"),
-        ("convert", "IR"),
     ]
 
     assert out_nuv.tolist() == ["NUV"]
     assert out_vis.tolist() == ["VIS"]
-    assert out_ir.tolist() == ["IR"]
 
 
 
