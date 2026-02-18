@@ -52,11 +52,36 @@ Additional Pipeline steps:
     - Then science = detector_image * exposure_time_s + dark_frame + bias_frame
 
 
-
-
 Channels:
 - IR Channel? NIR does not have a detector i gather from the proposal. Right now i blindly implemented all three channels as if they were the same. what do we do with IR? i also calculated counts per s per pixel. which s wrong i guess. So from then on, i should handle that differently
 - no gain cfg? in IDL bias * G / dark * G
 
 
 
+
+
+
+TODO: gauss before iterpolation
+put stddev in bias + dark
+# TODO: use cfg param for that and generate dark like that
+
+centroid param for each channel
+two values
+slit position and centroid param
+slit: tell me where star is in the slit.
+plate scale also needed
+channel cfg gain
+
+-> per channels
+
+cute: has centroid and slope decides how spread is defined.
+assume that more or less centered in one pixel
+0,0 = central and slope is zeros
+in cute ten diff parts
+
+
+TODO Gaia lookup for bkg:
+radius 115 arcsec
+introduce mode in channel cfgs, standard mode = 1, add if for doing spread of spectral
+
+create empty class for exdendedObjects, empty class

@@ -67,6 +67,8 @@ def counts_per_s_px_conv_all_channels_per_channel(photon_flux_at_earth: np.ndarr
     """
     Convert photon flux at Earth [photons/cm²/s/Å] into counts/s/pixel for a single channel and gauss broaden it.
     """
+
+    
     # Step 1: get the pixel wavelength grid from the channel
     # Step 2: interpolate Earth flux onto the pixel wavelength grid
     flux_on_pixel = np.interp(cal.wavelength, wavelengths_total, photon_flux_at_earth)

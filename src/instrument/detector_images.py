@@ -159,6 +159,9 @@ def generate_dark_frame(channel_cfg, exptime_s, header=None):
     dark_current = channel_cfg.dark_noise
 
     bias, _ = generate_bias_frame(channel_cfg, header=None)
+    
+    # TODO: use cfg param for that and generate dark like that
+    # bias = np.random.normal(0.0001, read_noise, size=(ny, nx))
 
     dark = bias + (dark_current * exptime_s)
 
