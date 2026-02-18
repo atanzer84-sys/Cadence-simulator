@@ -17,8 +17,8 @@ GLOBAL_TIMESTAMP = None
 
 def initialize_waltzer_runtime():
     print("Getting started...")
-    output_dir = setup_output_directory()
-    setup_logger(output_dir, GLOBAL_TIMESTAMP)
+    output_dir, timestamp_str = setup_output_directory()
+    setup_logger(output_dir, timestamp_str)
     return output_dir
 
 def load_cfg_and_user_config():
@@ -49,7 +49,6 @@ def setup_output_directory():
 
     timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
     base_time = datetime.now() 
-    logging.info("Output timestamp set: %s", timestamp_str)
     GLOBAL_TIMESTAMP = base_time
 
     output_root = get_repo_root() / "output"
@@ -64,20 +63,21 @@ def setup_output_directory():
         try:
             output_dir.mkdir(parents=True, exist_ok=False)
             print(f"Output directory created at: {output_dir.resolve()}")
-            return output_dir
+            return output_dir, timestamp_str
         except FileExistsError:
             # Another process won this name; try the next one.
             continue
 
     raise RuntimeError("Could not create a unique output directory after many attempts.")
 
-def setup_logger(output_dir, timestamp):
+def setup_logger(output_dir, timestamp_str):
     """Configure logging to a single file in the output directory.
 
     Logs are written only to the file (no console). The log file is
     named ``waltzer_simulator_<timestamp>.log`` inside ``output_dir``.
     """
-    filename = f"waltzer_simulator_{timestamp}.log"
+    filename = f"waltzer_simulator_{timestamp_str}.log"
+
     log_filename = output_dir / filename
     print(f"Log file created at: {log_filename.resolve()}")
 

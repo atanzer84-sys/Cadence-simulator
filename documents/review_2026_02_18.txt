@@ -61,27 +61,31 @@ Channels:
 
 
 
-TODO: gauss before iterpolation
-put stddev in bias + dark
-# TODO: use cfg param for that and generate dark like that
+- TODO: gauss before iterpolation
 
-centroid param for each channel
-two values
-slit position and centroid param
-slit: tell me where star is in the slit.
-plate scale also needed
-channel cfg gain
+- DONE: put stddev in bias + dark # TODO: use cfg param for that and generate dark like that
 
+TODO: SPREADING:
+- centroid param for each channel
+- two values: slit position and centroid param
+- slit: tell me where star is in the slit.
+- plate scale also needed
+- channel cfg gain
 -> per channels
-
-cute: has centroid and slope decides how spread is defined.
-assume that more or less centered in one pixel
-0,0 = central and slope is zeros
-in cute ten diff parts
-
+- cute: has centroid and slope decides how spread is defined.
+- assume that more or less centered in one pixel
+- 0,0 = central and slope is zeros
+- in cute ten diff parts
+- centroid, slope y = kx (centroid) +d (slope). For now 0,0. 
+- slit_pos_in_arcsec = 0.0 for now. which is center center of the detector. -100 is down, + 100 is up.
+- pixelvalue = arcsec * pixelscale for my x,y value. we assume a straight line for now, because otherwise we would need to shift stuff. but we can move the center of y up or down
+- i can check the spread, because it has to correspond to counts / pixel / sec
 
 TODO Gaia lookup for bkg:
 radius 115 arcsec
 introduce mode in channel cfgs, standard mode = 1, add if for doing spread of spectral
 
 create empty class for exdendedObjects, empty class
+
+
+TODO: Rework cfg tests to write a file with minimum params, optional and error params. no monkeypatch anymore

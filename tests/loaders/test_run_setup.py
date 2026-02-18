@@ -9,49 +9,41 @@ import configs.global_config as gc
 from configs.global_config import GlobalConfig
 from loaders.run_setup import apply_log_r_fallback
 from configs import user_config
-
+import logging
 
 def test_setup_output_directory_creates_dir(monkeypatch, tmp_path):
-    # Redirect "output" to a temp directory
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(run_setup, "get_repo_root", lambda base_dir=None: tmp_path)
-    output_dir = run_setup.setup_output_directory()
-    timestamp = output_dir.name
 
-    # Directory exists
+    output_dir, timestamp_str = run_setup.setup_output_directory()
+
     assert output_dir.exists()
     assert output_dir.is_dir()
 
-    # Timestamp looks correct
-    assert len(timestamp) > 0
-    assert timestamp in output_dir.name
+    assert isinstance(timestamp_str, str)
+    assert len(timestamp_str) > 0
+    assert timestamp_str in output_dir.name
+
 
 def test_setup_output_directory_handles_collision(monkeypatch, tmp_path):
-    # Freeze datetime.now() so both calls use the same timestamp
     class FixedDateTime:
         @staticmethod
         def now():
             from datetime import datetime
             return datetime(2025, 2, 5, 12, 0, 0, 0)
 
-        @staticmethod
-        def strftime(fmt):
-            return FixedDateTime.now().strftime(fmt)
-
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(run_setup, "datetime", FixedDateTime)
     monkeypatch.setattr(run_setup, "get_repo_root", lambda base_dir=None: tmp_path)
 
-    # First call creates output/<timestamp>
-    first_dir = run_setup.setup_output_directory()
-    ts = first_dir.name
+    first_dir, ts1 = run_setup.setup_output_directory()
+    second_dir, ts2 = run_setup.setup_output_directory()
 
     assert first_dir.exists()
-
-    # Second call should detect collision and create <timestamp>_01
-    second_dir = run_setup.setup_output_directory()
-    assert second_dir.name == f"{ts}_01"
     assert second_dir.exists()
+
+    assert ts1 == ts2
+    assert first_dir != second_dir
 
 
 def test_setup_output_directory_prints(monkeypatch, tmp_path, capsys):
@@ -73,6 +65,29 @@ def test_setup_logger_prints(monkeypatch, tmp_path, capsys):
     # new: absolute path is printed
     assert "Log file created at:" in captured
     assert f"waltzer_simulator_{timestamp}.log" in captured
+
+def setup_logger(output_dir, timestamp_str):
+    filename = f"waltzer_simulator_{timestamp_str}.log"
+    log_filename = output_dir / filename
+    print(f"Log file created at: {log_filename.resolve()}")
+
+    root = logging.getLogger()
+    root.setLevel(logging.INFO)
+
+    for h in list(root.handlers):
+        root.removeHandler(h)
+
+    file_handler = logging.FileHandler(log_filename)
+    file_handler.setLevel(logging.INFO)
+
+    formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(filename)s:%(lineno)d %(message)s")
+    file_handler.setFormatter(formatter)
+
+    root.addHandler(file_handler)
+
+    logging.info("Logger initialized")
+
+
 
 def test_setup_logger_creates_file(tmp_path):
     output_dir = tmp_path

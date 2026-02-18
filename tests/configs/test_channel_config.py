@@ -27,6 +27,7 @@ def test_load_channel_config_ok(tmp_path):
         channel_name = A
         bias_offset = 0.0
         channel_name=""
+        dark_current_sigma=0.001
         """,
     )
 
@@ -105,6 +106,7 @@ def test_comments_and_inline_comments_are_ignored(tmp_path):
         read_noise = 3.2
         effective_area_file = ir.txt   # calibration file
         channel_name = X
+        dark_current_sigma=0.001
         """,
     )
 
@@ -147,6 +149,7 @@ def test_channel_config_is_frozen(tmp_path):
         read_noise = 3.2
         effective_area_file = test.txt
         channel_name = A
+        dark_current_sigma=0.001
         """,
     )
 
@@ -169,6 +172,7 @@ def test_duplicate_keys_last_value_wins(tmp_path):
         read_noise = 3.5
         channel_name = NUV
         x_pixels = 2048
+        dark_current_sigma=0.001
         """
     )
 

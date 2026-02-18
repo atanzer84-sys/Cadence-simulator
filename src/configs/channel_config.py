@@ -9,6 +9,7 @@ class ChannelConfig:
     y_pixels: int
     resolution_factor: float
     dark_noise: float
+    dark_current_sigma: float
     read_noise: float
     effective_area_file: str
 
@@ -28,6 +29,7 @@ def load_channel_config(path: Path) -> ChannelConfig:
         y_pixels=_as_int(raw["y_pixels"], key="y_pixels"),
         resolution_factor=_as_float(raw["resolution_factor"], key="resolution_factor"),
         dark_noise=_as_float(raw["dark_noise"], key="dark_noise"),
+        dark_current_sigma=_as_float(raw["dark_current_sigma"], key="dark_current_sigma"),
         read_noise=_as_float(raw["read_noise"], key="read_noise"),
         effective_area_file=raw["effective_area_file"],
         bias_offset=_as_float(raw.get("bias_offset", 0.0), key="bias_offset"),

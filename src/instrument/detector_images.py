@@ -156,14 +156,16 @@ def generate_dark_frame(channel_cfg, exptime_s, header=None):
     '''
     Dark = Bias + (dark_current * exptime)
     '''
-    dark_current = channel_cfg.dark_noise
+    dark_noise = channel_cfg.dark_noise
+    dark_current_sigma = channel_cfg.dark_current_sigma
+    nx = channel_cfg.x_pixels
+    ny = channel_cfg.y_pixels
 
     bias, _ = generate_bias_frame(channel_cfg, header=None)
     
-    # TODO: use cfg param for that and generate dark like that
-    # bias = np.random.normal(0.0001, read_noise, size=(ny, nx))
+    dark_base = np.random.normal(dark_noise, dark_current_sigma, size=(ny, nx))
 
-    dark = bias + (dark_current * exptime_s)
+    dark = bias + dark_base + (dark_noise * exptime_s)
 
     logging.info("DARK STATS %s mean=%g std=%g min=%g max=%g", channel_cfg.channel_name, dark.mean(), dark.std(), dark.min(), dark.max())
 
@@ -172,7 +174,7 @@ def generate_dark_frame(channel_cfg, exptime_s, header=None):
         header.append(("MEDIAN",   float(np.median(dark)),  "Median value of the frame"))
         header.append(("MAX",      float(dark.max()),       "Maximum value of the frame"))
         header.append(("MIN",      float(dark.min()),       "Minimum value of the frame"))
-        header.append(("DARKVAL",  float(dark_current),     "Input dark value"))
+        header.append(("DARKVAL",  float(dark_noise),     "Input dark value"))
         header.append(("EXPTIME",  float(exptime_s),        "Exposure time of observation"))
         header.append(("B_OFFSET", float(channel_cfg.bias_offset), "Bias offset used to generate frame"))
         header.append(("RNOISE",   float(channel_cfg.read_noise),  "Read noise sigma used to generate frame"))
