@@ -1,7 +1,9 @@
 import numpy as np
 import pytest
 from types import SimpleNamespace
-
+import numpy as np
+from types import SimpleNamespace
+from instrument.detector import counts_per_s_px_conv_per_channel
 from instrument import detector
 
 class _Cfg:
@@ -31,8 +33,6 @@ def test_channel_calibration_is_frozen_and_has_expected_fields():
 
     with pytest.raises(Exception):
         cal.pixel_scale = 0.6  # frozen dataclass should reject reassignment
-
-
 
 def test_load_channel_response_from_effective_area_calls_loader_three_times_with_cfg_filenames(monkeypatch):
     # Verifies load_channel_response_from_effective_area calls load_effective_area_file exactly three times with the effective_area_file from each cfg.
@@ -365,53 +365,310 @@ def test_counts_per_channel_uses_cal_wavelength_grid_and_returns_same_length():
     assert out.shape == cal.wavelength.shape
     assert np.allclose(out, expected)
 
-def test_counts_per_channel_interpolates_scales_and_applies_effective_area(monkeypatch):
+import numpy as np
+import pytest
+from types import SimpleNamespace
+from instrument import detector
 
-    monkeypatch.setattr(detector, "gaussbroad", lambda wl, y, pixel_scale: y)
 
-    wavelengths_total = np.array([100.0, 101.0, 102.0], dtype=float)
-    photon_flux_at_earth = np.array([10.0, 20.0, 30.0], dtype=float)
+def test_cut_wavelength_window_with_margin_basic_slice_no_margin(monkeypatch):
+    # Verifies that the function returns the exact expected flux and wavelength slice when margin is zero and window is fully inside bounds.
+    cfg = SimpleNamespace(test_mode=False)
+    star = SimpleNamespace(name="S")
+
+    wavelengths_total = np.array([100.0, 101.0, 102.0, 103.0, 104.0], dtype=float)
+    photon_flux = np.array([10.0, 11.0, 12.0, 13.0, 14.0], dtype=float)
 
     cal = SimpleNamespace(
         name="NUV",
-        wavelength=np.array([100.0, 100.5, 101.0], dtype=float),
-        effective_area=np.array([2.0, 2.0, 2.0], dtype=float),
-        pixel_scale=0.5,
+        wavelength=np.array([101.0, 103.0], dtype=float),
     )
 
-    out = detector.counts_per_s_px_conv_per_channel(photon_flux_at_earth, wavelengths_total, cal, output_dir=None, cfg=_DummyGlobalCfg(), star=_dummy_star())
+    f_cut, w_cut = detector.cut_wavelength_window_with_margin(
+        photon_flux, wavelengths_total, cal, output_dir="OUT", cfg=cfg, star=star, margin_A=0.0
+    )
 
-    flux_on_pixel = np.interp(cal.wavelength, wavelengths_total, photon_flux_at_earth)
-    expected = flux_on_pixel * cal.pixel_scale * cal.effective_area
+    wl_min = cal.wavelength[0]
+    wl_max = cal.wavelength[-1]
+    i0 = max(np.searchsorted(wavelengths_total, wl_min), 0)
+    i1 = min(np.searchsorted(wavelengths_total, wl_max), len(wavelengths_total))
 
-    assert out.shape == expected.shape
-    np.testing.assert_allclose(out, expected, rtol=0.0, atol=0.0)
+    np.testing.assert_allclose(w_cut, wavelengths_total[i0:i1])
+    np.testing.assert_allclose(f_cut, photon_flux[i0:i1])
 
-def test_counts_per_channel_calls_gaussbroad_with_cut_window_and_pixel_scale(monkeypatch):
-    # Ensures gaussbroad is called once with the cut wavelength grid and original flux using the channel pixel_scale.
 
-    import numpy as np
-    from types import SimpleNamespace
-    from instrument import detector
+def test_cut_wavelength_window_with_margin_clamps_low_bound(monkeypatch):
+    # Verifies that the lower index is clamped to the start of the array when the margin extends below the available wavelength range.
+    cfg = SimpleNamespace(test_mode=False)
+    star = SimpleNamespace(name="S")
 
+    wavelengths_total = np.array([100.0, 101.0, 102.0], dtype=float)
+    photon_flux = np.array([10.0, 11.0, 12.0], dtype=float)
+
+    cal = SimpleNamespace(name="NUV", wavelength=np.array([100.5, 101.5], dtype=float))
+
+    f_cut, w_cut = detector.cut_wavelength_window_with_margin(
+        photon_flux, wavelengths_total, cal, output_dir="OUT", cfg=cfg, star=star, margin_A=999.0
+    )
+
+    assert w_cut[0] == wavelengths_total[0]
+    assert f_cut[0] == photon_flux[0]
+
+
+def test_cut_wavelength_window_with_margin_clamps_high_bound(monkeypatch):
+    # Verifies that the upper index is clamped to the end of the array when the margin extends beyond the available wavelength range.
+    cfg = SimpleNamespace(test_mode=False)
+    star = SimpleNamespace(name="S")
+
+    wavelengths_total = np.array([100.0, 101.0, 102.0], dtype=float)
+    photon_flux = np.array([10.0, 11.0, 12.0], dtype=float)
+
+    cal = SimpleNamespace(name="NUV", wavelength=np.array([100.5, 101.5], dtype=float))
+
+    f_cut, w_cut = detector.cut_wavelength_window_with_margin(
+        photon_flux, wavelengths_total, cal, output_dir="OUT", cfg=cfg, star=star, margin_A=999.0
+    )
+
+    assert w_cut[-1] == wavelengths_total[-1]
+    assert f_cut[-1] == photon_flux[-1]
+
+
+def test_cut_wavelength_window_with_margin_calls_dump_with_x_then_y(monkeypatch):
+    # Verifies that in test_mode the function calls dump_1d_array with wavelength as x and flux as y.
     calls = []
+    cfg = SimpleNamespace(test_mode=True)
+    star = SimpleNamespace(name="S")
 
-    def _fake_gaussbroad(wl, y, pixel_scale):
-        calls.append((wl.copy(), y.copy(), float(pixel_scale)))
-        return y
+    wavelengths_total = np.array([100.0, 101.0, 102.0], dtype=float)
+    photon_flux = np.array([10.0, 11.0, 12.0], dtype=float)
+    cal = SimpleNamespace(name="NUV", wavelength=np.array([100.0, 102.0], dtype=float))
 
-    monkeypatch.setattr(detector, "gaussbroad", _fake_gaussbroad)
+    def _fake_dump(x, y, output_dir, star_name, tag, full=True, zoom=False):
+        calls.append((x.copy(), y.copy(), output_dir, star_name, tag))
 
-    wavelengths_total = np.array([1.0, 2.0], dtype=float)
-    photon_flux_at_earth = np.array([10.0, 20.0], dtype=float)
+    monkeypatch.setattr(detector, "dump_1d_array", _fake_dump)
 
-    cal = SimpleNamespace(name="VIS", wavelength=np.array([1.5], dtype=float), effective_area=np.array([3.0], dtype=float), pixel_scale=0.2)
-
-    _ = detector.counts_per_s_px_conv_per_channel(photon_flux_at_earth, wavelengths_total, cal, output_dir=None, cfg=_DummyGlobalCfg(), star=_dummy_star())
+    f_cut, w_cut = detector.cut_wavelength_window_with_margin(
+        photon_flux, wavelengths_total, cal, output_dir="OUT", cfg=cfg, star=star, margin_A=0.0
+    )
 
     assert len(calls) == 1
-    wl_arg, y_arg, ps_arg = calls[0]
+    x, y, outdir, star_name, tag = calls[0]
+    np.testing.assert_allclose(x, w_cut)
+    np.testing.assert_allclose(y, f_cut)
+    assert outdir == "OUT"
+    assert star_name == "S"
+    assert tag == "cutUpArray_NUV"
 
-    assert np.allclose(wl_arg, wavelengths_total)
-    assert np.allclose(y_arg, photon_flux_at_earth)
-    assert ps_arg == cal.pixel_scale
+
+def test_compute_broadened_channel_flux_calls_cut_and_gaussbroad_in_order(monkeypatch):
+    # Verifies that compute_broadened_channel_flux passes flux and wavelength in correct order to gaussbroad and returns the expected pair.
+    cfg = SimpleNamespace(test_mode=False)
+    star = SimpleNamespace(name="S")
+    cal = SimpleNamespace(name="NUV", pixel_scale=0.25)
+
+    flux_cut = np.array([1.0, 2.0, 3.0], dtype=float)
+    wl_cut = np.array([10.0, 11.0, 12.0], dtype=float)
+    smoothed = np.array([9.0, 8.0, 7.0], dtype=float)
+
+    def _fake_cut(photon_flux_at_earth, wavelengths_total, cal_arg, output_dir, cfg_arg, star_arg, margin_A=100.0):
+        return flux_cut, wl_cut
+
+    def _fake_gaussbroad(w, s, hwhm):
+        np.testing.assert_allclose(w, wl_cut)
+        np.testing.assert_allclose(s, flux_cut)
+        assert hwhm == pytest.approx(cal.pixel_scale)
+        return smoothed
+
+    monkeypatch.setattr(detector, "cut_wavelength_window_with_margin", _fake_cut)
+    monkeypatch.setattr(detector, "gaussbroad", _fake_gaussbroad)
+
+    out_flux, out_wl = detector.compute_broadened_channel_flux(
+        photon_flux_at_earth=np.array([0.0]),
+        wavelengths_total=np.array([0.0]),
+        cal=cal,
+        output_dir="OUT",
+        cfg=cfg,
+        star=star,
+    )
+
+    np.testing.assert_allclose(out_flux, smoothed)
+    np.testing.assert_allclose(out_wl, wl_cut)
+
+
+def test_counts_per_s_px_conv_all_channels_calls_broaden_then_convert_for_each_channel(monkeypatch):
+    # Verifies that the wrapper calls broaden and conversion once per channel and returns results in the correct order.
+    cfg = SimpleNamespace(test_mode=False, produce_Plots=False)
+    star = SimpleNamespace(name="S")
+
+    nuv_cal = SimpleNamespace(name="NUV")
+    vis_cal = SimpleNamespace(name="VIS")
+    ir_cal = SimpleNamespace(name="IR")
+
+    call_sequence = []
+
+    def _fake_get_global_config():
+        return cfg
+
+    def _fake_broaden(photon_flux_at_earth, wavelengths_total, cal, output_dir, cfg_arg, star_arg):
+        call_sequence.append(("broaden", cal.name))
+        return np.array([1.0]), np.array([2.0])
+
+    def _fake_conv(broadened_photon_flux, wavelength, cal, output_dir, cfg_arg, star_arg):
+        call_sequence.append(("convert", cal.name))
+        return np.array([cal.name], dtype=object)
+
+    monkeypatch.setattr(detector, "get_global_config", _fake_get_global_config)
+    monkeypatch.setattr(detector, "compute_broadened_channel_flux", _fake_broaden)
+    monkeypatch.setattr(detector, "counts_per_s_px_conv_per_channel", _fake_conv)
+
+    out_nuv, out_vis, out_ir = detector.counts_per_s_px_conv_all_channels(
+        photon_flux_at_earth=np.array([0.0]),
+        wavelengths_total=np.array([0.0]),
+        nuv_cal=nuv_cal,
+        vis_cal=vis_cal,
+        ir_cal=ir_cal,
+        output_dir="OUT",
+        star=star,
+    )
+
+    assert call_sequence == [
+        ("broaden", "NUV"),
+        ("broaden", "VIS"),
+        ("broaden", "IR"),
+        ("convert", "NUV"),
+        ("convert", "VIS"),
+        ("convert", "IR"),
+    ]
+
+    assert out_nuv.tolist() == ["NUV"]
+    assert out_vis.tolist() == ["VIS"]
+    assert out_ir.tolist() == ["IR"]
+
+
+
+
+def test_counts_per_channel_identity_scaling():
+    # Verifies that with identical wavelength grids the function reduces to simple pixel_scale and effective_area scaling.
+    wavelength = np.array([1.0, 2.0, 3.0, 4.0])
+    broadened_flux = np.array([10.0, 20.0, 30.0, 40.0])
+
+    cal = SimpleNamespace(
+        name="TEST",
+        wavelength=wavelength.copy(),
+        pixel_scale=2.0,
+        effective_area=np.array([5.0, 5.0, 5.0, 5.0]),
+    )
+
+    cfg = SimpleNamespace(test_mode=False, produce_Plots=False)
+    star = SimpleNamespace(name="S")
+
+    out = counts_per_s_px_conv_per_channel(
+        broadened_flux, wavelength, cal, "OUT", cfg, star
+    )
+
+    expected = broadened_flux * 2.0 * 5.0
+    np.testing.assert_allclose(out, expected)
+
+
+def test_counts_per_channel_interpolation_linear():
+    # Verifies that linear interpolation is applied correctly before scaling.
+    wavelength = np.array([0.0, 1.0, 2.0, 3.0])
+    broadened_flux = np.array([0.0, 10.0, 20.0, 30.0])
+
+    cal = SimpleNamespace(
+        name="TEST",
+        wavelength=np.array([0.5, 1.5, 2.5]),
+        pixel_scale=1.0,
+        effective_area=np.ones(3),
+    )
+
+    cfg = SimpleNamespace(test_mode=False, produce_Plots=False)
+    star = SimpleNamespace(name="S")
+
+    out = counts_per_s_px_conv_per_channel(
+        broadened_flux, wavelength, cal, "OUT", cfg, star
+    )
+
+    expected = np.array([5.0, 15.0, 25.0])
+    np.testing.assert_allclose(out, expected)
+
+
+def test_counts_per_channel_interpolation_clamping():
+    # Verifies that interpolation outside the wavelength range clamps to boundary flux values.
+    wavelength = np.array([0.0, 1.0, 2.0, 3.0])
+    broadened_flux = np.array([0.0, 10.0, 20.0, 30.0])
+
+    cal = SimpleNamespace(
+        name="TEST",
+        wavelength=np.array([-1.0, 0.0, 3.0, 5.0]),
+        pixel_scale=1.0,
+        effective_area=np.ones(4),
+    )
+
+    cfg = SimpleNamespace(test_mode=False, produce_Plots=False)
+    star = SimpleNamespace(name="S")
+
+    out = counts_per_s_px_conv_per_channel(
+        broadened_flux, wavelength, cal, "OUT", cfg, star
+    )
+
+    expected = np.array([0.0, 0.0, 30.0, 30.0])
+    np.testing.assert_allclose(out, expected)
+
+
+def test_counts_per_channel_output_shape_matches_calibration():
+    # Verifies that the output array shape always matches the calibration wavelength grid.
+    wavelength = np.array([0.0, 1.0, 2.0])
+    broadened_flux = np.array([10.0, 20.0, 30.0])
+
+    cal = SimpleNamespace(
+        name="TEST",
+        wavelength=np.array([0.5, 1.5]),
+        pixel_scale=1.0,
+        effective_area=np.ones(2),
+    )
+
+    cfg = SimpleNamespace(test_mode=False, produce_Plots=False)
+    star = SimpleNamespace(name="S")
+
+    out = counts_per_s_px_conv_per_channel(
+        broadened_flux, wavelength, cal, "OUT", cfg, star
+    )
+
+    assert out.shape == cal.wavelength.shape
+
+
+def test_counts_per_channel_calls_dump_in_test_mode(monkeypatch):
+    # Verifies that dump_1d_array is called with calibration wavelength and output values when test_mode is enabled.
+    calls = []
+
+    def fake_dump(x, y, output_dir, star_name, tag, full=True, zoom=True):
+        calls.append((x.copy(), y.copy(), tag))
+
+    wavelength = np.array([1.0, 2.0, 3.0])
+    broadened_flux = np.array([10.0, 20.0, 30.0])
+
+    cal = SimpleNamespace(
+        name="TEST",
+        wavelength=wavelength.copy(),
+        pixel_scale=1.0,
+        effective_area=np.ones(3),
+    )
+
+    cfg = SimpleNamespace(test_mode=True, produce_Plots=False)
+    star = SimpleNamespace(name="S")
+
+    from instrument import detector
+    monkeypatch.setattr(detector, "dump_1d_array", fake_dump)
+
+    out = counts_per_s_px_conv_per_channel(
+        broadened_flux, wavelength, cal, "OUT", cfg, star
+    )
+
+    assert len(calls) == 1
+    x, y, tag = calls[0]
+    np.testing.assert_allclose(x, cal.wavelength)
+    np.testing.assert_allclose(y, out)
+    assert tag == f"counts_s_px_convolved_{cal.name}"
+
