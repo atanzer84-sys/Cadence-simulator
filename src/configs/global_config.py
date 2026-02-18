@@ -21,6 +21,8 @@ class GlobalConfig:
     
     n_bias_and_darkframes: int
     write_dark_and_bias_png: bool
+    n_science_frames_per_channel: int
+    write_science_frames_png: bool
 
     test_mode: bool
     produce_Plots: bool
@@ -76,6 +78,8 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
         
         n_bias_and_darkframes=_as_int(raw.get("n_bias_and_darkframes", 0), key="n_bias_and_darkframes"),
         write_dark_and_bias_png=_as_bool(raw.get("write_dark_and_bias_png", 0), key="write_dark_and_bias_png"),
+        n_science_frames_per_channel=_as_int(raw.get("n_science_frames_per_channel", 0), key="n_science_frames_per_channel"),
+        write_science_frames_png=_as_bool(raw.get("write_science_frames_png", 0), key="write_science_frames_png"),        
 
         test_mode=_as_bool(raw.get("test_mode", 0), key="test_mode"),    
         produce_Plots=_as_bool(raw.get("produce_Plots", 0), key="produce_Plots",),    
