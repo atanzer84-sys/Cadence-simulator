@@ -64,7 +64,7 @@ Channels:
 - TODO: gauss before iterpolation
 
 - DONE: put stddev in bias + dark # TODO: use cfg param for that and generate dark like that
-
+- Add stddev in PNG
 
 - REDO headers
 
