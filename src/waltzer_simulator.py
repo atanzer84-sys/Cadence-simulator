@@ -12,7 +12,7 @@ def main():
 
         output_dir = initialize_waltzer_runtime()
         user_cfg, nuv_cfg, vis_cfg, ir_cfg = load_cfg_and_user_config()
-        nuv_cal, vis_cal, ir_cal = load_channel_response_from_effective_area(nuv_cfg, vis_cfg, ir_cfg)
+        nuv_cal, vis_cal, _ = load_channel_response_from_effective_area(nuv_cfg, vis_cfg, ir_cfg)
         planet_param, stellar_param, required_planetary_parameters, required_stellar_parameters = load_stellar_and_planetary_properties(user_cfg.target_name)
 
         star = Star.from_params(stellar_param, required_keys=required_stellar_parameters)
