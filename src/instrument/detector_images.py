@@ -258,13 +258,13 @@ def spread_1d_spectrum_to_2d(counts_s_pixel_convolved, channel_cfg, header=None)
                 image[y, x] = counts[x] * w[y]
 
         if header is not None:
-            header.append(("MEAN",     float(image.mean()),      "Mean value of the frame"))
-            header.append(("MEDIAN",   float(np.median(image)),  "Median value of the frame"))
-            header.append(("MAX",      float(image.max()),       "Maximum value of the frame"))
-            header.append(("MIN",      float(image.min()),       "Minimum value of the frame"))
-            header.append(("DARKVAL",  float(channel_cfg.dark_noise),     "Input dark value"))
-            header.append(("B_OFFSET", float(channel_cfg.bias_offset), "Bias offset used to generate frame"))
-            header.append(("RNOISE",   float(channel_cfg.read_noise),  "Read noise sigma used to generate frame"))
+            header.append(("MEAN",     float(image.mean()),                 "Mean value of the frame"))
+            header.append(("MEDIAN",   float(np.median(image)),             "Median value of the frame"))
+            header.append(("MAX",      float(image.max()),                  "Maximum value of the frame"))
+            header.append(("MIN",      float(image.min()),                  "Minimum value of the frame"))
+            header.append(("DARKVAL",  float(channel_cfg.dark_noise),       "Input dark value"))
+            header.append(("B_OFFSET", float(channel_cfg.bias_offset),      "Bias offset used to generate frame"))
+            header.append(("RNOISE",   float(channel_cfg.read_noise),       "Read noise sigma used to generate frame"))
 
         return image, header
 

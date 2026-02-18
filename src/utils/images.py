@@ -52,14 +52,21 @@ def write_frames_png(frames, headers, frame_type, channel_tag, output_dir, show_
 
         if show_stats:
             stats_text = (
-                f"mean={header.get('MEAN'):.2f}    "
-                f"median={header.get('MEDIAN'):.2f}    "
-                f"min={header.get('MIN'):.2f}    "
-                f"max={header.get('MAX'):.2f}    "
-                f"RNOISE={header.get('RNOISE')}    "
-                f"B_OFFSET={header.get('B_OFFSET')}"
+                f"{format_header(header, 'MEAN')}    "
+                f"{format_header(header, 'MEDIAN')}    "
+                f"{format_header(header, 'STDDEV')}    "
+                f"{format_header(header, 'MIN')}    "
+                f"{format_header(header, 'MAX')}\n"
+                f"{format_header(header, 'RNOISE', '')}    "
+                f"{format_header(header, 'B_OFFSET', '')}"
             )
-            ax_txt.text(0.5, 0.5, stats_text, ha="center", va="center", fontsize=10)
+
+            ax_txt.text(
+                0.5, 0.5, stats_text,
+                ha="center", va="center",
+                fontsize=10,
+                transform=ax_txt.transAxes,
+            )
 
         fig.savefig(filename, dpi=200, bbox_inches="tight")
         plt.close(fig)
@@ -68,6 +75,12 @@ def write_frames_png(frames, headers, frame_type, channel_tag, output_dir, show_
 
     logging.info("Finished writing %d PNG file(s)", n_frames)
 
+
+def format_header(header, key, fmt_str=".2f"):
+    val = header.get(key)
+    if val is None:
+        return f"{key}=n/a"
+    return f"{key}={format(val, fmt_str)}"
 
 
 def plot_flux_and_photons_windows(wavelengths, values, output_dir, star, filename_tag, title_text,
