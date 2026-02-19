@@ -131,8 +131,6 @@ def _find_first_numeric_row_index(lines: list[str], path: Path) -> int:
     logging.error(msg)
     raise ValueError(msg)
 
-
-
 def load_spread_profile_file(spread_filename: str, channel_name: str) -> tuple[np.ndarray | None, np.ndarray | None, np.ndarray | None]:
     repo_root = get_repo_root()
     

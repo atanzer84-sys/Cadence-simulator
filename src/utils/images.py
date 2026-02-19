@@ -106,6 +106,7 @@ def plot_flux_and_photons_windows(wavelengths, values, output_dir, star, filenam
 
     for key, (wmin, wmax) in ranges.items():
         mask = (wavelengths >= wmin) & (wavelengths <= wmax)
+        logging.info("Plotting %s for star %s in window '%s' (%.1f–%.1f Å); %d wavelength bins", filename_tag, star.name, key, wmin, wmax, int(mask.sum()))
 
         wl = wavelengths[mask]
         flux = values[mask]
