@@ -80,9 +80,18 @@ def compute_broadened_channel_flux(photon_flux_at_earth: np.ndarray, wavelengths
 
     # Cut up array to broaden with gauss later
     cut_photon_flux, wavelength = cut_wavelength_window_with_margin(photon_flux_at_earth, wavelengths_total, cal, output_dir, cfg, star)
+    if cfg.produce_Plots:
+        plot_flux_and_photons_windows(wavelength, cut_photon_flux, output_dir, star, filename_tag=f"compute_broadened_channel_flux_cut_wavelength_{cal.name}", title_text="", y_label="", cut = False )
+
+    dl = np.diff(wavelength)
+    logging.info("GAUSS INPUT: w_min=%g w_max=%g n=%d dl_min=%g dl_med=%g dl_max=%g pixel_scale=%g", float(wavelength[0]), float(wavelength[-1]), int(len(wavelength)), float(dl.min()), float(np.median(dl)), float(dl.max()), float(cal.pixel_scale))
+
 
     # Gaussian Broadening of flux over wavelengths
     photon_flux_smoothed =  gaussbroad(wavelength, cut_photon_flux, cal.pixel_scale)
+
+    if cfg.produce_Plots:
+        plot_flux_and_photons_windows(wavelength, photon_flux_smoothed, output_dir, star, filename_tag=f"gaussbroad_{cal.name}", title_text="", y_label="", cut = False )
 
     logging.info("Channel %s photon_flux_smoothed sum=%g mean=%g min=%g max=%g", cal.name, photon_flux_smoothed.sum(), photon_flux_smoothed.mean(), photon_flux_smoothed.min(), photon_flux_smoothed.max())
 
@@ -91,6 +100,99 @@ def compute_broadened_channel_flux(photon_flux_at_earth: np.ndarray, wavelengths
         dump_1d_array(wavelength, photon_flux_smoothed, output_dir, star.name, f"photon_flux_smoothed_{cal.name}", full=False, zoom=True)
 
     return photon_flux_smoothed, wavelength
+
+
+def cut_wavelength_window_with_margin(photon_flux_at_earth: np.ndarray, wavelengths_total: np.ndarray, cal, output_dir, cfg, star: Star, margin_A: float = 200.0):
+    wl_min = cal.wavelength[0]
+    wl_max = cal.wavelength[-1]
+
+    logging.info("Cutting wavelength window: Detector wl_min=%g wl_max=%g", wl_min, wl_max)
+
+    wl_min_ext = wl_min - margin_A
+    wl_max_ext = wl_max + margin_A
+
+    logging.info("Cutting wavelength window: Detector wl_min_ext=%g wl_max_ext=%g", wl_min_ext, wl_max_ext)
+
+    i0_raw = np.searchsorted(wavelengths_total, wl_min_ext)
+    i1_raw = np.searchsorted(wavelengths_total, wl_max_ext)
+
+    wl_i0_raw = wavelengths_total[i0_raw] if 0 <= i0_raw < len(wavelengths_total) else float("nan")
+    wl_i1_raw = wavelengths_total[i1_raw] if 0 <= i1_raw < len(wavelengths_total) else float("nan")
+    logging.info("searchsorted indices for extended window: i0_raw=%d (wl=%g) i1_raw=%d (wl=%g)", i0_raw, wl_i0_raw, i1_raw, wl_i1_raw)
+
+    i0 = max(i0_raw, 0)
+    i1 = min(i1_raw, len(wavelengths_total))
+
+    logging.info("indices after clamping: i0=%d i1=%d", i0, i1)
+    logging.info("wavelengths_total[i0]=%g wavelengths_total[i1-1]=%g", wavelengths_total[i0], wavelengths_total[i1 - 1])
+
+    wavelength_cut = wavelengths_total[i0:i1]
+    flux_cut = photon_flux_at_earth[i0:i1]
+
+    logging.info("cut size=%d first_wl=%g last_wl=%g cut size flux=%d first_flux=%g last_flux=%g", len(wavelength_cut), wavelength_cut[0], wavelength_cut[-1], len(flux_cut), flux_cut[0], flux_cut[-1])
+
+    if cfg.test_mode:
+        dump_1d_array(wavelength_cut, flux_cut, output_dir, star.name, f"cut_wavelength_window_with_margin_{cal.name}", full=True, zoom=True)
+    if cfg.produce_Plots:
+        plot_flux_and_photons_windows(wavelength_cut, flux_cut, output_dir, star, filename_tag=f"cut_wavelength_window_with_margin_{cal.name}", title_text="", y_label="", cut = False )
+
+    return flux_cut, wavelength_cut
+
+def gaussbroad(w,s,hwhm):
+    #Smooths a spectrum by convolution with a gaussian of specified hwhm.
+    # w (input vector) wavelength scale of spectrum to be smoothed
+    # s (input vector) spectrum to be smoothed
+    # hwhm (input scalar) half width at half maximum of smoothing gaussian.
+        #Returns a vector containing the gaussian-smoothed spectrum.
+        #Edit History:
+        #  -Dec-90 GB,GM Rewrote with fourier convolution algorithm.
+        #  -Jul-91 AL	Translated from ANA to IDL.
+        #22-Sep-91 JAV	Relaxed constant dispersion check# vectorized, 50% faster.
+       #05-Jul-92 JAV	Converted to function, handle nonpositive hwhm.
+
+    #Warn user if hwhm is negative.
+    #  if hwhm lt 0.0 then $
+    #    message,/info,'Warning! Forcing negative smoothing width to zero.'
+        #
+        ##Return input argument if half-width is nonpositive.
+        #  if hwhm le 0.0 then return,s			#true: no broadening
+
+    #Calculate (uniform) dispersion.
+
+    dw = (w[-1] - w[0]) / len(w)		#wavelength change per pixel
+
+    #gauus=make
+    for _ in range(0, len(w)):
+        #Make smoothing gaussian# extend to 4 sigma.
+        #Note: 4.0 / sqrt(2.0*numpy.log(2.0)) = 3.3972872 & sqrt(numpy.log(2.0))=0.83255461
+        #  sqrt(numpy.log(2.0)/pi)=0.46971864 (*1.0000632 to correct for >4 sigma wings)
+        if(hwhm > 5*(w[-1] - w[0])): 
+            return np.full(len(w),np.sum(s)/len(w))
+        nhalf = int(3.3972872*hwhm/dw)		## points in half gaussian
+        ng = 2 * nhalf + 1				## points in gaussian (odd!)
+
+        if _ == 0:
+            sigma = float(hwhm) / float(np.sqrt(2.0 * np.log(2.0)))
+            fwhm = 2.0 * float(hwhm)
+            half_width_A = float(nhalf) * float(dw)
+            logging.info("GAUSS PARAMS: hwhm_A=%g fwhm_A=%g sigma_A=%g dw_A=%g nhalf=%d ng=%d halfwidth_A=%g halfwidth_sigma=%g", float(hwhm), float(fwhm), float(sigma), float(dw), int(nhalf), int(ng), float(half_width_A), float(half_width_A / sigma))
+
+
+        wg = dw * (np.arange(ng) - (ng-1)/2.0)	#wavelength scale of gaussian
+        xg = ( (0.83255461) / hwhm) * wg 		#convenient absisca
+        gpro = ( (0.46974832) * dw / hwhm) * np.exp(-xg*xg)#unit area gaussian w/ FWHM
+        gpro=gpro/np.sum(gpro)
+
+    #Pad spectrum ends to minimize impact of Fourier ringing.
+    npad = nhalf + 2				## pad pixels on each end
+    spad = np.concatenate((np.full(npad,s[0]),s,np.full(npad,s[-1])))
+    #Convolve & trim.
+    sout = np.convolve(spad,gpro,mode='full')			#convolve with gaussian
+    sout = sout[npad:npad+len(w)]			#trim to original data/length
+    return sout					#return broadened spectrum.
+
+
+
 
 
 def counts_per_s_px_conv_per_channel(broadened_photon_flux: np.ndarray, wavelength: np.ndarray, cal, output_dir, cfg, star: Star):
@@ -115,78 +217,3 @@ def counts_per_s_px_conv_per_channel(broadened_photon_flux: np.ndarray, waveleng
         plot_flux_and_photons_windows(cal.wavelength, counts_s_px_convolved, output_dir, star, filename_tag=f"counts_s_px_convolved_{cal.name}", title_text="Convolved Counts", y_label="Counts s⁻¹ pixel⁻¹", cut = False )
 
     return counts_s_px_convolved
-
-def cut_wavelength_window_with_margin(photon_flux_at_earth: np.ndarray, wavelengths_total: np.ndarray, cal, output_dir, cfg, star: Star, margin_A: float = 100.0):
-    wl_min = cal.wavelength[0]
-    wl_max = cal.wavelength[-1]
-
-    logging.info("Cutting wavelength window")
-    logging.info("Detector wl_min=%g wl_max=%g", wl_min, wl_max)
-
-    wl_min_ext = wl_min - margin_A
-    wl_max_ext = wl_max + margin_A
-
-    i0_raw = np.searchsorted(wavelengths_total, wl_min_ext)
-    i1_raw = np.searchsorted(wavelengths_total, wl_max_ext)
-
-    logging.info("searchsorted indices for extended window: i0_raw=%d i1_raw=%d", i0_raw, i1_raw)
-
-    i0 = max(i0_raw, 0)
-    i1 = min(i1_raw, len(wavelengths_total))
-
-    logging.info("indices after clamping: i0=%d i1=%d", i0, i1)
-    logging.info("wavelengths_total[i0]=%g wavelengths_total[i1-1]=%g", wavelengths_total[i0], wavelengths_total[i1 - 1])
-
-    wavelength_cut = wavelengths_total[i0:i1]
-    flux_cut = photon_flux_at_earth[i0:i1]
-
-    logging.info("cut size=%d first=%g last=%g", len(wavelength_cut), wavelength_cut[0], wavelength_cut[-1])
-    if cfg.test_mode:
-        dump_1d_array(wavelength_cut, flux_cut, output_dir, star.name, f"cutUpArray_{cal.name}", full=True, zoom=True)
-
-    return flux_cut, wavelength_cut
-
-def gaussbroad(w,s,hwhm):
-    #Smooths a spectrum by convolution with a gaussian of specified hwhm.
-    # w (input vector) wavelength scale of spectrum to be smoothed
-    # s (input vector) spectrum to be smoothed
-    # hwhm (input scalar) half width at half maximum of smoothing gaussian.
-        #Returns a vector containing the gaussian-smoothed spectrum.
-        #Edit History:
-        #  -Dec-90 GB,GM Rewrote with fourier convolution algorithm.
-        #  -Jul-91 AL	Translated from ANA to IDL.
-        #22-Sep-91 JAV	Relaxed constant dispersion check# vectorized, 50% faster.
-       #05-Jul-92 JAV	Converted to function, handle nonpositive hwhm.
-
-    #Warn user if hwhm is negative.
-    #  if hwhm lt 0.0 then $
-    #    message,/info,'Warning! Forcing negative smoothing width to zero.'
-        #
-        ##Return input argument if half-width is nonpositive.
-        #  if hwhm le 0.0 then return,s			#true: no broadening
-
-    #Calculate (uniform) dispersion.
-    dw = (w[-1] - w[0]) / len(w)		#wavelength change per pixel
-    #gauus=make
-    for _ in range(0, len(w)):
-        #Make smoothing gaussian# extend to 4 sigma.
-        #Note: 4.0 / sqrt(2.0*numpy.log(2.0)) = 3.3972872 & sqrt(numpy.log(2.0))=0.83255461
-        #  sqrt(numpy.log(2.0)/pi)=0.46971864 (*1.0000632 to correct for >4 sigma wings)
-        if(hwhm > 5*(w[-1] - w[0])): 
-            return np.full(len(w),np.sum(s)/len(w))
-        nhalf = int(3.3972872*hwhm/dw)		## points in half gaussian
-        ng = 2 * nhalf + 1				## points in gaussian (odd!)
-        wg = dw * (np.arange(ng) - (ng-1)/2.0)	#wavelength scale of gaussian
-        xg = ( (0.83255461) / hwhm) * wg 		#convenient absisca
-        gpro = ( (0.46974832) * dw / hwhm) * np.exp(-xg*xg)#unit area gaussian w/ FWHM
-        gpro=gpro/np.sum(gpro)
-
-    #Pad spectrum ends to minimize impact of Fourier ringing.
-    npad = nhalf + 2				## pad pixels on each end
-    spad = np.concatenate((np.full(npad,s[0]),s,np.full(npad,s[-1])))
-    #Convolve & trim.
-    sout = np.convolve(spad,gpro,mode='full')			#convolve with gaussian
-    sout = sout[npad:npad+len(w)]			#trim to original data/length
-    return sout					#return broadened spectrum.
-
-
