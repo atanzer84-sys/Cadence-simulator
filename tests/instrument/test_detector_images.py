@@ -10,7 +10,7 @@ def channel_cfg_factory():
         base = dict(
             x_pixels=10,
             y_pixels=6,
-            spread_mode=1,
+            mode=1,
             dark_noise=0.0,
             bias_offset=0.0,
             read_noise=0.0,
@@ -19,16 +19,16 @@ def channel_cfg_factory():
         return SimpleNamespace(**base)
     return _make
 
-def test_spread_1d_spectrum_to_2d_raises_not_implemented_for_other_spread_mode(channel_cfg_factory):
-    cfg = channel_cfg_factory(x_pixels=10, y_pixels=6, spread_mode=2)
+def test_spread_1d_spectrum_to_2d_raises_not_implemented_for_other_mode(channel_cfg_factory):
+    cfg = channel_cfg_factory(x_pixels=10, y_pixels=6, mode=2)
     counts = np.zeros(cfg.x_pixels, dtype=np.float64)
 
-    with pytest.raises(NotImplementedError, match=r"spread_mode=2 not implemented yet"):
+    with pytest.raises(NotImplementedError, match=r"mode=2 not implemented yet"):
         spread_1d_spectrum_to_2d(counts, cfg, header=None)
 
 
-def test_spread_1d_spectrum_to_2d_executes_for_spread_mode_1(channel_cfg_factory):
-    cfg = channel_cfg_factory(x_pixels=8, y_pixels=5, spread_mode=1)
+def test_spread_1d_spectrum_to_2d_executes_for_mode_1(channel_cfg_factory):
+    cfg = channel_cfg_factory(x_pixels=8, y_pixels=5, mode=1)
     counts = np.ones(cfg.x_pixels, dtype=np.float64)
 
     image, header = spread_1d_spectrum_to_2d(counts, cfg, header=None)

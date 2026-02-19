@@ -91,3 +91,74 @@ introduce mode in channel cfgs, standard mode = 1, add if for doing spread of sp
 create empty class for exdendedObjects, empty class
 
 TODO: Photon Noise
+
+
+
+Spectrum spreading
+The flux per pixel in dispersion direction must be redistributed vertically using a provided spread profile.
+You will receive a text file with pixel position relative to center and corresponding weight.
+Multiply flux per pixel by these weights.
+Sum of weights must equal 1 as sanity check.
+Previously this was hard coded as Gaussian, now it should use the provided profile. Gaussian is acceptable approximation if needed.
+
+Center handling
+Zero in file is spectral center.
+Spread is applied around center.
+Center is a configuration parameter.
+Rounding is acceptable though distribution is slightly asymmetric.
+Center of the spread profile
+The file’s “position” column is an offset relative to the profile center. So position 0 means the peak of the vertical spread kernel. Positions are offsets in y, not absolute detector y.
+
+Center on the detector
+For each x column (each wavelength bin), you choose a detector y center y0 where the spectrum should sit. That y0 is the “center” you apply the kernel around on the CCD.
+
+So the actual operation per x is:
+
+Take your 1D flux value at column x, call it F(x).
+Take your kernel weights w(dy) from the file (dy are the positions, 0 at kernel center).
+Pick y0(x) (constant or varying slowly with x depending on trace/tilt).
+
+
+
+Output check
+After spreading, only those pixels should have flux.
+Sum over spread must recover original flux per pixel per second.
+Recognizable spectral line features should still be visible.
+
+Background stars
+Use Gaia catalog.
+Search stars within 150 arcsec radius around target RA/Dec.
+For each background star:
+
+Get stellar parameters
+
+Generate spectrum same way as target
+
+Check if star lies inside rectangular slit 20 arcsec by 230 arcsec
+
+If inside, place its spectrum at correct slit position
+
+Rotation of field is time dependent and postponed.
+
+Rotation
+Field rotates during observation.
+Stars move in and out of slit over time.
+Time dependent slit positioning to be implemented later.
+
+Infrared channel
+Currently simplified.
+Effective area will be reduced to one integrated number.
+Placeholder logic can be cleaned up.
+
+Modes parameter
+Add config parameter mode default 1.
+Current implementation under if mode == 1.
+Higher modes reserved for future high resolution multi order spectrograph.
+
+Future architecture
+Add empty class ExtendedObjects for galaxies and solar system objects.
+No implementation yet. Placeholder only.
+
+Priority now
+Implement correct spectrum spreading and background star retrieval and placement.
+Rotation and transit timing later.

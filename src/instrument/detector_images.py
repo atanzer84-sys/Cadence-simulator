@@ -223,7 +223,7 @@ def spread_1d_spectrum_to_2d(counts_s_pixel_convolved, channel_cfg, header=None)
     counts = counts_s_pixel_convolved
     nx = channel_cfg.x_pixels
     ny = channel_cfg.y_pixels
-    spread_mode = channel_cfg.spread_mode
+    mode = channel_cfg.mode
 
     if len(counts) != nx:
         msg = f"counts length {len(counts)} != nx {nx}"
@@ -231,7 +231,7 @@ def spread_1d_spectrum_to_2d(counts_s_pixel_convolved, channel_cfg, header=None)
         print(msg)
         raise ValueError(msg)
 
-    if spread_mode == 1:
+    if mode == 1:
         # choose a fixed trace center (placeholder)
         y0 = ny // 2
 
@@ -268,6 +268,6 @@ def spread_1d_spectrum_to_2d(counts_s_pixel_convolved, channel_cfg, header=None)
 
         return image, header
 
-    msg = f"spread_mode={spread_mode} not implemented yet (only spread_mode=1 is supported)"
+    msg = f"mode={mode} not implemented yet (only mode=1 is supported)"
     logging.error(msg)
     raise NotImplementedError(msg)
