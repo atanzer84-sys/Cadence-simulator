@@ -310,3 +310,149 @@ def test_malformed_numeric_row_raises_valueerror(monkeypatch, tmp_path):
         effective_area_loader.load_effective_area_file(fname)
 
     assert "Failed to parse numeric data" in str(exc.value)
+
+
+
+def test_spread_empty_filename_returns_none_triplet(monkeypatch, tmp_path):
+    # Verifies empty filename returns (None, None, None) without touching disk.
+    monkeypatch.setattr(effective_area_loader, "get_repo_root", lambda base_dir=None: tmp_path)
+    pos, w, wl = effective_area_loader.load_spread_profile_file("", "NUV")
+    assert pos is None
+    assert w is None
+    assert wl is None
+
+
+def test_spread_ok_parses_header_positions_and_weights(monkeypatch, tmp_path):
+    # Verifies valid spread file parses header wavelengths, positions, and weight matrix correctly.
+    monkeypatch.setattr(effective_area_loader, "get_repo_root", lambda base_dir=None: tmp_path)
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+
+    fname = "spread_ok.txt"
+    _write(
+        data_dir / fname,
+        "\n".join(
+            [
+                "# comment",
+                "pixels 1000 1100",
+                "0  0.10 0.20",
+                "1  0.30 0.40",
+                "2  0.50 0.60",
+            ]
+        )
+        + "\n",
+    )
+
+    pos, w, wl = effective_area_loader.load_spread_profile_file(fname, "NUV")
+
+    assert pos.dtype == float
+    assert w.dtype == float
+    assert wl.dtype == float
+
+    assert pos.shape == (3,)
+    assert w.shape == (3, 2)
+    assert wl.shape == (2,)
+
+    assert wl[0] == pytest.approx(1000.0)
+    assert wl[1] == pytest.approx(1100.0)
+    assert pos[0] == pytest.approx(0.0)
+    assert pos[-1] == pytest.approx(2.0)
+    assert w[0, 0] == pytest.approx(0.10)
+    assert w[2, 1] == pytest.approx(0.60)
+
+
+def test_spread_missing_file_raises_valueerror(monkeypatch, tmp_path):
+    # Verifies missing spread file raises ValueError.
+    monkeypatch.setattr(effective_area_loader, "get_repo_root", lambda base_dir=None: tmp_path)
+    (tmp_path / "data").mkdir()
+
+    with pytest.raises(ValueError) as exc:
+        effective_area_loader.load_spread_profile_file("does_not_exist.txt", "NUV")
+
+    assert "Spread profile file not found" in str(exc.value)
+
+
+def test_spread_missing_pixels_header_line_raises_valueerror(monkeypatch, tmp_path):
+    # Verifies absence of 'pixels' header line raises ValueError.
+    monkeypatch.setattr(effective_area_loader, "get_repo_root", lambda base_dir=None: tmp_path)
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+
+    fname = "spread_no_header.txt"
+    _write(
+        data_dir / fname,
+        "\n".join(
+            [
+                "# comment",
+                "0  0.1 0.2",
+                "1  0.3 0.4",
+            ]
+        )
+        + "\n",
+    )
+
+    with pytest.raises(ValueError) as exc:
+        effective_area_loader.load_spread_profile_file(fname, "NUV")
+
+    assert "No 'pixels" in str(exc.value)
+
+
+def test_spread_header_count_mismatch_weight_cols_raises_valueerror(monkeypatch, tmp_path):
+    # Verifies mismatch between header wavelength count and weight columns raises ValueError.
+    monkeypatch.setattr(effective_area_loader, "get_repo_root", lambda base_dir=None: tmp_path)
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+
+    fname = "spread_mismatch.txt"
+    _write(
+        data_dir / fname,
+        "\n".join(
+            [
+                "pixels 1000 1100 1200",
+                "0  0.1 0.2",
+                "1  0.3 0.4",
+            ]
+        )
+        + "\n",
+    )
+
+    with pytest.raises(ValueError) as exc:
+        effective_area_loader.load_spread_profile_file(fname, "NUV")
+
+    assert "wavelength count does not match weight columns" in str(exc.value)
+
+
+def test_spread_leading_trailing_whitespace_ok(monkeypatch, tmp_path):
+    # Verifies whitespace and blank lines do not break parsing and output dtypes are float.
+    monkeypatch.setattr(effective_area_loader, "get_repo_root", lambda base_dir=None: tmp_path)
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+
+    fname = "spread_ws.txt"
+    _write(
+        data_dir / fname,
+        "\n".join(
+            [
+                "   pixels   1000   1100   ",
+                "",
+                "  0    0.10   0.20   ",
+                "  1    0.30   0.40   ",
+                "",
+            ]
+        )
+        + "\n",
+    )
+
+    pos, w, wl = effective_area_loader.load_spread_profile_file(fname, "NUV")
+
+    assert pos.dtype == float
+    assert w.dtype == float
+    assert wl.dtype == float
+
+    assert pos.shape == (2,)
+    assert w.shape == (2, 2)
+    assert wl.shape == (2,)
+
+    assert wl[0] == pytest.approx(1000.0)
+    assert wl[1] == pytest.approx(1100.0)
+    assert w[1, 1] == pytest.approx(0.40)

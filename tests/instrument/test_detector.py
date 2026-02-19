@@ -7,10 +7,12 @@ from instrument.detector import counts_per_s_px_conv_per_channel
 from instrument import detector
 
 class _Cfg:
-    def __init__(self, effective_area_file: str, x_pixels: int = 2, source_file: str = "channel.cfg"):
+    def __init__(self, effective_area_file: str, x_pixels: int = 2, source_file: str = "channel.cfg", channel_name: str = "", spread_profile_file: str = ""):
         self.effective_area_file = effective_area_file
         self.x_pixels = x_pixels
         self.source_file = source_file
+        self.channel_name = channel_name
+        self.spread_profile_file = spread_profile_file
 
 
 class _DummyGlobalCfg:
@@ -658,4 +660,70 @@ def test_counts_per_channel_calls_dump_in_test_mode(monkeypatch):
     np.testing.assert_allclose(x, cal.wavelength)
     np.testing.assert_allclose(y, out)
     assert tag == f"counts_s_px_convolved_{cal.name}"
+
+
+
+def test_load_channel_response_from_effective_area_sets_spread_fields_from_loader(monkeypatch):
+    # Verifies spread loader outputs are stored on ChannelCalibration objects for each channel.
+    def _fake_ea_loader(filename):
+        if filename == "nuv.txt":
+            return np.array([1.0, 2.0]), np.array([0.1, 0.2]), 0.01
+        if filename == "vis.txt":
+            return np.array([1.0, 2.0]), np.array([0.3, 0.4]), 0.02
+        if filename == "ir.txt":
+            return np.array([1.0, 2.0]), np.array([0.5, 0.6]), 0.03
+        raise AssertionError("unexpected")
+
+    def _fake_spread_loader(filename, channel_name):
+        if channel_name == "NUV":
+            return np.array([0.0, 1.0]), np.array([[0.1, 0.2], [0.3, 0.4]]), np.array([10.0, 20.0])
+        if channel_name == "VIS":
+            return np.array([0.0]), np.array([[0.9, 1.1]]), np.array([30.0, 40.0])
+        if channel_name == "IR":
+            return None, None, None
+        raise AssertionError("unexpected")
+
+    monkeypatch.setattr(detector, "load_effective_area_file", _fake_ea_loader)
+    monkeypatch.setattr(detector, "load_spread_profile_file", _fake_spread_loader)
+
+    nuv_cfg = _Cfg("nuv.txt", x_pixels=2, channel_name="NUV", spread_profile_file="nuv_spread.txt")
+    vis_cfg = _Cfg("vis.txt", x_pixels=2, channel_name="VIS", spread_profile_file="vis_spread.txt")
+    ir_cfg = _Cfg("ir.txt",  x_pixels=2, channel_name="IR",  spread_profile_file="")
+
+    nuv_cal, vis_cal, ir_cal = detector.load_channel_response_from_effective_area(nuv_cfg, vis_cfg, ir_cfg)
+
+    assert np.allclose(nuv_cal.spread_y_positions, np.array([0.0, 1.0]))
+    assert nuv_cal.spread_y_weights.shape == (2, 2)
+    assert np.allclose(nuv_cal.spread_y_wavelengths, np.array([10.0, 20.0]))
+
+    assert np.allclose(vis_cal.spread_y_positions, np.array([0.0]))
+    assert vis_cal.spread_y_weights.shape == (1, 2)
+    assert np.allclose(vis_cal.spread_y_wavelengths, np.array([30.0, 40.0]))
+
+    assert ir_cal.spread_y_positions is None
+    assert ir_cal.spread_y_weights is None
+    assert ir_cal.spread_y_wavelengths is None
+
+def test_load_channel_response_from_effective_area_calls_spread_loader_with_empty_filename_and_sets_none(monkeypatch):
+    # Verifies empty spread_profile_file is passed through and results in None spread fields.
+    monkeypatch.setattr(detector, "load_effective_area_file", lambda filename: (np.array([1.0, 2.0]), np.array([0.1, 0.2]), 0.01))
+
+    calls = []
+
+    def _fake_spread(filename, channel_name):
+        calls.append((filename, channel_name))
+        return None, None, None
+
+    monkeypatch.setattr(detector, "load_spread_profile_file", _fake_spread)
+
+    nuv_cfg = _Cfg("nuv.txt", x_pixels=2, channel_name="NUV", spread_profile_file="")
+    vis_cfg = _Cfg("vis.txt", x_pixels=2, channel_name="VIS", spread_profile_file="")
+    ir_cfg  = _Cfg("ir.txt",  x_pixels=2, channel_name="IR",  spread_profile_file="")
+
+    nuv_cal, vis_cal, ir_cal = detector.load_channel_response_from_effective_area(nuv_cfg, vis_cfg, ir_cfg)
+
+    assert calls == [("", "NUV"), ("", "VIS"), ("", "IR")]
+    assert nuv_cal.spread_y_positions is None
+    assert nuv_cal.spread_y_weights is None
+    assert nuv_cal.spread_y_wavelengths is None
 
