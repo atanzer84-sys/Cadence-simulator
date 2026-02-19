@@ -41,14 +41,14 @@ def generate_detector_images_and_write_fits(counts_s_pixel_convolved_nuv, counts
         logging.info("BIAS and DARK: n_bias_and_darkframes=%d → skipped.", n_bias_and_darkframes)
 
     if n_science_frames > 0:
-        # science_nuv_frames, science_nuv_headers = build_science_frames(counts_s_pixel_convolved_nuv, nuv_cfg, nuv_cal, n_science_frames, user_cfg.exposure_NUV_s, header)
+        science_nuv_frames, science_nuv_headers = build_science_frames(counts_s_pixel_convolved_nuv, nuv_cfg, nuv_cal, n_science_frames, user_cfg.exposure_NUV_s, header)
         science_vis_frames, science_vis_headers = build_science_frames(counts_s_pixel_convolved_vis, vis_cfg, vis_cal, n_science_frames, user_cfg.exposure_VIS_s, header)
         # write science FITS
         # write_frames_fits(science_nuv_frames, science_nuv_headers, "science", nuv_cfg.channel_name, output_dir)
         # write_frames_fits(science_vis_frames, science_vis_headers, "science", vis_cfg.channel_name, output_dir)
         # # Write PNGs
         if global_cfg.write_science_frames_png:
-            # write_frames_png(science_nuv_frames, science_nuv_headers, "science", nuv_cfg.channel_name, output_dir, show_stats=True)
+            write_frames_png(science_nuv_frames, science_nuv_headers, "science", nuv_cfg.channel_name, output_dir, show_stats=True)
             write_frames_png(science_vis_frames, science_vis_headers, "science", vis_cfg.channel_name, output_dir, show_stats=True)
 
 
@@ -228,10 +228,9 @@ def spread_1d_spectrum_to_2d(counts_s_pixel_convolved, channel_cfg, channel_cal,
     mode = channel_cfg.mode
 
     if len(counts_s_pixel_convolved) != nx:
-        msg = f"counts length {len(counts_s_pixel_convolved)} != nx {nx}"
-        logging.error(msg)
-        print(msg)
-        raise ValueError(msg)
+        logging.error("PROFILE SPREAD ERROR: channel=%s counts_len=%d nx=%d", channel_cfg.channel_name, int(len(counts_s_pixel_convolved)), int(nx))
+        print(f"PROFILE SPREAD ERROR: channel={channel_cfg.channel_name} counts_len={len(counts_s_pixel_convolved)} nx={nx}")
+        raise ValueError(f"Counts length {len(counts_s_pixel_convolved)} does not match nx {nx}")
 
 
     # no lookup or high resolution spectrograph spreading as of now.
@@ -316,6 +315,69 @@ def _spread_1d_to_2d_gaussian(counts_s_pixel_convolved, channel_cfg, channel_cal
 
 
 
+
 def _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel_cfg, channel_cal, header=None):
     logging.info("WAVELENGTH DEPENDENT SPREAD: channel=%s spread_file=%s mode=1 profile detected but not yet implemented", channel_cfg.channel_name, channel_cfg.spread_profile_file)
-    raise NotImplementedError("Wavelength dependent spread not implemented")
+
+    nx = channel_cfg.x_pixels
+    ny = channel_cfg.y_pixels
+
+    spread_y_pos = channel_cal.spread_y_positions
+    spread_weigths = channel_cal.spread_y_weights
+    spread_wavelengths = channel_cal.spread_y_wavelengths
+    detector_wavelengths = channel_cal.wavelength
+
+    if spread_y_pos is None or spread_weigths is None or spread_wavelengths is None:
+        logging.error("PROFILE SPREAD CONFIG ERROR: channel=%s missing spread arrays", channel_cfg.channel_name)
+        raise ValueError("Missing spread profile arrays")
+
+    if len(detector_wavelengths) != nx:
+        logging.error("PROFILE SPREAD ERROR: channel=%s detector wavelength length mismatch", channel_cfg.channel_name)
+        raise ValueError("Detector wavelength grid length mismatch")
+
+    if spread_weigths.ndim != 2:
+        logging.error("PROFILE SPREAD CONFIG ERROR: channel=%s spread_y_weights must be 2D", channel_cfg.channel_name)
+        raise ValueError("Invalid spread_y_weights dimension")
+
+    if spread_weigths.shape[0] != spread_y_pos.shape[0]:
+        logging.error("PROFILE SPREAD CONFIG ERROR: channel=%s spread_y_positions and spread_y_weights row mismatch", channel_cfg.channel_name)
+        raise ValueError("Spread profile row mismatch")
+
+    if spread_weigths.shape[1] != spread_wavelengths.shape[0]:
+        logging.error("PROFILE SPREAD CONFIG ERROR: channel=%s spread_y_weights cols=%d != spread_y_wavelengths len=%d", channel_cfg.channel_name, int(spread_weigths.shape[1]), int(spread_wavelengths.shape[0]))
+        raise ValueError("Spread profile column mismatch")
+
+    dy = np.round(spread_y_pos).astype(np.int64)
+    y0 = ny // 2
+
+    logging.info("PROFILE SPREAD START: channel=%s spread_file=%s nx=%d ny=%d n_bins=%d y0=%d", channel_cfg.channel_name, channel_cfg.spread_profile_file, int(nx), int(ny), int(spread_wavelengths.shape[0]), int(y0))
+
+    image = np.zeros((ny, nx), dtype=np.float64)
+
+    for x in range(nx):
+        lam = float(detector_wavelengths[x])
+        j = int(np.argmin(np.abs(spread_wavelengths - lam)))
+        lam_match = float(spread_wavelengths[j])
+        delta = float(lam - lam_match)
+        logging.info("PROFILE MATCH: channel=%s x=%d lam_det=%g lam_spread=%g delta=%g bin=%d", channel_cfg.channel_name, int(x), lam, lam_match, delta, int(j))
+
+        c = float(counts_s_pixel_convolved[x])
+        for i in range(dy.shape[0]):
+            y = int(y0 + dy[i])
+            if 0 <= y < ny:
+                image[y, x] += c * float(spread_weigths[i, j])
+
+    col_sums = image.sum(axis=0)
+    logging.info("PROFILE SPREAD CHECK: channel=%s input_sum=%g image_sum=%g max_abs_diff=%g", channel_cfg.channel_name, float(np.sum(counts_s_pixel_convolved)), float(np.sum(image)), float(np.max(np.abs(col_sums - counts_s_pixel_convolved))))
+    if not np.allclose(col_sums, counts_s_pixel_convolved, rtol=1e-10, atol=1e-12):
+        logging.error("PROFILE SPREAD CHECK FAILED: channel=%s column sums mismatch", channel_cfg.channel_name)
+        raise ValueError("Profile spread column sum mismatch")
+
+    if header is not None:
+        header.append(("MEAN", float(image.mean()), "Mean value of the frame"))
+        header.append(("MEDIAN", float(np.median(image)), "Median value of the frame"))
+        header.append(("MAX", float(image.max()), "Maximum value of the frame"))
+        header.append(("MIN", float(image.min()), "Minimum value of the frame"))
+
+    return image, header
+    
