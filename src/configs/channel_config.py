@@ -18,6 +18,9 @@ class ChannelConfig:
     ccd_gain: float = 1.0   # electrons per ADU
     mode: int = 1   
 
+    spread_profile_file: str = ""
+    spread_half_height_pix: int = 0
+
     source_file: str = ""
 
 
@@ -38,11 +41,25 @@ def load_channel_config(path: Path) -> ChannelConfig:
         channel_name=str(raw["channel_name"]).strip(),
         ccd_gain=_as_float(raw.get("ccd_gain", 1.0), key="ccd_gain"),
         mode=_as_int(raw["mode"], key="mode"),
+        spread_profile_file=str(raw.get("spread_profile_file", "")).strip(),
+        spread_half_height_pix=_as_optional_int(raw.get("spread_half_height_pix", None)) or 0,
         source_file=str(path),
     )
 
     logging.info("Channel config loaded: %s", cfg)
     return cfg
+
+def _as_optional_int(value):
+    if value is None:
+        return None
+    s = str(value).strip()
+    if s == "" or s.casefold() == "none":
+        return None
+    try:
+        return int(s)
+    except Exception as exc:
+        logging.error("Invalid int value: %r", value)
+        raise ValueError(f"Invalid int value: {value!r}") from exc
 
 def _as_int(value, *, key: str) -> int:
     try:
