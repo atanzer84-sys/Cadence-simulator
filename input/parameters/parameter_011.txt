@@ -7,6 +7,6 @@ target_name = HAT-P-69
 total_observation_length_h = 11.11
 
 #Exposure time of the three Channels in seconds
-exposure_NUV_s = 1.01
+exposure_NUV_s = 10.0
 exposure_VIS_s = 11.02
 exposure_IR_s = 111.2
