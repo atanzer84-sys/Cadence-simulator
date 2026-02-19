@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from loaders.effective_area_loader import load_effective_area_file
+from loaders.effective_area_loader import load_effective_area_file, load_spread_profile_file
 import numpy as np
 import logging
 from configs.global_config import get_global_config
@@ -13,6 +13,10 @@ class ChannelCalibration:
     wavelength: np.ndarray
     effective_area: np.ndarray
     pixel_scale: float
+    spread_y_positions: np.ndarray | None = None
+    spread_y_weights: np.ndarray | None = None
+    spread_y_wavelengths: np.ndarray | None = None
+
 
 def load_channel_response_from_effective_area(nuv_cfg, vis_cfg, ir_cfg):
 
@@ -23,12 +27,16 @@ def load_channel_response_from_effective_area(nuv_cfg, vis_cfg, ir_cfg):
         print(msg)
         raise ValueError(msg)
 
+    nuv_spread_pos, nuv_spread_w, nuv_spread_wl = load_spread_profile_file(nuv_cfg.spread_profile_file, nuv_cfg.channel_name)
+
     vis_wl, vis_eff, vis_pixel_scale = load_effective_area_file(vis_cfg.effective_area_file)
     if len(vis_wl) != vis_cfg.x_pixels:
         msg = f"VIS: wavelength grid length {len(vis_wl)} loaded from effective area file '{vis_cfg.effective_area_file}' does not match x_pixels={vis_cfg.x_pixels} from channel cfg '{vis_cfg.source_file}'"
         logging.error(msg)
         print(msg)
         raise ValueError(msg)
+
+    vis_spread_pos, vis_spread_w, vis_spread_wl = load_spread_profile_file(vis_cfg.spread_profile_file, vis_cfg.channel_name)
 
 
     ir_wl, ir_eff, ir_pixel_scale = load_effective_area_file(ir_cfg.effective_area_file)
@@ -38,14 +46,18 @@ def load_channel_response_from_effective_area(nuv_cfg, vis_cfg, ir_cfg):
         print(msg)
         raise ValueError(msg)
 
+    ir_spread_pos, ir_spread_w, ir_spread_wl = load_spread_profile_file(ir_cfg.spread_profile_file, ir_cfg.channel_name)
+
     logging.info("NUV: rows(WL)=%d, rows(EA)=%d, pixel_scale=%s", len(nuv_wl), len(nuv_eff), nuv_pixel_scale)
     logging.info("VIS: rows(WL)=%d, rows(EA)=%d, pixel_scale=%s", len(vis_wl), len(vis_eff), vis_pixel_scale)
     logging.info("IR: rows(WL)=%d, rows(EA)=%d, pixel_scale=%s", len(ir_wl), len(ir_eff), ir_pixel_scale)
     logging.info("Instrument calibration loaded for NUV, VIS, IR")
 
-    nuv_cal = ChannelCalibration(name="NUV", wavelength=nuv_wl, effective_area=nuv_eff, pixel_scale=nuv_pixel_scale)
-    vis_cal = ChannelCalibration(name="VIS", wavelength=vis_wl, effective_area=vis_eff, pixel_scale=vis_pixel_scale)
-    ir_cal  = ChannelCalibration(name="IR",  wavelength=ir_wl,  effective_area=ir_eff,  pixel_scale=ir_pixel_scale)
+    nuv_cal = ChannelCalibration(name="NUV", wavelength=nuv_wl, effective_area=nuv_eff, pixel_scale=nuv_pixel_scale, spread_y_positions=nuv_spread_pos, spread_y_weights=nuv_spread_w, spread_y_wavelengths=nuv_spread_wl)
+
+    vis_cal = ChannelCalibration(name="VIS", wavelength=vis_wl, effective_area=vis_eff, pixel_scale=vis_pixel_scale, spread_y_positions=vis_spread_pos, spread_y_weights=vis_spread_w, spread_y_wavelengths=vis_spread_wl)
+
+    ir_cal  = ChannelCalibration(name="IR",  wavelength=ir_wl,  effective_area=ir_eff,  pixel_scale=ir_pixel_scale, spread_y_positions=ir_spread_pos, spread_y_weights=ir_spread_w, spread_y_wavelengths=ir_spread_wl)
 
     return nuv_cal, vis_cal, ir_cal
 
