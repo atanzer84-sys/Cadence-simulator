@@ -165,6 +165,9 @@ def load_spread_profile_file(spread_filename: str, channel_name: str) -> tuple[n
     if weights_matrix.shape[1] != wavelength_header.shape[0]:
         logging.error("Channel %s: spread header wavelength count != weight columns in %s", channel_name, path)
         raise ValueError(f"Spread header wavelength count does not match weight columns in file: {path}")
+    if weights_matrix.shape[0] != positions.shape[0]:
+        logging.error("Spread File Error: channel=%s spread_y_positions and spread_y_weights row mismatch", channel_name)
+        raise ValueError("Spread profile row mismatch")
 
     logging.info("Channel %s: spread loaded rows=%d weight_cols=%d", channel_name, positions.shape[0], weights_matrix.shape[1])
     logging.info("Channel %s: spread first vertical dispersion dy values=%s", channel_name, positions[:10])
