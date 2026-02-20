@@ -81,33 +81,11 @@ def compute_broadened_channel_flux(photon_flux_at_earth: np.ndarray, wavelengths
     # Cut up array to broaden with gauss later
     cut_photon_flux, wavelength = cut_wavelength_window_with_margin(photon_flux_at_earth, wavelengths_total, cal, output_dir, cfg, star)
 
-
-    idx = int(np.argmin(np.abs(wavelength - 6000.0)))
-    if 0 <= idx < len(wavelength) - 1:
-        logging.info("WL IDX 6000: idx=%d idx_next=%d wl=%g wl_next=%g diff=%g", idx, idx+1, float(wavelength[idx]), float(wavelength[idx+1]), float(wavelength[idx+1] - wavelength[idx]))
-    else:
-        logging.info("WL IDX 6000: idx=%d OUT_OF_RANGE len=%d", idx, int(len(wavelength)))
-
-    idx = int(np.argmin(np.abs(wavelength - 7000.0)))
-    if 0 <= idx < len(wavelength) - 1:
-        logging.info("WL IDX 7000: idx=%d idx_next=%d wl=%g wl_next=%g diff=%g", idx, idx+1, float(wavelength[idx]), float(wavelength[idx+1]), float(wavelength[idx+1] - wavelength[idx]))
-    else:
-        logging.info("WL IDX 7000: idx=%d OUT_OF_RANGE len=%d", idx, int(len(wavelength)))
-
-    idx = int(np.argmin(np.abs(wavelength - 8000.0)))
-    if 0 <= idx < len(wavelength) - 1:
-        logging.info("WL IDX 8000: idx=%d idx_next=%d wl=%g wl_next=%g diff=%g", idx, idx+1, float(wavelength[idx]), float(wavelength[idx+1]), float(wavelength[idx+1] - wavelength[idx]))
-    else:
-        logging.info("WL IDX 8000: idx=%d OUT_OF_RANGE len=%d", idx, int(len(wavelength)))
-
-
     # Gaussian Broadening of flux over wavelengths
     photon_flux_smoothed =  gaussbroad(wavelength, cut_photon_flux, cal.pixel_scale)
 
     if cfg.produce_Plots:
         plot_flux_and_photons_windows(wavelength, photon_flux_smoothed, output_dir, star, filename_tag=f"gaussbroad_{cal.name}", title_text="", y_label="", cut = False )
-    if cfg.test_mode:
-        dump_1d_array(wavelength, photon_flux_smoothed, output_dir, star.name, f"cut_photon_flux_smoothed_{cal.name}", full=True, zoom=True)
 
     logging.info("Channel %s photon_flux_smoothed sum=%g mean=%g min=%g max=%g", cal.name, photon_flux_smoothed.sum(), photon_flux_smoothed.mean(), photon_flux_smoothed.min(), photon_flux_smoothed.max())
 
@@ -128,13 +106,8 @@ def cut_wavelength_window_with_margin(photon_flux_at_earth: np.ndarray, waveleng
     i0_raw = np.searchsorted(wavelengths_total, wl_min_ext)
     i1_raw = np.searchsorted(wavelengths_total, wl_max_ext)
 
-    wl_i0_raw = wavelengths_total[i0_raw] if 0 <= i0_raw < len(wavelengths_total) else float("nan")
-    wl_i1_raw = wavelengths_total[i1_raw] if 0 <= i1_raw < len(wavelengths_total) else float("nan")
-    logging.info("searchsorted indices for extended window: i0_raw=%d (wl=%g) i1_raw=%d (wl=%g)", i0_raw, wl_i0_raw, i1_raw, wl_i1_raw)
-
     i0 = max(i0_raw, 0)
     i1 = min(i1_raw, len(wavelengths_total))
-
     logging.info("indices after clamping: i0=%d i1=%d", i0, i1)
     logging.info("wavelengths_total[i0]=%g wavelengths_total[i1-1]=%g", wavelengths_total[i0], wavelengths_total[i1 - 1])
 
@@ -188,11 +161,11 @@ def gaussbroad(wavelength, spectra, hwhm):
         gpro = ( (0.46974832) * dw / hwhm) * np.exp(-xg*xg)#unit area gaussian w/ FWHM
         gpro=gpro/np.sum(gpro)
 
-        if _ % 1000 == 0:
-            sigma = float(hwhm) / float(np.sqrt(2.0 * np.log(2.0)))
-            fwhm = 2.0 * float(hwhm)
-            half_width = float(nhalf) * float(dw)
-            logging.info("GAUSS PARAMS: wave0=%g wave-1=%g len(wl)=%d hwhm=%g fwhm=%g sigma=%g dw=%g nhalf=%d ng=%d half_width=%g halfwidth_sigma=%g wg0=%g wgmid=%g wglast=%g xg0=%g g0=%g gsum=%g",float(wavelength[0]), float(wavelength[-1]), int(len(wavelength)),float(hwhm), float(fwhm), float(sigma), float(dw), int(nhalf), int(ng), float(half_width), float(half_width / sigma), float(wg[0]), float(wg[len(wg)//2]), float(wg[-1]), float(xg[0]), float(gpro[0]), float(np.sum(gpro)))
+        # if _ % 1000 == 0:
+        #     sigma = float(hwhm) / float(np.sqrt(2.0 * np.log(2.0)))
+        #     fwhm = 2.0 * float(hwhm)
+        #     half_width = float(nhalf) * float(dw)
+            # logging.info("GAUSS PARAMS: wave0=%g wave-1=%g len(wl)=%d hwhm=%g fwhm=%g sigma=%g dw=%g nhalf=%d ng=%d half_width=%g halfwidth_sigma=%g wg0=%g wgmid=%g wglast=%g xg0=%g g0=%g gsum=%g",float(wavelength[0]), float(wavelength[-1]), int(len(wavelength)),float(hwhm), float(fwhm), float(sigma), float(dw), int(nhalf), int(ng), float(half_width), float(half_width / sigma), float(wg[0]), float(wg[len(wg)//2]), float(wg[-1]), float(xg[0]), float(gpro[0]), float(np.sum(gpro)))
 
     #Pad spectrum ends to minimize impact of Fourier ringing.
     npad = nhalf + 2				## pad pixels on each end
@@ -202,10 +175,6 @@ def gaussbroad(wavelength, spectra, hwhm):
     sout = np.convolve(spad,gpro,mode='full')			#convolve with gaussian
     sout = sout[npad:npad+len(wavelength)]			#trim to original data/length
     return sout					#return broadened spectrum.
-
-
-
-
 
 def counts_per_s_px_conv_per_channel(broadened_photon_flux: np.ndarray, wavelength: np.ndarray, cal, output_dir, cfg, star: Star):
     """

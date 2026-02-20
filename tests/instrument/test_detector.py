@@ -1,13 +1,13 @@
 import numpy as np
 import pytest
 from types import SimpleNamespace
-import numpy as np
-from types import SimpleNamespace
+
 from instrument.detector import counts_per_s_px_conv_per_channel
 from instrument import detector
 
+
 class _Cfg:
-    def __init__(self, effective_area_file: str, x_pixels: int = 2, source_file: str = "channel.cfg", channel_name: str = "", spread_profile_file: str = ""):
+    def __init__(self, effective_area_file: str, x_pixels: int = 2, source_file: str = "channel_src", channel_name: str = "", spread_profile_file: str = ""):
         self.effective_area_file = effective_area_file
         self.x_pixels = x_pixels
         self.source_file = source_file
@@ -18,6 +18,12 @@ class _Cfg:
 class _DummyGlobalCfg:
     test_mode = False
     produce_Plots = False
+
+
+def _no_spread(_filename, _channel_name):
+    """Return None spread data so tests don't call the real loader."""
+    return None, None, None
+
 
 def _dummy_star(name="TESTSTAR"):
     return SimpleNamespace(name=name)
@@ -45,6 +51,7 @@ def test_load_channel_response_from_effective_area_calls_loader_three_times_with
         return np.array([1000.0, 1100.0]), np.array([0.1, 0.2]), 0.01
 
     monkeypatch.setattr(detector, "load_effective_area_file", _fake_loader)
+    monkeypatch.setattr(detector, "load_spread_profile_file", _no_spread)
 
     nuv_cfg = _Cfg("nuv.txt")
     vis_cfg = _Cfg("vis.txt")
@@ -80,11 +87,11 @@ def test_load_channel_response_from_effective_area_returns_calibrations_with_cor
         raise AssertionError(f"Unexpected filename: {filename}")
 
     monkeypatch.setattr(detector, "load_effective_area_file", _fake_loader)
+    monkeypatch.setattr(detector, "load_spread_profile_file", _no_spread)
 
     nuv_cfg = _Cfg("nuv.txt", x_pixels=len(nuv_wl))
     vis_cfg = _Cfg("vis.txt", x_pixels=len(vis_wl))
     ir_cfg = _Cfg("ir.txt", x_pixels=len(ir_wl))
-
 
     nuv_cal, vis_cal, ir_cal = detector.load_channel_response_from_effective_area(nuv_cfg, vis_cfg, ir_cfg)
 
@@ -112,6 +119,7 @@ def test_load_channel_response_from_effective_area_propagates_loader_error(monke
         return np.array([1.0, 2.0]), np.array([0.1, 0.2]), 0.01
 
     monkeypatch.setattr(detector, "load_effective_area_file", _fake_loader)
+    monkeypatch.setattr(detector, "load_spread_profile_file", _no_spread)
 
     nuv_cfg = _Cfg("nuv.txt")
     vis_cfg = _Cfg("vis.txt")
@@ -129,6 +137,7 @@ def test_loader_raises_for_first_channel_propagates(monkeypatch):
         raise ValueError("nuv failed")
 
     monkeypatch.setattr(detector, "load_effective_area_file", _fake_loader)
+    monkeypatch.setattr(detector, "load_spread_profile_file", _no_spread)
 
     nuv_cfg = _Cfg("nuv.txt")
     vis_cfg = _Cfg("vis.txt")
@@ -148,6 +157,7 @@ def test_loader_raises_for_second_channel_propagates(monkeypatch):
         return np.array([1.0, 2.0]), np.array([0.1, 0.2]), 0.01
 
     monkeypatch.setattr(detector, "load_effective_area_file", _fake_loader)
+    monkeypatch.setattr(detector, "load_spread_profile_file", _no_spread)
 
     nuv_cfg = _Cfg("nuv.txt")
     vis_cfg = _Cfg("vis.txt")
@@ -167,6 +177,7 @@ def test_loader_raises_for_third_channel_propagates(monkeypatch):
         return np.array([1.0, 2.0]), np.array([0.1, 0.2]), 0.01
 
     monkeypatch.setattr(detector, "load_effective_area_file", _fake_loader)
+    monkeypatch.setattr(detector, "load_spread_profile_file", _no_spread)
 
     nuv_cfg = _Cfg("nuv.txt")
     vis_cfg = _Cfg("vis.txt")
@@ -262,10 +273,11 @@ def test_load_channel_response_from_effective_area_raises_if_nuv_length_does_not
         return np.array([1.0, 2.0, 3.0]), np.array([0.1, 0.2, 0.3]), 0.01
 
     monkeypatch.setattr(detector, "load_effective_area_file", _fake_loader)
+    monkeypatch.setattr(detector, "load_spread_profile_file", _no_spread)
 
-    nuv_cfg = _Cfg("nuv.txt", x_pixels=2, source_file="nuv.cfg")
-    vis_cfg = _Cfg("vis.txt", x_pixels=3, source_file="vis.cfg")
-    ir_cfg  = _Cfg("ir.txt",  x_pixels=3, source_file="ir.cfg")
+    nuv_cfg = _Cfg("nuv.txt", x_pixels=2, source_file="nuv_src")
+    vis_cfg = _Cfg("vis.txt", x_pixels=3, source_file="vis_src")
+    ir_cfg  = _Cfg("ir.txt",  x_pixels=3, source_file="ir_src")
 
     with pytest.raises(ValueError) as exc:
         detector.load_channel_response_from_effective_area(nuv_cfg, vis_cfg, ir_cfg)
@@ -283,17 +295,18 @@ def test_load_channel_response_from_effective_area_raises_if_vis_length_does_not
         return np.array([1.0, 2.0]), np.array([0.1, 0.2]), 0.01
 
     monkeypatch.setattr(detector, "load_effective_area_file", _fake_loader)
+    monkeypatch.setattr(detector, "load_spread_profile_file", _no_spread)
 
-    nuv_cfg = _Cfg("nuv.txt", x_pixels=2, source_file="nuv.cfg")
-    vis_cfg = _Cfg("vis.txt", x_pixels=2, source_file="vis.cfg")
-    ir_cfg  = _Cfg("ir.txt",  x_pixels=2, source_file="ir.cfg")
+    nuv_cfg = _Cfg("nuv.txt", x_pixels=2, source_file="nuv_src")
+    vis_cfg = _Cfg("vis.txt", x_pixels=2, source_file="vis_src")
+    ir_cfg  = _Cfg("ir.txt",  x_pixels=2, source_file="ir_src")
 
     with pytest.raises(ValueError) as exc:
         detector.load_channel_response_from_effective_area(nuv_cfg, vis_cfg, ir_cfg)
 
     assert "VIS:" in str(exc.value)
     assert "vis.txt" in str(exc.value)
-    assert "vis.cfg" in str(exc.value)
+    assert "vis_src" in str(exc.value)
 
 
 def test_load_channel_response_from_effective_area_raises_if_ir_length_does_not_match_x_pixels(monkeypatch):
@@ -305,17 +318,18 @@ def test_load_channel_response_from_effective_area_raises_if_ir_length_does_not_
         return np.array([1.0, 2.0]), np.array([0.1, 0.2]), 0.01
 
     monkeypatch.setattr(detector, "load_effective_area_file", _fake_loader)
+    monkeypatch.setattr(detector, "load_spread_profile_file", _no_spread)
 
-    nuv_cfg = _Cfg("nuv.txt", x_pixels=2, source_file="nuv.cfg")
-    vis_cfg = _Cfg("vis.txt", x_pixels=2, source_file="vis.cfg")
-    ir_cfg  = _Cfg("ir.txt",  x_pixels=2, source_file="ir.cfg")
+    nuv_cfg = _Cfg("nuv.txt", x_pixels=2, source_file="nuv_src")
+    vis_cfg = _Cfg("vis.txt", x_pixels=2, source_file="vis_src")
+    ir_cfg  = _Cfg("ir.txt",  x_pixels=2, source_file="ir_src")
 
     with pytest.raises(ValueError) as exc:
         detector.load_channel_response_from_effective_area(nuv_cfg, vis_cfg, ir_cfg)
 
     assert "IR:" in str(exc.value)
     assert "ir.txt" in str(exc.value)
-    assert "ir.cfg" in str(exc.value)
+    assert "ir_src" in str(exc.value)
 
 
 def test_load_channel_response_from_effective_area_succeeds_when_lengths_match(monkeypatch):
@@ -325,10 +339,11 @@ def test_load_channel_response_from_effective_area_succeeds_when_lengths_match(m
         return np.array([1.0, 2.0]), np.array([0.1, 0.2]), 0.01
 
     monkeypatch.setattr(detector, "load_effective_area_file", _fake_loader)
+    monkeypatch.setattr(detector, "load_spread_profile_file", _no_spread)
 
-    nuv_cfg = _Cfg("nuv.txt", x_pixels=2, source_file="nuv.cfg")
-    vis_cfg = _Cfg("vis.txt", x_pixels=2, source_file="vis.cfg")
-    ir_cfg  = _Cfg("ir.txt",  x_pixels=2, source_file="ir.cfg")
+    nuv_cfg = _Cfg("nuv.txt", x_pixels=2, source_file="nuv_src")
+    vis_cfg = _Cfg("vis.txt", x_pixels=2, source_file="vis_src")
+    ir_cfg  = _Cfg("ir.txt",  x_pixels=2, source_file="ir_src")
 
     nuv_cal, vis_cal, ir_cal = detector.load_channel_response_from_effective_area(nuv_cfg, vis_cfg, ir_cfg)
 
@@ -359,15 +374,10 @@ def test_counts_per_channel_uses_cal_wavelength_grid_and_returns_same_length():
     assert out.shape == cal.wavelength.shape
     assert np.allclose(out, expected)
 
-import numpy as np
-import pytest
-from types import SimpleNamespace
-from instrument import detector
-
 
 def test_cut_wavelength_window_with_margin_basic_slice_no_margin(monkeypatch):
     # Verifies that the function returns the exact expected flux and wavelength slice when margin is zero and window is fully inside bounds.
-    cfg = SimpleNamespace(test_mode=False)
+    cfg = SimpleNamespace(test_mode=False, produce_Plots=False)
     star = SimpleNamespace(name="S")
 
     wavelengths_total = np.array([100.0, 101.0, 102.0, 103.0, 104.0], dtype=float)
@@ -393,7 +403,7 @@ def test_cut_wavelength_window_with_margin_basic_slice_no_margin(monkeypatch):
 
 def test_cut_wavelength_window_with_margin_clamps_low_bound(monkeypatch):
     # Verifies that the lower index is clamped to the start of the array when the margin extends below the available wavelength range.
-    cfg = SimpleNamespace(test_mode=False)
+    cfg = SimpleNamespace(test_mode=False, produce_Plots=False)
     star = SimpleNamespace(name="S")
 
     wavelengths_total = np.array([100.0, 101.0, 102.0], dtype=float)
@@ -411,7 +421,7 @@ def test_cut_wavelength_window_with_margin_clamps_low_bound(monkeypatch):
 
 def test_cut_wavelength_window_with_margin_clamps_high_bound(monkeypatch):
     # Verifies that the upper index is clamped to the end of the array when the margin extends beyond the available wavelength range.
-    cfg = SimpleNamespace(test_mode=False)
+    cfg = SimpleNamespace(test_mode=False, produce_Plots=False)
     star = SimpleNamespace(name="S")
 
     wavelengths_total = np.array([100.0, 101.0, 102.0], dtype=float)
@@ -430,7 +440,7 @@ def test_cut_wavelength_window_with_margin_clamps_high_bound(monkeypatch):
 def test_cut_wavelength_window_with_margin_calls_dump_with_x_then_y(monkeypatch):
     # Verifies that in test_mode the function calls dump_1d_array with wavelength as x and flux as y.
     calls = []
-    cfg = SimpleNamespace(test_mode=True)
+    cfg = SimpleNamespace(test_mode=True, produce_Plots=False)
     star = SimpleNamespace(name="S")
 
     wavelengths_total = np.array([100.0, 101.0, 102.0], dtype=float)
@@ -452,12 +462,12 @@ def test_cut_wavelength_window_with_margin_calls_dump_with_x_then_y(monkeypatch)
     np.testing.assert_allclose(y, f_cut)
     assert outdir == "OUT"
     assert star_name == "S"
-    assert tag == "cutUpArray_NUV"
+    assert tag == "cut_wavelength_window_NUV"
 
 
 def test_compute_broadened_channel_flux_calls_cut_and_gaussbroad_in_order(monkeypatch):
     # Verifies that compute_broadened_channel_flux passes flux and wavelength in correct order to gaussbroad and returns the expected pair.
-    cfg = SimpleNamespace(test_mode=False)
+    cfg = SimpleNamespace(test_mode=False, produce_Plots=False)
     star = SimpleNamespace(name="S")
     cal = SimpleNamespace(name="NUV", pixel_scale=0.25)
 
@@ -720,7 +730,7 @@ def test_load_channel_response_from_effective_area_calls_spread_loader_with_empt
     vis_cfg = _Cfg("vis.txt", x_pixels=2, channel_name="VIS", spread_profile_file="")
     ir_cfg  = _Cfg("ir.txt",  x_pixels=2, channel_name="IR",  spread_profile_file="")
 
-    nuv_cal, vis_cal, ir_cal = detector.load_channel_response_from_effective_area(nuv_cfg, vis_cfg, ir_cfg)
+    nuv_cal, _, _ = detector.load_channel_response_from_effective_area(nuv_cfg, vis_cfg, ir_cfg)
 
     assert calls == [("", "NUV"), ("", "VIS"), ("", "IR")]
     assert nuv_cal.spread_y_positions is None

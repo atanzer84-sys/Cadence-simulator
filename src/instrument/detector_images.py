@@ -41,14 +41,14 @@ def generate_detector_images_and_write_fits(counts_s_pixel_convolved_nuv, counts
         logging.info("BIAS and DARK: n_bias_and_darkframes=%d → skipped.", n_bias_and_darkframes)
 
     if n_science_frames > 0:
-        # science_nuv_frames, science_nuv_headers = build_science_frames(counts_s_pixel_convolved_nuv, nuv_cfg, nuv_cal, n_science_frames, user_cfg.exposure_NUV_s, header)
+        science_nuv_frames, science_nuv_headers = build_science_frames(counts_s_pixel_convolved_nuv, nuv_cfg, nuv_cal, n_science_frames, user_cfg.exposure_NUV_s, header)
         science_vis_frames, science_vis_headers = build_science_frames(counts_s_pixel_convolved_vis, vis_cfg, vis_cal, n_science_frames, user_cfg.exposure_VIS_s, header)
         # write science FITS
         # write_frames_fits(science_nuv_frames, science_nuv_headers, "science", nuv_cfg.channel_name, output_dir)
         # write_frames_fits(science_vis_frames, science_vis_headers, "science", vis_cfg.channel_name, output_dir)
         # # Write PNGs
         if global_cfg.write_science_frames_png:
-            # write_frames_png(science_nuv_frames, science_nuv_headers, "science", nuv_cfg.channel_name, output_dir, show_stats=True)
+            write_frames_png(science_nuv_frames, science_nuv_headers, "science", nuv_cfg.channel_name, output_dir, show_stats=True)
             write_frames_png(science_vis_frames, science_vis_headers, "science", vis_cfg.channel_name, output_dir, show_stats=True)
 
 
@@ -232,7 +232,6 @@ def spread_1d_spectrum_to_2d(counts_s_pixel_convolved, channel_cfg, channel_cal,
         print(f"PROFILE SPREAD ERROR: channel={channel_cfg.channel_name} counts_len={len(counts_s_pixel_convolved)} nx={nx}")
         raise ValueError(f"Counts length {len(counts_s_pixel_convolved)} does not match nx {nx}")
 
-
     # no lookup or high resolution spectrograph spreading as of now.
     if mode == 1:
 
@@ -251,7 +250,6 @@ def spread_1d_spectrum_to_2d(counts_s_pixel_convolved, channel_cfg, channel_cal,
     msg = f"mode={mode} not implemented yet (only mode=1 is supported)"
     logging.error(msg)
     raise NotImplementedError(msg)
-
 
 def _spread_1d_to_2d_gaussian(counts_s_pixel_convolved, channel_cfg, channel_cal, header=None):
 
@@ -307,15 +305,6 @@ def _spread_1d_to_2d_gaussian(counts_s_pixel_convolved, channel_cfg, channel_cal
 
     return image, header
 
-    
-
-
-
-
-
-
-
-
 def _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel_cfg, channel_cal, header=None):
     logging.info("WAVELENGTH DEPENDENT SPREAD: channel=%s spread_file=%s mode=1 profile detected but not yet implemented", channel_cfg.channel_name, channel_cfg.spread_profile_file)
 
@@ -369,8 +358,8 @@ def _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel_cfg, channel_cal,
             y = int(y0 + dy[i])
             if 0 <= y < ny:
                 image[y, x] += c * float(spread_weigths[i, j])
-                if x < 100:
-                    logging.info("PROFILE MATCH: channel=%s x=%d lam_det=%g lam_spread=%g delta=%g bin=%d counts_s_pixel_convolved[%d]=%g dy[%d]=%d y=%d weight=%g product=%g", channel_cfg.channel_name, int(x), lam, lam_match, delta, int(j), int(x), c, int(i), int(dy[i]), int(y0 + dy[i]), float(spread_weigths[i, j]), c * float(spread_weigths[i, j]))
+                # if x < 100:
+                #     logging.info("PROFILE MATCH: channel=%s x=%d lam_det=%g lam_spread=%g delta=%g bin=%d counts_s_pixel_convolved[%d]=%g dy[%d]=%d y=%d weight=%g product=%g", channel_cfg.channel_name, int(x), lam, lam_match, delta, int(j), int(x), c, int(i), int(dy[i]), int(y0 + dy[i]), float(spread_weigths[i, j]), c * float(spread_weigths[i, j]))
     
 
     col_sums = image.sum(axis=0)
