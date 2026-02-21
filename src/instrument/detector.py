@@ -85,7 +85,7 @@ def compute_broadened_channel_flux(photon_flux_at_earth: np.ndarray, wavelengths
     photon_flux_smoothed =  gaussbroad(wavelength, cut_photon_flux, cal.pixel_scale)
 
     if cfg.produce_Plots:
-        plot_1d_for_channel(wavelength, photon_flux_smoothed, output_dir, star, filename_tag=f"Detector_2_gaussbroad", title_text="Photon Flux after Gaussian Broadening", y_label="Photon flux [photons s⁻¹ cm⁻² Å⁻¹]", channel_name=cal.name)
+        plot_1d_for_channel(wavelength, photon_flux_smoothed, output_dir, star, filename_tag=f"Detector_2_gaussbroad", title_text="Photon Flux after Gaussian Broadening", y_label="Photon flux [photons s⁻¹ cm⁻² Å⁻¹]", channel_name=cal.name, full=True)
 
     logging.info("Channel %s photon_flux_smoothed sum=%g mean=%g min=%g max=%g", cal.name, photon_flux_smoothed.sum(), photon_flux_smoothed.mean(), photon_flux_smoothed.min(), photon_flux_smoothed.max())
 
@@ -119,7 +119,7 @@ def cut_wavelength_window_with_margin(photon_flux_at_earth: np.ndarray, waveleng
     if cfg.test_mode:
         dump_1d_for_channel(wavelength_cut, flux_cut, output_dir, star.name, f"Detector_1_cut_wavelength_window", channel_name=cal.name, full=True, zoom=True)
     if cfg.produce_Plots:
-        plot_1d_for_channel(wavelength_cut, flux_cut, output_dir, star, filename_tag=f"Detector_1_cut_wavelength_window", title_text="Photon Flux before Gaussian Broadening", y_label="Photon flux [photons s⁻¹ cm⁻² Å⁻¹]", channel_name=cal.name)
+        plot_1d_for_channel(wavelength_cut, flux_cut, output_dir, star, filename_tag=f"Detector_1_cut_wavelength_window", title_text="Photon Flux before Gaussian Broadening", y_label="Photon flux [photons s⁻¹ cm⁻² Å⁻¹]", channel_name=cal.name, full=True)
 
     return flux_cut, wavelength_cut
 
@@ -196,6 +196,6 @@ def counts_per_s_px_conv_per_channel(broadened_photon_flux: np.ndarray, waveleng
         dump_1d_for_channel(cal.wavelength, counts_s_px_convolved, output_dir, star.name, f"Detector_2_counts_s_px_convolved_{cal.name}", channel_name=cal.name, full=True, zoom=True)
 
     if cfg.produce_Plots:
-        plot_1d_for_channel(cal.wavelength, counts_s_px_convolved, output_dir, star, filename_tag=f"counts_s_px_convolved", title_text="Convolved Counts", y_label="Counts s⁻¹ pixel⁻¹", channel_name=cal.name)
+        plot_1d_for_channel(cal.wavelength, counts_s_px_convolved, output_dir, star, filename_tag=f"counts_s_px_convolved", title_text="Convolved Counts", y_label="Counts s⁻¹ pixel⁻¹", channel_name=cal.name, full=True)
 
     return counts_s_px_convolved
