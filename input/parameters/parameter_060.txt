@@ -7,6 +7,6 @@ target_name = TOI-778
 total_observation_length_h = 11.11
 
 #Exposure time of the three Channels in seconds
-exposure_NUV_s = 10.0
-exposure_VIS_s = 11.02
+exposure_NUV_s = 300.0
+exposure_VIS_s = 60.0
 exposure_IR_s = 111.2
