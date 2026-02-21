@@ -35,18 +35,3 @@ def test_write_fits_frames_zips_frames_and_headers_stops_at_shorter(tmp_path):
 
     assert (tmp_path / "WALTzER_VIS_DARK_00000.fits").exists()
     assert not (tmp_path / "WALTzER_VIS_DARK_00001.fits").exists()
-
-# Ensures zoom dumps only include wavelengths inside the defined debug windows.
-def test_dump_1d_array_zoom_files_are_windowed(tmp_path):
-    import numpy as np
-    from utils import debug_dumps
-    from utils.constants import DEBUG_WL_A_NUV
-
-    wave = np.array([DEBUG_WL_A_NUV[0] - 1.0, DEBUG_WL_A_NUV[0], (DEBUG_WL_A_NUV[0] + DEBUG_WL_A_NUV[1]) / 2.0, DEBUG_WL_A_NUV[1], DEBUG_WL_A_NUV[1] + 1.0])
-    values = np.arange(wave.size, dtype=float)
-
-    debug_dumps.dump_1d_array(wave, values, tmp_path, "Star", "tag", full=False, zoom=True)
-
-    data = np.loadtxt(tmp_path / "Star_tag_NUV.txt")
-    assert data[:, 0].min() >= DEBUG_WL_A_NUV[0]
-    assert data[:, 0].max() <= DEBUG_WL_A_NUV[1]

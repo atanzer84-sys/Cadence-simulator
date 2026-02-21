@@ -3,7 +3,7 @@ from loaders.effective_area_loader import load_effective_area_file, load_spread_
 import numpy as np
 import logging
 from configs.global_config import get_global_config
-from utils.debug_dumps import dump_1d_array
+from utils.debug_dumps import dump_1d_for_channel
 from utils.images import plot_flux_and_photons_windows
 from domain.star import Star
 
@@ -117,7 +117,7 @@ def cut_wavelength_window_with_margin(photon_flux_at_earth: np.ndarray, waveleng
     logging.info("cut size=%d first_wl=%g last_wl=%g cut size flux=%d first_flux=%g last_flux=%g", len(wavelength_cut), wavelength_cut[0], wavelength_cut[-1], len(flux_cut), flux_cut[0], flux_cut[-1])
 
     if cfg.test_mode:
-        dump_1d_array(wavelength_cut, flux_cut, output_dir, star.name, f"cut_wavelength_window_{cal.name}", full=True, zoom=True)
+        dump_1d_for_channel(wavelength_cut, flux_cut, output_dir, star.name, f"Detector_1_cut_wavelength_window", channel_name=cal.name, full=True, zoom=True)
     if cfg.produce_Plots:
         plot_flux_and_photons_windows(wavelength_cut, flux_cut, output_dir, star, filename_tag=f"cut_wavelength_window_{cal.name}", title_text="", y_label="", cut = False )
 
@@ -193,7 +193,8 @@ def counts_per_s_px_conv_per_channel(broadened_photon_flux: np.ndarray, waveleng
     logging.info("Channel %s counts_per_s_per_pixel sum=%g mean=%g min=%g max=%g", cal.name, counts_s_px_convolved.sum(), counts_s_px_convolved.mean(), counts_s_px_convolved.min(), counts_s_px_convolved.max())
 
     if cfg.test_mode:
-        dump_1d_array(cal.wavelength, counts_s_px_convolved, output_dir, star.name, f"counts_s_px_convolved_{cal.name}", full=True, zoom=True)
+        dump_1d_for_channel(cal.wavelength, counts_s_px_convolved, output_dir, star.name, f"Detector_2_counts_s_px_convolved_{cal.name}", channel_name=cal.name, full=True, zoom=True)
+
     if cfg.produce_Plots:
         plot_flux_and_photons_windows(cal.wavelength, counts_s_px_convolved, output_dir, star, filename_tag=f"counts_s_px_convolved_{cal.name}", title_text="Convolved Counts", y_label="Counts s⁻¹ pixel⁻¹", cut = False )
 

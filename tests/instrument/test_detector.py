@@ -447,22 +447,25 @@ def test_cut_wavelength_window_with_margin_calls_dump_with_x_then_y(monkeypatch)
     photon_flux = np.array([10.0, 11.0, 12.0], dtype=float)
     cal = SimpleNamespace(name="NUV", wavelength=np.array([100.0, 102.0], dtype=float))
 
-    def _fake_dump(x, y, output_dir, star_name, tag, full=True, zoom=False):
-        calls.append((x.copy(), y.copy(), output_dir, star_name, tag))
+    def _fake_dump(x, y, output_dir, star_name, tag, full=True, zoom=False, channel_name=None, **kwargs):
+        calls.append((x.copy(), y.copy(), output_dir, star_name, tag, full, zoom, channel_name))
 
-    monkeypatch.setattr(detector, "dump_1d_array", _fake_dump)
+    monkeypatch.setattr(detector, "dump_1d_for_channel", _fake_dump)
 
     f_cut, w_cut = detector.cut_wavelength_window_with_margin(
         photon_flux, wavelengths_total, cal, output_dir="OUT", cfg=cfg, star=star, margin_A=0.0
     )
 
     assert len(calls) == 1
-    x, y, outdir, star_name, tag = calls[0]
+    x, y, outdir, star_name, tag, full, zoom, channel_name = calls[0]
     np.testing.assert_allclose(x, w_cut)
     np.testing.assert_allclose(y, f_cut)
     assert outdir == "OUT"
     assert star_name == "S"
-    assert tag == "cut_wavelength_window_NUV"
+    assert tag == "Detector_1_cut_wavelength_window"
+    assert channel_name == "NUV"
+    assert full is True
+    assert zoom is True
 
 
 def test_compute_broadened_channel_flux_calls_cut_and_gaussbroad_in_order(monkeypatch):
@@ -639,11 +642,11 @@ def test_counts_per_channel_output_shape_matches_calibration():
 
 
 def test_counts_per_channel_calls_dump_in_test_mode(monkeypatch):
-    # Verifies that dump_1d_array is called with calibration wavelength and output values when test_mode is enabled.
+    # Verifies that dump_1d_for_channel is called with calibration wavelength and output values when test_mode is enabled.
     calls = []
 
-    def fake_dump(x, y, output_dir, star_name, tag, full=True, zoom=True):
-        calls.append((x.copy(), y.copy(), tag))
+    def fake_dump(x, y, output_dir, star_name, tag, full=True, zoom=True, channel_name=None, **kwargs):
+        calls.append((x.copy(), y.copy(), tag, channel_name, full, zoom))
 
     wavelength = np.array([1.0, 2.0, 3.0])
     broadened_flux = np.array([10.0, 20.0, 30.0])
@@ -659,17 +662,18 @@ def test_counts_per_channel_calls_dump_in_test_mode(monkeypatch):
     star = SimpleNamespace(name="S")
 
     from instrument import detector
-    monkeypatch.setattr(detector, "dump_1d_array", fake_dump)
+    monkeypatch.setattr(detector, "dump_1d_for_channel", fake_dump)
 
-    out = counts_per_s_px_conv_per_channel(
-        broadened_flux, wavelength, cal, "OUT", cfg, star
-    )
+    out = counts_per_s_px_conv_per_channel(broadened_flux, wavelength, cal, "OUT", cfg, star)
 
     assert len(calls) == 1
-    x, y, tag = calls[0]
+    x, y, tag, channel_name, full, zoom = calls[0]
     np.testing.assert_allclose(x, cal.wavelength)
     np.testing.assert_allclose(y, out)
-    assert tag == f"counts_s_px_convolved_{cal.name}"
+    assert tag == f"Detector_2_counts_s_px_convolved_{cal.name}"
+    assert channel_name == cal.name
+    assert full is True
+    assert zoom is True
 
 
 
