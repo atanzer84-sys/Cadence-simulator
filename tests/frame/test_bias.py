@@ -19,12 +19,10 @@ def channel_cfg():
 
     return Cfg()
 
-
 @pytest.fixture
 def base_header():
     """A simple mutable header list used by generate_bias_frames."""
     return []
-
 
 def test_generate_bias_frame_basic_properties(channel_cfg):
     # This test checks that generate_bias_frame returns an array of correct shape
@@ -40,7 +38,6 @@ def test_generate_bias_frame_basic_properties(channel_cfg):
     mean_val = frame.mean()
     assert 150 < mean_val < 250  # loose bounds, maintainable
 
-
 def test_generate_bias_frame_header_fields(channel_cfg):
     # This test ensures that generate_bias_frame adds the expected header keys.
     np.random.seed(0)
@@ -55,7 +52,6 @@ def test_generate_bias_frame_header_fields(channel_cfg):
 
     for key in expected:
         assert key in keys
-
 
 def test_generate_bias_frames_multiple(channel_cfg, base_header):
     # This test verifies that generate_bias_frames creates the correct number
