@@ -201,13 +201,17 @@ def apply_ism_absorption(data, ebv, cfg):
 
 def compute_ebv_av(right_ascension, declination, distance_pc):
     distance_kpc = distance_pc / 1000.0
-    c = SkyCoord(ra=right_ascension, dec=declination, unit=(u.degree, u.degree))
-    glon = c.galactic.l.deg
-    glat = c.galactic.b.deg
+    glon, glat = calculate_glon_glat(right_ascension, declination)
     ebv, av = extinction_amores(glon, glat, distance_kpc)
     logging.info("EBV=%s AV=%s (glon=%s glat=%s dist_kpc=%s)", ebv, av, glon, glat, distance_kpc)
 
     return ebv, av
+
+def calculate_glon_glat(right_ascension, declination):
+    c = SkyCoord(ra=right_ascension, dec=declination, unit=(u.degree, u.degree))
+    glon = c.galactic.l.deg
+    glat = c.galactic.b.deg
+    return glon, glat
 
 def compute_flux_at_earth(flux_lambda_diluted, distance_pc):
     logging.info("Calculating flux at Earth")
