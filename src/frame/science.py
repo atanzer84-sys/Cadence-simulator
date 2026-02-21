@@ -29,7 +29,7 @@ def generate_science_frames(counts_s_pixel_convolved, channel_cfg, channel_cal, 
         dark_frame, _ = generate_dark_frame(channel_cfg, exposure_time_s, header = None)
 
         # combine into science
-        science = (detector_image * exposure_time_s + dark_frame + bias_frame) * ccd_gain
+        science = bias_frame + dark_frame + (detector_image * exposure_time_s) * ccd_gain
         science_frames.append(science)
         science_headers.append(header)
 
@@ -134,29 +134,9 @@ def _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel_cfg, channel_cal,
     spread_wavelengths = channel_cal.spread_y_wavelengths
     detector_wavelengths = channel_cal.wavelength
 
-    # already in spread_1d_spectrum_to_2d
-    # if spread_y_pos is None or spread_weigths is None or spread_wavelengths is None:
-    #     logging.error("PROFILE SPREAD CONFIG ERROR: channel=%s missing spread arrays", channel_cfg.channel_name)
-    #     raise ValueError("Missing spread profile arrays")
-
     if len(detector_wavelengths) != nx:
         logging.error("PROFILE SPREAD ERROR: channel=%s detector wavelength length mismatch", channel_cfg.channel_name)
         raise ValueError("Detector wavelength grid length mismatch")
-
-    # already in effective_area_loader.py
-    # if spread_weigths.ndim != 2:
-    #     logging.error("PROFILE SPREAD CONFIG ERROR: channel=%s spread_y_weights must be 2D", channel_cfg.channel_name)
-    #     raise ValueError("Invalid spread_y_weights dimension")
-
-    # already in effective_area_loader.py
-    # if spread_weigths.shape[0] != spread_y_pos.shape[0]:
-    #     logging.error("PROFILE SPREAD CONFIG ERROR: channel=%s spread_y_positions and spread_y_weights row mismatch", channel_cfg.channel_name)
-    #     raise ValueError("Spread profile row mismatch")
-
-    # already in effective_area_loader.py
-    # if spread_weigths.shape[1] != spread_wavelengths.shape[0]:
-    #     logging.error("PROFILE SPREAD CONFIG ERROR: channel=%s spread_y_weights cols=%d != spread_y_wavelengths len=%d", channel_cfg.channel_name, int(spread_weigths.shape[1]), int(spread_wavelengths.shape[0]))
-    #     raise ValueError("Spread profile column mismatch")
 
     dy = np.round(spread_y_pos).astype(np.int64)
     y0 = ny // 2
@@ -168,23 +148,15 @@ def _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel_cfg, channel_cal,
     for x in range(nx):
         lam = float(detector_wavelengths[x])
         j = int(np.argmin(np.abs(spread_wavelengths - lam)))
-        lam_match = float(spread_wavelengths[j])
-        delta = float(lam - lam_match)
 
         c = float(counts_s_pixel_convolved[x])
         for i in range(dy.shape[0]):
             y = int(y0 + dy[i])
             if 0 <= y < ny:
                 image[y, x] += c * float(spread_weigths[i, j])
-                # if x < 100:
-                #     logging.info("PROFILE MATCH: channel=%s x=%d lam_det=%g lam_spread=%g delta=%g bin=%d counts_s_pixel_convolved[%d]=%g dy[%d]=%d y=%d weight=%g product=%g", channel_cfg.channel_name, int(x), lam, lam_match, delta, int(j), int(x), c, int(i), int(dy[i]), int(y0 + dy[i]), float(spread_weigths[i, j]), c * float(spread_weigths[i, j]))
-    
 
     col_sums = image.sum(axis=0)
     logging.info("PROFILE SPREAD CHECK: channel=%s input_sum=%g image_sum=%g max_abs_diff=%g", channel_cfg.channel_name, float(np.sum(counts_s_pixel_convolved)), float(np.sum(image)), float(np.max(np.abs(col_sums - counts_s_pixel_convolved))))
-    # if not np.allclose(col_sums, counts_s_pixel_convolved, rtol=1e-10, atol=1e-12):
-    #     logging.error("PROFILE SPREAD CHECK FAILED: channel=%s column sums mismatch", channel_cfg.channel_name)
-    #     raise ValueError("Profile spread column sum mismatch")
 
     if header is not None:
         header.append(("MEAN", float(image.mean()), "Mean value of the frame"))
@@ -193,9 +165,6 @@ def _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel_cfg, channel_cal,
         header.append(("MIN", float(image.min()), "Minimum value of the frame"))
 
 
-    logging.info("DEBUG 1D: min=%g max=%g s0=%g s1=%g s2=%g s3=%g s4=%g", float(np.min(counts_s_pixel_convolved)), float(np.max(counts_s_pixel_convolved)), float(counts_s_pixel_convolved[0]), float(counts_s_pixel_convolved[1]), float(counts_s_pixel_convolved[2]), float(counts_s_pixel_convolved[3]), float(counts_s_pixel_convolved[4]))
-    logging.info("DEBUG y0: min=%g max=%g s0=%g s1=%g s2=%g s3=%g s4=%g", float(np.min(image[y0, :])), float(np.max(image[y0, :])), float(image[y0, 0]), float(image[y0, 1]), float(image[y0, 2]), float(image[y0, 3]), float(image[y0, 4]))
-    logging.info("DEBUG colsum: min=%g max=%g s0=%g s1=%g s2=%g s3=%g s4=%g", float(np.min(image.sum(axis=0))), float(np.max(image.sum(axis=0))), float(image[:, 0].sum()), float(image[:, 1].sum()), float(image[:, 2].sum()), float(image[:, 3].sum()), float(image[:, 4].sum()))
 
     return image, header
     

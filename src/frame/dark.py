@@ -41,7 +41,7 @@ def generate_dark_frame(channel_cfg, exptime_s, header=None):
     
     dark_base = np.random.normal(dark_noise, dark_current_sigma, size=(ny, nx))
 
-    dark = (bias + dark_base + (dark_noise * exptime_s)) * ccd_gain
+    dark = bias + (dark_base + (dark_noise * exptime_s)) * ccd_gain
 
     logging.info("DARK STATS %s mean=%g std=%g min=%g max=%g", channel_cfg.channel_name, dark.mean(), dark.std(), dark.min(), dark.max())
 

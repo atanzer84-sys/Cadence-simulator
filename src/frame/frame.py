@@ -43,9 +43,11 @@ def generate_Frames(counts_s_pixel_convolved_nuv, counts_s_pixel_convolved_vis, 
         science_nuv_frames, science_nuv_headers = generate_science_frames(counts_s_pixel_convolved_nuv, nuv_cfg, nuv_cal, n_science_frames, user_cfg.exposure_NUV_s, header)
         science_vis_frames, science_vis_headers = generate_science_frames(counts_s_pixel_convolved_vis, vis_cfg, vis_cal, n_science_frames, user_cfg.exposure_VIS_s, header)
         # write science FITS
-        # write_fits_frames(science_nuv_frames, science_nuv_headers, "science", nuv_cfg.channel_name, output_dir)
-        # write_fits_frames(science_vis_frames, science_vis_headers, "science", vis_cfg.channel_name, output_dir)
+        write_fits_frames(science_nuv_frames, science_nuv_headers, "science", nuv_cfg.channel_name, output_dir)
+        write_fits_frames(science_vis_frames, science_vis_headers, "science", vis_cfg.channel_name, output_dir)
         # # Write PNGs
         if global_cfg.write_science_frames_png:
             write_frames_png(science_nuv_frames, science_nuv_headers, "science", nuv_cfg.channel_name, output_dir, show_stats=True)
             write_frames_png(science_vis_frames, science_vis_headers, "science", vis_cfg.channel_name, output_dir, show_stats=True)
+
+
