@@ -1,24 +1,8 @@
 import logging
 import matplotlib.pyplot as plt
-from astropy.io import fits
 from typing import Any
 from utils.constants import debug_wavelength_range_ir, debug_wavelength_range_nuv, debug_wavelength_range_vis, DEBUG_WL_A_NUV, DEBUG_WL_A_VIS, DEBUG_WL_A_IR
 
-def write_frames_fits(frames, headers, frame_type, channel_tag, output_dir):
-
-    n_frames = len(frames)
-    if n_frames == 0:
-        logging.info("Write FITS: no frames for %s channel %s", frame_type, channel_tag)
-        return
-
-    logging.info("Writing %d %s frame(s) for channel %s to %s", n_frames, frame_type, channel_tag, output_dir)
-
-    for k, (frame, header) in enumerate(zip(frames, headers)):
-        filename = output_dir / f"WALTzER_{channel_tag}_{frame_type}_{k:05d}.fits"
-        fits.PrimaryHDU(data=frame, header=header).writeto(filename, overwrite=True)
-        logging.debug("Wrote %s", filename)
-
-    logging.info("Finished writing %d FITS file(s)", n_frames)
 
 def write_frames_png(frames, headers, frame_type, channel_tag, output_dir, show_stats=False):
 
