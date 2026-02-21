@@ -17,9 +17,6 @@ def generate_Frames(counts_s_pixel_convolved_nuv, counts_s_pixel_convolved_vis, 
     header = initialize_fits_header(star)
 
     if n_bias_and_darkframes > 0:
-        logging.info("Creating Bias and Dark Frames.")
-        print("Creating Bias and Dark Frames.")
-
         bias_nuv_frames, bias_nuv_headers = generate_bias_frames(nuv_cfg, n_bias_and_darkframes, header)
         bias_vis_frames, bias_vis_headers = generate_bias_frames(vis_cfg, n_bias_and_darkframes, header)
         dark_nuv_frames, dark_nuv_headers = generate_dark_frames(nuv_cfg, n_bias_and_darkframes, user_cfg.exposure_NUV_s, header)
@@ -45,9 +42,9 @@ def generate_Frames(counts_s_pixel_convolved_nuv, counts_s_pixel_convolved_vis, 
         # write science FITS
         write_fits_frames(science_nuv_frames, science_nuv_headers, "science", nuv_cfg.channel_name, output_dir)
         write_fits_frames(science_vis_frames, science_vis_headers, "science", vis_cfg.channel_name, output_dir)
-        # # Write PNGs
+        # Write PNGs
         if global_cfg.write_science_frames_png:
             write_frames_png(science_nuv_frames, science_nuv_headers, "science", nuv_cfg.channel_name, output_dir, show_stats=True)
             write_frames_png(science_vis_frames, science_vis_headers, "science", vis_cfg.channel_name, output_dir, show_stats=True)
-
-
+    else:
+        logging.info("SCIENCE: n_science_frames=%d → skipped.", n_science_frames)

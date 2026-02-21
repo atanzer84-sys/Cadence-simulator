@@ -5,8 +5,8 @@ from frame.dark import generate_dark_frame
 
 def generate_science_frames(counts_s_pixel_convolved, channel_cfg, channel_cal, n_frames, exposure_time_s, base_header):
 
-    logging.info("Building Science Frames: n_frames=%d.", n_frames)
-
+    logging.info("SCIENCE: generating %d science frames for %s (%d x %d), exptime_s=%g.", n_frames, channel_cfg.channel_name, channel_cfg.x_pixels, channel_cfg.y_pixels, exposure_time_s)
+    print(f"Creating SCIENCE Frames for channel {channel_cfg.channel_name}.")
     ccd_gain = channel_cfg.ccd_gain
 
     science_frames = []
@@ -14,13 +14,19 @@ def generate_science_frames(counts_s_pixel_convolved, channel_cfg, channel_cal, 
 
     for i in range(n_frames):
         header = base_header.copy()
-        header.append(("FILETYPE", "SCIENCE",                   "Type of observation"))
-        header.append(("CHANNEL", channel_cfg.channel_name,     "Detector channel"))
-        header.append(("EXP_ID", f"Science {i+1}",              "Exposure ID"))
-        header.append(("OBS_ID", f"Obs Science {i+1}",          "Observation ID"))
-        header.append(("EXPTIME",  float(exposure_time_s),      "Exposure time of observation"))
-        header.append(("CCDGAIN",  ccd_gain,                    "CCD gain"))
-
+        header.append(("FILETYPE",  "SCIENCE",                              "Type of observation"))
+        header.append(("CHANNEL",   channel_cfg.channel_name,               "Detector channel"))
+        header.append(("EXP_ID",    f"Science {i+1}",                       "Exposure ID"))
+        header.append(("OBS_ID",    f"Obs Science {i+1}",                   "Observation ID"))
+        header.append(("EXPTIME",   float(exposure_time_s),                 "Exposure time of observation"))
+        header.append(("YCUT1",     0,                                      "Exposure time of observation"))
+        header.append(("YCUT2",     channel_cfg.y_pixels-1,                 "Exposure time of observation"))
+        header.append(("CCDGAIN",   ccd_gain,                               "CCD gain"))
+        header.append(("B_OFFSET",  float(channel_cfg.bias_offset),         "Bias offset used to generate frame"))
+        header.append(("RNOISE",    float(channel_cfg.read_noise),          "Bias Read noise used to generate frame"))
+        header.append(("DARKSIG",   float(channel_cfg.dark_current_sigma),  "Dark noise sigma used to generate frame"))
+        header.append(("DARKVAL",   float(channel_cfg.dark_noise),          "Input dark value used to generate frame"))
+ 
         # generate new detector image
         detector_image, header = spread_1d_spectrum_to_2d(counts_s_pixel_convolved, channel_cfg, channel_cal, header)
 
@@ -103,14 +109,6 @@ def _spread_1d_to_2d_gaussian(counts_s_pixel_convolved, channel_cfg, channel_cal
         for y in range(ny):
             image[y, x] = counts_s_pixel_convolved[x] * w[y]
 
-    if header is not None:
-        header.append(("MEAN",     float(image.mean()),                 "Mean value of the frame"))
-        header.append(("MEDIAN",   float(np.median(image)),             "Median value of the frame"))
-        header.append(("MAX",      float(image.max()),                  "Maximum value of the frame"))
-        header.append(("MIN",      float(image.min()),                  "Minimum value of the frame"))
-        header.append(("DARKVAL",  float(channel_cfg.dark_noise),       "Input dark value"))
-        header.append(("B_OFFSET", float(channel_cfg.bias_offset),      "Bias offset used to generate frame"))
-        header.append(("RNOISE",   float(channel_cfg.read_noise),       "Read noise sigma used to generate frame"))
 
     logging.info("GAUSSIAN SPREAD RESULT: channel=%s shape=(%d,%d) sum=%g", channel_cfg.channel_name, image.shape[0], image.shape[1], float(image.sum()))
     col_sums = image.sum(axis=0)
@@ -157,13 +155,6 @@ def _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel_cfg, channel_cal,
 
     col_sums = image.sum(axis=0)
     logging.info("PROFILE SPREAD CHECK: channel=%s input_sum=%g image_sum=%g max_abs_diff=%g", channel_cfg.channel_name, float(np.sum(counts_s_pixel_convolved)), float(np.sum(image)), float(np.max(np.abs(col_sums - counts_s_pixel_convolved))))
-
-    if header is not None:
-        header.append(("MEAN", float(image.mean()), "Mean value of the frame"))
-        header.append(("MEDIAN", float(np.median(image)), "Median value of the frame"))
-        header.append(("MAX", float(image.max()), "Maximum value of the frame"))
-        header.append(("MIN", float(image.min()), "Minimum value of the frame"))
-
 
 
     return image, header

@@ -5,6 +5,7 @@ import logging
 def generate_bias_frames(channel_cfg, n_frames, base_header):
 
     logging.info("BIAS: generating %d bias frames for %s (%d x %d).", n_frames, channel_cfg.channel_name, channel_cfg.x_pixels, channel_cfg.y_pixels)
+    print(f"Creating BIAS Frames for channel {channel_cfg.channel_name}.")
 
     bias_frames = []
     bias_headers = []
@@ -46,6 +47,8 @@ def generate_bias_frame(channel_cfg, header=None):
         header.append(("B_OFFSET",  float(bias_offset),     "Threshold bias value applied"))
         header.append(("RNOISE",    float(read_noise),      "Readout noise"))
         header.append(("EXPTIME",   0.0,                    "Exposure time of observation"))
-        header.append(("CCDGAIN",   ccd_gain,                    "CCD gain"))
+        header.append(("YCUT1",     0,                      "Bottom of science box extraction"))
+        header.append(("YCUT2",     ny-1,                   "Top of science box extraction"))
+        header.append(("CCDGAIN",   ccd_gain,               "CCD gain"))
 
     return bias, header

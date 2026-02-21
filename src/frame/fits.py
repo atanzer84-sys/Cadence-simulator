@@ -12,6 +12,7 @@ def write_fits_frames(frames, headers, frame_type, channel_tag, output_dir):
 
     for k, (frame, header) in enumerate(zip(frames, headers)):
         filename = output_dir / f"WALTzER_{channel_tag}_{frame_type}_{k:05d}.fits"
+        header.append(("FILENAME", f"WALTzER_{channel_tag}_{frame_type}_{k:05d}.fits", "Output FITS filename"))
         fits.PrimaryHDU(data=frame, header=header).writeto(filename, overwrite=True)
         logging.debug("Wrote %s", filename)
 

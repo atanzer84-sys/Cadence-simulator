@@ -7,6 +7,8 @@ from frame.bias import generate_bias_frame
 def generate_dark_frames(channel_cfg, n_frames, exptime_s, base_header):
 
     logging.info("DARK: generating %d dark frames for %s (%d x %d), exptime_s=%g.", n_frames, channel_cfg.channel_name, channel_cfg.x_pixels, channel_cfg.y_pixels, exptime_s)
+    print(f"Creating DARK Frames for channel {channel_cfg.channel_name}.")
+    
 
     dark_frames = []
     dark_headers = []
@@ -54,8 +56,10 @@ def generate_dark_frame(channel_cfg, exptime_s, header=None):
         header.append(("DARKVAL",  float(dark_noise),               "Input dark value"))
         header.append(("DARKSIG",  float(dark_current_sigma),       "Dark noise sigma (e-/s/pixel)"))
         header.append(("EXPTIME",  float(exptime_s),                "Exposure time of observation"))
+        header.append(("YCUT1",     0,                              "Bottom of science box extraction"))
+        header.append(("YCUT2",     ny-1,                           "Top of science box extraction"))
         header.append(("B_OFFSET", float(channel_cfg.bias_offset),  "Bias offset used to generate frame"))
-        header.append(("RNOISE",   float(channel_cfg.read_noise),   "Read noise sigma used to generate frame"))
+        header.append(("RNOISE",   float(channel_cfg.read_noise),   "Bias Read noise used to generate frame"))
         header.append(("CCDGAIN",  ccd_gain,                        "CCD gain"))
 
     return dark, header
