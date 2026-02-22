@@ -59,7 +59,7 @@ def test_gaussian_spread_basic():
 
     counts = np.array([1, 2, 3, 4, 5], dtype=float)
 
-    image, header = _spread_1d_to_2d_gaussian(counts, cfg, cal, header=[])
+    image, _ = _spread_1d_to_2d_gaussian(counts, cfg, cal, header=[])
 
     assert image.shape == (cfg.y_pixels, cfg.x_pixels)
     assert np.allclose(image.sum(axis=0), counts)
@@ -82,7 +82,7 @@ def test_gaussian_spread_column_mismatch_error():
     cal = DummyCal()
     counts = np.array([1, 2, 3, 4, 5], dtype=float)
 
-    image, header = _spread_1d_to_2d_gaussian(counts, cfg, cal, header=[])
+    image, _ = _spread_1d_to_2d_gaussian(counts, cfg, cal, header=[])
 
     # Break column sums artificially
     image[:, 0] *= 2
@@ -103,7 +103,7 @@ def test_profile_spread_basic():
 
     counts = np.array([10, 20, 30, 40, 50], dtype=float)
 
-    image, header = _spread_1d_to_2d_profile(counts, cfg, cal, header=[])
+    image, _ = _spread_1d_to_2d_profile(counts, cfg, cal, header=[])
 
     assert image.shape == (cfg.y_pixels, cfg.x_pixels)
     assert np.allclose(image.sum(axis=0), counts)
@@ -128,7 +128,7 @@ def test_profile_spread_out_of_bounds_y_positions():
     cal.spread_y_positions = np.array([100, 200, 300])
     counts = np.ones(cfg.x_pixels)
 
-    image, header = _spread_1d_to_2d_profile(counts, cfg, cal, header=[])
+    image, _ = _spread_1d_to_2d_profile(counts, cfg, cal, header=[])
 
     assert image.shape == (cfg.y_pixels, cfg.x_pixels)
 

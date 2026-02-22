@@ -1,7 +1,6 @@
 import logging
 import matplotlib.pyplot as plt
 from pathlib import Path
-from typing import Any
 from utils.constants import debug_wavelength_range_ir, debug_wavelength_range_nuv, debug_wavelength_range_vis, DEBUG_WL_A_NUV, DEBUG_WL_A_VIS, DEBUG_WL_A_IR
 
 

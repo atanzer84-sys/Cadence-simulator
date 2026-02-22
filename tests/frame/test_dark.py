@@ -77,7 +77,7 @@ def test_generate_dark_frames_multiple(channel_cfg, base_header):
     assert len(headers) == 3
 
     for hdr in headers:
-        keys = [k for (k, v, c) in hdr]   # ← THE ONLY FIX
+        keys = [k for (k, _, _) in hdr]
         assert "FILETYPE" in keys
         assert "CHANNEL" in keys
         assert "EXP_ID" in keys
