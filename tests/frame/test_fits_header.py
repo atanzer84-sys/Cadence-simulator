@@ -2,21 +2,19 @@ import pytest
 from datetime import datetime
 from astropy.io import fits
 from astropy.time import Time
-from frame.fits_header import initialize_fits_header
+
 from domain.star import Star
-import loaders.run_waltzer_context
+from frame.fits_header import initialize_fits_header, FITS_HEADER_KEYS
 
 
 @pytest.fixture
 def star_fixture():
-    """
-    Creates a minimal, stable Star object using Star.from_params().
-    """
+    """Minimal Star via Star.from_params(); uses 'distance' (not distance_pc) per from_params API."""
     params = {
         "name": "TestStar",
         "right_ascension": 123.45,
         "declination": -54.321,
-        "distance_pc": 10.0,
+        "distance": 10.0,
         "mass_sun_kg": 1.0,
         "v_magnitude": 5.0,
         "spectral_type": "G2V",
@@ -39,37 +37,23 @@ def fixed_timestamp():
     return datetime(2024, 1, 1, 12, 0, 0)
 
 
-def test_initialize_fits_header_returns_fits_header(monkeypatch, star_fixture, fixed_timestamp):
-    # This test ensures initialize_fits_header returns a valid FITS header.
-    monkeypatch.setattr(loaders.run_waltzer_context, "GLOBAL_TIMESTAMP", fixed_timestamp)
-
-    header = initialize_fits_header(star_fixture)
+def test_initialize_fits_header_returns_fits_header(star_fixture, fixed_timestamp):
+    """initialize_fits_header returns a valid astropy fits.Header."""
+    header = initialize_fits_header(star_fixture, fixed_timestamp)
     assert isinstance(header, fits.Header)
 
 
-def test_header_contains_required_keys(monkeypatch, star_fixture, fixed_timestamp):
-    # This test verifies that all mandatory FITS header keys are present.
-    monkeypatch.setattr(loaders.run_waltzer_context, "GLOBAL_TIMESTAMP", fixed_timestamp)
+def test_header_contains_required_keys(star_fixture, fixed_timestamp):
+    """All FITS header keys from fits_header.FITS_HEADER_KEYS are present (refactor-safe: single source of truth)."""
+    header = initialize_fits_header(star_fixture, fixed_timestamp)
 
-    header = initialize_fits_header(star_fixture)
-
-    required_keys = [
-        "TELESCOP", "ROOTNAME", "EXP_STRT", "PRGRM_ID",
-        "DATEOBS", "TIMEOBS", "JD", "MJD",
-        "TRGET", "TARGT_ID", "TARGT_D", "TARGT_MS",
-        "VMAG", "RA", "DEC", "GLAT", "GLON",
-        "RA_HEX", "DEC_HEX", "CCDTEMP",
-    ]
-
-    for key in required_keys:
-        assert key in header
+    for key in FITS_HEADER_KEYS:
+        assert key in header, f"Missing header key: {key}"
 
 
-def test_header_values_are_reasonable(monkeypatch, star_fixture, fixed_timestamp):
-    # This test checks that header values match the Star object and fixed metadata.
-    monkeypatch.setattr(loaders.run_waltzer_context, "GLOBAL_TIMESTAMP", fixed_timestamp)
-
-    header = initialize_fits_header(star_fixture)
+def test_header_values_are_reasonable(star_fixture, fixed_timestamp):
+    """Header values match the Star object and fixed metadata."""
+    header = initialize_fits_header(star_fixture, fixed_timestamp)
 
     assert header["TELESCOP"] == "WALTzER"
     assert header["ROOTNAME"] == "WALTzER_output"
@@ -81,11 +65,9 @@ def test_header_values_are_reasonable(monkeypatch, star_fixture, fixed_timestamp
     assert header["CCDTEMP"] == -50.0
 
 
-def test_header_time_fields_are_valid_iso(monkeypatch, star_fixture, fixed_timestamp):
-    # This test ensures timestamp fields are valid ISO‑8601 and parseable by astropy.
-    monkeypatch.setattr(loaders.run_waltzer_context, "GLOBAL_TIMESTAMP", fixed_timestamp)
-
-    header = initialize_fits_header(star_fixture)
+def test_header_time_fields_are_valid_iso(star_fixture, fixed_timestamp):
+    """Timestamp fields (EXP_STRT, DATEOBS, TIMEOBS) are valid ISO‑8601 and parseable by astropy."""
+    header = initialize_fits_header(star_fixture, fixed_timestamp)
 
     exp_strt = header["EXP_STRT"]
     parsed = Time(exp_strt, format="isot")

@@ -1,18 +1,29 @@
+from datetime import datetime
+
 from domain.star import Star
-import loaders.run_waltzer_context
 from flux.flux_calc import calculate_glon_glat
 from astropy.time import Time
 from astropy.coordinates import Angle
 from astropy.io import fits
 
+# Single source of truth: when you add/remove a header key, update this tuple.
+# Tests import it to assert presence without hardcoding keys in the test file.
+FITS_HEADER_KEYS = (
+    "TELESCOP", "ROOTNAME", "EXP_STRT", "PRGRM_ID",
+    "DATEOBS", "TIMEOBS", "JD", "MJD",
+    "TRGET", "TARGT_ID", "TARGT_D", "TARGT_MS",
+    "VMAG", "RA", "DEC", "GLAT", "GLON",
+    "RA_HEX", "GEO_LAT", "GEO_LON", "DEC_HEX",
+    "CCDTEMP",
+)
 
 
-def initialize_fits_header(star: Star):
+def initialize_fits_header(star: Star, timestamp: datetime):
     """
     Create a base FITS header with all fixed keys set.
-    Uses the Output Directory timestamp for EXP_STRT.
+    Uses the given timestamp (typically ctx.timestamp from RunContext) for EXP_STRT.
     """
-    t = loaders.run_waltzer_context.GLOBAL_TIMESTAMP
+    t = timestamp
     time = Time(t, scale='utc')
     ra_hex  = Angle(star.right_ascension, unit="deg").to_string(unit="hour", sep=":", precision=6, pad=True)
     dec_hex = Angle(star.declination, unit="deg").to_string(unit="deg",  sep=":", precision=6, alwayssign=True, pad=True)

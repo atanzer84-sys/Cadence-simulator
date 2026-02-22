@@ -52,11 +52,8 @@ def setup_output_directory():
     Safe for parallel runs: tries to create a directory; if it already exists,
     retries with a different suffix until it succeeds.
     """
-    global GLOBAL_TIMESTAMP
-
     timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-    base_time = datetime.now() 
-    GLOBAL_TIMESTAMP = base_time
+    base_time = datetime.now()
 
     output_root = get_repo_root() / "output"
     output_root.mkdir(parents=True, exist_ok=True)

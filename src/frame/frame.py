@@ -16,7 +16,7 @@ def generate_Frames(counts_s_pixel_convolved_nuv, counts_s_pixel_convolved_vis, 
     n_bias_and_darkframes = global_cfg.n_bias_and_darkframes
     n_science_frames = global_cfg.n_science_frames_per_channel
 
-    header = initialize_fits_header(star)
+    header = initialize_fits_header(star, ctx.timestamp)
 
     if n_bias_and_darkframes > 0:
         bias_nuv_frames, bias_nuv_headers = generate_bias_frames(nuv, n_bias_and_darkframes, header)

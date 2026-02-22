@@ -1,11 +1,6 @@
 import pytest
 from pathlib import Path
 
-from configs.channel_config import (
-    ChannelConfig,
-    load_channel_config,
-)
-
 
 def _write(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8")
