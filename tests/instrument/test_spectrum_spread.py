@@ -3,7 +3,7 @@ import pytest
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from detector.spectrum_spread import (
+from instrument.spectrum_spread import (
     spread_1d_spectrum_to_2d,
     _spread_1d_to_2d_gaussian,
     _spread_1d_to_2d_profile,
@@ -40,10 +40,11 @@ def _channel_base():
     c.channel_name = "NUV"
     c.x_pixels = 5
     c.y_pixels = 7
-     # default anchor at detector center
     c.pixel_scale = 1.0
     c.slit_position_x_arcsec = 0.0
     c.slit_position_y_arcsec = 0.0
+    c.slope = 0.0
+    c.intercept_pixels = 0.0
     c.mode = 1
     c.spread_half_height_pix = 2
     c.ccd_gain = 2.0
@@ -133,9 +134,19 @@ def test_gaussian_spread_column_sum_mismatch_raises():
     channel = _channel_gaussian()
     counts = np.array([1, 2, 3, 4, 5], dtype=float)
 
-    with patch("detector.spectrum_spread.np.allclose", return_value=False):
+    with patch("instrument.spectrum_spread.np.allclose", return_value=False):
         with pytest.raises(ValueError, match="Gaussian spread column sum mismatch"):
             _spread_1d_to_2d_gaussian(counts, channel, header=[])
+
+
+def test_gaussian_spread_rejects_nonzero_slope_or_intercept():
+    """_spread_1d_to_2d_gaussian raises when slope or intercept_pixels is non-zero."""
+    channel = _channel_gaussian()
+    channel.slope = 1.0
+    counts = np.ones(channel.x_pixels)
+
+    with pytest.raises(ValueError, match="slope and intercept_pixels not supported yet"):
+        _spread_1d_to_2d_gaussian(counts, channel, header=[])
 
 
 # ----------------------------------------------------------------------
@@ -181,6 +192,16 @@ def test_profile_spread_weight_shape_mismatch():
     counts = np.ones(channel.x_pixels)
 
     with pytest.raises(IndexError):
+        _spread_1d_to_2d_profile(counts, channel, header=[])
+
+
+def test_profile_spread_rejects_nonzero_slope_or_intercept():
+    """_spread_1d_to_2d_profile raises when slope or intercept_pixels is non-zero."""
+    channel = _channel_profile()
+    channel.slope = 1.0
+    counts = np.ones(channel.x_pixels)
+
+    with pytest.raises(ValueError, match="slope and intercept_pixels not supported yet"):
         _spread_1d_to_2d_profile(counts, channel, header=[])
 
 

@@ -37,7 +37,9 @@ def spread_1d_spectrum_to_2d(counts_s_pixel_convolved, channel: SpectroscopyChan
 
 
 def _spread_1d_to_2d_gaussian(counts_s_pixel_convolved, channel: SpectroscopyChannel, header=None):
-
+    if channel.slope != 0.0 or channel.intercept_pixels != 0.0:
+        logging.error("PROFILE SPREAD ERROR: channel=%s slope=%g intercept=%g not supported", channel.channel_name, channel.slope, channel.intercept_pixels)
+        raise ValueError("slope and intercept_pixels not supported yet")
     nx = channel.x_pixels
     ny = channel.y_pixels
     spread_half_height = channel.spread_half_height_pix
@@ -50,18 +52,18 @@ def _spread_1d_to_2d_gaussian(counts_s_pixel_convolved, channel: SpectroscopyCha
     x0, y0 = _get_spread_starting_position(channel)
     spatial_sigma_pix = float(channel.spread_half_height_pix)
 
-    # build a normalized vertical profile w[y] with sum(w)=1
-    w = np.zeros(ny, dtype=np.float64)
-    for y in range(ny):
-        dy = y - y0
-        w[y] = np.exp(-0.5 * (dy / spatial_sigma_pix) * (dy / spatial_sigma_pix))
+    # # build a normalized vertical profile w[y] with sum(w)=1
+    # w = np.zeros(ny, dtype=np.float64)
+    # for y in range(ny):
+    #     dy = y - y0
+    #     w[y] = np.exp(-0.5 * (dy / spatial_sigma_pix) * (dy / spatial_sigma_pix))
 
-    w_sum = w.sum()
-    if w_sum <= 0.0:
-        logging.info("vertical profile w_sum=%g, normalizing", w_sum)
-        raise ValueError("vertical profile sum <= 0")
-    for y in range(ny):
-        w[y] = w[y] / w_sum
+    # w_sum = w.sum()
+    # if w_sum <= 0.0:
+    #     logging.info("vertical profile w_sum=%g, normalizing", w_sum)
+    #     raise ValueError("vertical profile sum <= 0")
+    # for y in range(ny):
+    #     w[y] = w[y] / w_sum
 
     # fill the 2D image: for each x-column, distribute counts[x] over y using w[y]
     image = np.zeros((ny, nx), dtype=np.float64)
@@ -72,8 +74,23 @@ def _spread_1d_to_2d_gaussian(counts_s_pixel_convolved, channel: SpectroscopyCha
     for i in range(nx):
         x = x0 + i
         if 0 <= x < nx:
+            y_center = y0 + channel.intercept_pixels + channel.slope * (x - x0)
+
+            w = np.zeros(ny, dtype=np.float64)
+            for y in range(ny):
+                dy = y - y_center
+                w[y] = np.exp(-0.5 * (dy / spatial_sigma_pix) * (dy / spatial_sigma_pix))
+
+            w_sum = w.sum()
+            if w_sum <= 0.0:
+                raise ValueError("vertical profile sum <= 0")
+            for y in range(ny):
+                w[y] = w[y] / w_sum
+
             for y in range(ny):
                 image[y, x] = counts_s_pixel_convolved[i] * w[y]
+
+                
     logging.info("GAUSSIAN SPREAD RESULT: channel=%s shape=(%d,%d) sum=%g", channel.channel_name, image.shape[0], image.shape[1], float(image.sum()))
     col_sums = image.sum(axis=0)
     logging.info("GAUSSIAN SPREAD CHECK: channel=%s input_sum=%g image_sum=%g max_abs_diff=%g", channel.channel_name, float(np.sum(counts_s_pixel_convolved)), float(np.sum(image)), float(np.max(np.abs(col_sums - counts_s_pixel_convolved))))
@@ -87,9 +104,13 @@ def _spread_1d_to_2d_gaussian(counts_s_pixel_convolved, channel: SpectroscopyCha
 
 def _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel: SpectroscopyChannel, header=None):
     logging.info("WAVELENGTH DEPENDENT SPREAD: channel=%s spread_file=%s mode=1 profile detected but not yet implemented", channel.channel_name, channel.spread_profile_file)
-
+        
     nx = channel.x_pixels
     ny = channel.y_pixels
+    
+    if channel.slope != 0.0 or channel.intercept_pixels != 0.0:
+        logging.error("PROFILE SPREAD ERROR: channel=%s slope=%g intercept=%g not supported", channel.channel_name, channel.slope, channel.intercept_pixels)
+        raise ValueError("slope and intercept_pixels not supported yet")
 
     spread_y_pos = channel.spread_y_positions
     spread_weigths = channel.spread_y_weights
@@ -120,12 +141,15 @@ def _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel: SpectroscopyChan
     for i in range(nx):
         x = x0 + i
         if 0 <= x < nx:
+            y_center = y0 + channel.intercept_pixels + channel.slope * (x - x0)
+
             lam = float(detector_wavelengths[i])
             j = int(np.argmin(np.abs(spread_wavelengths - lam)))
 
             c = float(counts_s_pixel_convolved[i])
             for k in range(dy.shape[0]):
-                y = int(y0 + dy[k])
+                # y = int(y0 + dy[k])
+                y = int(round(y_center + dy[k]))
                 if 0 <= y < ny:
                     image[y, x] += c * float(spread_weigths[k, j])
 

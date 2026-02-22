@@ -2,7 +2,7 @@ import numpy as np
 import logging
 from frame.dark import generate_dark_frame
 from configs.channel_config import SpectroscopyChannel
-from detector.spectrum_spread import spread_1d_spectrum_to_2d
+from instrument.spectrum_spread import spread_1d_spectrum_to_2d
 
 def generate_science_frames(counts_s_pixel_convolved, channel: SpectroscopyChannel, n_frames, base_header):
 
