@@ -36,6 +36,11 @@ def generate_science_frames(counts_s_pixel_convolved, channel: SpectroscopyChann
 
         # combine into science
         science = dark_frame + (detector_image * exposure_time_s) * ccd_gain
+        header.append(("MEAN",     float(science.mean()),             "Mean value of the frame"))
+        header.append(("MEDIAN",   float(np.median(science)),         "Median value of the frame"))
+        header.append(("STDDEV",   float(science.std()),              "Standard deviation of the frame"))
+        header.append(("MAX",      float(science.max()),              "Maximum value of the frame"))
+        header.append(("MIN",      float(science.min()),              "Minimum value of the frame"))
         science_frames.append(science)
         science_headers.append(header)
 

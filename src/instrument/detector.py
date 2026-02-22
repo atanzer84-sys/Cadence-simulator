@@ -141,6 +141,6 @@ def counts_per_s_px_conv_per_channel(broadened_photon_flux: np.ndarray, waveleng
 
     ctx.test_mode.dump_1d_for_channel(channel.wavelength, counts_s_px_convolved, output_dir, star.name, "Detector_2_counts_s_px_convolved", channel_name=channel.channel_name, full=True, zoom=True)
 
-    ctx.produce_plots.plot_1d_for_channel(channel.wavelength, counts_s_px_convolved, output_dir, star, filename_tag="counts_s_px_convolved", title_text="Convolved Counts", y_label="Counts s⁻¹ pixel⁻¹", channel_name=channel.channel_name, full=True)
+    ctx.produce_plots.plot_1d_for_channel(channel.wavelength, counts_s_px_convolved, output_dir, star, filename_tag="Detector_3_counts_s_px_convolved", title_text="Convolved Counts", y_label="Counts s⁻¹ pixel⁻¹", channel_name=channel.channel_name, full=True)
 
     return counts_s_px_convolved
