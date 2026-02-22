@@ -1,7 +1,7 @@
 import pytest
 from pathlib import Path
 
-import configs.global_ as gc
+import configs.global_config as gc
 
 _CONFIG_DIR = Path(__file__).resolve().parent
 

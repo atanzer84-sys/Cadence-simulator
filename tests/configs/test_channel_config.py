@@ -1,4 +1,4 @@
-from configs.channel import SpectroscopyChannel, PhotometryChannel
+from configs.channel_config import SpectroscopyChannel, PhotometryChannel
 
 def test_spectroscopy_channel_init():
     ch = SpectroscopyChannel(

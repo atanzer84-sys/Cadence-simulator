@@ -1,8 +1,8 @@
 import pytest
 from pathlib import Path
 
-import configs.user as user_config
-from configs.user import load_user_config, get_user_config
+import configs.user_config as user_config
+from configs.user_config import load_user_config, get_user_config
 
 
 @pytest.fixture(autouse=True)

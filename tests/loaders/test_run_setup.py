@@ -5,9 +5,9 @@ from pathlib import Path
 import pytest
 import sys
 from loaders import run_waltzer_context
-import configs.global_ as gc
-from configs.global_ import GlobalConfig
-from loaders.run_waltzer_context import apply_log_r_fallback
+import configs.global_config as gc
+from configs.global_config import GlobalConfig
+from loaders.load_stellar_and_planetary_properties import apply_log_r_fallback
 from configs import user as user_config
 import logging
 

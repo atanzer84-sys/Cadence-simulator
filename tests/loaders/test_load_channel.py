@@ -7,7 +7,7 @@ import pytest
 from dataclasses import dataclass
 from pathlib import Path
 
-from configs.channel import SpectroscopyChannel, PhotometryChannel
+from configs.channel_config import SpectroscopyChannel, PhotometryChannel
 from loaders.load_channel import (
     load_channel_config,
     load_channels_config,
