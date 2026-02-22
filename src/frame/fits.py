@@ -11,9 +11,11 @@ def write_fits_frames(frames, headers, frame_type, channel_tag, ctx: RunContext)
 
     logging.info("Writing %d %s frame(s) for channel %s to %s", n_frames, frame_type, channel_tag, ctx.output_dir)
 
+    star_name = str(ctx.target_name).replace(" ", "_")
     for k, (frame, header) in enumerate(zip(frames, headers)):
-        filename = ctx.output_dir / f"WALTzER_{channel_tag}_{frame_type}_{k:05d}.fits"
-        header.append(("FILENAME", f"WALTzER_{channel_tag}_{frame_type}_{k:05d}.fits", "Output FITS filename"))
+        fname = f"WALTzER_{star_name}_{channel_tag}_{frame_type}_{k:05d}.fits"
+        filename = ctx.output_dir / fname
+        header.append(("FILENAME", fname, "Output FITS filename"))
         fits.PrimaryHDU(data=frame, header=header).writeto(filename, overwrite=True)
         logging.debug("Wrote %s", filename)
 
