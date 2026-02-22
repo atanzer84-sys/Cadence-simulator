@@ -101,21 +101,34 @@ def _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel: SpectroscopyChan
         raise ValueError("Detector wavelength grid length mismatch")
 
     dy = np.round(spread_y_pos).astype(np.int64)
-    y0 = ny // 2
+    x0, y0 = _get_spread_starting_position(channel)
 
     logging.info("PROFILE SPREAD START: channel=%s spread_file=%s nx=%d ny=%d n_bins=%d y0=%d", channel.channel_name, channel.spread_profile_file, int(nx), int(ny), int(spread_wavelengths.shape[0]), int(y0))
 
     image = np.zeros((ny, nx), dtype=np.float64)
 
-    for x in range(nx):
-        lam = float(detector_wavelengths[x])
-        j = int(np.argmin(np.abs(spread_wavelengths - lam)))
+    # for x in range(nx):
+    #     lam = float(detector_wavelengths[x])
+    #     j = int(np.argmin(np.abs(spread_wavelengths - lam)))
 
-        c = float(counts_s_pixel_convolved[x])
-        for i in range(dy.shape[0]):
-            y = int(y0 + dy[i])
-            if 0 <= y < ny:
-                image[y, x] += c * float(spread_weigths[i, j])
+    #     c = float(counts_s_pixel_convolved[x])
+    #     for i in range(dy.shape[0]):
+    #         y = int(y0 + dy[i])
+    #         if 0 <= y < ny:
+    #             image[y, x] += c * float(spread_weigths[i, j])
+
+    for i in range(nx):
+        x = x0 + i
+        if 0 <= x < nx:
+            lam = float(detector_wavelengths[i])
+            j = int(np.argmin(np.abs(spread_wavelengths - lam)))
+
+            c = float(counts_s_pixel_convolved[i])
+            for k in range(dy.shape[0]):
+                y = int(y0 + dy[k])
+                if 0 <= y < ny:
+                    image[y, x] += c * float(spread_weigths[k, j])
+
 
     col_sums = image.sum(axis=0)
     logging.info("PROFILE SPREAD CHECK: channel=%s input_sum=%g image_sum=%g max_abs_diff=%g", channel.channel_name, float(np.sum(counts_s_pixel_convolved)), float(np.sum(image)), float(np.max(np.abs(col_sums - counts_s_pixel_convolved))))

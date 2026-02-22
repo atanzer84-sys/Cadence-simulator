@@ -7,6 +7,7 @@ from detector.spectrum_spread import (
     spread_1d_spectrum_to_2d,
     _spread_1d_to_2d_gaussian,
     _spread_1d_to_2d_profile,
+    _get_spread_starting_position,
 )
 
 
@@ -177,3 +178,62 @@ def test_profile_spread_weight_shape_mismatch():
 
     with pytest.raises(IndexError):
         _spread_1d_to_2d_profile(counts, channel, header=[])
+
+
+# ----------------------------------------------------------------------
+# TESTS FOR _get_spread_starting_position (anchor logic)
+# ----------------------------------------------------------------------
+
+
+def _anchor_channel(
+    x_pixels=10,
+    y_pixels=10,
+    pixel_scale=1.0,
+    slit_x_arcsec=0.0,
+    slit_y_arcsec=0.0,
+):
+    """Minimal channel namespace for _get_spread_starting_position tests."""
+    return SimpleNamespace(
+        channel_name="TEST",
+        x_pixels=x_pixels,
+        y_pixels=y_pixels,
+        pixel_scale=pixel_scale,
+        slit_position_x_arcsec=slit_x_arcsec,
+        slit_position_y_arcsec=slit_y_arcsec,
+    )
+
+
+def test_get_spread_starting_position_center():
+    """With zero slit offsets, anchor is at detector center in y and x=0."""
+    ch = _anchor_channel(y_pixels=10, slit_x_arcsec=0.0, slit_y_arcsec=0.0, pixel_scale=1.0)
+
+    x0, y0 = _get_spread_starting_position(ch)
+
+    assert x0 == 0
+    assert y0 == ch.y_pixels // 2
+
+
+def test_get_spread_starting_position_horizontal_shift_not_supported():
+    """Non-zero slit_position_x_arcsec raises a ValueError."""
+    ch = _anchor_channel(slit_x_arcsec=1.0, slit_y_arcsec=0.0, pixel_scale=1.0)
+
+    with pytest.raises(ValueError, match="Horizontal slit_position_x_arcsec"):
+        _get_spread_starting_position(ch)
+
+
+def test_get_spread_starting_position_y_below_detector_raises():
+    """Negative y0 (slit below detector) raises a ValueError."""
+    # For ny=10, ny//2=5; choose slit_y_arcsec so y0 ≈ -1 → 5 + slit_y = -1 ⇒ slit_y=-6
+    ch = _anchor_channel(y_pixels=10, slit_y_arcsec=-6.0, pixel_scale=1.0)
+
+    with pytest.raises(ValueError, match="slit_position_y_arcsec places spectrum outside detector"):
+        _get_spread_starting_position(ch)
+
+
+def test_get_spread_starting_position_y_above_detector_raises():
+    """y0 >= ny (slit above detector) raises a ValueError."""
+    # For ny=10, ny//2=5; choose slit_y_arcsec so y0 ≈ 10 → 5 + slit_y = 10 ⇒ slit_y=5
+    ch = _anchor_channel(y_pixels=10, slit_y_arcsec=5.0, pixel_scale=1.0)
+
+    with pytest.raises(ValueError, match="slit_position_y_arcsec places spectrum outside detector"):
+        _get_spread_starting_position(ch)
