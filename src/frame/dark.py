@@ -58,10 +58,10 @@ def generate_dark_frame(channel: SpectroscopyChannel, header=None):
         header.append(("DARKVAL",  float(dark_noise),               "Input dark value"))
         header.append(("DARKSIG",  float(dark_current_sigma),       "Dark noise sigma (e-/s/pixel)"))
         header.append(("EXPTIME",  float(exptime_s),                "Exposure time of observation"))
-        header.append(("YCUT1",     0,                              "Bottom of science box extraction"))
-        header.append(("YCUT2",     ny-1,                           "Top of science box extraction"))
         header.append(("B_OFFSET", float(channel.bias_offset),  "Bias offset used to generate frame"))
         header.append(("RNOISE",   float(channel.read_noise),   "Bias Read noise used to generate frame"))
+        header.append(("YCUT1",     0,                              "Bottom of science box extraction"))
+        header.append(("YCUT2",     ny-1,                           "Top of science box extraction"))
         header.append(("CCDGAIN",  ccd_gain,                        "CCD gain"))
 
     return dark, header

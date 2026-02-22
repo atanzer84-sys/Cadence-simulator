@@ -5,7 +5,29 @@ from utils.constants import debug_wavelength_range_ir, debug_wavelength_range_nu
 from loaders.run_waltzer_context import RunContext
 from domain.star import Star
 
-def write_frames_png(frames, headers, frame_type, channel_tag, ctx: RunContext, show_stats=False):
+STATS_KEYS = {
+    "BIAS": ["MEAN", "MEDIAN", "STDDEV", "MIN", "MAX", "RNOISE", "B_OFFSET"],
+    "DARK": ["MEAN", "MEDIAN", "STDDEV", "MIN", "MAX", "DARKVAL", "DARKSIG", "EXPTIME", "B_OFFSET", "RNOISE"],
+    "SCIENCE": ["EXPTIME", "DARKVAL", "DARKSIG", "B_OFFSET", "RNOISE"],
+}
+
+
+def _header_val(header, key):
+    if hasattr(header, "get"):
+        return header.get(key)
+    for item in header:
+        if len(item) >= 2 and item[0] == key:
+            return item[1]
+    return None
+
+
+def _stats_keys_for_header(header):
+    ft = _header_val(header, "FILETYPE")
+    filetype = str(ft).upper() if ft else "BIAS"
+    return STATS_KEYS.get(filetype, STATS_KEYS["BIAS"])
+
+
+def write_frames_png(frames, headers, frame_type, channel_tag, ctx: RunContext, star: Star, show_stats=False):
 
     n_frames = len(frames)
     if n_frames == 0:
@@ -30,21 +52,22 @@ def write_frames_png(frames, headers, frame_type, channel_tag, ctx: RunContext, 
         ax.imshow(frame, origin="lower", aspect="equal", cmap="gray")
         ax.set_xlim(-0.5, nx - 0.5)
         ax.set_ylim(-0.5, ny - 0.5)
-        ax.set_title(f"{channel_tag} {frame_type} {k}")
+        ax.set_title(f"{star.name}: {channel_tag} {frame_type} {k} | M={star.mass} M☉, d={star.distance_pc} pc", fontsize=11)
 
         ax_txt = fig.add_subplot(gs[1, 0])
         ax_txt.axis("off")
 
         if show_stats:
-            stats_text = (
-                f"{format_header(header, 'MEAN')}    "
-                f"{format_header(header, 'MEDIAN')}    "
-                f"{format_header(header, 'STDDEV')}    "
-                f"{format_header(header, 'MIN')}    "
-                f"{format_header(header, 'MAX')}\n"
-                f"{format_header(header, 'RNOISE', '')}    "
-                f"{format_header(header, 'B_OFFSET', '')}"
-            )
+            keys = _stats_keys_for_header(header)
+            parts = []
+            for i, k in enumerate(keys):
+                fmt = "" if k in ("RNOISE", "B_OFFSET") else ".2f"
+                parts.append(format_header(header, k, fmt))
+                if (i + 1) % 5 == 0 and i + 1 < len(keys):
+                    parts.append("\n")
+                elif i + 1 < len(keys):
+                    parts.append("    ")
+            stats_text = "".join(parts)
 
             ax_txt.text(
                 0.5, 0.5, stats_text,
@@ -62,10 +85,10 @@ def write_frames_png(frames, headers, frame_type, channel_tag, ctx: RunContext, 
 
 
 def format_header(header, key, fmt_str=".2f"):
-    val = header.get(key)
+    val = _header_val(header, key)
     if val is None:
         return f"{key}=n/a"
-    return f"{key}={format(val, fmt_str)}"
+    return f"{key}={format(val, fmt_str)}" if fmt_str else f"{key}={val}"
 
 
 def plot_photon_flux(wavelengths, values, output_dir, star : Star, filename_tag, title_text, y_label, key, wmin, wmax):

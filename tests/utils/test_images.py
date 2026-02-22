@@ -25,10 +25,14 @@ def test_format_header_custom_fmt_str():
     assert format_header(hdr, "X", ".4f") == "X=3.1416"
 
 
+def _dummy_star():
+    return SimpleNamespace(name="TestStar", mass=1.0, distance_pc=10.0)
+
+
 def test_write_frames_png_empty_frames_returns_without_creating_files(tmp_path):
     """write_frames_png with empty frames returns early; no PNG files created."""
     ctx = SimpleNamespace(output_dir=tmp_path)
-    write_frames_png([], [], "BIAS", "NUV", ctx)
+    write_frames_png([], [], "BIAS", "NUV", ctx, _dummy_star())
     assert list(tmp_path.glob("*.png")) == []
 
 
@@ -38,7 +42,7 @@ def test_write_frames_png_writes_one_file(tmp_path):
     frame = np.zeros((4, 4), dtype=float)
     hdr = {}
 
-    write_frames_png([frame], [hdr], "bias", "NUV", ctx)
+    write_frames_png([frame], [hdr], "bias", "NUV", ctx, _dummy_star())
 
     out = tmp_path / "WALTzER_NUV_bias_00000.png"
     assert out.exists()
