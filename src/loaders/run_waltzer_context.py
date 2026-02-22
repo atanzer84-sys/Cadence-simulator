@@ -2,8 +2,8 @@ import sys
 import logging
 from pathlib import Path
 from datetime import datetime
-from configs.user_config import load_user_config, get_user_config
-from configs.global_config import load_global_config
+from configs.user import load_user_config, get_user_config
+from configs.global_ import load_global_config
 
 from dataclasses import dataclass
 from datetime import datetime
