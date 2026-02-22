@@ -1,11 +1,12 @@
 
 import numpy as np
 import logging
+from configs.channel import SpectroscopyChannel
 
-def generate_bias_frames(channel_cfg, n_frames, base_header):
+def generate_bias_frames(channel: SpectroscopyChannel, n_frames, base_header):
 
-    logging.info("BIAS: generating %d bias frames for %s (%d x %d).", n_frames, channel_cfg.channel_name, channel_cfg.x_pixels, channel_cfg.y_pixels)
-    print(f"Creating BIAS Frames for channel {channel_cfg.channel_name}.")
+    logging.info("BIAS: generating %d bias frames for %s (%d x %d).", n_frames, channel.channel_name, channel.x_pixels, channel.y_pixels)
+    print(f"Creating BIAS Frames for channel {channel.channel_name}.")
 
     bias_frames = []
     bias_headers = []
@@ -13,30 +14,30 @@ def generate_bias_frames(channel_cfg, n_frames, base_header):
     for i in range(n_frames):
         header = base_header.copy()
         header.append(("FILETYPE", "BIAS", "Type of observation"))
-        header.append(("CHANNEL", channel_cfg.channel_name, "Detector channel"))
+        header.append(("CHANNEL", channel.channel_name, "Detector channel"))
         header.append(("EXP_ID", f"Bias {i+1}", "Exposure ID"))
         header.append(("OBS_ID", f"Obs Bias {i+1}", "Observation ID"))
 
-        frame, header = generate_bias_frame(channel_cfg, header)
+        frame, header = generate_bias_frame(channel, header)
 
         bias_frames.append(frame)
         bias_headers.append(header)
 
     return bias_frames, bias_headers
 
-def generate_bias_frame(channel_cfg, header=None):
+def generate_bias_frame(channel: SpectroscopyChannel, header=None):
     '''
     Bias = Offset (bias_offset) + Gaussian Noise (read_noise)
     '''
-    nx = channel_cfg.x_pixels
-    ny = channel_cfg.y_pixels
-    bias_offset = channel_cfg.bias_offset
-    read_noise = channel_cfg.read_noise
-    ccd_gain = channel_cfg.ccd_gain
+    nx = channel.x_pixels
+    ny = channel.y_pixels
+    bias_offset = channel.bias_offset
+    read_noise = channel.read_noise
+    ccd_gain = channel.ccd_gain
 
     bias = (bias_offset + np.random.normal(0.0, read_noise, size=(ny, nx))) * ccd_gain
 
-    logging.info("BIAS STATS %s mean=%g std=%g min=%g max=%g", channel_cfg.channel_name, bias.mean(), bias.std(), bias.min(), bias.max())
+    logging.info("BIAS STATS %s mean=%g std=%g min=%g max=%g", channel.channel_name, bias.mean(), bias.std(), bias.min(), bias.max())
 
     if header is not None:
         header.append(("MEAN",      float(bias.mean()),     "Mean value of the frame"))

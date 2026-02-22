@@ -2,37 +2,39 @@ import numpy as np
 import logging
 from frame.bias import generate_bias_frame
 from frame.dark import generate_dark_frame
+from configs.channel import SpectroscopyChannel
 
-def generate_science_frames(counts_s_pixel_convolved, channel_cfg, channel_cal, n_frames, exposure_time_s, base_header):
+def generate_science_frames(counts_s_pixel_convolved, channel: SpectroscopyChannel, n_frames, base_header):
 
-    logging.info("SCIENCE: generating %d science frames for %s (%d x %d), exptime_s=%g.", n_frames, channel_cfg.channel_name, channel_cfg.x_pixels, channel_cfg.y_pixels, exposure_time_s)
-    print(f"Creating SCIENCE Frames for channel {channel_cfg.channel_name}.")
-    ccd_gain = channel_cfg.ccd_gain
+    exposure_time_s = channel.exposure_s
+    logging.info("SCIENCE: generating %d science frames for %s (%d x %d), exptime_s=%g.", n_frames, channel.channel_name, channel.x_pixels, channel.y_pixels, exposure_time_s)
+    print(f"Creating SCIENCE Frames for channel {channel.channel_name}.")
+    ccd_gain = channel.ccd_gain
 
     science_frames = []
     science_headers = []
 
     for i in range(n_frames):
         header = base_header.copy()
-        header.append(("FILETYPE",  "SCIENCE",                              "Type of observation"))
-        header.append(("CHANNEL",   channel_cfg.channel_name,               "Detector channel"))
-        header.append(("EXP_ID",    f"Science {i+1}",                       "Exposure ID"))
-        header.append(("OBS_ID",    f"Obs Science {i+1}",                   "Observation ID"))
-        header.append(("EXPTIME",   float(exposure_time_s),                 "Exposure time of observation"))
-        header.append(("YCUT1",     0,                                      "Exposure time of observation"))
-        header.append(("YCUT2",     channel_cfg.y_pixels-1,                 "Exposure time of observation"))
-        header.append(("CCDGAIN",   ccd_gain,                               "CCD gain"))
-        header.append(("B_OFFSET",  float(channel_cfg.bias_offset),         "Bias offset used to generate frame"))
-        header.append(("RNOISE",    float(channel_cfg.read_noise),          "Bias Read noise used to generate frame"))
-        header.append(("DARKSIG",   float(channel_cfg.dark_current_sigma),  "Dark noise sigma used to generate frame"))
-        header.append(("DARKVAL",   float(channel_cfg.dark_noise),          "Input dark value used to generate frame"))
+        header.append(("FILETYPE",  "SCIENCE",                          "Type of observation"))
+        header.append(("CHANNEL",   channel.channel_name,               "Detector channel"))
+        header.append(("EXP_ID",    f"Science {i+1}",                   "Exposure ID"))
+        header.append(("OBS_ID",    f"Obs Science {i+1}",               "Observation ID"))
+        header.append(("EXPTIME",   float(exposure_time_s),             "Exposure time of observation"))
+        header.append(("YCUT1",     0,                                  "Exposure time of observation"))
+        header.append(("YCUT2",     channel.y_pixels-1,                 "Exposure time of observation"))
+        header.append(("CCDGAIN",   ccd_gain,                           "CCD gain"))
+        header.append(("B_OFFSET",  float(channel.bias_offset),         "Bias offset used to generate frame"))
+        header.append(("RNOISE",    float(channel.read_noise),          "Bias Read noise used to generate frame"))
+        header.append(("DARKSIG",   float(channel.dark_current_sigma),  "Dark noise sigma used to generate frame"))
+        header.append(("DARKVAL",   float(channel.dark_noise),          "Input dark value used to generate frame"))
  
         # generate new detector image
-        detector_image, header = spread_1d_spectrum_to_2d(counts_s_pixel_convolved, channel_cfg, channel_cal, header)
+        detector_image, header = spread_1d_spectrum_to_2d(counts_s_pixel_convolved, channel, header)
 
         # generate new bias and dark
-        bias_frame, _ = generate_bias_frame(channel_cfg, header = None)
-        dark_frame, _ = generate_dark_frame(channel_cfg, exposure_time_s, header = None)
+        bias_frame, _ = generate_bias_frame(channel, header = None)
+        dark_frame, _ = generate_dark_frame(channel, header = None)
 
         # combine into science
         science = bias_frame + dark_frame + (detector_image * exposure_time_s) * ccd_gain
@@ -42,51 +44,51 @@ def generate_science_frames(counts_s_pixel_convolved, channel_cfg, channel_cal, 
     return science_frames, science_headers
 
 
-def spread_1d_spectrum_to_2d(counts_s_pixel_convolved, channel_cfg, channel_cal, header=None):
+def spread_1d_spectrum_to_2d(counts_s_pixel_convolved, channel: SpectroscopyChannel, header=None):
 
-    logging.info("Building single Science Frame: channel=%s.", channel_cfg.channel_name)
+    logging.info("Building single Science Frame: channel=%s.", channel.channel_name)
 
-    nx = channel_cfg.x_pixels
-    mode = channel_cfg.mode
+    nx = channel.x_pixels
+    mode = channel.mode
 
     if len(counts_s_pixel_convolved) != nx:
-        logging.error("PROFILE SPREAD ERROR: channel=%s counts_len=%d nx=%d", channel_cfg.channel_name, int(len(counts_s_pixel_convolved)), int(nx))
-        print(f"PROFILE SPREAD ERROR: channel={channel_cfg.channel_name} counts_len={len(counts_s_pixel_convolved)} nx={nx}")
+        logging.error("PROFILE SPREAD ERROR: channel=%s counts_len=%d nx=%d", channel.channel_name, int(len(counts_s_pixel_convolved)), int(nx))
+        print(f"PROFILE SPREAD ERROR: channel={channel.channel_name} counts_len={len(counts_s_pixel_convolved)} nx={nx}")
         raise ValueError(f"Counts length {len(counts_s_pixel_convolved)} does not match nx {nx}")
 
     # no lookup or high resolution spectrograph spreading as of now.
     if mode == 1:
 
         if (
-            channel_cal.spread_y_positions is not None
-            and channel_cal.spread_y_weights is not None
-            and channel_cal.spread_y_wavelengths is not None
+            channel.spread_y_positions is not None
+            and channel.spread_y_weights is not None
+            and channel.spread_y_wavelengths is not None
         ):
             # wavelength dependent spreading will be used
-            return _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel_cfg, channel_cal, header=header)
+            return _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel, header=header)
 
         else:
             # Gaussian dependent spreading
-            return _spread_1d_to_2d_gaussian(counts_s_pixel_convolved, channel_cfg, channel_cal, header=header)
+            return _spread_1d_to_2d_gaussian(counts_s_pixel_convolved, channel, header=header)
            
     msg = f"mode={mode} not implemented yet (only mode=1 is supported)"
     logging.error(msg)
     raise NotImplementedError(msg)
 
 
-def _spread_1d_to_2d_gaussian(counts_s_pixel_convolved, channel_cfg, channel_cal, header=None):
+def _spread_1d_to_2d_gaussian(counts_s_pixel_convolved, channel: SpectroscopyChannel, header=None):
 
-    nx = channel_cfg.x_pixels
-    ny = channel_cfg.y_pixels
-    spread_half_height = channel_cfg.spread_half_height_pix
+    nx = channel.x_pixels
+    ny = channel.y_pixels
+    spread_half_height = channel.spread_half_height_pix
 
     if spread_half_height <= 0:
-        logging.error("SPREAD CONFIG ERROR: channel=%s no spread profile and spread_half_height_pix=%d", channel_cfg.channel_name, channel_cfg.spread_half_height_pix)
+        logging.error("SPREAD CONFIG ERROR: channel=%s no spread profile and spread_half_height_pix=%d", channel.channel_name, channel.spread_half_height_pix)
         raise ValueError("No cross-dispersion spreading configured")    
 
     # choose a fixed trace center (placeholder)
     y0 = ny // 2
-    spatial_sigma_pix = float(channel_cfg.spread_half_height_pix)
+    spatial_sigma_pix = float(channel.spread_half_height_pix)
 
     # build a normalized vertical profile w[y] with sum(w)=1
     w = np.zeros(ny, dtype=np.float64)
@@ -110,36 +112,36 @@ def _spread_1d_to_2d_gaussian(counts_s_pixel_convolved, channel_cfg, channel_cal
             image[y, x] = counts_s_pixel_convolved[x] * w[y]
 
 
-    logging.info("GAUSSIAN SPREAD RESULT: channel=%s shape=(%d,%d) sum=%g", channel_cfg.channel_name, image.shape[0], image.shape[1], float(image.sum()))
+    logging.info("GAUSSIAN SPREAD RESULT: channel=%s shape=(%d,%d) sum=%g", channel.channel_name, image.shape[0], image.shape[1], float(image.sum()))
     col_sums = image.sum(axis=0)
-    logging.info("GAUSSIAN SPREAD CHECK: channel=%s input_sum=%g image_sum=%g max_abs_diff=%g", channel_cfg.channel_name, float(np.sum(counts_s_pixel_convolved)), float(np.sum(image)), float(np.max(np.abs(col_sums - counts_s_pixel_convolved))))
+    logging.info("GAUSSIAN SPREAD CHECK: channel=%s input_sum=%g image_sum=%g max_abs_diff=%g", channel.channel_name, float(np.sum(counts_s_pixel_convolved)), float(np.sum(image)), float(np.max(np.abs(col_sums - counts_s_pixel_convolved))))
 
     if not np.allclose(col_sums, counts_s_pixel_convolved, rtol=1e-10, atol=1e-12):
-        logging.error("GAUSSIAN SPREAD CHECK FAILED: channel=%s column sums do not match input counts", channel_cfg.channel_name)
+        logging.error("GAUSSIAN SPREAD CHECK FAILED: channel=%s column sums do not match input counts", channel.channel_name)
         raise ValueError("Gaussian spread column sum mismatch")
 
     return image, header
 
 
-def _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel_cfg, channel_cal, header=None):
-    logging.info("WAVELENGTH DEPENDENT SPREAD: channel=%s spread_file=%s mode=1 profile detected but not yet implemented", channel_cfg.channel_name, channel_cfg.spread_profile_file)
+def _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel: SpectroscopyChannel, header=None):
+    logging.info("WAVELENGTH DEPENDENT SPREAD: channel=%s spread_file=%s mode=1 profile detected but not yet implemented", channel.channel_name, channel.spread_profile_file)
 
-    nx = channel_cfg.x_pixels
-    ny = channel_cfg.y_pixels
+    nx = channel.x_pixels
+    ny = channel.y_pixels
 
-    spread_y_pos = channel_cal.spread_y_positions
-    spread_weigths = channel_cal.spread_y_weights
-    spread_wavelengths = channel_cal.spread_y_wavelengths
-    detector_wavelengths = channel_cal.wavelength
+    spread_y_pos = channel.spread_y_positions
+    spread_weigths = channel.spread_y_weights
+    spread_wavelengths = channel.spread_y_wavelengths
+    detector_wavelengths = channel.wavelength
 
     if len(detector_wavelengths) != nx:
-        logging.error("PROFILE SPREAD ERROR: channel=%s detector wavelength length mismatch", channel_cfg.channel_name)
+        logging.error("PROFILE SPREAD ERROR: channel=%s detector wavelength length mismatch", channel.channel_name)
         raise ValueError("Detector wavelength grid length mismatch")
 
     dy = np.round(spread_y_pos).astype(np.int64)
     y0 = ny // 2
 
-    logging.info("PROFILE SPREAD START: channel=%s spread_file=%s nx=%d ny=%d n_bins=%d y0=%d", channel_cfg.channel_name, channel_cfg.spread_profile_file, int(nx), int(ny), int(spread_wavelengths.shape[0]), int(y0))
+    logging.info("PROFILE SPREAD START: channel=%s spread_file=%s nx=%d ny=%d n_bins=%d y0=%d", channel.channel_name, channel.spread_profile_file, int(nx), int(ny), int(spread_wavelengths.shape[0]), int(y0))
 
     image = np.zeros((ny, nx), dtype=np.float64)
 
@@ -154,7 +156,7 @@ def _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel_cfg, channel_cal,
                 image[y, x] += c * float(spread_weigths[i, j])
 
     col_sums = image.sum(axis=0)
-    logging.info("PROFILE SPREAD CHECK: channel=%s input_sum=%g image_sum=%g max_abs_diff=%g", channel_cfg.channel_name, float(np.sum(counts_s_pixel_convolved)), float(np.sum(image)), float(np.max(np.abs(col_sums - counts_s_pixel_convolved))))
+    logging.info("PROFILE SPREAD CHECK: channel=%s input_sum=%g image_sum=%g max_abs_diff=%g", channel.channel_name, float(np.sum(counts_s_pixel_convolved)), float(np.sum(image)), float(np.max(np.abs(col_sums - counts_s_pixel_convolved))))
 
 
     return image, header

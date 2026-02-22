@@ -1,19 +1,19 @@
+import sys
+import logging
+from loaders.load_channel import load_channels_config
 from loaders.run_setup import initialize_waltzer_runtime, load_cfg_and_user_config, load_stellar_and_planetary_properties
 from domain.star import Star
 from domain.planet import Planet
 from flux.flux_calc import calculateFluxOnEarth
-from instrument.detector import load_channel_response_from_effective_area, counts_per_s_px_conv_all_channels
+from instrument.detector import counts_per_s_px_conv_all_channels
 from frame.frame import generate_Frames
-import sys
-import logging
 
 def main():
     try:
 
         output_dir = initialize_waltzer_runtime()
-        user_cfg, nuv_cfg, vis_cfg, ir_cfg = load_cfg_and_user_config()
-        nuv_cal, vis_cal, _ = load_channel_response_from_effective_area(nuv_cfg, vis_cfg, ir_cfg)
-
+        user_cfg = load_cfg_and_user_config()
+        nuv_channel, vis_channel, ir_channel = load_channels_config(user_cfg)
 
         planet_param, stellar_param, required_planetary_parameters, required_stellar_parameters = load_stellar_and_planetary_properties(user_cfg.target_name)
 
@@ -23,10 +23,10 @@ def main():
         photon_flux_at_earth_A, wavelengths_total = calculateFluxOnEarth(star, output_dir)
 
         # counts per pixel per second convolved to NUV and VIS
-        counts_s_pixel_convolved_nuv, counts_s_pixel_convolved_vis = counts_per_s_px_conv_all_channels(photon_flux_at_earth_A, wavelengths_total, nuv_cal, vis_cal, output_dir, star)
+        counts_s_pixel_convolved_nuv, counts_s_pixel_convolved_vis = counts_per_s_px_conv_all_channels(photon_flux_at_earth_A, wavelengths_total, nuv_channel, vis_channel, output_dir, star)
 
         # generating bias, dark and science frames for NUV, VIS
-        generate_Frames(counts_s_pixel_convolved_nuv, counts_s_pixel_convolved_vis, nuv_cfg, vis_cfg, nuv_cal, vis_cal, user_cfg, output_dir, star)
+        generate_Frames(counts_s_pixel_convolved_nuv, counts_s_pixel_convolved_vis, nuv_channel, vis_channel, user_cfg, output_dir, star)
 
 
     except Exception as e:

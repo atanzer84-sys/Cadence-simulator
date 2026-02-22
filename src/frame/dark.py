@@ -2,12 +2,13 @@
 import numpy as np
 import logging
 from frame.bias import generate_bias_frame
+from configs.channel import SpectroscopyChannel
 
 
-def generate_dark_frames(channel_cfg, n_frames, exptime_s, base_header):
+def generate_dark_frames(channel: SpectroscopyChannel, n_frames, base_header):
 
-    logging.info("DARK: generating %d dark frames for %s (%d x %d), exptime_s=%g.", n_frames, channel_cfg.channel_name, channel_cfg.x_pixels, channel_cfg.y_pixels, exptime_s)
-    print(f"Creating DARK Frames for channel {channel_cfg.channel_name}.")
+    logging.info("DARK: generating %d dark frames for %s (%d x %d), exptime_s=%g.", n_frames, channel.channel_name, channel.x_pixels, channel.y_pixels, channel.exposure_s)
+    print(f"Creating DARK Frames for channel {channel.channel_name}.")
     
 
     dark_frames = []
@@ -16,36 +17,37 @@ def generate_dark_frames(channel_cfg, n_frames, exptime_s, base_header):
     for i in range(n_frames):
         header = base_header.copy()
         header.append(("FILETYPE", "DARK", "Type of observation"))
-        header.append(("CHANNEL", channel_cfg.channel_name, "Detector channel"))
+        header.append(("CHANNEL", channel.channel_name, "Detector channel"))
         header.append(("EXP_ID", f"Dark {i+1}", "Exposure ID"))
         header.append(("OBS_ID", f"Obs Dark {i+1}", "Observation ID"))
 
-        frame, header = generate_dark_frame(channel_cfg, exptime_s, header)
+        frame, header = generate_dark_frame(channel, header)
 
         dark_frames.append(frame)
         dark_headers.append(header)
 
-        logging.info("DARK STATS %s frame=%d mean=%g std=%g min=%g max=%g", channel_cfg.channel_name, i, frame.mean(), frame.std(), frame.min(), frame.max())
+        logging.info("DARK STATS %s frame=%d mean=%g std=%g min=%g max=%g", channel.channel_name, i, frame.mean(), frame.std(), frame.min(), frame.max())
 
     return dark_frames, dark_headers
 
-def generate_dark_frame(channel_cfg, exptime_s, header=None):
+def generate_dark_frame(channel: SpectroscopyChannel, header=None):
     '''
     Dark = Bias + (dark_current * exptime)
     '''
-    dark_noise = channel_cfg.dark_noise
-    dark_current_sigma = channel_cfg.dark_current_sigma
-    nx = channel_cfg.x_pixels
-    ny = channel_cfg.y_pixels
-    ccd_gain = channel_cfg.ccd_gain
-
-    bias, _ = generate_bias_frame(channel_cfg, header=None)
+    dark_noise = channel.dark_noise
+    dark_current_sigma = channel.dark_current_sigma
+    nx = channel.x_pixels
+    ny = channel.y_pixels
+    ccd_gain = channel.ccd_gain
+    exptime_s = channel.exposure_s
+    
+    bias, _ = generate_bias_frame(channel, header=None)
     
     dark_base = np.random.normal(dark_noise, dark_current_sigma, size=(ny, nx))
 
     dark = bias + (dark_base + (dark_noise * exptime_s)) * ccd_gain
 
-    logging.info("DARK STATS %s mean=%g std=%g min=%g max=%g", channel_cfg.channel_name, dark.mean(), dark.std(), dark.min(), dark.max())
+    logging.info("DARK STATS %s mean=%g std=%g min=%g max=%g", channel.channel_name, dark.mean(), dark.std(), dark.min(), dark.max())
 
     if header is not None:
         header.append(("MEAN",     float(dark.mean()),              "Mean value of the frame"))
@@ -58,8 +60,8 @@ def generate_dark_frame(channel_cfg, exptime_s, header=None):
         header.append(("EXPTIME",  float(exptime_s),                "Exposure time of observation"))
         header.append(("YCUT1",     0,                              "Bottom of science box extraction"))
         header.append(("YCUT2",     ny-1,                           "Top of science box extraction"))
-        header.append(("B_OFFSET", float(channel_cfg.bias_offset),  "Bias offset used to generate frame"))
-        header.append(("RNOISE",   float(channel_cfg.read_noise),   "Bias Read noise used to generate frame"))
+        header.append(("B_OFFSET", float(channel.bias_offset),  "Bias offset used to generate frame"))
+        header.append(("RNOISE",   float(channel.read_noise),   "Bias Read noise used to generate frame"))
         header.append(("CCDGAIN",  ccd_gain,                        "CCD gain"))
 
     return dark, header

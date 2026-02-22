@@ -493,7 +493,7 @@ def test_compute_broadened_channel_flux_calls_cut_and_gaussbroad_in_order(monkey
     out_flux, out_wl = detector.compute_broadened_channel_flux(
         photon_flux_at_earth=np.array([0.0]),
         wavelengths_total=np.array([0.0]),
-        cal=cal,
+        channel=cal,
         output_dir="OUT",
         cfg=cfg,
         star=star,
@@ -531,8 +531,8 @@ def test_counts_per_s_px_conv_all_channels_calls_broaden_then_convert_for_each_c
     out_nuv, out_vis = detector.counts_per_s_px_conv_all_channels(
         photon_flux_at_earth=np.array([0.0]),
         wavelengths_total=np.array([0.0]),
-        nuv_cal=nuv_cal,
-        vis_cal=vis_cal,
+        nuv=nuv_cal,
+        vis=vis_cal,
         output_dir="OUT",
         star=star,
     )

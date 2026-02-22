@@ -11,7 +11,6 @@ from astropy.io import ascii
 from pathlib import Path
 from datetime import datetime
 from configs.user_config import load_user_config, get_user_config
-from configs.channel_config import load_channel_config
 
 GLOBAL_TIMESTAMP = None
 
@@ -31,12 +30,7 @@ def load_cfg_and_user_config():
     load_user_config(user_parameter_path)
     user_cfg = get_user_config()
 
-    # load channel config, not cached, pass it through
-    nuv_cfg = load_channel_config(repo_root / "configs" / "waltzer_nuv.cfg")
-    vis_cfg = load_channel_config(repo_root / "configs" / "waltzer_vis.cfg")
-    ir_cfg  = load_channel_config(repo_root / "configs" / "waltzer_ir.cfg")
-
-    return user_cfg, nuv_cfg, vis_cfg, ir_cfg
+    return user_cfg
 
 def setup_output_directory():
     """
