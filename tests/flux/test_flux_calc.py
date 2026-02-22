@@ -12,6 +12,7 @@ from flux.flux_calc import (
     apply_unred,
     calculateFluxOnEarth,
 )
+from loaders.run_waltzer_context import _NOOP, _NOOP_PLOTS
 from utils.constants import C_LIGHT_ROUNDED_m_s, PARSEC_CM
 
 
@@ -170,7 +171,7 @@ def test_calculateFluxOnEarth_no_optional_steps_called(monkeypatch, tmp_path):
         spectral_type="G",
         name="TEST",
     )
-    ctx = SimpleNamespace(output_dir=tmp_path)
+    ctx = SimpleNamespace(output_dir=tmp_path, test_mode=_NOOP, produce_plots=_NOOP_PLOTS)
 
     calculateFluxOnEarth(star, ctx)
 
@@ -229,7 +230,7 @@ def test_calculateFluxOnEarth_optional_steps_called(monkeypatch, tmp_path):
         spectral_type="G",
         name="TEST",
     )
-    ctx = SimpleNamespace(output_dir=tmp_path)
+    ctx = SimpleNamespace(output_dir=tmp_path, test_mode=_NOOP, produce_plots=_NOOP_PLOTS)
 
     calculateFluxOnEarth(star, ctx)
 
@@ -264,7 +265,7 @@ def test_calculateFluxOnEarth_returns_photons_and_wavelengths_same_length(monkey
         spectral_type="G",
         name="TEST",
     )
-    ctx = SimpleNamespace(output_dir=tmp_path)
+    ctx = SimpleNamespace(output_dir=tmp_path, test_mode=_NOOP, produce_plots=_NOOP_PLOTS)
 
     photons, wavelengths = calculateFluxOnEarth(star, ctx)
 
@@ -274,14 +275,17 @@ def test_calculateFluxOnEarth_returns_photons_and_wavelengths_same_length(monkey
 
 
 def test_calculateFluxOnEarth_executes_test_mode_instrumentation(monkeypatch, tmp_path):
-    """Setting cfg.test_mode=True triggers debug dump instrumentation (dump_3d_array called)."""
+    """ctx.test_mode with real dumps triggers debug dump instrumentation (dump_3d_array called)."""
     called = {"dumped": False}
 
     def fake_dump_3d_array(*args, **kwargs):
         called["dumped"] = True
 
-    monkeypatch.setattr("flux.flux_calc.dump_3d_array", fake_dump_3d_array)
-    monkeypatch.setattr("flux.flux_calc.dump_1d_array", lambda *a, **k: None)
+    test_mode = SimpleNamespace(
+        dump_3d_array=fake_dump_3d_array,
+        dump_1d_array=lambda *a, **k: None,
+        dump_1d_for_channel=lambda *a, **k: None,
+    )
     monkeypatch.setattr(
         "flux.flux_calc.load_model_for_temperature",
         lambda _t: np.column_stack((np.array([1000.0, 1100.0]), np.array([1.0, 1.0]))),
@@ -293,7 +297,6 @@ def test_calculateFluxOnEarth_executes_test_mode_instrumentation(monkeypatch, tm
     monkeypatch.setattr("flux.flux_calc.convert_flux_to_photons", lambda f, _w: f)
 
     cfg = SimpleNamespace(
-        test_mode=True,
         line_core_emission=False,
         interstellar_absorption=False,
         produce_Plots=False,
@@ -313,7 +316,7 @@ def test_calculateFluxOnEarth_executes_test_mode_instrumentation(monkeypatch, tm
         spectral_type="G2V",
         mass=1.0,
     )
-    ctx = SimpleNamespace(output_dir=tmp_path)
+    ctx = SimpleNamespace(output_dir=tmp_path, test_mode=test_mode, produce_plots=_NOOP_PLOTS)
 
     calculateFluxOnEarth(star, ctx)
 

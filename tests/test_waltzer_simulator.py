@@ -4,6 +4,7 @@ from types import SimpleNamespace
 import pytest
 
 import waltzer_simulator
+from loaders.run_waltzer_context import _NOOP, _NOOP_PLOTS
 
 
 def test_main_catches_exception_exits_with_message(monkeypatch, tmp_path, capsys):
@@ -13,6 +14,8 @@ def test_main_catches_exception_exits_with_message(monkeypatch, tmp_path, capsys
         output_dir=tmp_path,
         timestamp=datetime.now(),
         timestamp_str="20250101_120000",
+        test_mode=_NOOP,
+        produce_plots=_NOOP_PLOTS,
     )
     user_cfg = SimpleNamespace(
         target_name="HD 202772 A",

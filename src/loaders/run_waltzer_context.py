@@ -1,13 +1,63 @@
+import functools
+import inspect
 import sys
 import logging
 from pathlib import Path
 from datetime import datetime
+
 from configs.user_config import load_user_config, get_user_config
-from configs.global_config import load_global_config
+from configs.global_config import load_global_config, get_global_config
+from utils import debug_dumps
 
 from dataclasses import dataclass
-from datetime import datetime
-from pathlib import Path
+
+
+def _noop(f):
+    @functools.wraps(f)
+    def noop(*args, **kwargs):
+        pass
+    noop.__signature__ = inspect.signature(f)
+    return noop
+
+
+class _NoOpTestMode:
+    dump_3d_array = staticmethod(_noop(debug_dumps.dump_3d_array))
+    dump_1d_array = staticmethod(_noop(debug_dumps.dump_1d_array))
+    dump_1d_for_channel = staticmethod(_noop(debug_dumps.dump_1d_for_channel))
+
+
+class _RealTestMode:
+    dump_3d_array = staticmethod(debug_dumps.dump_3d_array)
+    dump_1d_array = staticmethod(debug_dumps.dump_1d_array)
+    dump_1d_for_channel = staticmethod(debug_dumps.dump_1d_for_channel)
+
+
+_NOOP = _NoOpTestMode()
+
+
+class _NoOpProducePlots:
+    @staticmethod
+    def plot_1d_for_channel(*args, **kwargs):
+        pass
+
+    @staticmethod
+    def plot_flux_and_photons_windows(*args, **kwargs):
+        pass
+
+
+_NOOP_PLOTS = _NoOpProducePlots()
+
+
+def _create_produce_plots():
+    """Import images lazily to avoid circular import (images imports RunContext)."""
+    from utils import images
+
+    class _RealProducePlots:
+        plot_1d_for_channel = staticmethod(images.plot_1d_for_channel)
+        plot_flux_and_photons_windows = staticmethod(images.plot_flux_and_photons_windows)
+
+    return _RealProducePlots() if get_global_config().produce_Plots else _NOOP_PLOTS
+
 
 @dataclass(frozen=True)
 class RunContext:
@@ -15,6 +65,8 @@ class RunContext:
     output_dir: Path
     timestamp: datetime
     timestamp_str: str
+    test_mode: _NoOpTestMode | _RealTestMode
+    produce_plots: _NoOpProducePlots
 
 
 def initialize_waltzer_runtime_context():
@@ -22,12 +74,16 @@ def initialize_waltzer_runtime_context():
     output_dir, timestamp_str, timestamp = setup_output_directory()
     setup_logger(output_dir, timestamp_str)
     user_cfg = load_cfg_and_user_config()
+    test_mode = _RealTestMode() if get_global_config().test_mode else _NOOP
+    produce_plots = _create_produce_plots()
 
     run_ctx = RunContext(
         target_name=user_cfg.target_name,
         output_dir=output_dir,
         timestamp=timestamp,
         timestamp_str=timestamp_str,
+        test_mode=test_mode,
+        produce_plots=produce_plots,
     )
     logging.info("RunContext initialized: %s", run_ctx)
 

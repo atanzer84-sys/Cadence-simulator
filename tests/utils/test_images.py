@@ -4,8 +4,6 @@ matplotlib.use("Agg")  # headless backend for tests
 import numpy as np
 from types import SimpleNamespace
 
-import pytest
-
 from utils.images import format_header, write_frames_png
 
 

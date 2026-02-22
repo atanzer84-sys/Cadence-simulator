@@ -4,10 +4,20 @@ from types import SimpleNamespace
 
 from instrument.detector import counts_per_s_px_conv_per_channel
 from instrument import detector
+from loaders.run_waltzer_context import _NOOP, _NOOP_PLOTS
 
 
 def _cfg(test_mode=False, produce_Plots=False):
     return SimpleNamespace(test_mode=test_mode, produce_Plots=produce_Plots)
+
+
+def _ctx(output_dir="OUT", test_mode=None, produce_plots=None):
+    """Context with test_mode and produce_plots; defaults no-op."""
+    return SimpleNamespace(
+        output_dir=output_dir,
+        test_mode=test_mode or _NOOP,
+        produce_plots=produce_plots or _NOOP_PLOTS,
+    )
 
 
 def _dummy_star(name="TESTSTAR"):
@@ -35,7 +45,7 @@ def test_single_channel_counts_identity_gaussbroad():
     )
 
     counts = counts_per_s_px_conv_per_channel(
-        broadened_flux, wavelength, channel, output_dir="OUTDIR", cfg=_cfg(), star=_dummy_star()
+        broadened_flux, wavelength, channel, output_dir="OUTDIR", cfg=_cfg(), star=_dummy_star(), ctx=_ctx("OUTDIR")
     )
 
     # interp: [10, 15, 20] -> *0.01 -> [0.10, 0.15, 0.20] -> *2 -> [0.20, 0.30, 0.40]
@@ -64,7 +74,7 @@ def test_all_channels_counts_identity_gaussbroad():
             effective_area=np.array([1.0, 1.0], dtype=float),
             pixel_scale=0.01,
         )
-        ctx = SimpleNamespace(output_dir="OUTDIR")
+        ctx = _ctx("OUTDIR")
 
         nuv_counts, vis_counts = detector.counts_per_s_px_conv_all_channels(
             photon_flux, wavelengths_total, nuv, vis, ctx, _dummy_star()
@@ -92,7 +102,7 @@ def test_counts_per_channel_uses_channel_wavelength_grid_and_returns_same_length
     )
 
     out = counts_per_s_px_conv_per_channel(
-        broadened_flux, wavelength, channel, output_dir="OUTDIR", cfg=_cfg(), star=_dummy_star()
+        broadened_flux, wavelength, channel, output_dir="OUTDIR", cfg=_cfg(), star=_dummy_star(), ctx=_ctx("OUTDIR")
     )
 
     # interp at 150 -> 15, at 250 -> 25; *0.01*1 -> [0.15, 0.25]
@@ -109,7 +119,7 @@ def test_cut_wavelength_window_with_margin_basic_slice_no_margin():
     channel = _channel(wavelength=np.array([101.0, 103.0], dtype=float))
 
     f_cut, w_cut = detector.cut_wavelength_window_with_margin(
-        photon_flux, wavelengths_total, channel, output_dir="OUT", cfg=_cfg(), star=_dummy_star("S"), margin_A=0.0
+        photon_flux, wavelengths_total, channel, output_dir="OUT", cfg=_cfg(), star=_dummy_star("S"), ctx=_ctx(), margin_A=0.0
     )
 
     wl_min = channel.wavelength[0]
@@ -132,7 +142,7 @@ def test_cut_wavelength_window_with_margin_clamps_bounds(bound, index):
     channel = _channel(wavelength=np.array([100.5, 101.5], dtype=float))
 
     f_cut, w_cut = detector.cut_wavelength_window_with_margin(
-        photon_flux, wavelengths_total, channel, output_dir="OUT", cfg=_cfg(), star=_dummy_star("S"), margin_A=999.0
+        photon_flux, wavelengths_total, channel, output_dir="OUT", cfg=_cfg(), star=_dummy_star("S"), ctx=_ctx(), margin_A=999.0
     )
 
     assert w_cut[index] == wavelengths_total[index]
@@ -149,10 +159,11 @@ def test_cut_wavelength_window_with_margin_calls_dump_with_x_then_y(monkeypatch)
     def _fake_dump(wave, array, output_dir, star_name, tag, channel_name=None, full=True, zoom=False, **kwargs):
         calls.append((wave.copy(), array.copy(), output_dir, star_name, tag, channel_name, full, zoom))
 
-    monkeypatch.setattr(detector, "dump_1d_for_channel", _fake_dump)
+    test_mode = SimpleNamespace(dump_1d_for_channel=_fake_dump)
+    ctx = _ctx("OUT", test_mode=test_mode)
 
     f_cut, w_cut = detector.cut_wavelength_window_with_margin(
-        photon_flux, wavelengths_total, channel, output_dir="OUT", cfg=_cfg(test_mode=True), star=_dummy_star("S"), margin_A=0.0
+        photon_flux, wavelengths_total, channel, output_dir="OUT", cfg=_cfg(), star=_dummy_star("S"), ctx=ctx, margin_A=0.0
     )
 
     assert len(calls) == 1
@@ -175,7 +186,7 @@ def test_compute_broadened_channel_flux_calls_cut_and_gaussbroad_in_order(monkey
     wl_cut = np.array([10.0, 11.0, 12.0], dtype=float)
     smoothed = np.array([9.0, 8.0, 7.0], dtype=float)
 
-    def _fake_cut(photon_flux_at_earth, wavelengths_total, ch, output_dir, cfg_arg, star_arg, margin_A=100.0):
+    def _fake_cut(photon_flux_at_earth, wavelengths_total, ch, output_dir, cfg_arg, star_arg, ctx_arg, margin_A=100.0):
         return flux_cut, wl_cut
 
     def _fake_gaussbroad(w, s, hwhm):
@@ -194,6 +205,7 @@ def test_compute_broadened_channel_flux_calls_cut_and_gaussbroad_in_order(monkey
         output_dir="OUT",
         cfg=_cfg(),
         star=_dummy_star("S"),
+        ctx=_ctx(),
     )
 
     np.testing.assert_allclose(out_flux, smoothed)
@@ -202,7 +214,7 @@ def test_compute_broadened_channel_flux_calls_cut_and_gaussbroad_in_order(monkey
 
 def test_counts_per_s_px_conv_all_channels_calls_broaden_then_convert_for_each_channel(monkeypatch):
     """Wrapper calls broaden and conversion once per channel and returns results in the correct order."""
-    ctx = SimpleNamespace(output_dir="OUT")
+    ctx = _ctx()
 
     nuv = SimpleNamespace(channel_name="NUV")
     vis = SimpleNamespace(channel_name="VIS")
@@ -212,11 +224,11 @@ def test_counts_per_s_px_conv_all_channels_calls_broaden_then_convert_for_each_c
     def _fake_get_global_config():
         return _cfg()
 
-    def _fake_broaden(photon_flux_at_earth, wavelengths_total, ch, output_dir, cfg_arg, star_arg):
+    def _fake_broaden(photon_flux_at_earth, wavelengths_total, ch, output_dir, cfg_arg, star_arg, ctx_arg):
         call_sequence.append(("broaden", ch.channel_name))
         return np.array([1.0]), np.array([2.0])
 
-    def _fake_conv(broadened_photon_flux, wavelength, ch, output_dir, cfg_arg, star_arg):
+    def _fake_conv(broadened_photon_flux, wavelength, ch, output_dir, cfg_arg, star_arg, ctx_arg):
         call_sequence.append(("convert", ch.channel_name))
         return np.array([ch.channel_name], dtype=object)
 
@@ -258,7 +270,7 @@ def test_counts_per_channel_identity_scaling():
         effective_area=np.array([5.0, 5.0, 5.0, 5.0]),
     )
 
-    out = counts_per_s_px_conv_per_channel(broadened_flux, wavelength, channel, "OUT", _cfg(), _dummy_star("S"))
+    out = counts_per_s_px_conv_per_channel(broadened_flux, wavelength, channel, "OUT", _cfg(), _dummy_star("S"), _ctx())
 
     expected = broadened_flux * 2.0 * 5.0
     np.testing.assert_allclose(out, expected)
@@ -276,7 +288,7 @@ def test_counts_per_channel_interpolation_linear():
         effective_area=np.ones(3),
     )
 
-    out = counts_per_s_px_conv_per_channel(broadened_flux, wavelength, channel, "OUT", _cfg(), _dummy_star("S"))
+    out = counts_per_s_px_conv_per_channel(broadened_flux, wavelength, channel, "OUT", _cfg(), _dummy_star("S"), _ctx())
 
     expected = np.array([5.0, 15.0, 25.0])
     np.testing.assert_allclose(out, expected)
@@ -294,7 +306,7 @@ def test_counts_per_channel_interpolation_clamping():
         effective_area=np.ones(4),
     )
 
-    out = counts_per_s_px_conv_per_channel(broadened_flux, wavelength, channel, "OUT", _cfg(), _dummy_star("S"))
+    out = counts_per_s_px_conv_per_channel(broadened_flux, wavelength, channel, "OUT", _cfg(), _dummy_star("S"), _ctx())
 
     expected = np.array([0.0, 0.0, 30.0, 30.0])
     np.testing.assert_allclose(out, expected)
@@ -307,6 +319,9 @@ def test_counts_per_channel_calls_dump_in_test_mode(monkeypatch):
     def fake_dump(wave, array, output_dir, star_name, tag, channel_name=None, full=True, zoom=True, **kwargs):
         calls.append((wave.copy(), array.copy(), tag, channel_name, full, zoom))
 
+    test_mode = SimpleNamespace(dump_1d_for_channel=fake_dump)
+    ctx = _ctx("OUT", test_mode=test_mode)
+
     wavelength = np.array([1.0, 2.0, 3.0])
     broadened_flux = np.array([10.0, 20.0, 30.0])
 
@@ -317,9 +332,7 @@ def test_counts_per_channel_calls_dump_in_test_mode(monkeypatch):
         effective_area=np.ones(3),
     )
 
-    monkeypatch.setattr(detector, "dump_1d_for_channel", fake_dump)
-
-    out = counts_per_s_px_conv_per_channel(broadened_flux, wavelength, channel, "OUT", _cfg(test_mode=True), _dummy_star("S"))
+    out = counts_per_s_px_conv_per_channel(broadened_flux, wavelength, channel, "OUT", _cfg(), _dummy_star("S"), ctx)
 
     assert len(calls) == 1
     x, y, tag, channel_name, full, zoom = calls[0]
@@ -339,12 +352,12 @@ def test_cut_wavelength_window_with_margin_empty_slice_raises():
 
     with pytest.raises(ValueError, match="does not overlap wavelengths_total"):
         detector.cut_wavelength_window_with_margin(
-            photon_flux, wavelengths_total, channel, output_dir="OUT", cfg=_cfg(), star=_dummy_star("S"), margin_A=0.0
+            photon_flux, wavelengths_total, channel, output_dir="OUT", cfg=_cfg(), star=_dummy_star("S"), ctx=_ctx(), margin_A=0.0
         )
 
 
 def test_cut_wavelength_window_with_margin_calls_plot_when_produce_Plots(monkeypatch):
-    """plot_1d_for_channel is called when produce_Plots=True."""
+    """plot_1d_for_channel is called when ctx.produce_plots has real plotter."""
     calls = []
     wavelengths_total = np.array([100.0, 101.0, 102.0], dtype=float)
     photon_flux = np.array([10.0, 11.0, 12.0], dtype=float)
@@ -353,10 +366,11 @@ def test_cut_wavelength_window_with_margin_calls_plot_when_produce_Plots(monkeyp
     def _fake_plot(wave, flux, output_dir, star, filename_tag=None, **kwargs):
         calls.append((wave.copy(), flux.copy(), output_dir, filename_tag))
 
-    monkeypatch.setattr(detector, "plot_1d_for_channel", _fake_plot)
+    produce_plots = SimpleNamespace(plot_1d_for_channel=_fake_plot)
+    ctx = _ctx(produce_plots=produce_plots)
 
     detector.cut_wavelength_window_with_margin(
-        photon_flux, wavelengths_total, channel, output_dir="OUT", cfg=_cfg(produce_Plots=True), star=_dummy_star("S"), margin_A=0.0
+        photon_flux, wavelengths_total, channel, output_dir="OUT", cfg=_cfg(), star=_dummy_star("S"), ctx=ctx, margin_A=0.0
     )
 
     assert len(calls) == 1
@@ -364,7 +378,7 @@ def test_cut_wavelength_window_with_margin_calls_plot_when_produce_Plots(monkeyp
 
 
 def test_compute_broadened_channel_flux_calls_plot_when_produce_Plots(monkeypatch):
-    """plot_1d_for_channel is called when produce_Plots=True."""
+    """plot_1d_for_channel is called when ctx.produce_plots has real plotter."""
     calls = []
     channel = _channel(wavelength=np.array([100.0, 102.0], dtype=float), pixel_scale=0.1)
 
@@ -374,18 +388,20 @@ def test_compute_broadened_channel_flux_calls_plot_when_produce_Plots(monkeypatc
     def _fake_plot(wave, flux, output_dir, star, filename_tag=None, **kwargs):
         calls.append(filename_tag)
 
+    produce_plots = SimpleNamespace(plot_1d_for_channel=_fake_plot)
+    ctx = _ctx(produce_plots=produce_plots)
+
     monkeypatch.setattr(detector, "cut_wavelength_window_with_margin", _fake_cut)
-    monkeypatch.setattr(detector, "plot_1d_for_channel", _fake_plot)
 
     detector.compute_broadened_channel_flux(
-        np.array([0.0]), np.array([0.0]), channel, "OUT", _cfg(produce_Plots=True), _dummy_star("S")
+        np.array([0.0]), np.array([0.0]), channel, "OUT", _cfg(), _dummy_star("S"), ctx=ctx
     )
 
     assert any("gaussbroad" in str(t) for t in calls)
 
 
 def test_counts_per_channel_calls_plot_when_produce_Plots(monkeypatch):
-    """plot_1d_for_channel is called when produce_Plots=True."""
+    """plot_1d_for_channel is called when ctx.produce_plots has real plotter."""
     calls = []
     wavelength = np.array([1.0, 2.0, 3.0])
     broadened_flux = np.array([10.0, 20.0, 30.0])
@@ -394,9 +410,10 @@ def test_counts_per_channel_calls_plot_when_produce_Plots(monkeypatch):
     def _fake_plot(wave, flux, output_dir, star, filename_tag=None, **kwargs):
         calls.append(filename_tag)
 
-    monkeypatch.setattr(detector, "plot_1d_for_channel", _fake_plot)
+    produce_plots = SimpleNamespace(plot_1d_for_channel=_fake_plot)
+    ctx = _ctx(produce_plots=produce_plots)
 
-    counts_per_s_px_conv_per_channel(broadened_flux, wavelength, channel, "OUT", _cfg(produce_Plots=True), _dummy_star("S"))
+    counts_per_s_px_conv_per_channel(broadened_flux, wavelength, channel, "OUT", _cfg(), _dummy_star("S"), ctx)
 
     assert any("counts" in str(t) for t in calls)
 
@@ -408,5 +425,5 @@ def test_counts_per_channel_mismatched_wavelength_effective_area_raises():
     channel = _channel(wavelength=np.array([1.0, 2.0]), effective_area=np.array([1.0, 1.0, 1.0]))  # 2 vs 3
 
     with pytest.raises(ValueError):
-        counts_per_s_px_conv_per_channel(broadened_flux, wavelength, channel, "OUT", _cfg(), _dummy_star("S"))
+        counts_per_s_px_conv_per_channel(broadened_flux, wavelength, channel, "OUT", _cfg(), _dummy_star("S"), ctx=_ctx())
 

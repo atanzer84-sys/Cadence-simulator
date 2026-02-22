@@ -8,8 +8,6 @@ from flux.cute_line_core_emission import apply_line_core_emission
 from flux.cute_extinction import extinction_amores
 from flux.cute_ism_abs_all import cute_ism_abs_all
 from flux.cute_unred import unred
-from utils.images import plot_flux_and_photons_windows
-from utils.debug_dumps import dump_3d_array, dump_1d_array
 from astropy.coordinates import SkyCoord
 from astropy import units as u
 from loaders.run_waltzer_context import RunContext
@@ -19,9 +17,7 @@ def calculateFluxOnEarth(star: Star, ctx: RunContext):
     cfg = get_global_config()
 
     model_data = load_model_for_temperature(star.effective_temperature)
-    if cfg.test_mode:
-        logging.info("test_mode=1 -> dumping model data (legacy debug mode)")
-        dump_3d_array(model_data, ctx.output_dir, star.name, "FluxCalc_1_model_input", perChannel=True, zoom=True) 
+    ctx.test_mode.dump_3d_array(model_data, ctx.output_dir, star.name, "FluxCalc_1_model_input", perChannel=True, zoom=True) 
 
 
     flux_lambda_original = convertStellarModelToFlux(model_data, star.radius_sun_cm)
@@ -29,9 +25,7 @@ def calculateFluxOnEarth(star: Star, ctx: RunContext):
     flux_lambda_diluted = flux_lambda_original.copy()
     wavelengths = flux_lambda_original[:,0]
 
-    if cfg.test_mode:
-        logging.info("test_mode=1 -> dumping flux snapshots (convertIntensityToLuminosity_snapshot)")
-        dump_3d_array(flux_lambda_original, ctx.output_dir, star.name, "FluxCalc_2_convertIntensityToLuminosity_snapshot", perChannel=True, zoom=True)
+    ctx.test_mode.dump_3d_array(flux_lambda_original, ctx.output_dir, star.name, "FluxCalc_2_convertIntensityToLuminosity_snapshot", perChannel=True, zoom=True)
 
 
     if cfg.line_core_emission:
@@ -39,9 +33,7 @@ def calculateFluxOnEarth(star: Star, ctx: RunContext):
         # ACTUAL LCA EMISSION 
         flux_lambda_diluted = apply_line_core_emission(flux_lambda_diluted, cfg.sigmaMg22, cfg.sigmaMg21, star.log_r, star.spectral_type)
 
-        if cfg.test_mode:
-            logging.info("test_mode=1 -> dumping flux snapshots (after_line_core_emission)")
-            dump_3d_array(flux_lambda_diluted, ctx.output_dir, star.name, "FluxCalc_3_after_line_core_emission", perChannel=True, zoom=True)
+        ctx.test_mode.dump_3d_array(flux_lambda_diluted, ctx.output_dir, star.name, "FluxCalc_3_after_line_core_emission", perChannel=True, zoom=True)
     else:
         logging.info("Line Core Emission not applied!")
 
@@ -54,39 +46,31 @@ def calculateFluxOnEarth(star: Star, ctx: RunContext):
         # ACTUAL ISM_ABS CALL
         flux_lambda_diluted = apply_ism_absorption(flux_lambda_diluted, ebv, cfg)
 
-        if cfg.test_mode:
-            logging.info("test_mode=1 -> dumping flux snapshots (after_ISM)")
-            dump_3d_array(flux_lambda_diluted, ctx.output_dir, star.name, "FluxCalc_4_after_ISM", perChannel=True, zoom=True)
+        ctx.test_mode.dump_3d_array(flux_lambda_diluted, ctx.output_dir, star.name, "FluxCalc_4_after_ISM", perChannel=True, zoom=True)
 
     else:
         logging.info("Interstellar Medium absorption not applied!")
 
 
-    if cfg.test_mode:
-        flux_di_before = flux_lambda_diluted[:, 1].copy()
-        dump_1d_array(wavelengths, flux_di_before, ctx.output_dir, star.name, "FluxCalc_5_before_flux_at_earth", perChannel=True, zoom=True)
+    flux_di_before = flux_lambda_diluted[:, 1].copy()
+    ctx.test_mode.dump_1d_array(wavelengths, flux_di_before, ctx.output_dir, star.name, "FluxCalc_5_before_flux_at_earth", perChannel=True, zoom=True)
 
     # FINALLY FLUX ON EARTH
     flux_at_earth = compute_flux_at_earth(flux_lambda_diluted, star.distance_pc)
 
-    if cfg.test_mode:
-        dump_1d_array(wavelengths, flux_at_earth, ctx.output_dir, star.name, "FluxCalc_6_after_flux_at_earth", perChannel=True, zoom=True)
+    ctx.test_mode.dump_1d_array(wavelengths, flux_at_earth, ctx.output_dir, star.name, "FluxCalc_6_after_flux_at_earth", perChannel=True, zoom=True)
 
     # UNRED FLUX
     flux_unred = apply_unred(wavelengths, flux_at_earth, ebv)
 
-    if cfg.test_mode:
-        dump_1d_array(wavelengths, flux_unred, ctx.output_dir, star.name, "FluxCalc_7_after_unred", perChannel=True, zoom=True)
-    if cfg.produce_Plots:
-        plot_flux_and_photons_windows(wavelengths, flux_unred, ctx.output_dir, star, "FluxCalc_1_Flux", "Flux", "Flux [erg s⁻¹ cm⁻² Å⁻¹]")
+    ctx.test_mode.dump_1d_array(wavelengths, flux_unred, ctx.output_dir, star.name, "FluxCalc_7_after_unred", perChannel=True, zoom=True)
+    ctx.produce_plots.plot_flux_and_photons_windows(wavelengths, flux_unred, ctx.output_dir, star, "FluxCalc_1_Flux", "Flux", "Flux [erg s⁻¹ cm⁻² Å⁻¹]")
 
     # Convert Flux to Photons
     photons_star = convert_flux_to_photons(flux_unred, wavelengths)
 
-    if cfg.produce_Plots:
-        plot_flux_and_photons_windows(wavelengths, photons_star, ctx.output_dir, star, "FluxCalc_2_photons",  "Photon Flux", "Photon flux [photons s⁻¹ cm⁻² Å⁻¹]")
-    if cfg.test_mode:
-        dump_1d_array(wavelengths, photons_star, ctx.output_dir, star.name, "FluxCalc_8_photons_star", perChannel=True, zoom=True)
+    ctx.produce_plots.plot_flux_and_photons_windows(wavelengths, photons_star, ctx.output_dir, star, "FluxCalc_2_photons",  "Photon Flux", "Photon flux [photons s⁻¹ cm⁻² Å⁻¹]")
+    ctx.test_mode.dump_1d_array(wavelengths, photons_star, ctx.output_dir, star.name, "FluxCalc_8_photons_star", perChannel=True, zoom=True)
 
     return photons_star, wavelengths
 
