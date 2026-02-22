@@ -5,10 +5,10 @@ from pathlib import Path
 import pytest
 import sys
 from loaders import run_waltzer_context
-import configs.global_config as gc
-from configs.global_config import GlobalConfig
+import configs.global_ as gc
+from configs.global_ import GlobalConfig
 from loaders.run_waltzer_context import apply_log_r_fallback
-from configs import user_config
+from configs import user as user_config
 import logging
 
 def test_setup_output_directory_creates_dir(monkeypatch, tmp_path):

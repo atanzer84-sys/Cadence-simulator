@@ -74,7 +74,7 @@ def test_spread_1d_spectrum_to_2d_dispatches_profile():
     channel = _channel_profile()
     counts = np.array([10, 20, 30, 40, 50], dtype=float)
 
-    image, header = spread_1d_spectrum_to_2d(counts, channel, header=[])
+    image, _ = spread_1d_spectrum_to_2d(counts, channel, header=[])
 
     assert image.shape == (channel.y_pixels, channel.x_pixels)
     assert np.allclose(image.sum(axis=0), counts)
