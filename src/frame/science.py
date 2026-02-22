@@ -1,6 +1,5 @@
 import numpy as np
 import logging
-from frame.bias import generate_bias_frame
 from frame.dark import generate_dark_frame
 from configs.channel_config import SpectroscopyChannel
 
@@ -33,11 +32,10 @@ def generate_science_frames(counts_s_pixel_convolved, channel: SpectroscopyChann
         detector_image, header = spread_1d_spectrum_to_2d(counts_s_pixel_convolved, channel, header)
 
         # generate new bias and dark
-        bias_frame, _ = generate_bias_frame(channel, header = None)
         dark_frame, _ = generate_dark_frame(channel, header = None)
 
         # combine into science
-        science = bias_frame + dark_frame + (detector_image * exposure_time_s) * ccd_gain
+        science = dark_frame + (detector_image * exposure_time_s) * ccd_gain
         science_frames.append(science)
         science_headers.append(header)
 

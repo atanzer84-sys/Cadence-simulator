@@ -52,7 +52,7 @@ def write_frames_png(frames, headers, frame_type, channel_tag, ctx: RunContext, 
         ax.imshow(frame, origin="lower", aspect="equal", cmap="gray")
         ax.set_xlim(-0.5, nx - 0.5)
         ax.set_ylim(-0.5, ny - 0.5)
-        ax.set_title(f"{star.name}: {channel_tag} {frame_type} {k} | M={star.mass} M☉, d={star.distance_pc} pc", fontsize=11)
+        ax.set_title(f"{star.name}: {channel_tag} {frame_type} | M={star.mass} M☉, d={star.distance_pc} pc", fontsize=11)
 
         ax_txt = fig.add_subplot(gs[1, 0])
         ax_txt.axis("off")

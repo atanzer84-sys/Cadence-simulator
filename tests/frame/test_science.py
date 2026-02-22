@@ -185,7 +185,7 @@ def test_profile_spread_weight_shape_mismatch():
 # ----------------------------------------------------------------------
 
 def test_generate_science_frames_basic():
-    """generate_science_frames produces n_frames; science = bias + dark + detector_image * exptime * gain."""
+    """generate_science_frames produces n_frames; science = dark + detector_image * exptime * gain (dark includes bias)."""
     channel = _channel_gaussian()
     channel.exposure_s = 3.0
 
@@ -194,14 +194,12 @@ def test_generate_science_frames_basic():
     fake_image = np.ones((channel.y_pixels, channel.x_pixels))
 
     with patch("frame.science.spread_1d_spectrum_to_2d") as mock_spread, \
-         patch("frame.science.generate_bias_frame") as mock_bias, \
          patch("frame.science.generate_dark_frame") as mock_dark:
 
         def fake_spread(counts_in, ch, header):
             return fake_image, header
 
         mock_spread.side_effect = fake_spread
-        mock_bias.return_value = (np.full((channel.y_pixels, channel.x_pixels), 10.0), None)
         mock_dark.return_value = (np.full((channel.y_pixels, channel.x_pixels), 5.0), None)
 
         frames, headers = generate_science_frames(counts, channel, 2, base_header)
@@ -217,7 +215,7 @@ def test_generate_science_frames_basic():
     assert "OBS_ID" in hdr_keys
     assert "EXPTIME" in hdr_keys
 
-    expected = 10.0 + 5.0 + fake_image * 3.0 * channel.ccd_gain
+    expected = 5.0 + fake_image * 3.0 * channel.ccd_gain
     assert np.allclose(frames[0], expected)
 
 
