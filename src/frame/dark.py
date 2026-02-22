@@ -2,7 +2,7 @@
 import numpy as np
 import logging
 from frame.bias import generate_bias_frame
-from configs.channel import SpectroscopyChannel
+from configs.channel_config import SpectroscopyChannel
 
 
 def generate_dark_frames(channel: SpectroscopyChannel, n_frames, base_header):

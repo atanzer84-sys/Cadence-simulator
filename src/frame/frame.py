@@ -1,12 +1,12 @@
 import logging
-from configs.global_ import get_global_config
+from configs.global_config import get_global_config
 from frame.bias import generate_bias_frames
 from frame.dark import generate_dark_frames
 from frame.fits_header import initialize_fits_header
 from frame.fits import write_fits_frames
 from frame.science import generate_science_frames
 from utils.images import write_frames_png
-from configs.channel import SpectroscopyChannel
+from configs.channel_config import SpectroscopyChannel
 from loaders.run_waltzer_context import RunContext
 from domain.star import Star
 

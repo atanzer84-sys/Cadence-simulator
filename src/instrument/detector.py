@@ -1,10 +1,10 @@
 import numpy as np
 import logging
-from configs.global_ import get_global_config
+from configs.global_config import get_global_config
 from utils.debug_dumps import dump_1d_for_channel
 from utils.images import plot_1d_for_channel
 from domain.star import Star
-from configs.channel import SpectroscopyChannel
+from configs.channel_config import SpectroscopyChannel
 from loaders.run_waltzer_context import RunContext
 
 # Tag strings for dump/plot output; tests import these for assertions

@@ -7,7 +7,7 @@ from loaders.load_excel import load_matching_excel_row_from_excel, load_excel_cf
 from loaders.parameter_preprocessing import get_missing_properties, clean_and_cast_parameters
 from loaders.load_gaia import lookup_star_gaia, GAIA_PROVIDES
 from astropy.io import ascii
-from configs.global_ import get_global_config
+from configs.global_config import get_global_config
 from loaders.run_waltzer_context import get_repo_root
 
 def load_stellar_and_planetary_properties(target_name_user_input):

@@ -2,7 +2,7 @@ import numpy as np
 import logging
 from frame.bias import generate_bias_frame
 from frame.dark import generate_dark_frame
-from configs.channel import SpectroscopyChannel
+from configs.channel_config import SpectroscopyChannel
 
 def generate_science_frames(counts_s_pixel_convolved, channel: SpectroscopyChannel, n_frames, base_header):
 

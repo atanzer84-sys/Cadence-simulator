@@ -2,8 +2,8 @@ from loaders.run_waltzer_context import get_repo_root
 from pathlib import Path
 import logging
 import numpy as np
-from configs.channel import SpectroscopyChannel, PhotometryChannel
-from configs.user import UserConfig
+from configs.channel_config import SpectroscopyChannel, PhotometryChannel
+from configs.user_config import UserConfig
 
 def load_channels_config(user_cfg: UserConfig):
     repo_root = get_repo_root()

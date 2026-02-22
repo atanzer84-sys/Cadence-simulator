@@ -1,7 +1,7 @@
 
 import numpy as np
 import logging
-from configs.channel import SpectroscopyChannel
+from configs.channel_config import SpectroscopyChannel
 
 def generate_bias_frames(channel: SpectroscopyChannel, n_frames, base_header):
 
