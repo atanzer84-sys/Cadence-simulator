@@ -46,8 +46,8 @@ def _spread_1d_to_2d_gaussian(counts_s_pixel_convolved, channel: SpectroscopyCha
         logging.error("SPREAD CONFIG ERROR: channel=%s no spread profile and spread_half_height_pix=%d", channel.channel_name, channel.spread_half_height_pix)
         raise ValueError("No cross-dispersion spreading configured")
 
-    # choose a fixed trace center (placeholder)
-    y0 = ny // 2
+    # choosing configured starting positions
+    x0, y0 = _get_spread_starting_position(channel)
     spatial_sigma_pix = float(channel.spread_half_height_pix)
 
     # build a normalized vertical profile w[y] with sum(w)=1
@@ -65,10 +65,15 @@ def _spread_1d_to_2d_gaussian(counts_s_pixel_convolved, channel: SpectroscopyCha
 
     # fill the 2D image: for each x-column, distribute counts[x] over y using w[y]
     image = np.zeros((ny, nx), dtype=np.float64)
-    for x in range(nx):
-        for y in range(ny):
-            image[y, x] = counts_s_pixel_convolved[x] * w[y]
 
+    # for x in range(nx):
+    #     for y in range(ny):
+    #         image[y, x] = counts_s_pixel_convolved[x] * w[y]
+    for i in range(nx):
+        x = x0 + i
+        if 0 <= x < nx:
+            for y in range(ny):
+                image[y, x] = counts_s_pixel_convolved[i] * w[y]
     logging.info("GAUSSIAN SPREAD RESULT: channel=%s shape=(%d,%d) sum=%g", channel.channel_name, image.shape[0], image.shape[1], float(image.sum()))
     col_sums = image.sum(axis=0)
     logging.info("GAUSSIAN SPREAD CHECK: channel=%s input_sum=%g image_sum=%g max_abs_diff=%g", channel.channel_name, float(np.sum(counts_s_pixel_convolved)), float(np.sum(image)), float(np.max(np.abs(col_sums - counts_s_pixel_convolved))))
@@ -116,3 +121,21 @@ def _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel: SpectroscopyChan
     logging.info("PROFILE SPREAD CHECK: channel=%s input_sum=%g image_sum=%g max_abs_diff=%g", channel.channel_name, float(np.sum(counts_s_pixel_convolved)), float(np.sum(image)), float(np.max(np.abs(col_sums - counts_s_pixel_convolved))))
 
     return image, header
+
+
+def _get_spread_starting_position(channel: SpectroscopyChannel):
+    nx = channel.x_pixels
+    ny = channel.y_pixels
+    x0 = int(round(channel.slit_position_x_arcsec / channel.pixel_scale))
+    y0 = int(round((ny // 2) + channel.slit_position_y_arcsec / channel.pixel_scale))
+    logging.info("SPREAD_ANCHOR channel=%s x0=%d y0=%d nx=%d ny=%d", channel.channel_name, x0, y0, nx, ny)
+
+    if x0 != 0:
+        logging.error("SPREAD_ANCHOR_ERROR channel=%s x0=%d horizontal shift not supported", channel.channel_name, x0)
+        raise ValueError("Horizontal slit_position_x_arcsec not yet supported (must be 0.0)")
+
+    if y0 < 0 or y0 >= ny:
+        logging.error("SPREAD_ANCHOR_ERROR channel=%s y0=%d ny=%d", channel.channel_name, y0, ny)
+        raise ValueError("slit_position_y_arcsec places spectrum outside detector")
+
+    return x0, y0
