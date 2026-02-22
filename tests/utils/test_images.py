@@ -1,37 +1,46 @@
-# Covers FITS writing behavior for empty input and correct file creation for non empty frames and headers.
+"""Tests for utils.images."""
+import matplotlib
+matplotlib.use("Agg")  # headless backend for tests
 import numpy as np
-from astropy.io import fits
-from frame.fits import write_fits_frames
+from types import SimpleNamespace
+
+import pytest
+
+from utils.images import format_header, write_frames_png
 
 
-def test_write_fits_frames_no_frames_returns_without_creating_files(tmp_path):
-    write_fits_frames([], [], "BIAS", "NUV", tmp_path)
-    assert list(tmp_path.glob("*.fits")) == []
+def test_format_header_returns_key_equals_value():
+    """format_header formats present key as key=value."""
+    hdr = {"MEAN": 1.5}
+    assert format_header(hdr, "MEAN") == "MEAN=1.50"
 
 
-def test_write_fits_frames_writes_one_file_with_header(tmp_path):
-    frame = np.zeros((2, 3), dtype=float)
-    hdr = fits.Header()
-    hdr["FILETYPE"] = "BIAS"
+def test_format_header_missing_key_returns_n_a():
+    """format_header returns key=n/a for missing key."""
+    hdr = {}
+    assert format_header(hdr, "MEAN") == "MEAN=n/a"
 
-    write_fits_frames([frame], [hdr], "BIAS", "NUV", tmp_path)
 
-    out = tmp_path / "WALTzER_NUV_BIAS_00000.fits"
+def test_format_header_custom_fmt_str():
+    """format_header uses fmt_str for formatting."""
+    hdr = {"X": 3.14159}
+    assert format_header(hdr, "X", ".4f") == "X=3.1416"
+
+
+def test_write_frames_png_empty_frames_returns_without_creating_files(tmp_path):
+    """write_frames_png with empty frames returns early; no PNG files created."""
+    ctx = SimpleNamespace(output_dir=tmp_path)
+    write_frames_png([], [], "BIAS", "NUV", ctx)
+    assert list(tmp_path.glob("*.png")) == []
+
+
+def test_write_frames_png_writes_one_file(tmp_path):
+    """write_frames_png writes one PNG file per frame."""
+    ctx = SimpleNamespace(output_dir=tmp_path)
+    frame = np.zeros((4, 4), dtype=float)
+    hdr = {}
+
+    write_frames_png([frame], [hdr], "bias", "NUV", ctx)
+
+    out = tmp_path / "WALTzER_NUV_bias_00000.png"
     assert out.exists()
-
-    with fits.open(out) as hdul:
-        assert hdul[0].data.shape == (2, 3)
-        assert hdul[0].header["FILETYPE"] == "BIAS"
-
-
-def test_write_fits_frames_zips_frames_and_headers_stops_at_shorter(tmp_path):
-    frame0 = np.zeros((2, 2), dtype=float)
-    frame1 = np.ones((2, 2), dtype=float)
-
-    hdr0 = fits.Header()
-    hdr0["IDX"] = 0
-
-    write_fits_frames([frame0, frame1], [hdr0], "DARK", "VIS", tmp_path)
-
-    assert (tmp_path / "WALTzER_VIS_DARK_00000.fits").exists()
-    assert not (tmp_path / "WALTzER_VIS_DARK_00001.fits").exists()

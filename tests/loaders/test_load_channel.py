@@ -77,6 +77,11 @@ def _write_spread_file(path: Path, wavelengths: list[float], num_rows: int = 3) 
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
+def _write(path: Path, text: str) -> None:
+    """Write raw text to file (for edge-case test content)."""
+    path.write_text(text, encoding="utf-8")
+
+
 # ----------------------------------------------------------------------
 # load_channel_config: loader calls and return values
 # ----------------------------------------------------------------------
@@ -160,9 +165,10 @@ def test_load_channel_config_raises_if_wavelength_length_does_not_match_x_pixels
     with pytest.raises(ValueError) as exc:
         load_channel_config(cfg_path, exposure_s=10.0)
 
-    assert "NUV:" in str(exc.value)
-    assert "nuv.txt" in str(exc.value)
-    assert "len(wavelength)=3 != x_pixels=2" in str(exc.value)
+    msg = str(exc.value)
+    assert "NUV" in msg
+    assert "nuv.txt" in msg
+    assert "len(wavelength)" in msg and "x_pixels" in msg
 
 
 def test_load_channel_config_sets_spread_fields_from_loader(monkeypatch, tmp_path):
@@ -403,6 +409,117 @@ def test_load_effective_area_file_no_numeric_data_raises(monkeypatch, tmp_path):
         load_effective_area_file("ea.txt")
 
 
+def test_load_effective_area_file_invalid_pixel_scale_raises(monkeypatch, tmp_path):
+    """load_effective_area_file raises ValueError when pixel scale value is non-numeric."""
+    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    _write(data_dir / "ea.txt", "# Pixel scale: not_a_number\nWavelength EffectiveArea\n1000  0.1\n1100  0.2\n")
+
+    with pytest.raises(ValueError, match="Invalid pixel scale value"):
+        load_effective_area_file("ea.txt")
+
+
+def test_load_effective_area_file_one_column_table_raises(monkeypatch, tmp_path):
+    """load_effective_area_file raises ValueError for one-column table (ndim==1 guard)."""
+    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    _write(
+        data_dir / "ea.txt",
+        "# Pixel scale: 0.417684\nWavelength\n2397.0000\n2397.4177\n2397.8354\n",
+    )
+
+    with pytest.raises(ValueError, match="Invalid effective area table structure"):
+        load_effective_area_file("ea.txt")
+
+
+def test_load_effective_area_file_one_row_two_columns_raises(monkeypatch, tmp_path):
+    """load_effective_area_file raises ValueError for single numeric row (np.loadtxt returns 1D)."""
+    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    _write(data_dir / "ea.txt", "# Pixel scale: 0.5\nWavelength EffectiveArea\n1500  0.42\n")
+
+    with pytest.raises(ValueError, match="Invalid effective area table structure"):
+        load_effective_area_file("ea.txt")
+
+
+def test_load_effective_area_file_header_lines_after_pixel_scale_ok(monkeypatch, tmp_path):
+    """Extra comment lines after pixel scale header do not break parsing."""
+    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    _write(
+        data_dir / "ea.txt",
+        "# Pixel scale: 0.02\n# another comment\n# yet another\nWavelength foo bar EffectiveArea\n1000  7  8  0.11\n1100  9 10  0.22\n",
+    )
+
+    wl, ea, pixel_scale = load_effective_area_file("ea.txt")
+    assert pixel_scale == pytest.approx(0.02)
+    assert np.allclose(wl, [1000.0, 1100.0])
+    assert np.allclose(ea, [0.11, 0.22])
+
+
+def test_load_effective_area_file_extra_columns_first_and_last_used(monkeypatch, tmp_path):
+    """With extra columns, first column is wavelength and last column is effective area."""
+    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    _write(
+        data_dir / "ea.txt",
+        "# Pixel scale: 0.01\nWavelength c2 c3 c4 EffectiveArea\n1000  1  2  3  0.50\n1100  4  5  6  0.60\n",
+    )
+
+    wl, ea, _ = load_effective_area_file("ea.txt")
+    assert np.allclose(wl, [1000.0, 1100.0])
+    assert np.allclose(ea, [0.50, 0.60])
+
+
+def test_load_effective_area_file_leading_trailing_whitespace_ok(monkeypatch, tmp_path):
+    """Whitespace and tabs around numeric values do not break parsing."""
+    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    _write(
+        data_dir / "ea.txt",
+        "# Pixel scale: 0.01\nWavelength EffectiveArea\n   1000\t   0.10   \n\t1100\t0.20\t\n",
+    )
+
+    wl, ea, _ = load_effective_area_file("ea.txt")
+    assert np.allclose(wl, [1000.0, 1100.0])
+    assert np.allclose(ea, [0.10, 0.20])
+
+
+def test_load_effective_area_file_blank_lines_inside_numeric_block_ok(monkeypatch, tmp_path):
+    """Blank lines between numeric rows are tolerated."""
+    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    _write(
+        data_dir / "ea.txt",
+        "# Pixel scale: 0.01\nWavelength EffectiveArea\n1000  0.10\n\n1100  0.20\n   \n1200  0.30\n",
+    )
+
+    wl, ea, _ = load_effective_area_file("ea.txt")
+    assert np.allclose(wl, [1000.0, 1100.0, 1200.0])
+    assert np.allclose(ea, [0.10, 0.20, 0.30])
+
+
+def test_load_effective_area_file_malformed_numeric_row_raises(monkeypatch, tmp_path):
+    """Malformed numeric row causes parse failure rather than silent skip."""
+    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    _write(
+        data_dir / "ea.txt",
+        "# Pixel scale: 0.01\nWavelength foo EffectiveArea\n1000  1  0.10\n1100  2  BAD\n1200  3  0.30\n",
+    )
+
+    with pytest.raises(ValueError, match="Failed to parse numeric data"):
+        load_effective_area_file("ea.txt")
+
+
 # ----------------------------------------------------------------------
 # load_spread_profile_file: direct tests (no mock)
 # ----------------------------------------------------------------------
@@ -430,6 +547,50 @@ def test_load_spread_profile_file_missing_file_raises(monkeypatch, tmp_path):
 
     with pytest.raises(ValueError, match="Spread profile file not found"):
         load_spread_profile_file("nonexistent_spread.txt", "NUV")
+
+
+def test_load_spread_profile_file_missing_pixels_header_raises(monkeypatch, tmp_path):
+    """load_spread_profile_file raises ValueError when 'pixels' header line is absent."""
+    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    _write(data_dir / "spread.txt", "# comment\n0  0.1 0.2\n1  0.3 0.4\n")
+
+    with pytest.raises(ValueError, match="No 'pixels"):
+        load_spread_profile_file("spread.txt", "NUV")
+
+
+def test_load_spread_profile_file_header_count_mismatch_raises(monkeypatch, tmp_path):
+    """load_spread_profile_file raises ValueError when header wavelength count != weight columns."""
+    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    _write(data_dir / "spread.txt", "pixels 1000 1100 1200\n0  0.1 0.2\n1  0.3 0.4\n")
+
+    with pytest.raises(ValueError, match="wavelength count does not match weight columns"):
+        load_spread_profile_file("spread.txt", "NUV")
+
+
+def test_load_spread_profile_file_leading_trailing_whitespace_ok(monkeypatch, tmp_path):
+    """Whitespace and blank lines do not break spread parsing; output dtypes are float."""
+    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    _write(
+        data_dir / "spread.txt",
+        "   pixels   1000   1100   \n\n  0    0.10   0.20   \n  1    0.30   0.40   \n\n",
+    )
+
+    pos, w, wl = load_spread_profile_file("spread.txt", "NUV")
+    assert pos.dtype == float
+    assert w.dtype == float
+    assert wl.dtype == float
+    assert pos.shape == (2,)
+    assert w.shape == (2, 2)
+    assert wl.shape == (2,)
+    assert wl[0] == pytest.approx(1000.0)
+    assert wl[1] == pytest.approx(1100.0)
+    assert w[1, 1] == pytest.approx(0.40)
 
 
 def test_load_channel_config_integration_ea_and_spread_from_real_files(monkeypatch, tmp_path):

@@ -1,37 +1,46 @@
-# Covers FITS writing behavior for empty input and correct file creation for non empty frames and headers.
+"""Tests for utils.debug_dumps."""
 import numpy as np
-from astropy.io import fits
-from frame.fits import write_fits_frames
+import pytest
+
+from utils.debug_dumps import dump_1d_for_channel, dump_masked_1d
 
 
-def test_write_fits_frames_no_frames_returns_without_creating_files(tmp_path):
-    write_fits_frames([], [], "BIAS", "NUV", tmp_path)
-    assert list(tmp_path.glob("*.fits")) == []
+def test_dump_masked_1d_writes_file(tmp_path):
+    """dump_masked_1d writes wavelength and array columns within wmin/wmax."""
+    wave = np.array([1000.0, 1100.0, 1200.0, 1300.0])
+    array = np.array([1.0, 2.0, 3.0, 4.0])
+    dump_masked_1d(wave, array, tmp_path, "test.txt", 1050.0, 1250.0)
 
-
-def test_write_fits_frames_writes_one_file_with_header(tmp_path):
-    frame = np.zeros((2, 3), dtype=float)
-    hdr = fits.Header()
-    hdr["FILETYPE"] = "BIAS"
-
-    write_fits_frames([frame], [hdr], "BIAS", "NUV", tmp_path)
-
-    out = tmp_path / "WALTzER_NUV_BIAS_00000.fits"
+    out = tmp_path / "test.txt"
     assert out.exists()
+    data = np.loadtxt(out)
+    assert data.shape == (2, 2)  # 1100,1200 within range
+    assert np.allclose(data[:, 0], [1100.0, 1200.0])
+    assert np.allclose(data[:, 1], [2.0, 3.0])
 
-    with fits.open(out) as hdul:
-        assert hdul[0].data.shape == (2, 3)
-        assert hdul[0].header["FILETYPE"] == "BIAS"
+
+def test_dump_masked_1d_empty_mask_writes_nothing(tmp_path):
+    """dump_masked_1d with no data in range returns without writing."""
+    wave = np.array([1000.0, 1100.0])
+    array = np.array([1.0, 2.0])
+    dump_masked_1d(wave, array, tmp_path, "empty.txt", 2000.0, 3000.0)
+
+    assert not (tmp_path / "empty.txt").exists()
 
 
-def test_write_fits_frames_zips_frames_and_headers_stops_at_shorter(tmp_path):
-    frame0 = np.zeros((2, 2), dtype=float)
-    frame1 = np.ones((2, 2), dtype=float)
+def test_dump_1d_for_channel_shape_mismatch_raises():
+    """dump_1d_for_channel raises when wave and array shapes differ."""
+    wave = np.array([1.0, 2.0])
+    array = np.array([1.0, 2.0, 3.0])
 
-    hdr0 = fits.Header()
-    hdr0["IDX"] = 0
+    with pytest.raises(ValueError, match="shape mismatch"):
+        dump_1d_for_channel(wave, array, "/tmp", "star", "tag", "NUV")
 
-    write_fits_frames([frame0, frame1], [hdr0], "DARK", "VIS", tmp_path)
 
-    assert (tmp_path / "WALTzER_VIS_DARK_00000.fits").exists()
-    assert not (tmp_path / "WALTzER_VIS_DARK_00001.fits").exists()
+def test_dump_1d_for_channel_invalid_channel_raises():
+    """dump_1d_for_channel raises for channel_name not NUV/VIS/IR."""
+    wave = np.array([1.0, 2.0])
+    array = np.array([1.0, 2.0])
+
+    with pytest.raises(ValueError, match="cal_name"):
+        dump_1d_for_channel(wave, array, "/tmp", "star", "tag", "INVALID")

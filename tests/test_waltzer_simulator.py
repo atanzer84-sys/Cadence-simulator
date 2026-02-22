@@ -1,35 +1,38 @@
+from datetime import datetime
+from types import SimpleNamespace
+
 import pytest
+
 import waltzer_simulator
 
 
-def test_excel_file_not_found_exits(monkeypatch, tmp_path, capsys):
-    input_dir = tmp_path / "input"
-    input_dir.mkdir(parents=True, exist_ok=True)
-
-    params = input_dir / "parameters.txt"
-    params.write_text(
-        "target_name = HD 202772 A\n"
-        "total_observation_length_h = 1\n"
-        "exposure_NUV_s = 1\n"
-        "exposure_VIS_s = 1\n"
-        "exposure_IR_s = 1\n",
-        encoding="utf-8",
+def test_main_catches_exception_exits_with_message(monkeypatch, tmp_path, capsys):
+    """main() catches any exception, prints 'Input error: {e}', and exits with code 1."""
+    run_ctx = SimpleNamespace(
+        target_name="HD 202772 A",
+        output_dir=tmp_path,
+        timestamp=datetime.now(),
+        timestamp_str="20250101_120000",
+    )
+    user_cfg = SimpleNamespace(
+        target_name="HD 202772 A",
+        exposure_NUV_s=1.0,
+        exposure_VIS_s=1.0,
+        exposure_IR_s=1.0,
     )
 
-    monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr("sys.argv", ["waltzer_simulator.py"])
+    def fake_init():
+        return run_ctx, user_cfg
 
-    # prevent logging setup / file creation
-    monkeypatch.setattr(
-        waltzer_simulator,
-        "initialize_waltzer_runtime",
-        lambda: tmp_path
-    )
+    def fake_load_channels(_user_cfg):
+        return SimpleNamespace(), SimpleNamespace(), SimpleNamespace()
 
+    monkeypatch.setattr(waltzer_simulator, "initialize_waltzer_runtime_context", fake_init)
+    monkeypatch.setattr(waltzer_simulator, "load_channels_config", fake_load_channels)
     monkeypatch.setattr(
         waltzer_simulator,
         "load_stellar_and_planetary_properties",
-        lambda _: (_ for _ in ()).throw(ValueError("no excel"))
+        lambda _: (_ for _ in ()).throw(ValueError("no excel")),
     )
 
     with pytest.raises(SystemExit) as exc:
