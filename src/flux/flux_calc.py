@@ -3,7 +3,7 @@ import numpy as np
 from loaders.run_waltzer_context import get_repo_root
 from domain.star import Star
 from utils.constants import C_LIGHT_ROUNDED_m_s, PARSEC_CM
-from configs.global_config import get_global_config
+from configs.global_ import get_global_config
 from flux.cute_line_core_emission import apply_line_core_emission
 from flux.cute_extinction import extinction_amores
 from flux.cute_ism_abs_all import cute_ism_abs_all

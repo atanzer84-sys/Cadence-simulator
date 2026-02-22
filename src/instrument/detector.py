@@ -1,6 +1,6 @@
 import numpy as np
 import logging
-from configs.global_config import get_global_config
+from configs.global_ import get_global_config
 from utils.debug_dumps import dump_1d_for_channel
 from utils.images import plot_1d_for_channel
 from domain.star import Star

@@ -1,5 +1,5 @@
 import logging
-from configs.global_config import get_global_config
+from configs.global_ import get_global_config
 from frame.bias import generate_bias_frames
 from frame.dark import generate_dark_frames
 from frame.fits_header import initialize_fits_header
