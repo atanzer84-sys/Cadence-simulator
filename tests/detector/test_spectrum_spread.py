@@ -40,6 +40,10 @@ def _channel_base():
     c.channel_name = "NUV"
     c.x_pixels = 5
     c.y_pixels = 7
+     # default anchor at detector center
+    c.pixel_scale = 1.0
+    c.slit_position_x_arcsec = 0.0
+    c.slit_position_y_arcsec = 0.0
     c.mode = 1
     c.spread_half_height_pix = 2
     c.ccd_gain = 2.0
@@ -178,6 +182,26 @@ def test_profile_spread_weight_shape_mismatch():
 
     with pytest.raises(IndexError):
         _spread_1d_to_2d_profile(counts, channel, header=[])
+
+
+def test_profile_spread_respects_vertical_slit_offset():
+    """When slit_position_y_arcsec is non-zero, the vertical peak is not at ny//2."""
+    channel = _channel_profile()
+    # ensure a reasonable detector size (center row = 4)
+    channel.y_pixels = 9
+    channel.pixel_scale = 1.0
+    channel.slit_position_y_arcsec = 2.0  # shift anchor upward by 2 pixels
+
+    counts = np.zeros(channel.x_pixels, dtype=float)
+    counts[0] = 1.0  # only first column has flux
+
+    image, _ = _spread_1d_to_2d_profile(counts, channel, header=[])
+
+    col0 = image[:, 0]
+    peak_y = int(np.argmax(col0))
+
+    # Without offset, peak would be at ny//2; with offset it must move.
+    assert peak_y != channel.y_pixels // 2
 
 
 # ----------------------------------------------------------------------
