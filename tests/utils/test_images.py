@@ -44,5 +44,5 @@ def test_write_frames_png_writes_one_file(tmp_path):
 
     write_frames_png([frame], [hdr], "bias", "NUV", ctx, _dummy_star())
 
-    out = tmp_path / "WALTzER_NUV_bias_00000.png"
+    out = tmp_path / "WALTzER_TestStar_NUV_bias_00000.png"
     assert out.exists()
