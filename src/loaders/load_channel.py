@@ -1,4 +1,4 @@
-from loaders.run_setup import get_repo_root
+from loaders.run_waltzer_context import get_repo_root
 from pathlib import Path
 import logging
 import numpy as np

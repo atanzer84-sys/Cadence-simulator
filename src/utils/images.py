@@ -2,20 +2,21 @@ import logging
 import matplotlib.pyplot as plt
 from pathlib import Path
 from utils.constants import debug_wavelength_range_ir, debug_wavelength_range_nuv, debug_wavelength_range_vis, DEBUG_WL_A_NUV, DEBUG_WL_A_VIS, DEBUG_WL_A_IR
+from loaders.run_waltzer_context import RunContext
+from domain.star import Star
 
-
-def write_frames_png(frames, headers, frame_type, channel_tag, output_dir, show_stats=False):
+def write_frames_png(frames, headers, frame_type, channel_tag, ctx: RunContext, show_stats=False):
 
     n_frames = len(frames)
     if n_frames == 0:
         logging.info("Write PNG: no frames for %s channel %s", frame_type, channel_tag)
         return
 
-    logging.info("Writing %d %s PNG frame(s) for channel %s to %s", n_frames, frame_type, channel_tag, output_dir)
+    logging.info("Writing %d %s PNG frame(s) for channel %s to %s", n_frames, frame_type, channel_tag, ctx.output_dir)
 
     for k, (frame, header) in enumerate(zip(frames, headers)):
 
-        filename = output_dir / f"WALTzER_{channel_tag}_{frame_type}_{k:05d}.png"
+        filename = ctx.output_dir / f"WALTzER_{channel_tag}_{frame_type}_{k:05d}.png"
 
         ny, nx = frame.shape
         width_in = 10.0
@@ -67,7 +68,7 @@ def format_header(header, key, fmt_str=".2f"):
     return f"{key}={format(val, fmt_str)}"
 
 
-def plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, key, wmin, wmax):
+def plot_photon_flux(wavelengths, values, output_dir, star : Star, filename_tag, title_text, y_label, key, wmin, wmax):
 
     mask = (wavelengths >= wmin) & (wavelengths <= wmax)
     logging.info("Plotting %s for star %s in window '%s' (%.1f–%.1f Å); %d wavelength bins", filename_tag, star.name, key, wmin, wmax, int(mask.sum()))
@@ -89,7 +90,7 @@ def plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_
     plt.close(fig)
 
 
-def plot_flux_and_photons_windows(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, perChannel: bool = True, full: bool = False, zoom: bool = True):
+def plot_flux_and_photons_windows(wavelengths, values, output_dir, star: Star, filename_tag, title_text, y_label, perChannel: bool = True, full: bool = False, zoom: bool = True):
     print(f"Producing plots for {star.name}")
     logging.info("Producing plots for %s", star.name)
 

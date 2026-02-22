@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from loaders.run_setup import setup_output_directory
+from loaders.run_waltzer_context import setup_output_directory
 from flux.flux_calc import load_model_for_temperature
 
 

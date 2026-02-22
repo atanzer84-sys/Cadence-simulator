@@ -7,9 +7,10 @@ from frame.fits import write_fits_frames
 from frame.science import generate_science_frames
 from utils.images import write_frames_png
 from configs.channel import SpectroscopyChannel
+from loaders.run_waltzer_context import RunContext
+from domain.star import Star
 
-
-def generate_Frames(counts_s_pixel_convolved_nuv, counts_s_pixel_convolved_vis, nuv: SpectroscopyChannel, vis: SpectroscopyChannel, user_cfg, output_dir, star):
+def generate_Frames(counts_s_pixel_convolved_nuv, counts_s_pixel_convolved_vis, nuv: SpectroscopyChannel, vis: SpectroscopyChannel, ctx: RunContext, star: Star):
 
     global_cfg = get_global_config()
     n_bias_and_darkframes = global_cfg.n_bias_and_darkframes
@@ -24,16 +25,16 @@ def generate_Frames(counts_s_pixel_convolved_nuv, counts_s_pixel_convolved_vis, 
         dark_vis_frames, dark_vis_headers = generate_dark_frames(vis, n_bias_and_darkframes, header)
 
         #write FITS
-        write_fits_frames(bias_nuv_frames, bias_nuv_headers, "bias", nuv.channel_name, output_dir)
-        write_fits_frames(bias_vis_frames, bias_vis_headers, "bias", vis.channel_name, output_dir)
-        write_fits_frames(dark_nuv_frames, dark_nuv_headers, "dark", nuv.channel_name, output_dir)
-        write_fits_frames(dark_vis_frames, dark_vis_headers, "dark", vis.channel_name, output_dir)
+        write_fits_frames(bias_nuv_frames, bias_nuv_headers, "bias", nuv.channel_name, ctx)
+        write_fits_frames(bias_vis_frames, bias_vis_headers, "bias", vis.channel_name, ctx)
+        write_fits_frames(dark_nuv_frames, dark_nuv_headers, "dark", nuv.channel_name, ctx)
+        write_fits_frames(dark_vis_frames, dark_vis_headers, "dark", vis.channel_name, ctx)
 
         if global_cfg.write_dark_and_bias_png:
-            write_frames_png(bias_nuv_frames, bias_nuv_headers, "bias", nuv.channel_name, output_dir, show_stats=True)
-            write_frames_png(bias_vis_frames, bias_vis_headers, "bias", vis.channel_name, output_dir, show_stats=True)
-            write_frames_png(dark_nuv_frames, dark_nuv_headers, "dark", nuv.channel_name, output_dir, show_stats=True)
-            write_frames_png(dark_vis_frames, dark_vis_headers, "dark", vis.channel_name, output_dir, show_stats=True)
+            write_frames_png(bias_nuv_frames, bias_nuv_headers, "bias", nuv.channel_name, ctx, show_stats=True)
+            write_frames_png(bias_vis_frames, bias_vis_headers, "bias", vis.channel_name, ctx, show_stats=True)
+            write_frames_png(dark_nuv_frames, dark_nuv_headers, "dark", nuv.channel_name, ctx, show_stats=True)
+            write_frames_png(dark_vis_frames, dark_vis_headers, "dark", vis.channel_name, ctx, show_stats=True)
     else:
         logging.info("BIAS and DARK: n_bias_and_darkframes=%d → skipped.", n_bias_and_darkframes)
 
@@ -41,11 +42,11 @@ def generate_Frames(counts_s_pixel_convolved_nuv, counts_s_pixel_convolved_vis, 
         science_nuv_frames, science_nuv_headers = generate_science_frames(counts_s_pixel_convolved_nuv, nuv, n_science_frames, header)
         science_vis_frames, science_vis_headers = generate_science_frames(counts_s_pixel_convolved_vis, vis, n_science_frames, header)
         # write science FITS
-        write_fits_frames(science_nuv_frames, science_nuv_headers, "science", nuv.channel_name, output_dir)
-        write_fits_frames(science_vis_frames, science_vis_headers, "science", vis.channel_name, output_dir)
+        write_fits_frames(science_nuv_frames, science_nuv_headers, "science", nuv.channel_name, ctx)
+        write_fits_frames(science_vis_frames, science_vis_headers, "science", vis.channel_name, ctx)
         # Write PNGs
         if global_cfg.write_science_frames_png:
-            write_frames_png(science_nuv_frames, science_nuv_headers, "science", nuv.channel_name, output_dir, show_stats=True)
-            write_frames_png(science_vis_frames, science_vis_headers, "science", vis.channel_name, output_dir, show_stats=True)
+            write_frames_png(science_nuv_frames, science_nuv_headers, "science", nuv.channel_name, ctx, show_stats=True)
+            write_frames_png(science_vis_frames, science_vis_headers, "science", vis.channel_name, ctx, show_stats=True)
     else:
         logging.info("SCIENCE: n_science_frames=%d → skipped.", n_science_frames)

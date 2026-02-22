@@ -5,18 +5,19 @@ from utils.debug_dumps import dump_1d_for_channel
 from utils.images import plot_1d_for_channel
 from domain.star import Star
 from configs.channel import SpectroscopyChannel
+from loaders.run_waltzer_context import RunContext
 
 
-def counts_per_s_px_conv_all_channels(photon_flux_at_earth: np.ndarray, wavelengths_total: np.ndarray, nuv: SpectroscopyChannel, vis: SpectroscopyChannel, output_dir, star: Star):
+def counts_per_s_px_conv_all_channels(photon_flux_at_earth: np.ndarray, wavelengths_total: np.ndarray, nuv: SpectroscopyChannel, vis: SpectroscopyChannel, ctx: RunContext, star: Star):
     logging.info("Starting convolution to instrument")
     print("Starting convolution to instrument")
     cfg = get_global_config()
 
-    broadened_flux_nuv, wavelength_nuv = compute_broadened_channel_flux(photon_flux_at_earth, wavelengths_total, nuv, output_dir, cfg, star)
-    broadened_flux_vis, wavelength_vis = compute_broadened_channel_flux(photon_flux_at_earth, wavelengths_total, vis, output_dir, cfg, star)
+    broadened_flux_nuv, wavelength_nuv = compute_broadened_channel_flux(photon_flux_at_earth, wavelengths_total, nuv, ctx.output_dir, cfg, star)
+    broadened_flux_vis, wavelength_vis = compute_broadened_channel_flux(photon_flux_at_earth, wavelengths_total, vis, ctx.output_dir, cfg, star)
 
-    counts_s_px_convolved_nuv = counts_per_s_px_conv_per_channel(broadened_flux_nuv, wavelength_nuv, nuv, output_dir, cfg, star)
-    counts_s_px_convolved_vis = counts_per_s_px_conv_per_channel(broadened_flux_vis, wavelength_vis, vis, output_dir, cfg, star)
+    counts_s_px_convolved_nuv = counts_per_s_px_conv_per_channel(broadened_flux_nuv, wavelength_nuv, nuv, ctx.output_dir, cfg, star)
+    counts_s_px_convolved_vis = counts_per_s_px_conv_per_channel(broadened_flux_vis, wavelength_vis, vis, ctx.output_dir, cfg, star)
 
     return counts_s_px_convolved_nuv, counts_s_px_convolved_vis
 

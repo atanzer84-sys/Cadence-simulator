@@ -4,7 +4,7 @@ from astropy.io import fits
 from astropy.time import Time
 from frame.fits_header import initialize_fits_header
 from domain.star import Star
-import loaders.run_setup
+import loaders.run_waltzer_context
 
 
 @pytest.fixture
@@ -41,7 +41,7 @@ def fixed_timestamp():
 
 def test_initialize_fits_header_returns_fits_header(monkeypatch, star_fixture, fixed_timestamp):
     # This test ensures initialize_fits_header returns a valid FITS header.
-    monkeypatch.setattr(loaders.run_setup, "GLOBAL_TIMESTAMP", fixed_timestamp)
+    monkeypatch.setattr(loaders.run_waltzer_context, "GLOBAL_TIMESTAMP", fixed_timestamp)
 
     header = initialize_fits_header(star_fixture)
     assert isinstance(header, fits.Header)
@@ -49,7 +49,7 @@ def test_initialize_fits_header_returns_fits_header(monkeypatch, star_fixture, f
 
 def test_header_contains_required_keys(monkeypatch, star_fixture, fixed_timestamp):
     # This test verifies that all mandatory FITS header keys are present.
-    monkeypatch.setattr(loaders.run_setup, "GLOBAL_TIMESTAMP", fixed_timestamp)
+    monkeypatch.setattr(loaders.run_waltzer_context, "GLOBAL_TIMESTAMP", fixed_timestamp)
 
     header = initialize_fits_header(star_fixture)
 
@@ -67,7 +67,7 @@ def test_header_contains_required_keys(monkeypatch, star_fixture, fixed_timestam
 
 def test_header_values_are_reasonable(monkeypatch, star_fixture, fixed_timestamp):
     # This test checks that header values match the Star object and fixed metadata.
-    monkeypatch.setattr(loaders.run_setup, "GLOBAL_TIMESTAMP", fixed_timestamp)
+    monkeypatch.setattr(loaders.run_waltzer_context, "GLOBAL_TIMESTAMP", fixed_timestamp)
 
     header = initialize_fits_header(star_fixture)
 
@@ -83,7 +83,7 @@ def test_header_values_are_reasonable(monkeypatch, star_fixture, fixed_timestamp
 
 def test_header_time_fields_are_valid_iso(monkeypatch, star_fixture, fixed_timestamp):
     # This test ensures timestamp fields are valid ISO‑8601 and parseable by astropy.
-    monkeypatch.setattr(loaders.run_setup, "GLOBAL_TIMESTAMP", fixed_timestamp)
+    monkeypatch.setattr(loaders.run_waltzer_context, "GLOBAL_TIMESTAMP", fixed_timestamp)
 
     header = initialize_fits_header(star_fixture)
 

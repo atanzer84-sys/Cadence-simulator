@@ -1,7 +1,8 @@
 import sys
 import logging
 from loaders.load_channel import load_channels_config
-from loaders.run_setup import initialize_waltzer_runtime, load_cfg_and_user_config, load_stellar_and_planetary_properties
+from loaders.run_waltzer_context import initialize_waltzer_runtime_context
+from loaders.load_stellar_and_planetary_properties import load_stellar_and_planetary_properties
 from domain.star import Star
 from domain.planet import Planet
 from flux.flux_calc import calculateFluxOnEarth
@@ -11,22 +12,21 @@ from frame.frame import generate_Frames
 def main():
     try:
 
-        output_dir = initialize_waltzer_runtime()
-        user_cfg = load_cfg_and_user_config()
-        nuv_channel, vis_channel, ir_channel = load_channels_config(user_cfg)
+        run_ctx, user_cfg = initialize_waltzer_runtime_context()
+        nuv_channel, vis_channel, _ = load_channels_config(user_cfg)
 
         planet_param, stellar_param, required_planetary_parameters, required_stellar_parameters = load_stellar_and_planetary_properties(user_cfg.target_name)
 
         star = Star.from_params(stellar_param, required_keys=required_stellar_parameters)
         _ = Planet.from_params(planet_param, required_keys=required_planetary_parameters)
 
-        photon_flux_at_earth_A, wavelengths_total = calculateFluxOnEarth(star, output_dir)
+        photon_flux_at_earth_A, wavelengths_total = calculateFluxOnEarth(star, run_ctx)
 
         # counts per pixel per second convolved to NUV and VIS
-        counts_s_pixel_convolved_nuv, counts_s_pixel_convolved_vis = counts_per_s_px_conv_all_channels(photon_flux_at_earth_A, wavelengths_total, nuv_channel, vis_channel, output_dir, star)
+        counts_s_pixel_convolved_nuv, counts_s_pixel_convolved_vis = counts_per_s_px_conv_all_channels(photon_flux_at_earth_A, wavelengths_total, nuv_channel, vis_channel, run_ctx, star)
 
         # generating bias, dark and science frames for NUV, VIS
-        generate_Frames(counts_s_pixel_convolved_nuv, counts_s_pixel_convolved_vis, nuv_channel, vis_channel, user_cfg, output_dir, star)
+        generate_Frames(counts_s_pixel_convolved_nuv, counts_s_pixel_convolved_vis, nuv_channel, vis_channel, run_ctx, star)
 
 
     except Exception as e:

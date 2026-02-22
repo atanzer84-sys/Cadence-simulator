@@ -1,5 +1,5 @@
 from domain.star import Star
-import loaders.run_setup
+import loaders.run_waltzer_context
 from flux.flux_calc import calculate_glon_glat
 from astropy.time import Time
 from astropy.coordinates import Angle
@@ -12,7 +12,7 @@ def initialize_fits_header(star: Star):
     Create a base FITS header with all fixed keys set.
     Uses the Output Directory timestamp for EXP_STRT.
     """
-    t = loaders.run_setup.GLOBAL_TIMESTAMP
+    t = loaders.run_waltzer_context.GLOBAL_TIMESTAMP
     time = Time(t, scale='utc')
     ra_hex  = Angle(star.right_ascension, unit="deg").to_string(unit="hour", sep=":", precision=6, pad=True)
     dec_hex = Angle(star.declination, unit="deg").to_string(unit="deg",  sep=":", precision=6, alwayssign=True, pad=True)
