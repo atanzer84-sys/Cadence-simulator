@@ -1,24 +1,27 @@
-from pathlib import Path
 import pytest
+from pathlib import Path
 
-import configs.global_config as global_config
+import configs.global_config as gc
+
+_CONFIG_DIR = Path(__file__).resolve().parent
+
+
+def _cfg_path(name: str) -> Path:
+    """Path to a config file in tests/configs/."""
+    return _CONFIG_DIR / name
 
 
 @pytest.fixture(autouse=True)
 def reset_cache():
-    # reset the cache in the module under test
-    global_config._GLOBAL = None
+    gc._GLOBAL = None
     yield
-    global_config._GLOBAL = None
-
-
-def _cfg_path(name: str) -> Path:
-    return Path(__file__).resolve().parent / name
+    gc._GLOBAL = None
 
 
 def test_get_global_config_raises_if_not_loaded(caplog):
+    """get_global_config() raises RuntimeError with error log when config was never loaded."""
     with pytest.raises(RuntimeError) as exc:
-        global_config.get_global_config()
+        gc.get_global_config()
 
     assert "Global config not loaded" in str(exc.value)
     assert any(
@@ -28,20 +31,23 @@ def test_get_global_config_raises_if_not_loaded(caplog):
 
 
 def test_load_global_config_returns_globalconfig_instance():
-    cfg = global_config.load_global_config(_cfg_path("global_minimal.cfg"))
-    assert isinstance(cfg, global_config.GlobalConfig)
+    """load_global_config() returns an instance of GlobalConfig."""
+    cfg = gc.load_global_config(_cfg_path("global_minimal.cfg"))
+    assert isinstance(cfg, gc.GlobalConfig)
 
 
 def test_load_global_config_is_cached_and_shared():
-    cfg1 = global_config.load_global_config(_cfg_path("global_minimal.cfg"))
-    cfg2 = global_config.load_global_config(_cfg_path("global_minimal.cfg"))
+    """Loading the same path twice returns the same cached instance; get_global_config() shares it."""
+    cfg1 = gc.load_global_config(_cfg_path("global_minimal.cfg"))
+    cfg2 = gc.load_global_config(_cfg_path("global_minimal.cfg"))
 
     assert cfg1 is cfg2
-    assert global_config.get_global_config() is cfg1
+    assert gc.get_global_config() is cfg1
 
 
 def test_optional_float_fields_accept_blank_and_none():
-    cfg = global_config.load_global_config(_cfg_path("global_optional_blanks.cfg"))
+    """Optional float fields (mg2_col, mg1_col, fe2_col) accept blank or none and become None."""
+    cfg = gc.load_global_config(_cfg_path("global_optional_blanks.cfg"))
 
     assert cfg.mg2_col is None
     assert cfg.mg1_col is None
@@ -49,7 +55,8 @@ def test_optional_float_fields_accept_blank_and_none():
 
 
 def test_boolean_fields_accept_common_spellings():
-    cfg = global_config.load_global_config(_cfg_path("global_optional_blanks.cfg"))
+    """Boolean fields accept common spellings (true/false, yes/no, 0/1)."""
+    cfg = gc.load_global_config(_cfg_path("global_optional_blanks.cfg"))
 
     assert cfg.line_core_emission is False
     assert cfg.interstellar_absorption is True
@@ -57,10 +64,11 @@ def test_boolean_fields_accept_common_spellings():
 
 
 def test_missing_config_file_logs_and_raises(caplog, tmp_path):
+    """Loading a non-existent config file logs ERROR and raises FileNotFoundError."""
     missing = tmp_path / "does_not_exist.cfg"
 
     with pytest.raises(FileNotFoundError):
-        global_config.load_global_config(missing)
+        gc.load_global_config(missing)
 
     assert any(
         "not found" in rec.message.lower() and rec.levelname == "ERROR"
@@ -69,8 +77,9 @@ def test_missing_config_file_logs_and_raises(caplog, tmp_path):
 
 
 def test_invalid_boolean_reports_property_name(caplog):
+    """Invalid boolean value raises ValueError and logs ERROR with the config key name."""
     with pytest.raises(ValueError) as exc:
-        global_config.load_global_config(_cfg_path("global_invalid_bool.cfg"))
+        gc.load_global_config(_cfg_path("global_invalid_bool.cfg"))
 
     msg = str(exc.value)
     assert "line_core_emission" in msg
@@ -81,8 +90,9 @@ def test_invalid_boolean_reports_property_name(caplog):
         for rec in caplog.records
     )
 
-    
+
 def test_missing_sigmaMg22_uses_default_and_logs_warning(caplog, tmp_path):
+    """Missing sigmaMg22 uses DEFAULT_SIGMA_MG22 and a WARNING is logged."""
     cfg_path = tmp_path / "global_missing_sigma_h.cfg"
     cfg_path.write_text(
         """
@@ -98,12 +108,14 @@ log_r_cool_value = 0.0
         encoding="utf-8",
     )
 
-    cfg = global_config.load_global_config(cfg_path)
+    cfg = gc.load_global_config(cfg_path)
 
-    assert cfg.sigmaMg22 == global_config.DEFAULT_SIGMA_MG22
+    assert cfg.sigmaMg22 == gc.DEFAULT_SIGMA_MG22
     assert any("sigmaMg22 not provided" in rec.message and rec.levelname == "WARNING" for rec in caplog.records)
 
+
 def test_optional_float_parses_numeric(tmp_path):
+    """Optional float fields parse numeric values correctly (e.g. mg2_col, mg1_col, fe2_col)."""
     cfg_path = tmp_path / "global_numeric_optional.cfg"
     cfg_path.write_text(
         """
@@ -122,13 +134,15 @@ log_r_cool_value = 0.0
         encoding="utf-8",
     )
 
-    cfg = global_config.load_global_config(cfg_path)
+    cfg = gc.load_global_config(cfg_path)
 
     assert cfg.mg2_col == 12.5
     assert cfg.mg1_col == 3.0
     assert cfg.fe2_col == 0.001
 
+
 def test_optional_float_invalid_value_raises(tmp_path):
+    """Invalid value for an optional float (e.g. mg2_col) raises ValueError."""
     cfg_path = tmp_path / "global_invalid_optional.cfg"
     cfg_path.write_text(
         """
@@ -142,9 +156,11 @@ produce_Plots = 0
     )
 
     with pytest.raises(ValueError):
-        global_config.load_global_config(cfg_path)
+        gc.load_global_config(cfg_path)
+
 
 def test_invalid_float_reports_property_name(caplog, tmp_path):
+    """Invalid float value raises ValueError and logs ERROR with the key name used in code (e.g. sigmaMgIIh)."""
     cfg_path = tmp_path / "global_invalid_float.cfg"
     cfg_path.write_text(
         """
@@ -159,7 +175,7 @@ produce_Plots = 0
     )
 
     with pytest.raises(ValueError) as exc:
-        global_config.load_global_config(cfg_path)
+        gc.load_global_config(cfg_path)
 
     msg = str(exc.value)
     assert "sigmaMgIIh" in msg  # key name used in _as_float
@@ -169,7 +185,10 @@ produce_Plots = 0
         "sigmaMgIIh" in rec.message and rec.levelname == "ERROR"
         for rec in caplog.records
     )
+
+
 def test_parse_simple_kv_ignores_lines_without_equals(tmp_path):
+    """Lines without '=' are ignored by the parser; valid key=value lines are still parsed."""
     cfg_path = tmp_path / "global_no_equals.cfg"
     cfg_path.write_text(
         """
@@ -186,13 +205,15 @@ log_r_cool_value = 0.0
         encoding="utf-8",
     )
 
-    cfg = global_config.load_global_config(cfg_path)
+    cfg = gc.load_global_config(cfg_path)
 
     # The invalid line should simply be ignored, not cause errors
     assert cfg.line_core_emission is True
     assert cfg.interstellar_absorption is False
 
+
 def test_required_log_r_fields_reject_non_numeric(tmp_path):
+    """Required log_r fields (log_r_teff_threshold, log_r_hot_value, log_r_cool_value) reject non-numeric values with ValueError."""
     base_cfg = """
 line_core_emission = 0
 interstellar_absorption = 0
@@ -212,7 +233,7 @@ produce_Plots = 0
     )
 
     with pytest.raises(ValueError) as exc:
-        global_config.load_global_config(cfg_path)
+        gc.load_global_config(cfg_path)
     assert "log_r_teff_threshold" in str(exc.value)
 
     # 2) bad hot value
@@ -223,7 +244,7 @@ produce_Plots = 0
     )
 
     with pytest.raises(ValueError) as exc:
-        global_config.load_global_config(cfg_path)
+        gc.load_global_config(cfg_path)
     assert "log_r_hot_value" in str(exc.value)
 
     # 3) bad cool value
@@ -234,10 +255,12 @@ produce_Plots = 0
     )
 
     with pytest.raises(ValueError) as exc:
-        global_config.load_global_config(cfg_path)
+        gc.load_global_config(cfg_path)
     assert "log_r_cool_value" in str(exc.value)
 
+
 def test_required_log_r_fields_parse_numeric(tmp_path):
+    """Required log_r fields parse numeric values correctly (enable_log_r_fallback, threshold, hot/cool values)."""
     cfg_path = tmp_path / "global_required_log_r_numeric.cfg"
     cfg_path.write_text(
         """
@@ -253,7 +276,7 @@ produce_Plots = 0
         encoding="utf-8",
     )
 
-    cfg = global_config.load_global_config(cfg_path)
+    cfg = gc.load_global_config(cfg_path)
 
     assert cfg.enable_log_r_fallback is True
     assert cfg.log_r_teff_threshold == 5500.0
