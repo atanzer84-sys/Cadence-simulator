@@ -7,6 +7,12 @@ from domain.star import Star
 from configs.channel import SpectroscopyChannel
 from loaders.run_waltzer_context import RunContext
 
+# Tag strings for dump/plot output; tests import these for assertions
+DUMP_TAG_CUT_WINDOW = "Detector_1_cut_wavelength_window"
+DUMP_TAG_COUNTS = "Detector_2_counts_s_px_convolved"
+PLOT_TAG_GAUSSBROAD = "Detector_2_gaussbroad"
+PLOT_TAG_COUNTS = "counts_s_px_convolved"
+
 
 def counts_per_s_px_conv_all_channels(photon_flux_at_earth: np.ndarray, wavelengths_total: np.ndarray, nuv: SpectroscopyChannel, vis: SpectroscopyChannel, ctx: RunContext, star: Star):
     logging.info("Starting convolution to instrument")
@@ -31,7 +37,7 @@ def compute_broadened_channel_flux(photon_flux_at_earth: np.ndarray, wavelengths
     photon_flux_smoothed =  gaussbroad(wavelength, cut_photon_flux, channel.pixel_scale)
 
     if cfg.produce_Plots:
-        plot_1d_for_channel(wavelength, photon_flux_smoothed, output_dir, star, filename_tag=f"Detector_2_gaussbroad", title_text="Photon Flux after Gaussian Broadening", y_label="Photon flux [photons s⁻¹ cm⁻² Å⁻¹]", channel_name=channel.channel_name, full=True)
+        plot_1d_for_channel(wavelength, photon_flux_smoothed, output_dir, star, filename_tag=PLOT_TAG_GAUSSBROAD, title_text="Photon Flux after Gaussian Broadening", y_label="Photon flux [photons s⁻¹ cm⁻² Å⁻¹]", channel_name=channel.channel_name, full=True)
 
     logging.info("Channel %s photon_flux_smoothed sum=%g mean=%g min=%g max=%g", channel.channel_name, photon_flux_smoothed.sum(), photon_flux_smoothed.mean(), photon_flux_smoothed.min(), photon_flux_smoothed.max())
 
@@ -54,18 +60,24 @@ def cut_wavelength_window_with_margin(photon_flux_at_earth: np.ndarray, waveleng
 
     i0 = max(i0_raw, 0)
     i1 = min(i1_raw, len(wavelengths_total))
-    logging.info("indices after clamping: i0=%d i1=%d", i0, i1)
-    logging.info("wavelengths_total[i0]=%g wavelengths_total[i1-1]=%g", wavelengths_total[i0], wavelengths_total[i1 - 1])
 
     wavelength_cut = wavelengths_total[i0:i1]
     flux_cut = photon_flux_at_earth[i0:i1]
 
+    if len(wavelength_cut) == 0:
+        raise ValueError(
+            f"Channel wavelength range [{wl_min}, {wl_max}] (extended by margin {margin_A} Å) "
+            f"does not overlap wavelengths_total [{wavelengths_total[0]}, {wavelengths_total[-1]}]"
+        )
+
+    logging.info("indices after clamping: i0=%d i1=%d", i0, i1)
+    logging.info("wavelengths_total[i0]=%g wavelengths_total[i1-1]=%g", wavelengths_total[i0], wavelengths_total[i1 - 1])
     logging.info("cut size=%d first_wl=%g last_wl=%g cut size flux=%d first_flux=%g last_flux=%g", len(wavelength_cut), wavelength_cut[0], wavelength_cut[-1], len(flux_cut), flux_cut[0], flux_cut[-1])
 
     if cfg.test_mode:
-        dump_1d_for_channel(wavelength_cut, flux_cut, output_dir, star.name, f"Detector_1_cut_wavelength_window", channel_name=channel.channel_name, full=True, zoom=True)
+        dump_1d_for_channel(wavelength_cut, flux_cut, output_dir, star.name, DUMP_TAG_CUT_WINDOW, channel_name=channel.channel_name, full=True, zoom=True)
     if cfg.produce_Plots:
-        plot_1d_for_channel(wavelength_cut, flux_cut, output_dir, star, filename_tag=f"Detector_1_cut_wavelength_window", title_text="Photon Flux before Gaussian Broadening", y_label="Photon flux [photons s⁻¹ cm⁻² Å⁻¹]", channel_name=channel.channel_name, full=True)
+        plot_1d_for_channel(wavelength_cut, flux_cut, output_dir, star, filename_tag=DUMP_TAG_CUT_WINDOW, title_text="Photon Flux before Gaussian Broadening", y_label="Photon flux [photons s⁻¹ cm⁻² Å⁻¹]", channel_name=channel.channel_name, full=True)
 
     return flux_cut, wavelength_cut
 
@@ -139,9 +151,9 @@ def counts_per_s_px_conv_per_channel(broadened_photon_flux: np.ndarray, waveleng
     logging.info("Channel %s counts_per_s_per_pixel sum=%g mean=%g min=%g max=%g", channel.channel_name, counts_s_px_convolved.sum(), counts_s_px_convolved.mean(), counts_s_px_convolved.min(), counts_s_px_convolved.max())
 
     if cfg.test_mode:
-        dump_1d_for_channel(channel.wavelength, counts_s_px_convolved, output_dir, star.name, f"Detector_2_counts_s_px_convolved", channel_name=channel.channel_name, full=True, zoom=True)
+        dump_1d_for_channel(channel.wavelength, counts_s_px_convolved, output_dir, star.name, DUMP_TAG_COUNTS, channel_name=channel.channel_name, full=True, zoom=True)
 
     if cfg.produce_Plots:
-        plot_1d_for_channel(channel.wavelength, counts_s_px_convolved, output_dir, star, filename_tag=f"counts_s_px_convolved", title_text="Convolved Counts", y_label="Counts s⁻¹ pixel⁻¹", channel_name=channel.channel_name, full=True)
+        plot_1d_for_channel(channel.wavelength, counts_s_px_convolved, output_dir, star, filename_tag=PLOT_TAG_COUNTS, title_text="Convolved Counts", y_label="Counts s⁻¹ pixel⁻¹", channel_name=channel.channel_name, full=True)
 
     return counts_s_px_convolved
