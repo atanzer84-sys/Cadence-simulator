@@ -61,6 +61,10 @@ def load_channel_config(path: Path, exposure_s:float):
         )
         
     spread_pos, spread_w, spread_wl_header = load_spread_profile_file(spread_profile_file, channel_name)
+    slit_position_x_arcsec = _as_float(raw.get("slit_position_x_arcsec", 0.0), key="slit_position_x_arcsec")
+    slit_position_y_arcsec = _as_float(raw.get("slit_position_y_arcsec", 0.0), key="slit_position_y_arcsec")
+    slope = _as_float(raw.get("slope", 0.0), key="slope")
+    intercept_pixels = _as_float(raw.get("intercept_pixels", 0.0), key="intercept_pixels")
 
     return SpectroscopyChannel(
         channel_name=channel_name,
@@ -83,7 +87,11 @@ def load_channel_config(path: Path, exposure_s:float):
         spread_y_positions=spread_pos,
         spread_y_weights=spread_w,
         spread_y_wavelengths=spread_wl_header,
-        source_file=source_file
+        source_file=source_file,
+        slit_position_x_arcsec=slit_position_x_arcsec,
+        slit_position_y_arcsec=slit_position_y_arcsec,
+        slope=slope,
+        intercept_pixels=intercept_pixels,
     )  
 
 

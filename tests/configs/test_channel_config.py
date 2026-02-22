@@ -22,7 +22,11 @@ def test_spectroscopy_channel_init():
         spread_y_positions=None,
         spread_y_weights=None,
         spread_y_wavelengths=None,
-        source_file="cfg"
+        source_file="cfg",
+        slit_position_x_arcsec=0.0,
+        slit_position_y_arcsec=0.0,
+        slope=0.0,
+        intercept_pixels=0.0,
     )
 
     assert ch.channel_name == "NUV"

@@ -35,11 +35,15 @@ class SpectroscopyChannel(Channel):
     wavelength: np.ndarray
     effective_area: np.ndarray
     pixel_scale: float
+    slit_position_x_arcsec: float
+    slit_position_y_arcsec: float
+    slope: float
+    intercept_pixels: float
     spread_y_positions: np.ndarray | None = None
     spread_y_weights: np.ndarray | None = None
     spread_y_wavelengths: np.ndarray | None = None
 
-
+    
 @dataclass(frozen=True, slots=True)
 class PhotometryChannel(Channel):
     pass
