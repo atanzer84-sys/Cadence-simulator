@@ -4,7 +4,6 @@ import sys
 import logging
 from pathlib import Path
 from datetime import datetime
-
 from configs.user_config import load_user_config, get_user_config
 from configs.global_config import load_global_config, get_global_config
 from utils import debug_dumps
@@ -58,6 +57,24 @@ def _create_produce_plots():
 
     return _RealProducePlots() if get_global_config().produce_Plots else _NOOP_PLOTS
 
+class _NoOpWriteImagePng:
+    @staticmethod
+    def write_image(array, frame_type: str, ctx, channel, show_stats: bool = True):
+        pass
+
+
+_NOOP_WRITE_IMAGE_PNG = _NoOpWriteImagePng()
+
+
+def _create_write_image_png():
+    from utils import images
+
+    class _RealWriteImagePng:
+        write_image = staticmethod(images.write_image_png)
+
+    return _RealWriteImagePng() if get_global_config().write_non_science_frames_png else _NOOP_WRITE_IMAGE_PNG
+
+
 
 @dataclass(frozen=True)
 class RunContext:
@@ -67,7 +84,7 @@ class RunContext:
     timestamp_str: str
     test_mode: _NoOpTestMode | _RealTestMode
     produce_plots: _NoOpProducePlots
-
+    write_image_png: _NoOpWriteImagePng
 
 def initialize_waltzer_runtime_context():
     print("Getting started...")
@@ -76,7 +93,9 @@ def initialize_waltzer_runtime_context():
     user_cfg = load_cfg_and_user_config()
     test_mode = _RealTestMode() if get_global_config().test_mode else _NOOP
     produce_plots = _create_produce_plots()
+    write_image_png = _create_write_image_png()
 
+    
     run_ctx = RunContext(
         target_name=user_cfg.target_name,
         output_dir=output_dir,
@@ -84,9 +103,14 @@ def initialize_waltzer_runtime_context():
         timestamp_str=timestamp_str,
         test_mode=test_mode,
         produce_plots=produce_plots,
-    )
-    logging.info("RunContext initialized: %s", run_ctx)
+        write_image_png=write_image_png,
 
+    )
+    logging.info(
+        "RunContext initialized: target=%s output_dir=%s test_mode=%s produce_plots=%s write_image_png=%s",
+        run_ctx.target_name,
+        run_ctx.output_dir,
+    )
     return run_ctx, user_cfg
 
 def load_cfg_and_user_config():

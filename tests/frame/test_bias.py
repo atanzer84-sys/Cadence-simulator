@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 from astropy.io import fits
-from frame.bias import generate_bias_frame, generate_bias_frames
+from frame.bias_frame import generate_bias_frame, generate_bias_frames
 from frame.frame_class import Frame
 
 

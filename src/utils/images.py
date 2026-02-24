@@ -4,12 +4,67 @@ from pathlib import Path
 from utils.constants import debug_wavelength_range_ir, debug_wavelength_range_nuv, debug_wavelength_range_vis, DEBUG_WL_A_NUV, DEBUG_WL_A_VIS, DEBUG_WL_A_IR
 from loaders.run_waltzer_context import RunContext
 from domain.star import Star
+import numpy as np
+from configs.channel_config import SpectroscopyChannel
+
 
 STATS_KEYS = {
     "BIAS": ["MEAN", "MEDIAN", "STDDEV", "MIN", "MAX", "RNOISE", "B_OFFSET"],
     "DARK": ["MEAN", "MEDIAN", "STDDEV", "MIN", "MAX", "DARKVAL", "DARKSIG", "EXPTIME", "B_OFFSET", "RNOISE"],
     "SCIENCE": ["MEAN", "MEDIAN", "STDDEV", "MIN", "MAX", "DARKVAL", "DARKSIG", "B_OFFSET", "RNOISE", "EXPTIME"],
 }
+
+
+def write_image_png(array, frame_type: str, ctx: RunContext, channel: SpectroscopyChannel, show_stats: bool = True) -> None:
+
+    logging.info("WRITE_IMAGE_PNG called | frame_type=%s | channel=%s | shape=%s", frame_type, channel.channel_name, array.shape)
+
+    star_name = str(ctx.target_name).replace(" ", "_")
+    filename = ctx.output_dir / f"WALTzER_{star_name}_{channel.channel_name}_{frame_type}_image.png"
+
+    ny, nx = array.shape
+    width_in = 10.0
+    img_h_in = max(2.0, width_in * (ny / nx))
+    text_h_in = 0.7
+    gap_in = 0.8  # fixed gap (inches) between image and stats so NUV/VIS match
+
+    fig = plt.figure(figsize=(width_in, img_h_in + gap_in + text_h_in))
+    gs = fig.add_gridspec(nrows=3, ncols=1, height_ratios=[img_h_in, gap_in, text_h_in], hspace=0)
+
+    ax = fig.add_subplot(gs[0, 0])
+    ax.imshow(array, origin="lower", aspect="equal", cmap="gray")
+    ax.set_xlim(-0.5, nx - 0.5)
+    ax.set_ylim(-0.5, ny - 0.5)
+    ax.set_xlabel("pixels")
+    ax.set_ylabel("pixels")
+    ax.set_title(f"{ctx.target_name}: {channel.channel_name} {frame_type}", fontsize=11)
+
+    ax_txt = fig.add_subplot(gs[2, 0])
+    ax_txt.axis("off")
+
+    if show_stats:
+        mean, median = float(np.mean(array)), float(np.median(array))
+        std = float(np.std(array, ddof=0))
+        vmin, vmax = float(np.min(array)), float(np.max(array))
+        rn = getattr(channel, "read_noise", None)
+        bo = getattr(channel, "bias_offset", None)
+        dv = getattr(channel, "dark_noise", None)
+        ds = getattr(channel, "dark_current_sigma", None)
+        ex = getattr(channel, "exposure_s", None)
+        def _v(x, fmt=""):
+            return (format(x, fmt) if fmt else str(x)) if x is not None else "n/a"
+        stats_text = (
+            f"MEAN={mean:.3f}  MEDIAN={median:.3f}  STDDEV={std:.2f}  MIN={vmin:.2f}  MAX={vmax:.2f}\n"
+            f"RNOISE={_v(rn)}  B_OFFSET={_v(bo)}  DARKVAL={_v(dv, '.3f')}  DARKSIG={_v(ds, '.3f')}  EXPTIME={_v(ex, '.3f')}"
+        )
+        ax_txt.text(0.5, 0.5, stats_text, ha="center", va="center", fontsize=10, transform=ax_txt.transAxes)
+
+    fig.savefig(filename, dpi=200, bbox_inches="tight")
+    plt.close(fig)
+
+    logging.debug("Wrote %s", filename)
+
+
 
 
 def _header_val(header, key):

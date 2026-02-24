@@ -2,7 +2,7 @@
 import numpy as np
 import logging
 from frame.frame_class import Frame
-from frame.bias import generate_bias_frame
+from frame.bias_frame import generate_bias_frame
 from configs.channel_config import SpectroscopyChannel
 
 

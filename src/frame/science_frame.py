@@ -1,6 +1,6 @@
 import numpy as np
 import logging
-from frame.dark import generate_dark_frame
+from frame.dark_frame import generate_dark_frame
 from configs.channel_config import SpectroscopyChannel
 from instrument.spectrum_spread import spread_1d_spectrum_to_2d
 from frame.frame_class import Frame

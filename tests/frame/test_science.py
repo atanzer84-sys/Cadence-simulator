@@ -3,7 +3,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 from astropy.io import fits
 
-from frame.science import generate_science_frames
+from frame.science_frame import generate_science_frames
 from frame.frame_class import Frame
 
 
@@ -42,8 +42,8 @@ def test_generate_science_frames_basic():
     base_header = fits.Header()
     fake_image = np.ones((channel.y_pixels, channel.x_pixels))
 
-    with patch("frame.science.spread_1d_spectrum_to_2d") as mock_spread, \
-         patch("frame.science.generate_dark_frame") as mock_dark:
+    with patch("frame.science_frame.spread_1d_spectrum_to_2d") as mock_spread, \
+         patch("frame.science_frame.generate_dark_frame") as mock_dark:
 
         def fake_spread(counts_in, ch, header):
             return fake_image, header

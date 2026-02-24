@@ -7,6 +7,7 @@ from domain.star import Star
 from domain.planet import Planet
 from frame.frame_pipeline import generate_Frames
 from instrument.prepare_detector_images import prepare_all_detector_images_all_channels
+from instrument.build_science_image import build_science_images
 
 def main():
     try:
@@ -22,8 +23,9 @@ def main():
         # calculating flux on earth, convoluting it to instrument properties and returning a 2d image without any additional information
         spectra_2d_nuv, spectra_2d_vis = prepare_all_detector_images_all_channels(star, run_ctx, nuv_channel, vis_channel)
 
-        # generating bias, dark and science frames for NUV, VIS
-        generate_Frames(spectra_2d_nuv, spectra_2d_vis, nuv_channel, vis_channel, run_ctx, star)
+        build_science_images(spectra_2d_nuv, spectra_2d_vis, nuv_channel, vis_channel, run_ctx)
+        # # generating bias, dark and science frames for NUV, VIS
+        # generate_Frames(spectra_2d_nuv, spectra_2d_vis, nuv_channel, vis_channel, run_ctx, star)
 
 
     except Exception as e:

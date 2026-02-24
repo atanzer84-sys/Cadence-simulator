@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
 from types import SimpleNamespace
-
-from instrument.detector import counts_per_s_px_conv_per_channel
+from instrument.spectral_convolution import counts_per_s_px_conv_per_channel
 from instrument import detector
 from loaders.run_waltzer_context import _NOOP, _NOOP_PLOTS
 
