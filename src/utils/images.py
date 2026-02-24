@@ -65,7 +65,13 @@ def write_frames_png(frames, headers, frame_type, channel_tag, ctx: RunContext, 
             keys = _stats_keys_for_header(header)
             parts = []
             for i, k in enumerate(keys):
-                fmt = "" if k in ("RNOISE", "B_OFFSET") else ".3f" if k in ("DARKSIG", "DARKVAL") else ".2f"
+                if k in ("RNOISE", "B_OFFSET"):
+                    fmt = ""
+                elif k in ("MEAN", "MEDIAN", "DARKSIG", "DARKVAL"):
+                    fmt = ".3f"
+                else:
+                    fmt = ".2f"
+
                 parts.append(format_header(header, k, fmt))
                 if (i + 1) % 5 == 0 and i + 1 < len(keys):
                     parts.append("\n")
