@@ -13,16 +13,16 @@ from domain.star import Star
 
 def generate_Frames(counts_s_pixel_convolved_nuv, counts_s_pixel_convolved_vis, nuv: SpectroscopyChannel, vis: SpectroscopyChannel, ctx: RunContext, star: Star):
     global_cfg = get_global_config()
-    n_bias_and_darkframes = global_cfg.n_bias_and_darkframes
+    n_non_science_frames = global_cfg.n_non_science_frames
     n_science_frames = global_cfg.n_science_frames_per_channel
 
     header = initialize_fits_header(star, ctx.timestamp)
 
-    if n_bias_and_darkframes > 0:
-        bias_nuv_frames = generate_bias_frames(nuv, n_bias_and_darkframes, header)
-        bias_vis_frames = generate_bias_frames(vis, n_bias_and_darkframes, header)
-        dark_nuv_frames = generate_dark_frames(nuv, n_bias_and_darkframes, header)
-        dark_vis_frames = generate_dark_frames(vis, n_bias_and_darkframes, header)
+    if n_non_science_frames > 0:
+        bias_nuv_frames = generate_bias_frames(nuv, n_non_science_frames, header)
+        bias_vis_frames = generate_bias_frames(vis, n_non_science_frames, header)
+        dark_nuv_frames = generate_dark_frames(nuv, n_non_science_frames, header)
+        dark_vis_frames = generate_dark_frames(vis, n_non_science_frames, header)
         bias_dark_lists = [bias_nuv_frames, bias_vis_frames, dark_nuv_frames, dark_vis_frames]
 
         _write_fits_for_all(bias_dark_lists, ctx)
@@ -31,7 +31,7 @@ def generate_Frames(counts_s_pixel_convolved_nuv, counts_s_pixel_convolved_vis, 
             _write_png_for_all(bias_dark_lists, ctx, star)
 
     else:
-        logging.info("BIAS and DARK: n_bias_and_darkframes=%d \u2192 skipped.", n_bias_and_darkframes)
+        logging.info("BIAS and DARK: n_non_science_frames=%d \u2192 skipped.", n_non_science_frames)
 
     if n_science_frames > 0:
         science_nuv_frames = generate_science_frames(counts_s_pixel_convolved_nuv, nuv, n_science_frames, header)

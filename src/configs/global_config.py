@@ -19,7 +19,7 @@ class GlobalConfig:
     log_r_hot_value: float
     log_r_cool_value: float
     
-    n_bias_and_darkframes: int
+    n_non_science_frames: int
     write_non_science_frames_png: bool
     n_science_frames_per_channel: int
     write_science_frames_png: bool
@@ -76,7 +76,7 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
         log_r_hot_value=_as_float(raw["log_r_hot_value"], key="log_r_hot_value"),
         log_r_cool_value=_as_float(raw["log_r_cool_value"], key="log_r_cool_value"),
         
-        n_bias_and_darkframes=_as_int(raw.get("n_bias_and_darkframes", 0), key="n_bias_and_darkframes"),
+        n_non_science_frames=_as_int(raw.get("n_non_science_frames", 0), key="n_non_science_frames"),
         write_non_science_frames_png=_as_bool(raw.get("write_non_science_frames_png", 0), key="write_non_science_frames_png"),
         n_science_frames_per_channel=_as_int(raw.get("n_science_frames_per_channel", 0), key="n_science_frames_per_channel"),
         write_science_frames_png=_as_bool(raw.get("write_science_frames_png", 0), key="write_science_frames_png"),        

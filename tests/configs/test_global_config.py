@@ -191,16 +191,16 @@ def test_invalid_sigmaMg21_reports_property_name(caplog, tmp_path):
 
 
 def test_int_fields_parse_numeric():
-    """Int fields (n_bias_and_darkframes, n_science_frames_per_channel) parse numeric values correctly."""
+    """Int fields (n_non_science_frames, n_science_frames_per_channel) parse numeric values correctly."""
     cfg = gc.load_global_config(_cfg_path("global_full.cfg"))
 
-    assert cfg.n_bias_and_darkframes == 3
+    assert cfg.n_non_science_frames == 3
     assert cfg.n_science_frames_per_channel == 7
 
 
 def test_invalid_int_reports_property_name(caplog, tmp_path):
-    """Invalid value for an int field (e.g. n_bias_and_darkframes) raises ValueError and logs ERROR with the key name."""
-    content = _cfg_replace(_base_cfg("global_full.cfg"), "n_bias_and_darkframes = 3", "n_bias_and_darkframes = not_an_int")
+    """Invalid value for an int field (e.g. n_non_science_frames) raises ValueError and logs ERROR with the key name."""
+    content = _cfg_replace(_base_cfg("global_full.cfg"), "n_non_science_frames = 3", "n_non_science_frames = not_an_int")
     cfg_path = tmp_path / "global_invalid_int.cfg"
     cfg_path.write_text(content, encoding="utf-8")
 
@@ -208,11 +208,11 @@ def test_invalid_int_reports_property_name(caplog, tmp_path):
         gc.load_global_config(cfg_path)
 
     msg = str(exc.value)
-    assert "n_bias_and_darkframes" in msg
+    assert "n_non_science_frames" in msg
     assert "Invalid int" in msg
 
     assert any(
-        "n_bias_and_darkframes" in rec.message and rec.levelname == "ERROR"
+        "n_non_science_frames" in rec.message and rec.levelname == "ERROR"
         for rec in caplog.records
     )
 
@@ -273,7 +273,7 @@ def test_optional_bool_and_int_fields_omitted_use_defaults():
     assert cfg.write_non_science_frames_png is False
     assert cfg.write_science_frames_png is False
     assert cfg.produce_Plots is False
-    assert cfg.n_bias_and_darkframes == 0
+    assert cfg.n_non_science_frames == 0
     assert cfg.n_science_frames_per_channel == 0
 
 
@@ -284,5 +284,5 @@ def test_optional_bool_and_int_fields_set_parsed_correctly():
     assert cfg.produce_Plots is True
     assert cfg.write_non_science_frames_png is True
     assert cfg.write_science_frames_png is True
-    assert cfg.n_bias_and_darkframes == 3
+    assert cfg.n_non_science_frames == 3
     assert cfg.n_science_frames_per_channel == 7
