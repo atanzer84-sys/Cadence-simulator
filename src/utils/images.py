@@ -27,65 +27,58 @@ def _stats_keys_for_header(header):
     return STATS_KEYS.get(filetype, STATS_KEYS["BIAS"])
 
 
-def write_frames_png(frames, headers, frame_type, channel_tag, ctx: RunContext, star: Star, show_stats=False):
+def write_frame_png(frame, header, frame_type, channel_tag, ctx: RunContext, star: Star, show_stats=False, index=0):
+    """
+    Write a single frame to PNG. index is used in the filename (..._00000.png).
+    """
+    star_name = str(star.name).replace(" ", "_")
+    filename = ctx.output_dir / f"WALTzER_{star_name}_{channel_tag}_{frame_type}_{index:05d}.png"
 
-    n_frames = len(frames)
-    if n_frames == 0:
-        logging.info("Write PNG: no frames for %s channel %s", frame_type, channel_tag)
-        return
+    logging.info("Writing %s PNG frame for channel %s to %s", frame_type, channel_tag, ctx.output_dir)
 
-    logging.info("Writing %d %s PNG frame(s) for channel %s to %s", n_frames, frame_type, channel_tag, ctx.output_dir)
+    ny, nx = frame.shape
+    width_in = 10.0
+    img_h_in = max(2.0, width_in * (ny / nx))
+    text_h_in = 0.7
+    gap_in = 0.8  # fixed gap (inches) between image and stats so NUV/VIS match
 
-    for k, (frame, header) in enumerate(zip(frames, headers)):
+    fig = plt.figure(figsize=(width_in, img_h_in + gap_in + text_h_in))
+    gs = fig.add_gridspec(nrows=3, ncols=1, height_ratios=[img_h_in, gap_in, text_h_in], hspace=0)
 
-        star_name = str(star.name).replace(" ", "_")
-        filename = ctx.output_dir / f"WALTzER_{star_name}_{channel_tag}_{frame_type}_{k:05d}.png"
+    ax = fig.add_subplot(gs[0, 0])
+    ax.imshow(frame, origin="lower", aspect="equal", cmap="gray")
+    ax.set_xlim(-0.5, nx - 0.5)
+    ax.set_ylim(-0.5, ny - 0.5)
+    ax.set_xlabel("pixels")
+    ax.set_ylabel("pixels")
+    ax.set_title(f"{star.name}: {channel_tag} {frame_type} | M={star.mass} M☉, d={star.distance_pc} pc", fontsize=11)
 
-        ny, nx = frame.shape
-        width_in = 10.0
-        img_h_in = max(2.0, width_in * (ny / nx))
-        text_h_in = 0.7
-        gap_in = 0.8  # fixed gap (inches) between image and stats so NUV/VIS match
+    ax_txt = fig.add_subplot(gs[2, 0])
+    ax_txt.axis("off")
 
-        fig = plt.figure(figsize=(width_in, img_h_in + gap_in + text_h_in))
-        gs = fig.add_gridspec(nrows=3, ncols=1, height_ratios=[img_h_in, gap_in, text_h_in], hspace=0)
+    if show_stats:
+        keys = _stats_keys_for_header(header)
+        parts = []
+        for i, key in enumerate(keys):
+            fmt = "" if key in ("RNOISE", "B_OFFSET") else ".3f" if key in ("DARKSIG", "DARKVAL") else ".2f"
+            parts.append(format_header(header, key, fmt))
+            if (i + 1) % 5 == 0 and i + 1 < len(keys):
+                parts.append("\n")
+            elif i + 1 < len(keys):
+                parts.append("    ")
+        stats_text = "".join(parts)
 
-        ax = fig.add_subplot(gs[0, 0])
-        ax.imshow(frame, origin="lower", aspect="equal", cmap="gray")
-        ax.set_xlim(-0.5, nx - 0.5)
-        ax.set_ylim(-0.5, ny - 0.5)
-        ax.set_xlabel("pixels")
-        ax.set_ylabel("pixels")
-        ax.set_title(f"{star.name}: {channel_tag} {frame_type} | M={star.mass} M☉, d={star.distance_pc} pc", fontsize=11)
+        ax_txt.text(
+            0.5, 0.5, stats_text,
+            ha="center", va="center",
+            fontsize=10,
+            transform=ax_txt.transAxes,
+        )
 
-        ax_txt = fig.add_subplot(gs[2, 0])
-        ax_txt.axis("off")
+    fig.savefig(filename, dpi=200, bbox_inches="tight")
+    plt.close(fig)
 
-        if show_stats:
-            keys = _stats_keys_for_header(header)
-            parts = []
-            for i, k in enumerate(keys):
-                fmt = "" if k in ("RNOISE", "B_OFFSET") else ".3f" if k in ("DARKSIG", "DARKVAL") else ".2f"
-                parts.append(format_header(header, k, fmt))
-                if (i + 1) % 5 == 0 and i + 1 < len(keys):
-                    parts.append("\n")
-                elif i + 1 < len(keys):
-                    parts.append("    ")
-            stats_text = "".join(parts)
-
-            ax_txt.text(
-                0.5, 0.5, stats_text,
-                ha="center", va="center",
-                fontsize=10,
-                transform=ax_txt.transAxes,
-            )
-
-        fig.savefig(filename, dpi=200, bbox_inches="tight")
-        plt.close(fig)
-
-        logging.debug("Wrote %s", filename)
-
-    logging.info("Finished writing %d PNG file(s)", n_frames)
+    logging.debug("Wrote %s", filename)
 
 
 def format_header(header, key, fmt_str=".2f"):

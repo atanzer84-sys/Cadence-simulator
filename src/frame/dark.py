@@ -1,6 +1,7 @@
 
 import numpy as np
 import logging
+from frame.frame_class import Frame
 from frame.bias import generate_bias_frame
 from configs.channel_config import SpectroscopyChannel
 
@@ -12,7 +13,6 @@ def generate_dark_frames(channel: SpectroscopyChannel, n_frames, base_header):
     
 
     dark_frames = []
-    dark_headers = []
 
     for i in range(n_frames):
         header = base_header.copy()
@@ -21,14 +21,11 @@ def generate_dark_frames(channel: SpectroscopyChannel, n_frames, base_header):
         header.append(("EXP_ID", f"Dark {i+1}", "Exposure ID"))
         header.append(("OBS_ID", f"Obs Dark {i+1}", "Observation ID"))
 
-        frame, header = generate_dark_frame(channel, header)
+        dark = generate_dark_frame(channel, header)
 
-        dark_frames.append(frame)
-        dark_headers.append(header)
+        dark_frames.append(dark)
 
-        logging.info("DARK STATS %s frame=%d mean=%g std=%g min=%g max=%g", channel.channel_name, i, frame.mean(), frame.std(), frame.min(), frame.max())
-
-    return dark_frames, dark_headers
+    return dark_frames
 
 def generate_dark_frame(channel: SpectroscopyChannel, header=None):
     '''
@@ -41,8 +38,9 @@ def generate_dark_frame(channel: SpectroscopyChannel, header=None):
     ccd_gain = channel.ccd_gain
     exptime_s = channel.exposure_s
     
-    bias, _ = generate_bias_frame(channel, header=None)
-    
+    bias_frame = generate_bias_frame(channel, header=None)
+    bias = bias_frame.data
+
     dark_base = np.random.normal(dark_noise, dark_current_sigma, size=(ny, nx))
 
     dark = bias + (dark_base + (dark_noise * exptime_s)) * ccd_gain
@@ -58,10 +56,10 @@ def generate_dark_frame(channel: SpectroscopyChannel, header=None):
         header.append(("DARKVAL",  float(dark_noise),               "Input dark value"))
         header.append(("DARKSIG",  float(dark_current_sigma),       "Dark noise sigma (e-/s/pixel)"))
         header.append(("EXPTIME",  float(exptime_s),                "Exposure time of observation"))
-        header.append(("B_OFFSET", float(channel.bias_offset),  "Bias offset used to generate frame"))
-        header.append(("RNOISE",   float(channel.read_noise),   "Bias Read noise used to generate frame"))
+        header.append(("B_OFFSET", float(channel.bias_offset),      "Bias offset used to generate frame"))
+        header.append(("RNOISE",   float(channel.read_noise),       "Bias Read noise used to generate frame"))
         header.append(("YCUT1",     0,                              "Bottom of science box extraction"))
         header.append(("YCUT2",     ny-1,                           "Top of science box extraction"))
         header.append(("CCDGAIN",  ccd_gain,                        "CCD gain"))
 
-    return dark, header
+    return Frame(data=dark, header=header, frame_type="dark", channel_tag=channel.channel_name)

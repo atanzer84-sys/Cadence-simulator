@@ -7,7 +7,7 @@ from domain.star import Star
 from domain.planet import Planet
 from flux.flux_calc import calculateFluxOnEarth
 from instrument.detector import counts_per_s_px_conv_all_channels
-from frame.frame import generate_Frames
+from frame.frame_pipeline import generate_Frames
 
 def main():
     try:

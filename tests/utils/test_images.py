@@ -4,7 +4,7 @@ matplotlib.use("Agg")  # headless backend for tests
 import numpy as np
 from types import SimpleNamespace
 
-from utils.images import format_header, write_frames_png
+from utils.images import format_header, write_frame_png
 
 
 def test_format_header_returns_key_equals_value():
@@ -29,20 +29,21 @@ def _dummy_star():
     return SimpleNamespace(name="TestStar", mass=1.0, distance_pc=10.0)
 
 
-def test_write_frames_png_empty_frames_returns_without_creating_files(tmp_path):
-    """write_frames_png with empty frames returns early; no PNG files created."""
-    ctx = SimpleNamespace(output_dir=tmp_path)
-    write_frames_png([], [], "BIAS", "NUV", ctx, _dummy_star())
-    assert list(tmp_path.glob("*.png")) == []
-
-
-def test_write_frames_png_writes_one_file(tmp_path):
-    """write_frames_png writes one PNG file per frame."""
+def test_write_frame_png_writes_one_file(tmp_path):
+    """write_frame_png writes one PNG file with index in filename."""
     ctx = SimpleNamespace(output_dir=tmp_path)
     frame = np.zeros((4, 4), dtype=float)
     hdr = {}
 
-    write_frames_png([frame], [hdr], "bias", "NUV", ctx, _dummy_star())
+    write_frame_png(frame, hdr, "bias", "NUV", ctx, _dummy_star())
 
     out = tmp_path / "WALTzER_TestStar_NUV_bias_00000.png"
     assert out.exists()
+
+
+def test_write_frame_png_index_in_filename(tmp_path):
+    """write_frame_png uses index in filename."""
+    ctx = SimpleNamespace(output_dir=tmp_path)
+    frame = np.zeros((2, 2), dtype=float)
+    write_frame_png(frame, {}, "BIAS", "VIS", ctx, _dummy_star(), index=3)
+    assert (tmp_path / "WALTzER_TestStar_VIS_BIAS_00003.png").exists()

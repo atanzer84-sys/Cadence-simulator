@@ -6,17 +6,6 @@ from astropy.time import Time
 from astropy.coordinates import Angle
 from astropy.io import fits
 
-# Single source of truth: when you add/remove a header key, update this tuple.
-# Tests import it to assert presence without hardcoding keys in the test file.
-FITS_HEADER_KEYS = (
-    "TELESCOP", "ROOTNAME", "EXP_STRT", "PRGRM_ID",
-    "DATEOBS", "TIMEOBS", "JD", "MJD",
-    "TRGET", "TARGT_ID", "TARGT_D", "TARGT_MS",
-    "VMAG", "RA", "DEC", "GLAT", "GLON",
-    "RA_HEX", "GEO_LAT", "GEO_LON", "DEC_HEX",
-    "CCDTEMP",
-)
-
 
 def initialize_fits_header(star: Star, timestamp: datetime):
     """
