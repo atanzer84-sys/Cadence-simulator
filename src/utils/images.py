@@ -45,17 +45,20 @@ def write_frames_png(frames, headers, frame_type, channel_tag, ctx: RunContext, 
         width_in = 10.0
         img_h_in = max(2.0, width_in * (ny / nx))
         text_h_in = 0.7
+        gap_in = 0.8  # fixed gap (inches) between image and stats so NUV/VIS match
 
-        fig = plt.figure(figsize=(width_in, img_h_in + text_h_in))
-        gs = fig.add_gridspec(nrows=2, ncols=1, height_ratios=[img_h_in, text_h_in])
+        fig = plt.figure(figsize=(width_in, img_h_in + gap_in + text_h_in))
+        gs = fig.add_gridspec(nrows=3, ncols=1, height_ratios=[img_h_in, gap_in, text_h_in], hspace=0)
 
         ax = fig.add_subplot(gs[0, 0])
         ax.imshow(frame, origin="lower", aspect="equal", cmap="gray")
         ax.set_xlim(-0.5, nx - 0.5)
         ax.set_ylim(-0.5, ny - 0.5)
+        ax.set_xlabel("pixels")
+        ax.set_ylabel("pixels")
         ax.set_title(f"{star.name}: {channel_tag} {frame_type} | M={star.mass} M☉, d={star.distance_pc} pc", fontsize=11)
 
-        ax_txt = fig.add_subplot(gs[1, 0])
+        ax_txt = fig.add_subplot(gs[2, 0])
         ax_txt.axis("off")
 
         if show_stats:
