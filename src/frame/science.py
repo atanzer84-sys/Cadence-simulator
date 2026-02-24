@@ -5,26 +5,6 @@ from configs.channel_config import SpectroscopyChannel
 from instrument.spectrum_spread import spread_1d_spectrum_to_2d
 from frame.frame_class import Frame
 
-def generate_science_frame(counts_s_pixel_convolved, channel: SpectroscopyChannel, header):
-    exposure_time_s = channel.exposure_s
-    ccd_gain = channel.ccd_gain
-
-    detector_image, header = spread_1d_spectrum_to_2d(counts_s_pixel_convolved, channel, header)
-
-    dark = generate_dark_frame(channel, header=None)
-    if isinstance(dark, Frame):
-        dark = dark.data
-
-    science = dark + (detector_image * exposure_time_s) * ccd_gain
-
-    header.append(("MEAN",   float(science.mean()),     "Mean value of the frame"))
-    header.append(("MEDIAN", float(np.median(science)), "Median value of the frame"))
-    header.append(("STDDEV", float(science.std()),      "Standard deviation of the frame"))
-    header.append(("MAX",    float(science.max()),      "Maximum value of the frame"))
-    header.append(("MIN",    float(science.min()),      "Minimum value of the frame"))
-
-    return Frame(data=science, header=header, frame_type="science", channel_tag=channel.channel_name)
-
 
 def generate_science_frames(counts_s_pixel_convolved, channel: SpectroscopyChannel, n_frames, base_header):
     exposure_time_s = channel.exposure_s
@@ -52,3 +32,24 @@ def generate_science_frames(counts_s_pixel_convolved, channel: SpectroscopyChann
         frames.append(frame)
 
     return frames
+
+
+def generate_science_frame(counts_s_pixel_convolved, channel: SpectroscopyChannel, header):
+    exposure_time_s = channel.exposure_s
+    ccd_gain = channel.ccd_gain
+
+    dark = generate_dark_frame(channel, header=None)
+    if isinstance(dark, Frame):
+        dark = dark.data
+
+    detector_image = spread_1d_spectrum_to_2d(counts_s_pixel_convolved, channel)
+    science = dark + (detector_image * exposure_time_s) * ccd_gain
+
+    header.append(("MEAN",   float(science.mean()),     "Mean value of the frame"))
+    header.append(("MEDIAN", float(np.median(science)), "Median value of the frame"))
+    header.append(("STDDEV", float(science.std()),      "Standard deviation of the frame"))
+    header.append(("MAX",    float(science.max()),      "Maximum value of the frame"))
+    header.append(("MIN",    float(science.min()),      "Minimum value of the frame"))
+
+    return Frame(data=science, header=header, frame_type="science", channel_tag=channel.channel_name)
+

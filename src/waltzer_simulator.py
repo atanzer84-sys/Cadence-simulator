@@ -5,9 +5,8 @@ from loaders.run_waltzer_context import initialize_waltzer_runtime_context
 from loaders.load_stellar_and_planetary_properties import load_stellar_and_planetary_properties
 from domain.star import Star
 from domain.planet import Planet
-from flux.flux_calc import calculateFluxOnEarth
-from instrument.detector import counts_per_s_px_conv_all_channels
 from frame.frame_pipeline import generate_Frames
+from instrument.prepare_detector_images import prepare_all_detector_images_all_channels
 
 def main():
     try:
@@ -20,13 +19,11 @@ def main():
         star = Star.from_params(stellar_param, required_keys=required_stellar_parameters)
         _ = Planet.from_params(planet_param, required_keys=required_planetary_parameters)
 
-        photon_flux_at_earth_A, wavelengths_total = calculateFluxOnEarth(star, run_ctx)
-
-        # counts per pixel per second convolved to NUV and VIS
-        counts_s_pixel_convolved_nuv, counts_s_pixel_convolved_vis = counts_per_s_px_conv_all_channels(photon_flux_at_earth_A, wavelengths_total, nuv_channel, vis_channel, run_ctx, star)
+        # calculating flux on earth, convoluting it to instrument properties and returning a 2d image without any additional information
+        spectra_2d_nuv, spectra_2d_vis = prepare_all_detector_images_all_channels(star, run_ctx, nuv_channel, vis_channel)
 
         # generating bias, dark and science frames for NUV, VIS
-        generate_Frames(counts_s_pixel_convolved_nuv, counts_s_pixel_convolved_vis, nuv_channel, vis_channel, run_ctx, star)
+        generate_Frames(spectra_2d_nuv, spectra_2d_vis, nuv_channel, vis_channel, run_ctx, star)
 
 
     except Exception as e:
