@@ -185,7 +185,7 @@ def global_cfg_log_r(monkeypatch):
         test_mode=True,
         produce_Plots=False,
         n_bias_and_darkframes=0,
-        write_dark_and_bias_png=False,
+        write_non_science_frames_png=False,
         n_science_frames_per_channel=1,
         write_science_frames_png=0,
     )
@@ -210,7 +210,7 @@ def global_cfg_log_r_disabled(monkeypatch):
         test_mode=True,
         produce_Plots=False,
         n_bias_and_darkframes=0,
-        write_dark_and_bias_png=False,
+        write_non_science_frames_png=False,
         n_science_frames_per_channel=1,
         write_science_frames_png=0,
     )

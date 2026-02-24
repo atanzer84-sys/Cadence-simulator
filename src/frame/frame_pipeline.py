@@ -27,7 +27,7 @@ def generate_Frames(counts_s_pixel_convolved_nuv, counts_s_pixel_convolved_vis, 
 
         _write_fits_for_all(bias_dark_lists, ctx)
 
-        if global_cfg.write_dark_and_bias_png:
+        if global_cfg.write_non_science_frames_png:
             _write_png_for_all(bias_dark_lists, ctx, star)
 
     else:

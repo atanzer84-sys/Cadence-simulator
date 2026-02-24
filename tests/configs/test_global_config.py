@@ -267,10 +267,10 @@ def test_required_log_r_fields_parse_numeric():
 
 
 def test_optional_bool_and_int_fields_omitted_use_defaults():
-    """When write_dark_and_bias_png, write_science_frames_png, produce_Plots and int frame fields are omitted, they use default False/0."""
+    """When write_non_science_frames_png, write_science_frames_png, produce_Plots and int frame fields are omitted, they use default False/0."""
     cfg = gc.load_global_config(_cfg_path("global_minimal.cfg"))
 
-    assert cfg.write_dark_and_bias_png is False
+    assert cfg.write_non_science_frames_png is False
     assert cfg.write_science_frames_png is False
     assert cfg.produce_Plots is False
     assert cfg.n_bias_and_darkframes == 0
@@ -278,11 +278,11 @@ def test_optional_bool_and_int_fields_omitted_use_defaults():
 
 
 def test_optional_bool_and_int_fields_set_parsed_correctly():
-    """When write_dark_and_bias_png, write_science_frames_png, produce_Plots and int frame fields are set, they are parsed correctly."""
+    """When write_non_science_frames_png, write_science_frames_png, produce_Plots and int frame fields are set, they are parsed correctly."""
     cfg = gc.load_global_config(_cfg_path("global_full.cfg"))
 
     assert cfg.produce_Plots is True
-    assert cfg.write_dark_and_bias_png is True
+    assert cfg.write_non_science_frames_png is True
     assert cfg.write_science_frames_png is True
     assert cfg.n_bias_and_darkframes == 3
     assert cfg.n_science_frames_per_channel == 7
