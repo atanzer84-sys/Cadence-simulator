@@ -1,10 +1,10 @@
-"""Tests for frame.fits.write_fits_frames."""
+"""Tests for frame.write_fits.write_fits_frames."""
 
 import numpy as np
 from astropy.io import fits
 from types import SimpleNamespace
 
-from frame.fits import write_fits_frames
+from frame.write_fits import write_fits_frames
 
 
 def _ctx(tmp_path, target_name="TestStar"):

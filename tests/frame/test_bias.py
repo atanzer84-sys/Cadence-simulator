@@ -1,6 +1,8 @@
 import pytest
 import numpy as np
+from astropy.io import fits
 from frame.bias import generate_bias_frame, generate_bias_frames
+from frame.frame_class import Frame
 
 
 @pytest.fixture
@@ -21,31 +23,32 @@ def channel_cfg():
 
 @pytest.fixture
 def base_header():
-    """A simple mutable header list used by generate_bias_frames."""
-    return []
+    """Base FITS header used by generate_bias_frames (matches real pipeline usage)."""
+    return fits.Header()
 
 def test_generate_bias_frame_basic_properties(channel_cfg):
-    # This test checks that generate_bias_frame returns an array of correct shape
+    # This test checks that generate_bias_frame returns a Frame with correct shape
     # and that the values are within a reasonable range around the bias offset.
     np.random.seed(0)
 
-    frame, _ = generate_bias_frame(channel_cfg, header=[])
+    frame = generate_bias_frame(channel_cfg, header=None)
 
-    assert frame.shape == (channel_cfg.y_pixels, channel_cfg.x_pixels)
-    assert isinstance(frame, np.ndarray)
+    assert isinstance(frame, Frame)
+    assert frame.data.shape == (channel_cfg.y_pixels, channel_cfg.x_pixels)
 
     # Values should be roughly bias_offset * gain ± noise
-    mean_val = frame.mean()
+    mean_val = frame.data.mean()
     assert 150 < mean_val < 250  # loose bounds, maintainable
 
 def test_generate_bias_frame_header_fields(channel_cfg):
     # This test ensures that generate_bias_frame adds the expected header keys.
     np.random.seed(0)
 
-    header = []
-    _, header = generate_bias_frame(channel_cfg, header)
+    header = fits.Header()
+    frame = generate_bias_frame(channel_cfg, header)
 
-    keys = [k for (k, _, _) in header]
+    assert isinstance(frame, Frame)
+    keys = list(frame.header.keys())
 
     expected = ["MEAN", "MEDIAN", "STDDEV", "MAX", "MIN",
                 "B_OFFSET", "RNOISE", "EXPTIME", "YCUT1", "YCUT2", "CCDGAIN"]
@@ -58,13 +61,14 @@ def test_generate_bias_frames_multiple(channel_cfg, base_header):
     # of frames and headers, and that each header contains FILETYPE and CHANNEL.
     np.random.seed(0)
 
-    frames, headers = generate_bias_frames(channel_cfg, n_frames=3, base_header=base_header)
+    frames = generate_bias_frames(channel_cfg, n_frames=3, base_header=base_header)
 
     assert len(frames) == 3
-    assert len(headers) == 3
 
-    for hdr in headers:
-        keys = [k for (k, _, _) in hdr]
+    for frame in frames:
+        assert isinstance(frame, Frame)
+        hdr = frame.header
+        keys = list(hdr.keys())
         assert "FILETYPE" in keys
         assert "CHANNEL" in keys
         assert "EXP_ID" in keys
@@ -75,10 +79,10 @@ def test_two_bias_frames_have_different_statistics(channel_cfg, base_header):
     # have different mean and std values, confirming that noise is applied.
     np.random.seed(42)
 
-    frames, _ = generate_bias_frames(channel_cfg, n_frames=2, base_header=base_header)
+    frames = generate_bias_frames(channel_cfg, n_frames=2, base_header=base_header)
 
-    mean1, mean2 = frames[0].mean(), frames[1].mean()
-    std1, std2 = frames[0].std(), frames[1].std()
+    mean1, mean2 = frames[0].data.mean(), frames[1].data.mean()
+    std1, std2 = frames[0].data.std(), frames[1].data.std()
 
     assert mean1 != mean2
     assert std1 != std2

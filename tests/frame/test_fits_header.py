@@ -4,7 +4,7 @@ from astropy.io import fits
 from astropy.time import Time
 
 from domain.star import Star
-from frame.fits_header import initialize_fits_header, FITS_HEADER_KEYS
+from frame.fits_header import initialize_fits_header
 
 
 @pytest.fixture
@@ -44,10 +44,24 @@ def test_initialize_fits_header_returns_fits_header(star_fixture, fixed_timestam
 
 
 def test_header_contains_required_keys(star_fixture, fixed_timestamp):
-    """All FITS header keys from fits_header.FITS_HEADER_KEYS are present (refactor-safe: single source of truth)."""
+    """Header contains a core set of required keys."""
     header = initialize_fits_header(star_fixture, fixed_timestamp)
 
-    for key in FITS_HEADER_KEYS:
+    required_keys = [
+        "TELESCOP",
+        "ROOTNAME",
+        "EXP_STRT",
+        "DATEOBS",
+        "TIMEOBS",
+        "TRGET",
+        "TARGT_D",
+        "VMAG",
+        "RA",
+        "DEC",
+        "CCDTEMP",
+    ]
+
+    for key in required_keys:
         assert key in header, f"Missing header key: {key}"
 
 
