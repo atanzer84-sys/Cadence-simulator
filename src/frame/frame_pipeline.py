@@ -31,10 +31,7 @@ def generate_Frames(counts_s_pixel_convolved_nuv, counts_s_pixel_convolved_vis, 
             _write_png_for_all(bias_dark_lists, ctx, star)
 
     else:
-        logging.info(
-            "BIAS and DARK: n_bias_and_darkframes=%d \u2192 skipped.",
-            n_bias_and_darkframes,
-        )
+        logging.info("BIAS and DARK: n_bias_and_darkframes=%d \u2192 skipped.", n_bias_and_darkframes)
 
     if n_science_frames > 0:
         science_nuv_frames = generate_science_frames(counts_s_pixel_convolved_nuv, nuv, n_science_frames, header)
