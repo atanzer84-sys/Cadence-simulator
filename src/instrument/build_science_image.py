@@ -18,3 +18,5 @@ def build_science_image(spectra_2d, channel: SpectroscopyChannel, ctx: RunContex
     bias = generate_bias_image(channel)
     image += bias
     ctx.write_image_png.write_image(image, "BIAS", ctx, channel)
+
+    dark = 

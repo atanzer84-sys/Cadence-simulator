@@ -3,6 +3,7 @@ import numpy as np
 import logging
 from frame.frame_class import Frame
 from configs.channel_config import SpectroscopyChannel
+from instrument.bias_image import generate_bias_image
 
 def generate_bias_frames(channel: SpectroscopyChannel, n_frames, base_header):
 
@@ -28,13 +29,12 @@ def generate_bias_frame(channel: SpectroscopyChannel, header=None):
     '''
     Bias = Offset (bias_offset) + Gaussian Noise (read_noise)
     '''
-    nx = channel.x_pixels
     ny = channel.y_pixels
     bias_offset = channel.bias_offset
     read_noise = channel.read_noise
     ccd_gain = channel.ccd_gain
 
-    bias = (bias_offset + np.random.normal(0.0, read_noise, size=(ny, nx))) * ccd_gain
+    bias = generate_bias_image(channel)
 
     logging.info("BIAS STATS %s mean=%g std=%g min=%g max=%g", channel.channel_name, bias.mean(), bias.std(), bias.min(), bias.max())
 
@@ -51,9 +51,4 @@ def generate_bias_frame(channel: SpectroscopyChannel, header=None):
         header.append(("YCUT2", ny - 1, "Top of science box extraction"))
         header.append(("CCDGAIN", ccd_gain, "CCD gain"))
 
-    return Frame(
-        data=bias,
-        header=header,
-        frame_type="bias",
-        channel_tag=channel.channel_name,
-    )
+    return Frame(data=bias, header=header, frame_type="bias", channel_tag=channel.channel_name)
