@@ -47,3 +47,32 @@ def test_build_science_image_shape_and_gain(tmp_path):
     # We don't assert exact values (noise, bias, dark, photon noise), but mean must be > 0
     assert float(image.mean()) > 0.0
 
+
+def test_build_science_image_adds_photon_noise(tmp_path):
+    """Photon noise introduces stochastic variation on top of the deterministic spectra."""
+    np.random.seed(0)
+    ch = _channel()
+    # Disable other noise sources to isolate photon noise behaviour
+    ch.bias_offset = 0.0
+    ch.read_noise = 0.0
+    ch.dark_noise = 0.0
+    ch.dark_current_sigma = 0.0
+    ch.ccd_gain = 1.0
+    ch.exposure_s = 5.0
+    ctx = _ctx(tmp_path)
+
+    spectra_2d = np.ones((ch.y_pixels, ch.x_pixels), dtype=float) * 100.0
+
+    image1 = build_science_image(spectra_2d, ch, ctx)
+    image2 = build_science_image(spectra_2d, ch, ctx)
+
+    # Same input & channel but different random draws → images should differ
+    assert image1.shape == spectra_2d.shape
+    assert image2.shape == spectra_2d.shape
+    assert not np.allclose(image1, image2)
+
+    # Mean should remain close to the deterministic exposure*spectra level
+    base_mean = float((spectra_2d * ch.exposure_s).mean())
+    img_mean = float(image1.mean())
+    assert abs(img_mean - base_mean) / base_mean < 0.2
+

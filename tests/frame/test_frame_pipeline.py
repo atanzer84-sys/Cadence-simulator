@@ -123,6 +123,7 @@ def test_generate_Frames_skips_science_when_n_science_frames_zero(tmp_path):
 
     # Only bias/dark FITS are written
     mock_write_fits_all.assert_called_once()
-    # Behaviour for PNGs when n_science_frames_per_channel == 0 is defined by the pipeline;
-    # we only assert here that the science branch is skipped.
+
+    # PNGs are produced only for bias/dark in this configuration; no science PNGs since n_science_frames_per_channel == 0
+    mock_write_png_all.assert_called_once()
 
