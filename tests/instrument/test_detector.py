@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from types import SimpleNamespace
 from instrument.spectral_convolution import counts_per_s_px_conv_per_channel
-from instrument import detector
+from instrument import spectral_convolution
 from loaders.run_waltzer_context import _NOOP, _NOOP_PLOTS
 
 
@@ -56,7 +56,7 @@ def test_all_channels_counts_identity_gaussbroad():
     """Same as single-channel, but for NUV and VIS using counts_per_s_px_conv_all_channels."""
     monkeypatch = pytest.MonkeyPatch()
     try:
-        monkeypatch.setattr(detector, "get_global_config", lambda: _cfg())
+        monkeypatch.setattr(spectral_convolution, "get_global_config", lambda: _cfg())
 
         wavelengths_total = np.array([100.0, 101.0, 102.0], dtype=float)
         photon_flux = np.array([10.0, 20.0, 30.0], dtype=float)
@@ -75,7 +75,7 @@ def test_all_channels_counts_identity_gaussbroad():
         )
         ctx = _ctx("OUTDIR")
 
-        nuv_counts, vis_counts = detector.counts_per_s_px_conv_all_channels(
+        nuv_counts, vis_counts = spectral_convolution.counts_per_s_px_conv_all_channels(
             photon_flux, wavelengths_total, nuv, vis, ctx, _dummy_star()
         )
 
@@ -117,7 +117,7 @@ def test_cut_wavelength_window_with_margin_basic_slice_no_margin():
 
     channel = _channel(wavelength=np.array([101.0, 103.0], dtype=float))
 
-    f_cut, w_cut = detector.cut_wavelength_window_with_margin(
+    f_cut, w_cut = spectral_convolution.cut_wavelength_window_with_margin(
         photon_flux, wavelengths_total, channel, output_dir="OUT", cfg=_cfg(), star=_dummy_star("S"), ctx=_ctx(), margin_A=0.0
     )
 
@@ -140,7 +140,7 @@ def test_cut_wavelength_window_with_margin_clamps_bounds(bound, index):
     photon_flux = np.array([10.0, 11.0, 12.0], dtype=float)
     channel = _channel(wavelength=np.array([100.5, 101.5], dtype=float))
 
-    f_cut, w_cut = detector.cut_wavelength_window_with_margin(
+    f_cut, w_cut = spectral_convolution.cut_wavelength_window_with_margin(
         photon_flux, wavelengths_total, channel, output_dir="OUT", cfg=_cfg(), star=_dummy_star("S"), ctx=_ctx(), margin_A=999.0
     )
 
@@ -161,7 +161,7 @@ def test_cut_wavelength_window_with_margin_calls_dump_with_x_then_y(monkeypatch)
     test_mode = SimpleNamespace(dump_1d_for_channel=_fake_dump)
     ctx = _ctx("OUT", test_mode=test_mode)
 
-    f_cut, w_cut = detector.cut_wavelength_window_with_margin(
+    f_cut, w_cut = spectral_convolution.cut_wavelength_window_with_margin(
         photon_flux, wavelengths_total, channel, output_dir="OUT", cfg=_cfg(), star=_dummy_star("S"), ctx=ctx, margin_A=0.0
     )
 
@@ -194,10 +194,10 @@ def test_compute_broadened_channel_flux_calls_cut_and_gaussbroad_in_order(monkey
         assert hwhm == pytest.approx(channel.pixel_scale)
         return smoothed
 
-    monkeypatch.setattr(detector, "cut_wavelength_window_with_margin", _fake_cut)
-    monkeypatch.setattr(detector, "gaussbroad", _fake_gaussbroad)
+    monkeypatch.setattr(spectral_convolution, "cut_wavelength_window_with_margin", _fake_cut)
+    monkeypatch.setattr(spectral_convolution, "gaussbroad", _fake_gaussbroad)
 
-    out_flux, out_wl = detector.compute_broadened_channel_flux(
+    out_flux, out_wl = spectral_convolution.compute_broadened_channel_flux(
         photon_flux_at_earth=np.array([0.0]),
         wavelengths_total=np.array([0.0]),
         channel=channel,
@@ -231,11 +231,11 @@ def test_counts_per_s_px_conv_all_channels_calls_broaden_then_convert_for_each_c
         call_sequence.append(("convert", ch.channel_name))
         return np.array([ch.channel_name], dtype=object)
 
-    monkeypatch.setattr(detector, "get_global_config", _fake_get_global_config)
-    monkeypatch.setattr(detector, "compute_broadened_channel_flux", _fake_broaden)
-    monkeypatch.setattr(detector, "counts_per_s_px_conv_per_channel", _fake_conv)
+    monkeypatch.setattr(spectral_convolution, "get_global_config", _fake_get_global_config)
+    monkeypatch.setattr(spectral_convolution, "compute_broadened_channel_flux", _fake_broaden)
+    monkeypatch.setattr(spectral_convolution, "counts_per_s_px_conv_per_channel", _fake_conv)
 
-    out_nuv, out_vis = detector.counts_per_s_px_conv_all_channels(
+    out_nuv, out_vis = spectral_convolution.counts_per_s_px_conv_all_channels(
         photon_flux_at_earth=np.array([0.0]),
         wavelengths_total=np.array([0.0]),
         nuv=nuv,
@@ -350,7 +350,7 @@ def test_cut_wavelength_window_with_margin_empty_slice_raises():
     channel = _channel(wavelength=np.array([500.0, 600.0], dtype=float))
 
     with pytest.raises(ValueError, match="does not overlap wavelengths_total"):
-        detector.cut_wavelength_window_with_margin(
+        spectral_convolution.cut_wavelength_window_with_margin(
             photon_flux, wavelengths_total, channel, output_dir="OUT", cfg=_cfg(), star=_dummy_star("S"), ctx=_ctx(), margin_A=0.0
         )
 
@@ -368,7 +368,7 @@ def test_cut_wavelength_window_with_margin_calls_plot_when_produce_Plots(monkeyp
     produce_plots = SimpleNamespace(plot_1d_for_channel=_fake_plot)
     ctx = _ctx(produce_plots=produce_plots)
 
-    detector.cut_wavelength_window_with_margin(
+    spectral_convolution.cut_wavelength_window_with_margin(
         photon_flux, wavelengths_total, channel, output_dir="OUT", cfg=_cfg(), star=_dummy_star("S"), ctx=ctx, margin_A=0.0
     )
 
@@ -390,9 +390,9 @@ def test_compute_broadened_channel_flux_calls_plot_when_produce_Plots(monkeypatc
     produce_plots = SimpleNamespace(plot_1d_for_channel=_fake_plot)
     ctx = _ctx(produce_plots=produce_plots)
 
-    monkeypatch.setattr(detector, "cut_wavelength_window_with_margin", _fake_cut)
+    monkeypatch.setattr(spectral_convolution, "cut_wavelength_window_with_margin", _fake_cut)
 
-    detector.compute_broadened_channel_flux(
+    spectral_convolution.compute_broadened_channel_flux(
         np.array([0.0]), np.array([0.0]), channel, "OUT", _cfg(), _dummy_star("S"), ctx=ctx
     )
 
