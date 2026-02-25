@@ -67,11 +67,10 @@ def test_spread_1d_spectrum_to_2d_dispatches_gaussian():
     channel = _channel_gaussian()
     counts = np.array([1, 2, 3, 4, 5], dtype=float)
 
-    image, header = spread_1d_spectrum_to_2d(counts, channel, header=[])
+    image = spread_1d_spectrum_to_2d(counts, channel)
 
     assert image.shape == (channel.y_pixels, channel.x_pixels)
     assert np.allclose(image.sum(axis=0), counts)
-    assert header == []
 
 
 def test_spread_1d_spectrum_to_2d_dispatches_profile():
@@ -79,7 +78,7 @@ def test_spread_1d_spectrum_to_2d_dispatches_profile():
     channel = _channel_profile()
     counts = np.array([10, 20, 30, 40, 50], dtype=float)
 
-    image, _ = spread_1d_spectrum_to_2d(counts, channel, header=[])
+    image = spread_1d_spectrum_to_2d(counts, channel)
 
     assert image.shape == (channel.y_pixels, channel.x_pixels)
     assert np.allclose(image.sum(axis=0), counts)
@@ -91,7 +90,7 @@ def test_spread_1d_spectrum_to_2d_counts_length_mismatch():
     counts = np.array([1, 2, 3], dtype=float)  # len=3, nx=5
 
     with pytest.raises(ValueError, match="Counts length 3 does not match nx 5"):
-        spread_1d_spectrum_to_2d(counts, channel, header=[])
+        spread_1d_spectrum_to_2d(counts, channel)
 
 
 def test_spread_1d_spectrum_to_2d_mode_not_implemented():
@@ -101,7 +100,7 @@ def test_spread_1d_spectrum_to_2d_mode_not_implemented():
     counts = np.ones(channel.x_pixels)
 
     with pytest.raises(NotImplementedError, match="mode=2 not implemented"):
-        spread_1d_spectrum_to_2d(counts, channel, header=[])
+        spread_1d_spectrum_to_2d(counts, channel)
 
 
 # ----------------------------------------------------------------------
@@ -113,7 +112,7 @@ def test_gaussian_spread_basic():
     channel = _channel_gaussian()
     counts = np.array([1, 2, 3, 4, 5], dtype=float)
 
-    image, _ = _spread_1d_to_2d_gaussian(counts, channel, header=[])
+    image = _spread_1d_to_2d_gaussian(counts, channel)
 
     assert image.shape == (channel.y_pixels, channel.x_pixels)
     assert np.allclose(image.sum(axis=0), counts)
@@ -126,7 +125,7 @@ def test_gaussian_spread_no_spread_height():
     counts = np.ones(channel.x_pixels)
 
     with pytest.raises(ValueError):
-        _spread_1d_to_2d_gaussian(counts, channel, header=[])
+        _spread_1d_to_2d_gaussian(counts, channel)
 
 
 def test_gaussian_spread_column_sum_mismatch_raises():
@@ -136,7 +135,7 @@ def test_gaussian_spread_column_sum_mismatch_raises():
 
     with patch("instrument.spectrum_spread.np.allclose", return_value=False):
         with pytest.raises(ValueError, match="Gaussian spread column sum mismatch"):
-            _spread_1d_to_2d_gaussian(counts, channel, header=[])
+            _spread_1d_to_2d_gaussian(counts, channel)
 
 
 def test_gaussian_spread_rejects_nonzero_slope_or_intercept():
@@ -146,7 +145,7 @@ def test_gaussian_spread_rejects_nonzero_slope_or_intercept():
     counts = np.ones(channel.x_pixels)
 
     with pytest.raises(ValueError, match="slope and intercept_pixels not supported yet"):
-        _spread_1d_to_2d_gaussian(counts, channel, header=[])
+        _spread_1d_to_2d_gaussian(counts, channel)
 
 
 # ----------------------------------------------------------------------
@@ -158,7 +157,7 @@ def test_profile_spread_basic():
     channel = _channel_profile()
     counts = np.array([10, 20, 30, 40, 50], dtype=float)
 
-    image, _ = _spread_1d_to_2d_profile(counts, channel, header=[])
+    image = _spread_1d_to_2d_profile(counts, channel)
 
     assert image.shape == (channel.y_pixels, channel.x_pixels)
     assert np.allclose(image.sum(axis=0), counts)
@@ -171,7 +170,7 @@ def test_profile_spread_detector_wavelength_mismatch():
     counts = np.ones(channel.x_pixels)
 
     with pytest.raises(ValueError):
-        _spread_1d_to_2d_profile(counts, channel, header=[])
+        _spread_1d_to_2d_profile(counts, channel)
 
 
 def test_profile_spread_out_of_bounds_y_positions():
@@ -180,7 +179,7 @@ def test_profile_spread_out_of_bounds_y_positions():
     channel.spread_y_positions = np.array([100, 200, 300])
     counts = np.ones(channel.x_pixels)
 
-    image, _ = _spread_1d_to_2d_profile(counts, channel, header=[])
+    image = _spread_1d_to_2d_profile(counts, channel)
 
     assert image.shape == (channel.y_pixels, channel.x_pixels)
 
@@ -192,7 +191,7 @@ def test_profile_spread_weight_shape_mismatch():
     counts = np.ones(channel.x_pixels)
 
     with pytest.raises(IndexError):
-        _spread_1d_to_2d_profile(counts, channel, header=[])
+        _spread_1d_to_2d_profile(counts, channel)
 
 
 def test_profile_spread_rejects_nonzero_slope_or_intercept():
@@ -202,7 +201,7 @@ def test_profile_spread_rejects_nonzero_slope_or_intercept():
     counts = np.ones(channel.x_pixels)
 
     with pytest.raises(ValueError, match="slope and intercept_pixels not supported yet"):
-        _spread_1d_to_2d_profile(counts, channel, header=[])
+        _spread_1d_to_2d_profile(counts, channel)
 
 
 def test_profile_spread_respects_vertical_slit_offset():
@@ -216,7 +215,7 @@ def test_profile_spread_respects_vertical_slit_offset():
     counts = np.zeros(channel.x_pixels, dtype=float)
     counts[0] = 1.0  # only first column has flux
 
-    image, _ = _spread_1d_to_2d_profile(counts, channel, header=[])
+    image = _spread_1d_to_2d_profile(counts, channel)
 
     col0 = image[:, 0]
     peak_y = int(np.argmax(col0))
