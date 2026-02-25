@@ -1,3 +1,114 @@
+from types import SimpleNamespace
+
+import numpy as np
+from astropy.io import fits
+
+from utils.images import write_image_png, write_frames_png
+
+
+def _channel_for_image():
+    # Minimal SpectroscopyChannel-like object for write_image_png
+    return SimpleNamespace(
+        channel_name="NUV",
+        x_pixels=6,
+        y_pixels=4,
+        bias_offset=10.0,
+        read_noise=3.0,
+        dark_noise=0.5,
+        dark_current_sigma=0.2,
+        exposure_s=5.0,
+    )
+
+
+def _ctx_for_image(tmp_path):
+    # Minimal RunContext-like object
+    return SimpleNamespace(
+        target_name="HD 2685",
+        output_dir=tmp_path,
+    )
+
+
+def test_write_image_png_creates_file_with_expected_name(tmp_path):
+    ctx = _ctx_for_image(tmp_path)
+    ch = _channel_for_image()
+
+    array = np.ones((ch.y_pixels, ch.x_pixels), dtype=float)
+
+    write_image_png(array, "BIAS", ctx, ch, show_stats=True)
+
+    expected_name = f"{ctx.target_name.replace(' ', '_')}_{ch.channel_name}_BIAS_image.png"
+    expected_path = tmp_path / expected_name
+
+    assert expected_path.exists()
+    assert expected_path.stat().st_size > 0
+
+
+def test_write_image_png_without_stats(tmp_path):
+    ctx = _ctx_for_image(tmp_path)
+    ch = _channel_for_image()
+
+    array = np.ones((ch.y_pixels, ch.x_pixels), dtype=float)
+
+    write_image_png(array, "DARK", ctx, ch, show_stats=False)
+
+    expected_name = f"{ctx.target_name.replace(' ', '_')}_{ch.channel_name}_DARK_image.png"
+    expected_path = tmp_path / expected_name
+
+    assert expected_path.exists()
+    assert expected_path.stat().st_size > 0
+
+
+def _star_for_frames():
+    # Minimal Star-like object for write_frames_png
+    return SimpleNamespace(
+        name="HD 2685",
+        mass=1.1,
+        distance_pc=100.0,
+    )
+
+
+def _ctx_for_frames(tmp_path):
+    return SimpleNamespace(output_dir=tmp_path)
+
+
+def test_write_frames_png_creates_numbered_files(tmp_path):
+    ctx = _ctx_for_frames(tmp_path)
+    star = _star_for_frames()
+
+    frames = [
+        np.ones((4, 6), dtype=float),
+        np.ones((4, 6), dtype=float) * 2.0,
+    ]
+
+    # Minimal headers; only FILETYPE is needed for stats selection
+    hdr1 = fits.Header()
+    hdr1["FILETYPE"] = "BIAS"
+    hdr2 = fits.Header()
+    hdr2["FILETYPE"] = "BIAS"
+    headers = [hdr1, hdr2]
+
+    write_frames_png(frames, headers, frame_type="BIAS", channel_tag="NUV", ctx=ctx, star=star, show_stats=True)
+
+    base = "WALTzER_HD_2685_NUV_BIAS_"
+    paths = [
+        tmp_path / f"{base}00000.png",
+        tmp_path / f"{base}00001.png",
+    ]
+
+    for p in paths:
+        assert p.exists()
+        assert p.stat().st_size > 0
+
+
+def test_write_frames_png_no_frames_does_nothing(tmp_path):
+    ctx = _ctx_for_frames(tmp_path)
+    star = _star_for_frames()
+
+    write_frames_png([], [], frame_type="BIAS", channel_tag="NUV", ctx=ctx, star=star, show_stats=False)
+
+    # Directory should remain empty
+    assert not any(tmp_path.iterdir())
+
 """Tests for utils.images."""
 import matplotlib
 matplotlib.use("Agg")  # headless backend for tests
