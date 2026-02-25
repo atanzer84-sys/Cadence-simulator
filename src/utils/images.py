@@ -94,7 +94,7 @@ def write_frames_png(frames, headers, frame_type, channel_tag, ctx: RunContext, 
     for k, (frame, header) in enumerate(zip(frames, headers)):
 
         star_name = str(star.name).replace(" ", "_")
-        filename = ctx.output_dir / f"WALTzER_{star_name}_{channel_tag}_{frame_type}_{k:05d}.png"
+        filename = ctx.output_dir / f"{star_name}_{channel_tag}_{frame_type}_{k:05d}.png"
 
         ny, nx = frame.shape
         width_in = 10.0

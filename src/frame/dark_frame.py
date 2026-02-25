@@ -4,6 +4,7 @@ import logging
 from frame.frame_class import Frame
 from frame.bias_frame import generate_bias_frame
 from configs.channel_config import SpectroscopyChannel
+from instrument.dark_image import generate_dark_image
 
 
 def generate_dark_frames(channel: SpectroscopyChannel, n_frames, base_header):
@@ -34,7 +35,6 @@ def generate_dark_frame(channel: SpectroscopyChannel, header=None):
     '''
     dark_noise = channel.dark_noise
     dark_current_sigma = channel.dark_current_sigma
-    nx = channel.x_pixels
     ny = channel.y_pixels
     ccd_gain = channel.ccd_gain
     exptime_s = channel.exposure_s
@@ -42,9 +42,9 @@ def generate_dark_frame(channel: SpectroscopyChannel, header=None):
     bias_frame = generate_bias_frame(channel, header=None)
     bias = bias_frame.data
 
-    dark_base = np.random.normal(dark_noise, dark_current_sigma, size=(ny, nx))
+    dark = generate_dark_image(channel)
 
-    dark = bias + (dark_base + (dark_noise * exptime_s)) * ccd_gain
+    dark = bias + (dark * ccd_gain)
 
     logging.info("DARK STATS %s mean=%g std=%g min=%g max=%g", channel.channel_name, dark.mean(), dark.std(), dark.min(), dark.max())
 

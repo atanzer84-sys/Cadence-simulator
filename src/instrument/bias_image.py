@@ -10,7 +10,7 @@ def generate_bias_image(channel: SpectroscopyChannel):
     read_noise = channel.read_noise
     ccd_gain = channel.ccd_gain
 
-    bias = (bias_offset + np.random.normal(0.0, read_noise, size=(ny, nx))) * ccd_gain
+    bias = (bias_offset + np.random.normal(0.0, read_noise, size=(ny, nx)))
     
     logging.info(
         "BIAS IMAGE %s (%d x %d): bias_offset=%g read_noise=%g ccd_gain=%g -> mean=%g std=%g min=%g max=%g",
