@@ -1,3 +1,4 @@
+import logging
 import numpy as np
 from loaders.run_waltzer_context import RunContext
 from configs.channel_config import SpectroscopyChannel
@@ -12,6 +13,8 @@ def build_science_images (spectra_2d_nuv, spectra_2d_vis, nuv: SpectroscopyChann
 
 
 def build_science_image(spectra_2d, channel: SpectroscopyChannel, ctx: RunContext):
+    logging.info("Science Image generation starting for channel %s", channel.channel_name)
+    print(f"Science Image generation starting for channel {channel.channel_name}.")
     nx = channel.x_pixels
     ny = channel.y_pixels
     image = np.zeros((ny, nx))
