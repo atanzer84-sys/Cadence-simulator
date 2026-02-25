@@ -7,6 +7,6 @@ target_name = WASP-69
 total_observation_length_h = 11.11
 
 #Exposure time of the three Channels in seconds
-exposure_NUV_s = 500.0
-exposure_VIS_s = 90.0
+exposure_NUV_s = 900.0
+exposure_VIS_s = 180.0
 exposure_IR_s = 111.2

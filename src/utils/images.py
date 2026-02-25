@@ -35,8 +35,8 @@ def write_image_png(array, frame_type: str, ctx: RunContext, channel: Spectrosco
     ax.imshow(array, origin="lower", aspect="equal", cmap="gray")
     ax.set_xlim(-0.5, nx - 0.5)
     ax.set_ylim(-0.5, ny - 0.5)
-    ax.set_xlabel("pixels")
-    ax.set_ylabel("pixels")
+    ax.set_xlabel("pixels", labelpad=8)
+    ax.set_ylabel("pixels", labelpad=8)
     ax.set_title(f"{ctx.target_name}: {channel.channel_name} {frame_type}", fontsize=11)
 
     ax_txt = fig.add_subplot(gs[2, 0])
@@ -109,8 +109,8 @@ def write_frames_png(frames, headers, frame_type, channel_tag, ctx: RunContext, 
         ax.imshow(frame, origin="lower", aspect="equal", cmap="gray")
         ax.set_xlim(-0.5, nx - 0.5)
         ax.set_ylim(-0.5, ny - 0.5)
-        ax.set_xlabel("pixels")
-        ax.set_ylabel("pixels")
+        ax.set_xlabel("pixels", labelpad=8)
+        ax.set_ylabel("pixels", labelpad=8)
         ax.set_title(f"{star.name}: {channel_tag} {frame_type} | M={star.mass} M☉, d={star.distance_pc} pc", fontsize=11)
 
         ax_txt = fig.add_subplot(gs[2, 0])
