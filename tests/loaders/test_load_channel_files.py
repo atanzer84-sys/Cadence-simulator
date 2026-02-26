@@ -349,3 +349,136 @@ def test_load_background_file_malformed_numeric_row_raises(monkeypatch, tmp_path
     with pytest.raises(ValueError, match="Failed to parse numeric data"):
         load_background_file("bg.txt")
 
+
+# ----------------------------------------------------------------------
+# load_zod_dist_file: direct tests
+# ----------------------------------------------------------------------
+
+
+def test_load_zod_dist_file_empty_filename_returns_none():
+    """Empty or blank filename returns None without touching the filesystem."""
+    assert load_zod_dist_file("") is None
+    assert load_zod_dist_file("   ") is None
+
+
+def test_load_zod_dist_file_success(monkeypatch, tmp_path):
+    """load_zod_dist_file loads a 2D numeric table from file."""
+    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    _write(data_dir / "zod_dist.txt", "1.0  2.0  3.0\n4.0  5.0  6.0\n")
+
+    data = load_zod_dist_file("zod_dist.txt")
+
+    assert data.ndim == 2
+    assert data.shape == (2, 3)
+    assert np.allclose(data, [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
+
+
+def test_load_zod_dist_file_missing_file_raises(monkeypatch, tmp_path):
+    """load_zod_dist_file raises ValueError when the file does not exist."""
+    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    (tmp_path / "data").mkdir(exist_ok=True)
+
+    with pytest.raises(ValueError, match="Zodiacal distribution file not found"):
+        load_zod_dist_file("missing_zod.txt")
+
+
+def test_load_zod_dist_file_one_column_raises(monkeypatch, tmp_path):
+    """Single-column data yields 1D array and is rejected as invalid table."""
+    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    _write(data_dir / "zod.txt", "1.0\n2.0\n3.0\n")
+
+    with pytest.raises(ValueError, match="Invalid zodiacal distribution table"):
+        load_zod_dist_file("zod.txt")
+
+
+def test_load_zod_dist_file_empty_file_raises(monkeypatch, tmp_path):
+    """Empty file (no numeric rows) raises ValueError."""
+    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    _write(data_dir / "zod.txt", "")
+
+    with pytest.raises(ValueError):
+        load_zod_dist_file("zod.txt")
+
+
+def test_load_zod_dist_file_malformed_row_raises(monkeypatch, tmp_path):
+    """Malformed numeric row causes parse failure."""
+    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    _write(data_dir / "zod.txt", "1.0  2.0\n3.0  BAD\n5.0  6.0\n")
+
+    with pytest.raises(ValueError, match="Failed to parse"):
+        load_zod_dist_file("zod.txt")
+
+
+# ----------------------------------------------------------------------
+# load_zod_spectrum_file: direct tests
+# ----------------------------------------------------------------------
+
+
+def test_load_zod_spectrum_file_empty_filename_returns_none_none():
+    """Empty or blank filename returns (None, None) without touching the filesystem."""
+    assert load_zod_spectrum_file("") == (None, None)
+    assert load_zod_spectrum_file("   ") == (None, None)
+
+
+def test_load_zod_spectrum_file_success(monkeypatch, tmp_path):
+    """load_zod_spectrum_file loads wavelength and spectrum columns from file."""
+    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    _write(data_dir / "zod_spec.txt", "1000  0.5\n1100  0.6\n1200  0.7\n")
+
+    wl, spec = load_zod_spectrum_file("zod_spec.txt")
+
+    assert np.allclose(wl, [1000.0, 1100.0, 1200.0])
+    assert np.allclose(spec, [0.5, 0.6, 0.7])
+
+
+def test_load_zod_spectrum_file_missing_file_raises(monkeypatch, tmp_path):
+    """load_zod_spectrum_file raises ValueError when the file does not exist."""
+    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    (tmp_path / "data").mkdir(exist_ok=True)
+
+    with pytest.raises(ValueError, match="Zodiacal spectrum file not found"):
+        load_zod_spectrum_file("missing_spec.txt")
+
+
+def test_load_zod_spectrum_file_one_column_raises(monkeypatch, tmp_path):
+    """One-column table is rejected as invalid spectrum structure."""
+    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    _write(data_dir / "zod_spec.txt", "1000\n1100\n1200\n")
+
+    with pytest.raises(ValueError, match="Invalid zodiacal spectrum table"):
+        load_zod_spectrum_file("zod_spec.txt")
+
+
+def test_load_zod_spectrum_file_empty_file_raises(monkeypatch, tmp_path):
+    """Empty file (no numeric rows) raises ValueError."""
+    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    _write(data_dir / "zod_spec.txt", "")
+
+    with pytest.raises(ValueError):
+        load_zod_spectrum_file("zod_spec.txt")
+
+
+def test_load_zod_spectrum_file_malformed_row_raises(monkeypatch, tmp_path):
+    """Malformed numeric row causes parse failure."""
+    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    _write(data_dir / "zod_spec.txt", "1000  0.5\n1100  BAD\n1200  0.7\n")
+
+    with pytest.raises(ValueError, match="Failed to parse"):
+        load_zod_spectrum_file("zod_spec.txt")
+
