@@ -110,6 +110,9 @@ def initialize_waltzer_runtime_context():
         "RunContext initialized: target=%s output_dir=%s test_mode=%s produce_plots=%s write_image_png=%s",
         run_ctx.target_name,
         run_ctx.output_dir,
+        run_ctx.test_mode,
+        run_ctx.produce_plots,
+        run_ctx.write_image_png is not None,
     )
     return run_ctx, user_cfg
 

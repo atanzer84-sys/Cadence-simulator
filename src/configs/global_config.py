@@ -96,11 +96,16 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
         produce_Plots=_as_bool(raw.get("produce_Plots", 0), key="produce_Plots",),    
     )
 
-    if cfg.cosmic_rays_min < 0 or cfg.cosmic_rays_max < 0:
-        raise ValueError("cosmic_rays_min/max must be >= 0")
-
-    if cfg.cosmic_rays_min > cfg.cosmic_rays_max:
-        raise ValueError("cosmic_rays_min must be <= cosmic_rays_max")
+    _ensure_non_negative(cfg.log_r_teff_threshold, key="log_r_teff_threshold")
+    _ensure_non_negative(cfg.n_non_science_frames, key="n_non_science_frames")
+    _ensure_non_negative(cfg.n_science_frames_per_channel, key="n_science_frames_per_channel")
+    _ensure_non_negative(cfg.cosmic_rays_min, key="cosmic_rays_min")
+    _ensure_non_negative(cfg.cosmic_rays_max, key="cosmic_rays_max")
+    _ensure_non_negative(cfg.cosmic_ray_length_min_px, key="cosmic_ray_length_min_px")
+    _ensure_non_negative(cfg.cosmic_ray_length_max_px, key="cosmic_ray_length_max_px")
+    _ensure_min_le_max(cfg.cosmic_rays_min, cfg.cosmic_rays_max, key_min="cosmic_rays_min", key_max="cosmic_rays_max")
+    _ensure_min_le_max(cfg.cosmic_ray_length_min_px, cfg.cosmic_ray_length_max_px, key_min="cosmic_ray_length_min_px", key_max="cosmic_ray_length_max_px")
+    _ensure_min_le_max(cfg.log_r_hot_value, cfg.log_r_cool_value, key_min="log_r_hot_value", key_max="log_r_cool_value")
 
     logging.info("Global config loaded: %s", cfg)
     return cfg
@@ -170,3 +175,13 @@ def _warn_default_used(raw: dict, key: str, default, *, path: Path) -> None:
             path,
             default,
         )
+
+def _ensure_non_negative(value: int, *, key: str) -> int:
+    if value < 0:
+        raise ValueError(f"{key} must be >= 0")
+    return value
+
+
+def _ensure_min_le_max(min_val: int, max_val: int, *, key_min: str, key_max: str):
+    if min_val > max_val:
+        raise ValueError(f"{key_min} must be <= {key_max}")
