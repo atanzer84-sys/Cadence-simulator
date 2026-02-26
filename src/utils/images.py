@@ -14,22 +14,19 @@ STATS_KEYS = {
     "SCIENCE": ["MEAN", "MEDIAN", "STDDEV", "MIN", "MAX", "DARKVAL", "DARKSIG", "B_OFFSET", "RNOISE", "EXPTIME"],
 }
 
+# Shared layout constants so single-image and multi-frame PNGs match.
+_WIDTH_IN = 10.0
+_TEXT_H_IN = 0.7
+_GAP_IN = 0.8
 
-def write_image_png(array, frame_type: str, ctx: RunContext, channel: SpectroscopyChannel, show_stats: bool = True) -> None:
 
-    logging.info("WRITE_IMAGE_PNG called | frame_type=%s | channel=%s | shape=%s", frame_type, channel.channel_name, array.shape)
-
-    star_name = str(ctx.target_name).replace(" ", "_")
-    filename = ctx.output_dir / f"{star_name}_{channel.channel_name}_{frame_type}_image.png"
-
+def _save_single_frame_png(array: np.ndarray, filename: Path, title: str, stats_text: str | None = None) -> None:
+    """Draw one 2D image with optional stats line; save to filename. Shared by write_image_png and write_frames_png."""
     ny, nx = array.shape
-    width_in = 10.0
-    img_h_in = max(2.0, width_in * (ny / nx))
-    text_h_in = 0.7
-    gap_in = 0.8  # fixed gap (inches) between image and stats so NUV/VIS match
+    img_h_in = max(2.0, _WIDTH_IN * (ny / nx))
 
-    fig = plt.figure(figsize=(width_in, img_h_in + gap_in + text_h_in))
-    gs = fig.add_gridspec(nrows=3, ncols=1, height_ratios=[img_h_in, gap_in, text_h_in], hspace=0)
+    fig = plt.figure(figsize=(_WIDTH_IN, img_h_in + _GAP_IN + _TEXT_H_IN))
+    gs = fig.add_gridspec(nrows=3, ncols=1, height_ratios=[img_h_in, _GAP_IN, _TEXT_H_IN], hspace=0)
 
     ax = fig.add_subplot(gs[0, 0])
     vmin = np.percentile(array, 1)
@@ -39,11 +36,27 @@ def write_image_png(array, frame_type: str, ctx: RunContext, channel: Spectrosco
     ax.set_ylim(-0.5, ny - 0.5)
     ax.set_xlabel("pixels", labelpad=8)
     ax.set_ylabel("pixels", labelpad=8)
-    ax.set_title(f"{ctx.target_name}: {channel.channel_name} {frame_type}", fontsize=11)
+    ax.set_title(title, fontsize=11)
 
     ax_txt = fig.add_subplot(gs[2, 0])
     ax_txt.axis("off")
+    if stats_text:
+        ax_txt.text(0.5, 0.5, stats_text, ha="center", va="center", fontsize=10, transform=ax_txt.transAxes)
 
+    fig.savefig(filename, dpi=200, bbox_inches="tight")
+    plt.close(fig)
+    logging.debug("Wrote %s", filename)
+
+
+def write_image_png(array, frame_type: str, ctx: RunContext, channel: SpectroscopyChannel, show_stats: bool = True) -> None:
+
+    logging.info("WRITE_IMAGE_PNG called | frame_type=%s | channel=%s | shape=%s", frame_type, channel.channel_name, array.shape)
+
+    star_name = str(ctx.target_name).replace(" ", "_")
+    filename = ctx.output_dir / f"{star_name}_{channel.channel_name}_{frame_type}_image.png"
+    title = f"{ctx.target_name}: {channel.channel_name} {frame_type}"
+
+    stats_text = None
     if show_stats:
         mean, median = float(np.mean(array)), float(np.median(array))
         std = float(np.std(array, ddof=0))
@@ -59,12 +72,8 @@ def write_image_png(array, frame_type: str, ctx: RunContext, channel: Spectrosco
             f"MEAN={mean:.3f}  MEDIAN={median:.3f}  STDDEV={std:.2f}  MIN={vmin:.2f}  MAX={vmax:.2f}\n"
             f"RNOISE={_v(rn)}  B_OFFSET={_v(bo)}  DARKVAL={_v(dv, '.3f')}  DARKSIG={_v(ds, '.3f')}  EXPTIME={_v(ex, '.3f')}"
         )
-        ax_txt.text(0.5, 0.5, stats_text, ha="center", va="center", fontsize=10, transform=ax_txt.transAxes)
 
-    fig.savefig(filename, dpi=200, bbox_inches="tight")
-    plt.close(fig)
-
-    logging.debug("Wrote %s", filename)
+    _save_single_frame_png(array, filename, title, stats_text)
 
 
 
@@ -93,62 +102,31 @@ def write_frames_png(frames, headers, frame_type, channel_tag, ctx: RunContext, 
 
     logging.info("Writing %d %s PNG frame(s) for channel %s to %s", n_frames, frame_type, channel_tag, ctx.output_dir)
 
-    for k, (frame, header) in enumerate(zip(frames, headers)):
+    star_name = str(star.name).replace(" ", "_")
+    title_base = f"{star.name}: {channel_tag} {frame_type} | M={star.mass} M☉, d={star.distance_pc} pc"
 
-        star_name = str(star.name).replace(" ", "_")
+    for k, (frame, header) in enumerate(zip(frames, headers)):
         filename = ctx.output_dir / f"WALTzER_{star_name}_{channel_tag}_{frame_type}_{k:05d}.png"
 
-        ny, nx = frame.shape
-        width_in = 10.0
-        img_h_in = max(2.0, width_in * (ny / nx))
-        text_h_in = 0.7
-        gap_in = 0.8  # fixed gap (inches) between image and stats so NUV/VIS match
-
-        fig = plt.figure(figsize=(width_in, img_h_in + gap_in + text_h_in))
-        gs = fig.add_gridspec(nrows=3, ncols=1, height_ratios=[img_h_in, gap_in, text_h_in], hspace=0)
-
-        ax = fig.add_subplot(gs[0, 0])
-        vmin = np.percentile(frame, 1)
-        vmax = np.percentile(frame, 99.9)
-        ax.imshow(frame, origin="lower", aspect="equal", cmap="gray", vmin=vmin, vmax=vmax)
-        ax.set_xlim(-0.5, nx - 0.5)
-        ax.set_ylim(-0.5, ny - 0.5)
-        ax.set_xlabel("pixels", labelpad=8)
-        ax.set_ylabel("pixels", labelpad=8)
-        ax.set_title(f"{star.name}: {channel_tag} {frame_type} | M={star.mass} M☉, d={star.distance_pc} pc", fontsize=11)
-
-        ax_txt = fig.add_subplot(gs[2, 0])
-        ax_txt.axis("off")
-
+        stats_text = None
         if show_stats:
             keys = _stats_keys_for_header(header)
             parts = []
-            for i, k in enumerate(keys):
-                if k in ("RNOISE", "B_OFFSET"):
+            for i, key in enumerate(keys):
+                if key in ("RNOISE", "B_OFFSET"):
                     fmt = ""
-                elif k in ("MEAN", "MEDIAN", "DARKSIG", "DARKVAL"):
+                elif key in ("MEAN", "MEDIAN", "DARKSIG", "DARKVAL"):
                     fmt = ".3f"
                 else:
                     fmt = ".2f"
-
-                parts.append(format_header(header, k, fmt))
+                parts.append(format_header(header, key, fmt))
                 if (i + 1) % 5 == 0 and i + 1 < len(keys):
                     parts.append("\n")
                 elif i + 1 < len(keys):
                     parts.append("    ")
             stats_text = "".join(parts)
 
-            ax_txt.text(
-                0.5, 0.5, stats_text,
-                ha="center", va="center",
-                fontsize=10,
-                transform=ax_txt.transAxes,
-            )
-
-        fig.savefig(filename, dpi=200, bbox_inches="tight")
-        plt.close(fig)
-
-        logging.debug("Wrote %s", filename)
+        _save_single_frame_png(frame, filename, title_base, stats_text)
 
     logging.info("Finished writing %d PNG file(s)", n_frames)
 
