@@ -24,9 +24,14 @@ class GlobalConfig:
     n_science_frames_per_channel: int
     write_science_frames_png: bool
 
+    cosmic_rays_min: int
+    cosmic_rays_max: int
+    cosmic_ray_signal_electrons: int
+    cosmic_ray_length_min_px: int
+    cosmic_ray_length_max_px: int
+
     test_mode: bool
     produce_Plots: bool
-
 
 _GLOBAL: GlobalConfig | None = None
 
@@ -81,9 +86,22 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
         n_science_frames_per_channel=_as_int(raw.get("n_science_frames_per_channel", 0), key="n_science_frames_per_channel"),
         write_science_frames_png=_as_bool(raw.get("write_science_frames_png", 0), key="write_science_frames_png"),        
 
+        cosmic_rays_min=_as_int(raw.get("cosmic_rays_min", 5), key="cosmic_rays_min"),
+        cosmic_rays_max=_as_int(raw.get("cosmic_rays_max", 10), key="cosmic_rays_max"),
+        cosmic_ray_signal_electrons=_as_int(raw.get("cosmic_ray_signal_electrons", 720000), key="cosmic_ray_signal_electrons"),
+        cosmic_ray_length_min_px=_as_int(raw.get("cosmic_ray_length_min_px", 10), key="cosmic_ray_length_min_px"),
+        cosmic_ray_length_max_px=_as_int(raw.get("cosmic_ray_length_min_px", 20), key="cosmic_ray_length_min_px"),
+
         test_mode=_as_bool(raw.get("test_mode", 0), key="test_mode"),    
         produce_Plots=_as_bool(raw.get("produce_Plots", 0), key="produce_Plots",),    
     )
+
+    if cfg.cosmic_rays_min < 0 or cfg.cosmic_rays_max < 0:
+        raise ValueError("cosmic_rays_min/max must be >= 0")
+
+    if cfg.cosmic_rays_min > cfg.cosmic_rays_max:
+        raise ValueError("cosmic_rays_min must be <= cosmic_rays_max")
+
     logging.info("Global config loaded: %s", cfg)
     return cfg
 
