@@ -1,12 +1,13 @@
-# Insert the star's name. Properties from the star will be looked up in the excel file in root directory. 
-# If properties are missing, I will look them up in a catalog.
+# Name of the target star. Its properties are read from the Excel file in the project root.
+# If a property is missing there, it will be retrieved from GAIA.
 target_name = HD 202772 A
 
-# Total observation lengths in hours. Transit duration will be split in half. half before, half after transit.
-# float values accepted (24 or 24.5)
+# Total duration of the simulated observation, in hours.
+# The transit is centered in this window, with half of the time before and half after the transit.
+# Floating-point values are allowed (e.g. 24 or 24.5).
 total_observation_length_h = 11.11
 
-#Exposure time of the three Channels in seconds
+# Exposure time of the Channels in seconds
 exposure_NUV_s = 300.0
 exposure_VIS_s = 60.0
 exposure_IR_s = 111.2
