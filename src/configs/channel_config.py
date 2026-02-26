@@ -42,7 +42,8 @@ class SpectroscopyChannel(Channel):
     spread_y_positions: np.ndarray | None = None
     spread_y_weights: np.ndarray | None = None
     spread_y_wavelengths: np.ndarray | None = None
-
+    background_wavelength: np.ndarray | None = None
+    background_flux: np.ndarray | None = None
     
 @dataclass(frozen=True, slots=True)
 class PhotometryChannel(Channel):
