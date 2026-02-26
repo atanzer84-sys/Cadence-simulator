@@ -3,7 +3,7 @@ from pathlib import Path
 import logging
 from configs.channel_config import SpectroscopyChannel, PhotometryChannel
 from configs.user_config import UserConfig
-from loaders.load_channel_files import load_effective_area_file, load_spread_profile_file, load_background_file
+from loaders.load_channel_files import load_effective_area_file, load_spread_profile_file, load_background_file, load_zod_dist_file, load_zod_spectrum_file
 
 def load_channels_config(user_cfg: UserConfig):
     repo_root = get_repo_root()
@@ -28,12 +28,8 @@ def load_channel_config(path: Path, exposure_s:float):
     dark_noise=_as_float(raw["dark_noise"], key="dark_noise")
     dark_current_sigma=_as_float(raw["dark_current_sigma"], key="dark_current_sigma")
     read_noise=_as_float(raw["read_noise"], key="read_noise")
-    effective_area_file=str(raw.get("effective_area_file", "")).strip()
     bias_offset=_as_float(raw.get("bias_offset", 0.0), key="bias_offset")
     ccd_gain=_as_float(raw.get("ccd_gain", 1.0), key="ccd_gain")
-    mode=_as_int(raw["mode"], key="mode")
-    spread_profile_file=str(raw.get("spread_profile_file", "")).strip()
-    spread_half_height_pix=_as_optional_int(raw.get("spread_half_height_pix", None)) or 0
     source_file=str(path)
 
 
@@ -53,12 +49,17 @@ def load_channel_config(path: Path, exposure_s:float):
             source_file=source_file,
         )
 
-    wavelength, effective_area, pixel_scale = load_effective_area_file(effective_area_file)
-    if len(wavelength) != x_pixels:
-        logging.error("%s: effective_area_file=%s len(wavelength)=%d != x_pixels=%d source_file=%s", channel_name, effective_area_file, len (wavelength), x_pixels, source_file, )
+    mode=_as_int(raw["mode"], key="mode")
+    spread_profile_file=str(raw.get("spread_profile_file", "")).strip()
+    spread_half_height_pix=_as_optional_int(raw.get("spread_half_height_pix", None)) or 0
+    
+    effective_area_file=str(raw.get("effective_area_file", "")).strip()
+    effective_area_wavelength, effective_area, pixel_scale = load_effective_area_file(effective_area_file)
+    if len(effective_area_wavelength) != x_pixels:
+        logging.error("%s: effective_area_file=%s len(wavelength)=%d != x_pixels=%d source_file=%s", channel_name, effective_area_file, len (effective_area_wavelength), x_pixels, source_file, )
         raise ValueError(
             f"{channel_name}: effective_area_file={effective_area_file} "
-            f"len(wavelength)={len(wavelength)} != x_pixels={x_pixels} "
+            f"len(wavelength)={len(effective_area_wavelength)} != x_pixels={x_pixels} "
             f"source_file={source_file}"
         )
         
@@ -68,8 +69,33 @@ def load_channel_config(path: Path, exposure_s:float):
     slope = _as_float(raw.get("slope", 0.0), key="slope")
     intercept_pixels = _as_float(raw.get("intercept_pixels", 0.0), key="intercept_pixels")
 
-    background_file = str(raw.get("background_file", "")).strip()
-    background_wavelength, background_flux = load_background_file(background_file)
+    background_type = str(raw.get("background_type", "")).strip().lower()
+    if background_type == "":
+        background_type = None
+
+    background_wavelength = None
+    background_flux = None
+    zod_dist = None
+    zod_spec_wl = None
+    zod_spec_flux = None
+
+    if background_type == "default":
+        background_file = str(raw.get("background_file", "")).strip()
+        background_wavelength, background_flux = load_background_file(background_file)
+
+    elif background_type == "calc":
+        zod_dist_file = str(raw.get("zod_dist_file", "")).strip()
+        zod_spectrum_file = str(raw.get("zod_spectrum_file", "")).strip()
+        zod_dist = load_zod_dist_file(zod_dist_file)
+        zod_spec_wl, zod_spec_flux = load_zod_spectrum_file(zod_spectrum_file)
+
+    elif background_type is not None:
+        logging.warning(
+            "Channel %s: invalid background_type='%s'. Background disabled.",
+            channel_name,
+            background_type,
+        )
+        background_type = None
 
 
     return SpectroscopyChannel(
@@ -87,7 +113,7 @@ def load_channel_config(path: Path, exposure_s:float):
         mode=mode,
         spread_profile_file=spread_profile_file,
         spread_half_height_pix=spread_half_height_pix,
-        effective_area_wavelength=wavelength,
+        effective_area_wavelength=effective_area_wavelength,
         effective_area=effective_area,
         pixel_scale=pixel_scale,
         spread_y_positions=spread_pos,
@@ -98,8 +124,12 @@ def load_channel_config(path: Path, exposure_s:float):
         slit_position_y_arcsec=slit_position_y_arcsec,
         slope=slope,
         intercept_pixels=intercept_pixels,
+        background_type=background_type,
         background_wavelength=background_wavelength,
-        background_flux=background_flux,    
+        background_flux=background_flux,
+        zod_dist=zod_dist,
+        zod_spectrum_wavelength=zod_spec_wl,
+        zod_spectrum_flux=zod_spec_flux,
     )  
 
 

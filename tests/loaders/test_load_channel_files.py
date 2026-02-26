@@ -3,6 +3,8 @@ Direct tests for low-level calibration file loaders:
 - load_effective_area_file
 - load_spread_profile_file
 - load_background_file
+- load_zod_dist_file
+- load_zod_spectrum_file
 """
 
 from pathlib import Path
@@ -14,6 +16,8 @@ from loaders.load_channel_files import (
     load_effective_area_file,
     load_spread_profile_file,
     load_background_file,
+    load_zod_dist_file,
+    load_zod_spectrum_file,
 )
 
 _REPO_ROOT = "loaders.load_channel_files.get_repo_root"

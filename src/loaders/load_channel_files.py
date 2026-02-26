@@ -160,7 +160,7 @@ def load_background_file(background_filename: str) -> tuple[np.ndarray, np.ndarr
     if not background_filename or background_filename.strip() == "":
         logging.info("No background file configured.")
         return None, None
-        
+
     path = (repo_root / "data" / background_filename).resolve()
 
     logging.info("Loading background file: %s", path)
@@ -274,3 +274,61 @@ def _parse_spread_header_wavelengths(lines: list[str], path: Path, channel_name:
 
     logging.error("Channel %s: no 'pixels ...' header line found in %s", channel_name, path)
     raise ValueError(f"No 'pixels ...' header line found in spread profile file: {path}")
+
+
+def load_zod_dist_file(filename: str) -> np.ndarray:
+    repo_root = get_repo_root()
+    if not filename or filename.strip() == "":
+        logging.info("No zodiacal distribution file configured.")
+        return None
+
+    path = (repo_root / "data" / filename).resolve()
+    logging.info("Loading zodiacal distribution file: %s", path)
+    if not path.exists():
+        msg = f"Zodiacal distribution file not found: {path}"
+        logging.error(msg)
+        raise ValueError(msg)
+
+    try:
+        data = np.loadtxt(path)
+    except Exception as exc:
+        msg = f"Failed to parse zodiacal distribution file: {path}"
+        logging.error(msg)
+        raise ValueError(msg) from exc
+    if data.ndim != 2:
+        msg = f"Invalid zodiacal distribution table: {path}"
+        logging.error(msg)
+        raise ValueError(msg)
+
+    logging.info("Zodiacal distribution loaded (%s): shape=%s", filename, data.shape)
+    return data
+
+
+def load_zod_spectrum_file(filename: str) -> tuple[np.ndarray | None, np.ndarray | None]:
+    repo_root = get_repo_root()
+    if not filename or filename.strip() == "":
+        logging.info("No zodiacal spectrum file configured.")
+        return None, None
+
+    path = (repo_root / "data" / filename).resolve()
+    logging.info("Loading zodiacal spectrum file: %s", path)
+    if not path.exists():
+        msg = f"Zodiacal spectrum file not found: {path}"
+        logging.error(msg)
+        raise ValueError(msg)
+
+    try:
+        data = np.loadtxt(path)
+    except Exception as exc:
+        msg = f"Failed to parse zodiacal spectrum file: {path}"
+        logging.error(msg)
+        raise ValueError(msg) from exc
+    if data.ndim != 2 or data.shape[1] < 2:
+        msg = f"Invalid zodiacal spectrum table: {path}"
+        logging.error(msg)
+        raise ValueError(msg)
+
+    wavelength = data[:, 0].astype(float, copy=False)
+    spectrum = data[:, 1].astype(float, copy=False)
+    logging.info("Zodiacal spectrum loaded (%s): rows=%d", filename, wavelength.shape[0])
+    return wavelength, spectrum

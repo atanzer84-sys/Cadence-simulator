@@ -289,7 +289,7 @@ def test_load_channel_config_ignores_comments(tmp_path):
 
 
 def test_load_channel_config_missing_required_key_raises_keyerror(tmp_path):
-    """Missing required key (e.g. mode) raises KeyError."""
+    """Missing required key (e.g. read_noise) raises KeyError."""
     cfg_path = tmp_path / "missing_key.cfg"
     cfg_path.write_text(
         """
@@ -297,14 +297,13 @@ def test_load_channel_config_missing_required_key_raises_keyerror(tmp_path):
         y_pixels = 1024
         resolution_factor = 1.0
         dark_noise = 0.01
-        read_noise = 3.2
         channel_name = IR
         dark_current_sigma = 0.001
         """,
         encoding="utf-8",
     )
 
-    with pytest.raises(KeyError, match="mode"):
+    with pytest.raises(KeyError, match="read_noise"):
         load_channel_config(cfg_path, exposure_s=10.0)
 
 
@@ -408,7 +407,13 @@ def test_load_channel_config_sets_background_wavelength_and_flux_from_loader(mon
     monkeypatch.setattr(_BG_LOADER, _fake_bg)
 
     cfg_path = tmp_path / "nuv.cfg"
-    _write_cfg(cfg_path, effective_area_file="nuv.txt", x_pixels=2, background_file="bg.txt")
+    _write_cfg(
+        cfg_path,
+        effective_area_file="nuv.txt",
+        x_pixels=2,
+        background_type="default",
+        background_file="bg.txt",
+    )
 
     ch = load_channel_config(cfg_path, exposure_s=10.0)
 
