@@ -47,6 +47,7 @@ def build_science_image(spectra_2d, channel: SpectroscopyChannel, ctx: RunContex
 
     image = image * ccd_gain
     return image
+    
 
 def apply_photon_noise_gauss_from_spectra2d(spectra_2d_exposure):
     
