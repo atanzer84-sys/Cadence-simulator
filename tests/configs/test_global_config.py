@@ -243,14 +243,14 @@ def test_required_log_r_fields_reject_non_numeric(tmp_path):
 
     # 2) bad hot value
     cfg_path = tmp_path / "bad_hot.cfg"
-    cfg_path.write_text(_cfg_replace(base, "log_r_hot_value = -4.2", "log_r_hot_value = banana"), encoding="utf-8")
+    cfg_path.write_text(_cfg_replace(base, "log_r_hot_value = -4.8", "log_r_hot_value = banana"), encoding="utf-8")
     with pytest.raises(ValueError) as exc:
         gc.load_global_config(cfg_path)
     assert "log_r_hot_value" in str(exc.value)
 
     # 3) bad cool value
     cfg_path = tmp_path / "bad_cool.cfg"
-    cfg_path.write_text(_cfg_replace(base, "log_r_cool_value = -4.8", "log_r_cool_value = banana"), encoding="utf-8")
+    cfg_path.write_text(_cfg_replace(base, "log_r_cool_value = -4.2", "log_r_cool_value = banana"), encoding="utf-8")
     with pytest.raises(ValueError) as exc:
         gc.load_global_config(cfg_path)
     assert "log_r_cool_value" in str(exc.value)
@@ -262,8 +262,8 @@ def test_required_log_r_fields_parse_numeric():
 
     assert cfg.enable_log_r_fallback is True
     assert cfg.log_r_teff_threshold == 5500.0
-    assert cfg.log_r_hot_value == -4.2
-    assert cfg.log_r_cool_value == -4.8
+    assert cfg.log_r_hot_value == -4.8
+    assert cfg.log_r_cool_value == -4.2
 
 
 def test_optional_bool_and_int_fields_omitted_use_defaults():

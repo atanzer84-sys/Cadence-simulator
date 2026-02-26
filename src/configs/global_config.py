@@ -90,7 +90,7 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
         cosmic_rays_max=_as_int(raw.get("cosmic_rays_max", 10), key="cosmic_rays_max"),
         cosmic_ray_signal_electrons=_as_int(raw.get("cosmic_ray_signal_electrons", 720000), key="cosmic_ray_signal_electrons"),
         cosmic_ray_length_min_px=_as_int(raw.get("cosmic_ray_length_min_px", 10), key="cosmic_ray_length_min_px"),
-        cosmic_ray_length_max_px=_as_int(raw.get("cosmic_ray_length_min_px", 20), key="cosmic_ray_length_min_px"),
+        cosmic_ray_length_max_px=_as_int(raw.get("cosmic_ray_length_max_px", 20), key="cosmic_ray_length_max_px"),
 
         test_mode=_as_bool(raw.get("test_mode", 0), key="test_mode"),    
         produce_Plots=_as_bool(raw.get("produce_Plots", 0), key="produce_Plots",),    
