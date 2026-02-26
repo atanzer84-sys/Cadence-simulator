@@ -13,7 +13,7 @@ from flux.flux_calc import (
     calculateFluxOnEarth,
 )
 from loaders.run_waltzer_context import _NOOP, _NOOP_PLOTS
-from utils.constants import C_LIGHT_ROUNDED_m_s, PARSEC_CM
+from utils.constants import C_LIGHT_Angst, PARSEC_CM
 
 
 def test_load_model_exact_match():
@@ -88,7 +88,7 @@ def test_frequency_to_wavelength_conversion():
     geometry = 4 * np.pi * r_star**2 * 4 * np.pi
     recovered_intensity = out[0,1] / geometry
 
-    expected_intensity = C_LIGHT_ROUNDED_m_s / (1000.0**2)
+    expected_intensity = C_LIGHT_Angst / (1000.0**2)
     np.testing.assert_allclose(recovered_intensity, expected_intensity)
 
 

@@ -2,7 +2,7 @@ import numpy as np
 from pathlib import Path
 from flux.flux_calc import convertStellarModelToFlux, apply_line_core_emission, apply_ism_absorption, compute_flux_at_earth, apply_unred, convert_flux_to_photons
 
-from utils.constants import R_SUN
+from utils.constants import R_SUN_cm
 from types import SimpleNamespace
 
 SIGMA_MG22 = 0.257
@@ -81,18 +81,18 @@ STARS = {
 
 def run_snapshot_convertIntensityToLuminosity(star_name, radius_rsun, band):
     base = SNAPSHOT_BASE
-    model_file = base / f"{star_name}_model_input_{band}.txt"
-    expected_file = base / f"{star_name}_convertIntensityToLuminosity_snapshot_{band}.txt"
+    model_file = base / f"{star_name}_FluxCalc_1_model_input_{band}_zoom.txt"
+    expected_file = base / f"{star_name}_FluxCalc_2_convertIntensityToLuminosity_snapshot_{band}_zoom.txt"
     model = np.loadtxt(model_file, dtype=np.float64)
     expected = np.loadtxt(expected_file, dtype=np.float64)
-    got = convertStellarModelToFlux(model, radius_rsun * R_SUN)
+    got = convertStellarModelToFlux(model, radius_rsun * R_SUN_cm)
     assert got.shape == expected.shape
     np.testing.assert_allclose(got, expected, rtol=1e-10, atol=0.0)
 
 def run_snapshot_apply_line_core_emission(star_name, band, sigmaMg22, sigmaMg21, log_r, spectral_type):
     base = SNAPSHOT_BASE
-    before_file = base / f"{star_name}_convertIntensityToLuminosity_snapshot_{band}.txt"
-    expected_file = base / f"{star_name}_after_line_core_emission_{band}.txt"
+    before_file = base / f"{star_name}_FluxCalc_2_convertIntensityToLuminosity_snapshot_{band}_zoom.txt"
+    expected_file = base / f"{star_name}_FluxCalc_3_after_line_core_emission_{band}_zoom.txt"
     before = np.loadtxt(before_file, dtype=np.float64)
     expected = np.loadtxt(expected_file, dtype=np.float64)
     got = apply_line_core_emission(before, sigmaMg22, sigmaMg21, log_r, spectral_type)
@@ -101,8 +101,8 @@ def run_snapshot_apply_line_core_emission(star_name, band, sigmaMg22, sigmaMg21,
 
 def run_snapshot_apply_ism_absorption(star_name, band, EBV):
     base = SNAPSHOT_BASE
-    before_file = base / f"{star_name}_after_line_core_emission_{band}.txt"
-    expected_file = base / f"{star_name}_after_ISM_{band}.txt"
+    before_file = base / f"{star_name}_FluxCalc_3_after_line_core_emission_{band}_zoom.txt"
+    expected_file = base / f"{star_name}_FluxCalc_4_after_ISM_{band}_zoom.txt"
     before = np.loadtxt(before_file, dtype=np.float64)
     expected = np.loadtxt(expected_file, dtype=np.float64)
     cfg = make_cfg_for_ism_absorption()
@@ -112,8 +112,8 @@ def run_snapshot_apply_ism_absorption(star_name, band, EBV):
 
 def run_snapshot_compute_flux_at_earth(star_name, band, distance_pc):
     base = SNAPSHOT_BASE
-    before_file = base / f"{star_name}_before_flux_at_earth_{band}.txt"
-    expected_file = base / f"{star_name}_after_flux_at_earth_{band}.txt"
+    before_file = base / f"{star_name}_FluxCalc_5_before_flux_at_earth_{band}_zoom.txt"
+    expected_file = base / f"{star_name}_FluxCalc_6_after_flux_at_earth_{band}_zoom.txt"
     before_2d = np.loadtxt(before_file, dtype=np.float64)
     expected = np.loadtxt(expected_file, dtype=np.float64)
 
@@ -127,8 +127,8 @@ def run_snapshot_compute_flux_at_earth(star_name, band, distance_pc):
 
 def run_snapshot_apply_unred(star_name, band):
     base = SNAPSHOT_BASE
-    before_file = base / f"{star_name}_after_flux_at_earth_{band}.txt"
-    expected_file = base / f"{star_name}_after_unred_{band}.txt"
+    before_file = base / f"{star_name}_FluxCalc_6_after_flux_at_earth_{band}_zoom.txt"
+    expected_file = base / f"{star_name}_FluxCalc_7_after_unred_{band}_zoom.txt"
     before_2d = np.loadtxt(before_file, dtype=np.float64)
     expected = np.loadtxt(expected_file, dtype=np.float64)
     flux = apply_unred(before_2d[:, 0], before_2d[:, 1], STARS[star_name]["EBV"])
@@ -139,8 +139,8 @@ def run_snapshot_apply_unred(star_name, band):
 def run_snapshot_convert_flux_to_photons(star_name, band):
     # Verifies convert_flux_to_photons produces the expected photon flux snapshot from after_unred input.
     base = SNAPSHOT_BASE
-    before_file = base / f"{star_name}_after_unred_{band}.txt"
-    expected_file = base / f"{star_name}_photons_star_{band}.txt"
+    before_file = base / f"{star_name}_FluxCalc_7_after_unred_{band}_zoom.txt"
+    expected_file = base / f"{star_name}_FluxCalc_8_photons_star_{band}_zoom.txt"
 
     before_2d = np.loadtxt(before_file, dtype=np.float64)
     expected = np.loadtxt(expected_file, dtype=np.float64)

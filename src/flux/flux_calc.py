@@ -2,7 +2,7 @@ import logging
 import numpy as np
 from loaders.run_waltzer_context import get_repo_root
 from domain.star import Star
-from utils.constants import C_LIGHT_ROUNDED_m_s, PARSEC_CM
+from utils.constants import C_LIGHT_Angst, PARSEC_CM
 from configs.global_config import get_global_config
 from flux.cute_line_core_emission import apply_line_core_emission
 from flux.cute_extinction import extinction_amores
@@ -127,8 +127,8 @@ def convertStellarModelToFlux(model_data, r_star):
     flux_lambda  = np.zeros(np.shape(model_data))
     # we convert from frq to wavelength using lambda in Angstrom: F_lambda = F_nu * c / lambda^2
     # Unit before: erg/cm2/s/Hz, After:  ergs/cm2/s/A
-    intensity_lambda[:,1] = (C_LIGHT_ROUNDED_m_s * model_data[:,1])/(model_data[:,0]**2)    
-    intensity_lambda[:,2] = (C_LIGHT_ROUNDED_m_s * model_data[:,2])/(model_data[:,0]**2)
+    intensity_lambda[:,1] = (C_LIGHT_Angst * model_data[:,1])/(model_data[:,0]**2)    
+    intensity_lambda[:,2] = (C_LIGHT_Angst * model_data[:,2])/(model_data[:,0]**2)
 
     # Integrate over stellar surface area (4*pi*R^2) and over solid angle (4*pi)
     # multiply with surface area of star -> ergs/cm2/s/A to ergs/s/A

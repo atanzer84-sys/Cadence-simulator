@@ -8,10 +8,9 @@ from domain.planet import Planet
 from frame.frame_pipeline import generate_Frames
 from instrument.prepare_detector_images import prepare_all_detector_images_all_channels
 from instrument.build_science_image import build_science_images
-
 def main():
     try:
-
+        
         run_ctx, user_cfg = initialize_waltzer_runtime_context()
         nuv_channel, vis_channel, _ = load_channels_config(user_cfg)
 

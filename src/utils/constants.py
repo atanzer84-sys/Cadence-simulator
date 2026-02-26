@@ -4,19 +4,21 @@ Do not modify at runtime. Or ever, because tests will fail.
 """
 import astropy.constants as ac
 
-# physical constants
-C_LIGHT_ROUNDED_m_s = 3e18                   # m / s
-C_LIGHT_cm_s    = 2.99792458e10                # cm/s (speed of light)
-C_LIGHT_km_s    = ac.c.to("km/s").value        # Speed of light, km/s
-sigma = 5.67051e-5                   # erg/cm**2/s/K**4 (stefan-boltzmann)
-k_B   = 1.380658e-16                 # erg/K = g cm**2/s**2/K (boltzmann const)
-N_A   = 6.02214179e23                # /mol (Avagadro constant)
-C_LIGHT_Angst    = 2.99792458e18                # Angstrom/s (speed of light)
-
+# physics constants
+C_LIGHT_km_s = ac.c.to("km/s").value
+C_LIGHT_m_s = ac.c.to("m/s").value
+C_LIGHT_cm_s = ac.c.to("cm/s").value 
+C_LIGHT_Angst = ac.c.to("Angstrom/s").value # Angstrom/s (speed of light)
 # astronomy
-R_SUN = 6.957e10                 # cm
-PARSEC_CM = 3.086e18             # m
-AU    = 1.49598e13                   # cm (Astronomical Unit)
+R_SUN_cm = ac.R_sun.to("cm").value
+PARSEC_CM = ac.pc.to("cm").value
+AU_cm = ac.au.to("cm").value  # cm (Astronomical Unit)
+M_SUN_kg = ac.M_sun.to("kg").value
+M_SUN_cgs = ac.M_sun.cgs.value  # g
+
+boltzmann = ac.k_B.to("erg / K").value # erg/K = g cm**2/s**2/K (boltzmann const)
+N_A   = ac.N_A.value # /mol (Avagadro constant)
+sigma = ac.sigma_sb.to("erg / (cm2 s K4)").value # erg/cm**2/s/K**4 (stefan-boltzmann)
 
 #Parameters for MgII
 MgII1w      = 2795.5280 #MgIIh wavelength 
@@ -41,13 +43,6 @@ FeII_stark = -6.53
 ISM_b_Mg2=2.0        #b-parameter for the Ca2 ISM lines in km/s
 vr_ISM=0.            #radial velocity of the ISM absorption lines in km/s
 
-#not yet used
-H_PLANCK = 6.62607015e-34        # J s
-K_BOLTZMANN = 1.380649e-23       # J / K
-SIGMA_SB = 5.670374419e-8        # W / (m^2 K^4)
-L_SUN = 3.828e26                 # W
-M_SUN = 1.98847e30               # kg
-
 
 # Complete Wavelength ranges for plots or datadumps in A
 # should be the complete WL range we actually want to see with Waltzer. 
@@ -59,3 +54,9 @@ debug_wavelength_range_ir = [8250, 18000]
 DEBUG_WL_A_NUV = (2790.0, 2850.0)
 DEBUG_WL_A_VIS = (5550.0, 5630.0)
 DEBUG_WL_A_IR  = (11000.0, 11100.0)
+
+
+if __name__ == "__main__":
+    for name, value in sorted(globals().items()):
+        if not name.startswith("_") and not callable(value):
+            print(f"{name:25s} = {value}")

@@ -1,6 +1,6 @@
 import pytest
 from domain.star import Star
-from utils.constants import R_SUN, M_SUN
+from utils.constants import R_SUN_cm, M_SUN_kg
 
 
 def test_star_from_params_ok_and_unit_conversion():
@@ -15,8 +15,8 @@ def test_star_from_params_ok_and_unit_conversion():
 
     assert star.radius == 2.0
     assert star.mass == 3.0
-    assert star.radius_sun_cm == pytest.approx(2.0 * R_SUN)
-    assert star.mass_sun_kg == pytest.approx(3.0 * M_SUN)
+    assert star.radius_sun_cm == pytest.approx(2.0 * R_SUN_cm)
+    assert star.mass_sun_kg == pytest.approx(3.0 * M_SUN_kg)
 
 
 def test_star_missing_required_key_raises():

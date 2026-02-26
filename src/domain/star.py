@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from utils.constants import R_SUN, M_SUN
+from utils.constants import R_SUN_cm, M_SUN_kg
 from typing import Any, Dict
 import logging
 
@@ -46,8 +46,8 @@ class Star:
         if mass is None:
             raise ValueError("Star missing required key at construction: ['mass']")
 
-        radius_sun_cm = radius * R_SUN
-        mass_sun_kg = mass * M_SUN
+        radius_sun_cm = radius * R_SUN_cm
+        mass_sun_kg = mass * M_SUN_kg
 
         star = cls(
             name=star_params["name"],

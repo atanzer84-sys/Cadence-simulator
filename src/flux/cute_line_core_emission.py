@@ -1,4 +1,4 @@
-from utils.constants import AU, Mgaratio_loggf2to1, MgII2w, MgII1w
+from utils.constants import AU_cm, Mgaratio_loggf2to1, MgII2w, MgII1w
 import numpy as np
 import logging
 
@@ -13,7 +13,7 @@ def apply_line_core_emission(flux, sigmaMg22, sigmaMg21, logR, spectral_type):
     flux_before = flux[:, 1].copy()
 
     Rmg = compute_Rmg(spectral_type, logR)
-    E=Rmg*AU**2
+    E=Rmg*AU_cm**2
     Mg21em=E/(1.0 + Mgaratio_loggf2to1)
     Mg22em=Mgaratio_loggf2to1*E/(1.+Mgaratio_loggf2to1)
     gaussMg22=gaussian(flux[:,0],MgII2w,sigmaMg22,0.3989*Mg22em/sigmaMg22)
