@@ -54,7 +54,7 @@ def _channel_base():
     c.dark_noise = 1.0
     c.exposure_s = 3.0
     c.spread_profile_file = "dummy_profile.fits"
-    c.wavelength = np.linspace(100, 200, 5)
+    c.effective_area_wavelength = np.linspace(100, 200, 5)
     return c
 
 
@@ -166,7 +166,7 @@ def test_profile_spread_basic():
 def test_profile_spread_detector_wavelength_mismatch():
     """Detector wavelength length mismatch raises ValueError."""
     channel = _channel_profile()
-    channel.wavelength = np.linspace(100, 200, 6)  # wrong length
+    channel.effective_area_wavelength = np.linspace(100, 200, 6)  # wrong length
     counts = np.ones(channel.x_pixels)
 
     with pytest.raises(ValueError):

@@ -81,7 +81,7 @@ def load_channel_config(path: Path, exposure_s:float):
         mode=mode,
         spread_profile_file=spread_profile_file,
         spread_half_height_pix=spread_half_height_pix,
-        wavelength=wavelength,
+        effective_area_wavelength=wavelength,
         effective_area=effective_area,
         pixel_scale=pixel_scale,
         spread_y_positions=spread_pos,

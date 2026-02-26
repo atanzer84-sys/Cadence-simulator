@@ -16,7 +16,7 @@ def test_spectroscopy_channel_init():
         mode=1,
         spread_profile_file="",
         spread_half_height_pix=3,
-        wavelength=[],
+        effective_area_wavelength=[],
         effective_area=[],
         pixel_scale=1.0,
         spread_y_positions=None,

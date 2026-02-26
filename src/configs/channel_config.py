@@ -32,7 +32,7 @@ class SpectroscopyChannel(Channel):
     mode: int
     spread_profile_file: str
     spread_half_height_pix: int
-    wavelength: np.ndarray
+    effective_area_wavelength: np.ndarray
     effective_area: np.ndarray
     pixel_scale: float
     slit_position_x_arcsec: float

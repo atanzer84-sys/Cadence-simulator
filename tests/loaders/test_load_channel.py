@@ -126,12 +126,12 @@ def test_load_channel_config_returns_spectroscopy_channel_with_correct_values(mo
 
     ch = load_channel_config(cfg_path, exposure_s=5.0)
 
-    assert np.allclose(ch.wavelength, nuv_wl)
+    assert np.allclose(ch.effective_area_wavelength, nuv_wl)
     assert np.allclose(ch.effective_area, nuv_ea)
     assert ch.pixel_scale == pytest.approx(0.01)
     assert ch.channel_name == "NUV"
     assert ch.exposure_s == pytest.approx(5.0)
-    assert len(ch.wavelength) == 3
+    assert len(ch.effective_area_wavelength) == 3
 
 
 def test_load_channel_config_propagates_ea_loader_error(monkeypatch, tmp_path):
@@ -611,7 +611,7 @@ def test_load_channel_config_integration_ea_and_spread_from_real_files(monkeypat
 
     ch = load_channel_config(cfg_path, exposure_s=10.0)
 
-    assert np.allclose(ch.wavelength, [1000.0, 1100.0])
+    assert np.allclose(ch.effective_area_wavelength, [1000.0, 1100.0])
     assert np.allclose(ch.effective_area, [0.1, 0.2])
     assert ch.pixel_scale == pytest.approx(0.02)
     assert np.allclose(ch.spread_y_positions, [0.0, 1.0])

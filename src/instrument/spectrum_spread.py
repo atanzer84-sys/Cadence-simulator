@@ -100,7 +100,7 @@ def _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel: SpectroscopyChan
     spread_y_pos = channel.spread_y_positions
     spread_weigths = channel.spread_y_weights
     spread_wavelengths = channel.spread_y_wavelengths
-    detector_wavelengths = channel.wavelength
+    detector_wavelengths = channel.effective_area_wavelength
 
     if len(detector_wavelengths) != nx:
         logging.error("PROFILE SPREAD ERROR: channel=%s detector wavelength length mismatch", channel.channel_name)

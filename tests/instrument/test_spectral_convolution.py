@@ -42,7 +42,7 @@ def test_single_channel_counts_identity_gaussbroad():
     broadened_flux = np.array([10.0, 20.0, 30.0], dtype=float)
 
     channel = _channel(
-        wavelength=np.array([100.0, 100.5, 101.0], dtype=float),
+        effective_area_wavelength=np.array([100.0, 100.5, 101.0], dtype=float),
         effective_area=np.array([2.0, 2.0, 2.0], dtype=float),
         pixel_scale=0.01,
     )
@@ -72,13 +72,13 @@ def test_all_channels_counts_identity_gaussbroad(monkeypatch):
 
     nuv = _channel(
         channel_name="NUV",
-        wavelength=np.array([100.0, 100.5], dtype=float),
+        effective_area_wavelength=np.array([100.0, 100.5], dtype=float),
         effective_area=np.array([2.0, 2.0], dtype=float),
         pixel_scale=0.01,
     )
     vis = _channel(
         channel_name="VIS",
-        wavelength=np.array([101.0, 102.0], dtype=float),
+        effective_area_wavelength=np.array([101.0, 102.0], dtype=float),
         effective_area=np.array([1.0, 1.0], dtype=float),
         pixel_scale=0.01,
     )
@@ -100,7 +100,7 @@ def test_cut_wavelength_window_with_margin_basic_slice_no_margin():
     wavelengths_total = np.array([100.0, 101.0, 102.0, 103.0, 104.0], dtype=float)
     photon_flux = np.array([10.0, 11.0, 12.0, 13.0, 14.0], dtype=float)
 
-    channel = _channel(wavelength=np.array([101.0, 103.0], dtype=float))
+    channel = _channel(effective_area_wavelength=np.array([101.0, 103.0], dtype=float))
 
     f_cut, w_cut = cut_wavelength_window_with_margin(
         photon_flux,
@@ -113,8 +113,8 @@ def test_cut_wavelength_window_with_margin_basic_slice_no_margin():
         margin_A=0.0,
     )
 
-    wl_min = channel.wavelength[0]
-    wl_max = channel.wavelength[-1]
+    wl_min = channel.effective_area_wavelength[0]
+    wl_max = channel.effective_area_wavelength[-1]
     i0 = max(np.searchsorted(wavelengths_total, wl_min), 0)
     i1 = min(np.searchsorted(wavelengths_total, wl_max), len(wavelengths_total))
 
@@ -127,7 +127,7 @@ def test_cut_wavelength_window_with_margin_clamps_bounds(bound, index):
     """Lower/upper index is clamped when margin extends beyond available wavelength range."""
     wavelengths_total = np.array([100.0, 101.0, 102.0], dtype=float)
     photon_flux = np.array([10.0, 11.0, 12.0], dtype=float)
-    channel = _channel(wavelength=np.array([100.5, 101.5], dtype=float))
+    channel = _channel(effective_area_wavelength=np.array([100.5, 101.5], dtype=float))
 
     f_cut, w_cut = cut_wavelength_window_with_margin(
         photon_flux,
