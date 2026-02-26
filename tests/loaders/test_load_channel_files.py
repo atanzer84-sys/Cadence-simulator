@@ -292,6 +292,12 @@ def test_load_spread_profile_file_leading_trailing_whitespace_ok(monkeypatch, tm
 # ----------------------------------------------------------------------
 
 
+def test_load_background_file_empty_filename_returns_none_none():
+    """Empty or blank background_filename returns (None, None) without touching the filesystem."""
+    assert load_background_file("") == (None, None)
+    assert load_background_file("   ") == (None, None)
+
+
 def test_load_background_file_success(monkeypatch, tmp_path):
     """load_background_file loads wavelength and flux from a simple two-column table."""
     monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
