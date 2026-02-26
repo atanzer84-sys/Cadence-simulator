@@ -26,23 +26,23 @@ def build_science_image(spectra_2d, channel: SpectroscopyChannel, ctx: RunContex
 
     bias = generate_bias_image(channel)
     image += bias
-    ctx.write_image_png.write_image(image, "BIAS", ctx, channel)
+    ctx.write_image_png.write_image(image, "SCIENCE_BIAS", ctx, channel)
 
     dark = generate_dark_image(channel)
     image += dark
-    ctx.write_image_png.write_image(image, "DARK", ctx, channel)
+    ctx.write_image_png.write_image(image, "SCIENCE_DARK", ctx, channel)
 
     spectra = spectra_2d * exposure
     image += spectra
-    ctx.write_image_png.write_image(image, "SPECTRA", ctx, channel)
+    ctx.write_image_png.write_image(image, "SCIENCE_SPECTRA", ctx, channel)
 
     photon_noise = apply_photon_noise_gauss_from_spectra2d(spectra_2d*exposure)
     image += photon_noise
-    ctx.write_image_png.write_image(image, "PHOTON_NOISE", ctx, channel)
+    ctx.write_image_png.write_image(image, "SCIENCE_PHOTON_NOISE", ctx, channel)
 
     cosmic = generate_cosmic_rays(ctx, channel, cfg)
     image += cosmic
-    # ctx.write_image_png.write_image(image, "COSMIC", ctx, channel)
+    ctx.write_image_png.write_image(image, "SCIENCE_COSMIC", ctx, channel)
     
 
     image = image * ccd_gain
