@@ -32,7 +32,9 @@ def write_image_png(array, frame_type: str, ctx: RunContext, channel: Spectrosco
     gs = fig.add_gridspec(nrows=3, ncols=1, height_ratios=[img_h_in, gap_in, text_h_in], hspace=0)
 
     ax = fig.add_subplot(gs[0, 0])
-    ax.imshow(array, origin="lower", aspect="equal", cmap="gray")
+    vmin = np.percentile(array, 1)
+    vmax = np.percentile(array, 99.9)
+    ax.imshow(array, origin="lower", aspect="equal", cmap="gray", vmin=vmin, vmax=vmax)
     ax.set_xlim(-0.5, nx - 0.5)
     ax.set_ylim(-0.5, ny - 0.5)
     ax.set_xlabel("pixels", labelpad=8)
@@ -106,7 +108,9 @@ def write_frames_png(frames, headers, frame_type, channel_tag, ctx: RunContext, 
         gs = fig.add_gridspec(nrows=3, ncols=1, height_ratios=[img_h_in, gap_in, text_h_in], hspace=0)
 
         ax = fig.add_subplot(gs[0, 0])
-        ax.imshow(frame, origin="lower", aspect="equal", cmap="gray")
+        vmin = np.percentile(frame, 1)
+        vmax = np.percentile(frame, 99.9)
+        ax.imshow(frame, origin="lower", aspect="equal", cmap="gray", vmin=vmin, vmax=vmax)
         ax.set_xlim(-0.5, nx - 0.5)
         ax.set_ylim(-0.5, ny - 0.5)
         ax.set_xlabel("pixels", labelpad=8)
