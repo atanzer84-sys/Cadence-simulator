@@ -188,6 +188,11 @@ def global_cfg_log_r(monkeypatch):
         write_non_science_frames_png=False,
         n_science_frames_per_channel=1,
         write_science_frames_png=0,
+        cosmic_ray_signal_electrons = 72000,
+        cosmic_rays_min = 5,
+        cosmic_rays_max = 10,
+        cosmic_ray_length_min_px = 10,
+        cosmic_ray_length_max_px = 20,
     )
     monkeypatch.setattr(gc, "_GLOBAL", cfg, raising=False)
     return cfg
@@ -213,6 +218,11 @@ def global_cfg_log_r_disabled(monkeypatch):
         write_non_science_frames_png=False,
         n_science_frames_per_channel=1,
         write_science_frames_png=0,
+        cosmic_ray_signal_electrons = 72000,
+        cosmic_rays_min = 5,
+        cosmic_rays_max = 10,
+        cosmic_ray_length_min_px = 10,
+        cosmic_ray_length_max_px = 20,
     )
     monkeypatch.setattr(gc, "_GLOBAL", cfg, raising=False)
     return cfg

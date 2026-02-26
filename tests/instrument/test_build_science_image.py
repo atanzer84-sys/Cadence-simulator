@@ -2,6 +2,7 @@ import numpy as np
 from types import SimpleNamespace
 
 from instrument.build_science_image import build_science_image
+from configs.global_config import GlobalConfig
 
 
 def _channel():
@@ -32,6 +33,34 @@ def _ctx(tmp_path):
     )
 
 
+def _cfg() -> GlobalConfig:
+    # Minimal config for tests: disable cosmic rays and plotting, keep other fields valid
+    return GlobalConfig(
+        line_core_emission=False,
+        interstellar_absorption=False,
+        mg2_col=None,
+        mg1_col=None,
+        fe2_col=None,
+        sigmaMg22=0.257,
+        sigmaMg21=0.288,
+        enable_log_r_fallback=False,
+        log_r_teff_threshold=0.0,
+        log_r_hot_value=0.0,
+        log_r_cool_value=0.0,
+        n_non_science_frames=0,
+        write_non_science_frames_png=False,
+        n_science_frames_per_channel=1,
+        write_science_frames_png=False,
+        cosmic_rays_min=0,
+        cosmic_rays_max=0,
+        cosmic_ray_signal_electrons=0,
+        cosmic_ray_length_min_px=1,
+        cosmic_ray_length_max_px=1,
+        test_mode=True,
+        produce_Plots=False,
+    )
+
+
 def test_build_science_image_shape_and_gain(tmp_path):
     np.random.seed(0)
     ch = _channel()
@@ -40,7 +69,7 @@ def test_build_science_image_shape_and_gain(tmp_path):
     # Simple input spectra: all ones
     spectra_2d = np.ones((ch.y_pixels, ch.x_pixels), dtype=float)
 
-    image = build_science_image(spectra_2d, ch, ctx)
+    image = build_science_image(spectra_2d, ch, ctx, _cfg())
 
     assert image.shape == (ch.y_pixels, ch.x_pixels)
     # Final image is scaled by CCD gain
@@ -63,8 +92,8 @@ def test_build_science_image_adds_photon_noise(tmp_path):
 
     spectra_2d = np.ones((ch.y_pixels, ch.x_pixels), dtype=float) * 100.0
 
-    image1 = build_science_image(spectra_2d, ch, ctx)
-    image2 = build_science_image(spectra_2d, ch, ctx)
+    image1 = build_science_image(spectra_2d, ch, ctx, _cfg())
+    image2 = build_science_image(spectra_2d, ch, ctx, _cfg())
 
     # Same input & channel but different random draws → images should differ
     assert image1.shape == spectra_2d.shape
