@@ -4,7 +4,6 @@ from types import SimpleNamespace
 
 from instrument.spectral_convolution import (
     counts_per_s_px_conv_per_channel,
-    counts_per_s_px_conv_all_channels,
     cut_wavelength_window_with_margin,
 )
 
@@ -36,6 +35,34 @@ def _channel(**kwargs):
     return SimpleNamespace(**d)
 
 
+def counts_per_s_px_conv_all_channels(
+    photon_flux,
+    wavelengths_total,
+    nuv,
+    vis,
+    ctx,
+    star,
+):
+    """
+    Test helper that applies the per-channel counts conversion to both NUV and VIS,
+    mirroring the legacy counts_per_s_px_conv_all_channels behavior.
+    """
+    nuv_counts = counts_per_s_px_conv_per_channel(
+        photon_flux,
+        wavelengths_total,
+        nuv,
+        star=star,
+        ctx=ctx,
+    )
+    vis_counts = counts_per_s_px_conv_per_channel(
+        photon_flux,
+        wavelengths_total,
+        vis,
+        star=star,
+        ctx=ctx,
+    )
+    return nuv_counts, vis_counts
+
 def test_single_channel_counts_identity_gaussbroad():
     """Per-channel pipeline: interp onto channel.wavelength, then * pixel_scale * effective_area."""
     wavelength = np.array([100.0, 101.0, 102.0], dtype=float)
@@ -51,8 +78,6 @@ def test_single_channel_counts_identity_gaussbroad():
         broadened_flux,
         wavelength,
         channel,
-        output_dir="OUTDIR",
-        cfg=_cfg(),
         star=_dummy_star(),
         ctx=_ctx("OUTDIR"),
     )
@@ -64,9 +89,6 @@ def test_single_channel_counts_identity_gaussbroad():
 
 def test_all_channels_counts_identity_gaussbroad(monkeypatch):
     """Same as single-channel, but for NUV and VIS using counts_per_s_px_conv_all_channels."""
-    from instrument import spectral_convolution as sc
-    monkeypatch.setattr(sc, "get_global_config", lambda: _cfg())
-
     wavelengths_total = np.array([100.0, 101.0, 102.0], dtype=float)
     photon_flux = np.array([10.0, 20.0, 30.0], dtype=float)
 

@@ -1,5 +1,6 @@
 import numpy as np
 from types import SimpleNamespace
+from unittest.mock import patch
 
 from instrument.build_science_image import build_science_image
 from configs.global_config import GlobalConfig
@@ -32,6 +33,11 @@ def _ctx(tmp_path):
         write_image_png=_NoOpWriteImage(),
     )
 
+
+def _star():
+    # Minimal Star-like object; build_science_image only passes it through to background generation,
+    # which we stub out in these tests.
+    return SimpleNamespace(name="TESTSTAR")
 
 def _cfg() -> GlobalConfig:
     # Minimal config for tests: disable cosmic rays and plotting, keep other fields valid
@@ -69,7 +75,12 @@ def test_build_science_image_shape_and_gain(tmp_path):
     # Simple input spectra: all ones
     spectra_2d = np.ones((ch.y_pixels, ch.x_pixels), dtype=float)
 
-    image = build_science_image(spectra_2d, ch, ctx, _cfg())
+    # Background image uses full SpectroscopyChannel + Star; stub it out for this minimal test channel.
+    with patch(
+        "instrument.build_science_image.generate_Background_Image",
+        return_value=np.zeros((ch.y_pixels, ch.x_pixels), dtype=float),
+    ):
+        image = build_science_image(spectra_2d, ch, ctx, _cfg(), _star())
 
     assert image.shape == (ch.y_pixels, ch.x_pixels)
     # Final image is scaled by CCD gain
@@ -92,8 +103,13 @@ def test_build_science_image_adds_photon_noise(tmp_path):
 
     spectra_2d = np.ones((ch.y_pixels, ch.x_pixels), dtype=float) * 100.0
 
-    image1 = build_science_image(spectra_2d, ch, ctx, _cfg())
-    image2 = build_science_image(spectra_2d, ch, ctx, _cfg())
+    # Stub out background so this test isolates spectra + noise behaviour on a minimal channel.
+    with patch(
+        "instrument.build_science_image.generate_Background_Image",
+        return_value=np.zeros((ch.y_pixels, ch.x_pixels), dtype=float),
+    ):
+        image1 = build_science_image(spectra_2d, ch, ctx, _cfg(), _star())
+        image2 = build_science_image(spectra_2d, ch, ctx, _cfg(), _star())
 
     # Same input & channel but different random draws → images should differ
     assert image1.shape == spectra_2d.shape

@@ -39,10 +39,10 @@ def prepare_all_detector_images_one_channel(flux: np.ndarray, wavelengths: np.nd
 
     return spectra_2d
 
-
 def convert_flux_to_photons(flux_unred, wavelengths):
     logging.info("Converting flux to photon flux")
     photon_flux = flux_unred * PHOTON_ENERGY_CONVERSION_A * wavelengths #from ergs/s/cm2/A to photons/s/cm2/A
 
     logging.info(f"photon_flux_at_earth_A shape: {photon_flux.shape}")
     return photon_flux
+

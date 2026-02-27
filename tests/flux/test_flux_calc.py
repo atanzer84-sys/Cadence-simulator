@@ -8,10 +8,10 @@ from flux.flux_calc import (
     load_model_for_temperature,
     convertStellarModelToFlux,
     compute_flux_at_earth,
-    convert_flux_to_photons,
     apply_unred,
     calculateFluxOnEarth,
 )
+from instrument.prepare_detector_images import convert_flux_to_photons
 from loaders.run_waltzer_context import _NOOP, _NOOP_PLOTS
 from utils.constants import C_LIGHT_Angst, PARSEC_CM
 
@@ -100,11 +100,13 @@ def test_compute_flux_at_earth_simple():
     assert np.allclose(out, expected)
 
 def test_convert_flux_to_photons():
-    """convert_flux_to_photons applies the fixed conversion factor 5.03e7*wavelengths."""
+    """convert_flux_to_photons uses the same conversion constant as the production code."""
+    from utils.constants import PHOTON_ENERGY_CONVERSION_A
+
     flux = np.array([1.0, 2.0])
     wavelengths = np.array([100.0, 200.0])
     out = convert_flux_to_photons(flux, wavelengths)
-    assert np.allclose(out, flux * 5.03e7 * wavelengths)
+    assert np.allclose(out, flux * PHOTON_ENERGY_CONVERSION_A * wavelengths)
 
 def test_apply_unred_flips_ebv(monkeypatch):
     """apply_unred flips the sign of EBV before calling unred."""
@@ -158,7 +160,7 @@ def test_calculateFluxOnEarth_no_optional_steps_called(monkeypatch, tmp_path):
                         lambda d, _: d[:, 1])
     monkeypatch.setattr("flux.flux_calc.apply_unred",
                         lambda w, f, e: f)
-    monkeypatch.setattr("flux.flux_calc.convert_flux_to_photons",
+    monkeypatch.setattr("instrument.prepare_detector_images.convert_flux_to_photons",
                         lambda f, w: f)
 
     star = SimpleNamespace(
@@ -217,7 +219,7 @@ def test_calculateFluxOnEarth_optional_steps_called(monkeypatch, tmp_path):
                         lambda d, _: d[:, 1])
     monkeypatch.setattr("flux.flux_calc.apply_unred",
                         lambda w, f, e: f)
-    monkeypatch.setattr("flux.flux_calc.convert_flux_to_photons",
+    monkeypatch.setattr("instrument.prepare_detector_images.convert_flux_to_photons",
                         lambda f, w: f)
 
     star = SimpleNamespace(
@@ -253,7 +255,7 @@ def test_calculateFluxOnEarth_returns_photons_and_wavelengths_same_length(monkey
     monkeypatch.setattr("flux.flux_calc.compute_ebv_av", lambda *a: (0.0, 0.0))
     monkeypatch.setattr("flux.flux_calc.compute_flux_at_earth", lambda d, _: d[:, 1])
     monkeypatch.setattr("flux.flux_calc.apply_unred", lambda w, f, e: f)
-    monkeypatch.setattr("flux.flux_calc.convert_flux_to_photons", lambda f, w: f)
+    monkeypatch.setattr("instrument.prepare_detector_images.convert_flux_to_photons", lambda f, w: f)
 
     star = SimpleNamespace(
         effective_temperature=5000,
@@ -294,7 +296,7 @@ def test_calculateFluxOnEarth_executes_test_mode_instrumentation(monkeypatch, tm
     monkeypatch.setattr("flux.flux_calc.compute_ebv_av", lambda *_a: (0.0, 0.0))
     monkeypatch.setattr("flux.flux_calc.compute_flux_at_earth", lambda data, _d: data[:, 1])
     monkeypatch.setattr("flux.flux_calc.apply_unred", lambda _w, f, _e: f)
-    monkeypatch.setattr("flux.flux_calc.convert_flux_to_photons", lambda f, _w: f)
+    monkeypatch.setattr("instrument.prepare_detector_images.convert_flux_to_photons", lambda f, _w: f)
 
     cfg = SimpleNamespace(
         line_core_emission=False,

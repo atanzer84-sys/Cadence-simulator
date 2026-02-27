@@ -7,69 +7,10 @@ from domain.star import Star
 from instrument.prepare_detector_images import convert_flux_to_photons
 from instrument.spectral_convolution import counts_per_s_px_conv_per_channel
 
-# try:
-#     from astropy.time import Time
-#     from astropy.coordinates import SkyCoord, get_sun, BarycentricTrueEcliptic
-#     import astropy.units as u
-#     _HAVE_ASTROPY = True
-# except Exception:
-#     _HAVE_ASTROPY = False
-
-# # Optional: for spline interpolation (matches IDL /SPLINE best)
-# try:
-#     from scipy.interpolate import CubicSpline
-#     _HAVE_SCIPY = True
-# except Exception:
-#     _HAVE_SCIPY = False
-
-
-# def _interp_like_idl_spline(y: np.ndarray, x: np.ndarray, x_new: np.ndarray) -> np.ndarray:
-#     """
-#     IDL interpol(...,/SPLINE) equivalent-ish.
-#     Uses CubicSpline if available, else linear np.interp.
-#     """
-#     x = np.asarray(x, dtype=float)
-#     y = np.asarray(y, dtype=float)
-#     x_new = np.asarray(x_new, dtype=float)
-
-#     # Ensure strictly increasing x for spline
-#     order = np.argsort(x)
-#     x = x[order]
-#     y = y[order]
-
-#     if _HAVE_SCIPY and x.shape[0] >= 4:
-#         cs = CubicSpline(x, y, extrapolate=True)
-#         return cs(x_new)
-
-#     # Fallback: linear interpolation
-#     return np.interp(x_new, x, y, left=y[0], right=y[-1])
-
-
-# def _radec_to_ecliptic_lonlat_deg(ra_deg: float, dec_deg: float) -> tuple[float, float]:
-#     if not _HAVE_ASTROPY:
-#         raise RuntimeError("background_type='calc' needs astropy installed (Sun position + ecliptic conversion).")
-#     c = SkyCoord(ra=ra_deg * u.deg, dec=dec_deg * u.deg, frame="icrs")
-#     ecl = c.transform_to(BarycentricTrueEcliptic())
-#     lon = float(ecl.lon.to_value(u.deg))
-#     lat = float(ecl.lat.to_value(u.deg))
-#     return lon, lat
-
-
-# def _sun_radec_deg_from_jd(jd: float) -> tuple[float, float]:
-#     if not _HAVE_ASTROPY:
-#         raise RuntimeError("background_type='calc' needs astropy installed (Sun position + ecliptic conversion).")
-#     t = Time(jd, format="jd", scale="utc")
-#     sun = get_sun(t).icrs
-#     return float(sun.ra.to_value(u.deg)), float(sun.dec.to_value(u.deg))
-
-
-# def _nearest_index_1d(sorted_vals: np.ndarray, target: float) -> int:
-#     """
-#     IDL code does a bracket search + nearest neighbor.
-#     This does nearest neighbor directly (same intent).
-#     """
-#     sorted_vals = np.asarray(sorted_vals, dtype=float)
-#     return int(np.argmin(np.abs(sorted_vals - target)))
+from astropy.time import Time
+from astropy.coordinates import SkyCoord, get_sun, BarycentricTrueEcliptic
+import astropy.units as u
+from scipy.interpolate import CubicSpline
 
 
 def generate_Background_Image(channel: SpectroscopyChannel, ctx: RunContext, cfg: GlobalConfig, star: Star ) -> np.ndarray:
@@ -106,9 +47,108 @@ def generate_Background_Image(channel: SpectroscopyChannel, ctx: RunContext, cfg
         counts_s_px_convolved = counts_per_s_px_conv_per_channel(photons_per_A_per_sky_pixel, wl_bg, channel, star, ctx, filename_suffix= "Background")
 
         image[:, :] = counts_s_px_convolved[np.newaxis, :]
-        image *= channel.exposure_s
 
         logging.debug("Default background 2D image shape: %s", image.shape)
         ctx.write_image_png.write_image(image, "BACKGROUND_only", ctx, channel)
 
+
+    # if channel.background_type == "calc":
+
+    #     # -----------------------------
+    #     # Sun position at jd
+    #     # -----------------------------
+
+    #     timestamp = ctx.timestamp
+    #     time = Time(t, scale='utc')
+    #     jd = time.jd
+    #     ra = star.ra_deg
+    #     dec = star.dec_deg
+    #     sun = get_sun(time).icrs
+
+    #     ra_s = float(sun.ra.to_value(u.deg))
+    #     dec_s = float(sun.dec.to_value(u.deg))
+
+    #     # Convert Sun to ecliptic
+    #     sun_coord = SkyCoord(ra=ra_s * u.deg, dec=dec_s * u.deg, frame="icrs")
+    #     sun_ecl = sun_coord.transform_to(BarycentricTrueEcliptic())
+    #     elb_s = float(sun_ecl.lon.to_value(u.deg))
+    #     ela_s = float(sun_ecl.lat.to_value(u.deg))
+
+    #     # Convert target to ecliptic
+    #     targ_coord = SkyCoord(ra=ra * u.deg, dec=dec * u.deg, frame="icrs")
+    #     targ_ecl = targ_coord.transform_to(BarycentricTrueEcliptic())
+    #     elb = float(targ_ecl.lon.to_value(u.deg))
+    #     ela = float(targ_ecl.lat.to_value(u.deg))
+
+    #     # -----------------------------
+    #     # Zodiacal geometry
+    #     # -----------------------------
+    #     elb_h = int(elb - elb_s)
+    #     if elb_h > 180:
+    #         elb_h = 360 - elb_h
+
+    #     ela_h = int(ela)
+
+    #     # -----------------------------
+    #     # Read zodiacal lookup table
+    #     # -----------------------------
+    #     file_zod = channel.background_zodiacal_file
+    #     data_zod = np.loadtxt(file_zod)
+
+    #     # IDL nearest index logic
+    #     i = 0
+    #     while i < data_zod.shape[0] - 1 and data_zod[i, 0] < ela_h:
+    #         i += 1
+
+    #     if i > 0:
+    #         if (data_zod[i, 0] - ela_h) > (ela_h - data_zod[i - 1, 0]):
+    #             i -= 1
+
+    #     j = 0
+    #     while j < data_zod.shape[1] - 1 and data_zod[0, j] < elb_h:
+    #         j += 1
+
+    #     if j > 0:
+    #         if (data_zod[0, j] - elb_h) > (elb_h - data_zod[0, j - 1]):
+    #             j -= 1
+
+    #     zod_value = data_zod[i, j]
+
+    #     # -----------------------------
+    #     # Solar reference spectrum
+    #     # -----------------------------
+    #     file_zods = channel.background_solar_file
+    #     data_zods = np.loadtxt(file_zods)
+
+    #     wl_sol = data_zods[:, 0]
+    #     flux_sol = data_zods[:, 1]
+
+    #     zod_spectrum = zod_value * flux_sol
+
+    #     # -----------------------------
+    #     # Interpolation (/SPLINE)
+    #     # -----------------------------
+    #     wavelength = channel.effective_area_wavelength
+    #     spline = CubicSpline(wl_sol, zod_spectrum, extrapolate=True)
+    #     background = spline(wavelength)
+
+    #     # -----------------------------
+    #     # Convert to photons/s/cm2/pixel
+    #     # -----------------------------
+    #     background = background * 25.0 / 4.25e10
+
+    #     # -----------------------------
+    #     # Propagate through detector path
+    #     # -----------------------------
+    #     counts_s_px_convolved = counts_per_s_px_conv_per_channel(
+    #         background,
+    #         wavelength,
+    #         channel,
+    #         star,
+    #         ctx,
+    #         filename_suffix="Background"
+    #     )
+
+    #     image[:, :] = counts_s_px_convolved[np.newaxis, :]
+    #     image *= channel.exposure_s
     return image
