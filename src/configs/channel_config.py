@@ -45,10 +45,10 @@ class SpectroscopyChannel(Channel):
     background_type: str | None = None
     background_wavelength: np.ndarray | None = None
     background_flux: np.ndarray | None = None
+    sky_pixel_area_arcsec2: float | None = None
     zod_dist: np.ndarray | None = None
     zod_spectrum_wavelength: np.ndarray | None = None
     zod_spectrum_flux: np.ndarray | None = None
-
 
 @dataclass(frozen=True, slots=True)
 class PhotometryChannel(Channel):

@@ -108,17 +108,17 @@ def gaussbroad(wavelength, spectra, hwhm):
     sout = sout[npad:npad+len(wavelength)]			#trim to original data/length
     return sout					#return broadened spectrum.
 
-def counts_per_s_px_conv_per_channel(broadened_photon_flux: np.ndarray, wavelength: np.ndarray, channel: SpectroscopyChannel, star: Star, ctx: RunContext):
+def counts_per_s_px_conv_per_channel(broadened_photon_flux: np.ndarray, wavelength: np.ndarray, channel: SpectroscopyChannel, star: Star, ctx: RunContext, filename_suffix: str | None = None):
     """
     Convert photon flux at Earth [photons/cm²/s/Å] into counts/s/pixel for a single channel and gauss broaden it.
     """
     # Get the pixel wavelength grid from the channel and interpolate smoothed Earth flux onto the pixel wavelength grid
-    flux_on_pixel = np.interp(channel.effective_area_wavelength, wavelength, broadened_photon_flux)
+    photon_flux_on_pixel = np.interp(channel.effective_area_wavelength, wavelength, broadened_photon_flux)
     
-    logging.info("Channel %s flux_on_pixel sum=%g mean=%g min=%g max=%g", channel.channel_name, flux_on_pixel.sum(), flux_on_pixel.mean(), flux_on_pixel.min(), flux_on_pixel.max())
+    logging.info("Channel %s flux_on_pixel sum=%g mean=%g min=%g max=%g", channel.channel_name, photon_flux_on_pixel.sum(), photon_flux_on_pixel.mean(), photon_flux_on_pixel.min(), photon_flux_on_pixel.max())
 
     # Step 3: convert photons per Angstrom into photons per pixel
-    photons_per_pixel_cm2_s = flux_on_pixel * channel.pixel_scale
+    photons_per_pixel_cm2_s = photon_flux_on_pixel * channel.pixel_scale
 
     # Step 4: apply effective area to get detector counts per second per pixel
     counts_s_px_convolved = photons_per_pixel_cm2_s * channel.effective_area
@@ -126,6 +126,6 @@ def counts_per_s_px_conv_per_channel(broadened_photon_flux: np.ndarray, waveleng
 
     ctx.test_mode.dump_1d_for_channel(channel.effective_area_wavelength, counts_s_px_convolved, ctx.output_dir, star.name, "Detector_2_counts_s_px_convolved", channel_name=channel.channel_name, full=True, zoom=True)
 
-    ctx.produce_plots.plot_1d_for_channel(channel.effective_area_wavelength, counts_s_px_convolved, ctx.output_dir, star, filename_tag="Detector_3_counts_s_px_convolved", title_text="Convolved Counts", y_label="Counts s⁻¹ pixel⁻¹", channel_name=channel.channel_name, full=True)
+    ctx.produce_plots.plot_1d_for_channel(channel.effective_area_wavelength, counts_s_px_convolved, ctx.output_dir, star, filename_tag=f"Detector_3_counts_s_px_convolved{'' if filename_suffix is None else '_' + filename_suffix}", title_text="Convolved Counts", y_label="Counts s⁻¹ pixel⁻¹", channel_name=channel.channel_name, full=True)
 
     return counts_s_px_convolved

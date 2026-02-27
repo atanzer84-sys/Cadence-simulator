@@ -75,6 +75,7 @@ def load_channel_config(path: Path, exposure_s:float):
 
     background_wavelength = None
     background_flux = None
+    sky_pixel_area_arcsec2 = _as_float(raw.get("sky_pixel_area_arcsec2", 25.0), key="sky_pixel_area_arcsec2")
     zod_dist = None
     zod_spec_wl = None
     zod_spec_flux = None
@@ -130,6 +131,7 @@ def load_channel_config(path: Path, exposure_s:float):
         zod_dist=zod_dist,
         zod_spectrum_wavelength=zod_spec_wl,
         zod_spectrum_flux=zod_spec_flux,
+        sky_pixel_area_arcsec2=sky_pixel_area_arcsec2,
     )  
 
 
