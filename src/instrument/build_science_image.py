@@ -43,8 +43,8 @@ def build_science_image(spectra_2d, channel: SpectroscopyChannel, ctx: RunContex
     ctx.write_image_png.write_image(image, "SCIENCE_PHOTON_NOISE", ctx, channel)
 
     background = generate_Background_Image(channel, ctx, cfg, star)
-    # image += background
-    # ctx.write_image_png.write_image(image, "SCIENCE_BACKGROUND", ctx, channel)
+    image += background
+    ctx.write_image_png.write_image(image, "SCIENCE_BACKGROUND", ctx, channel)
     
     cosmic = generate_cosmic_rays(ctx, channel, cfg)
     image += cosmic
