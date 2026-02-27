@@ -9,7 +9,7 @@ C_LIGHT_km_s = ac.c.to("km/s").value
 C_LIGHT_m_s = ac.c.to("m/s").value
 C_LIGHT_cm_s = ac.c.to("cm/s").value 
 C_LIGHT_Angst = ac.c.to("Angstrom/s").value # Angstrom/s (speed of light)
-# astronomy
+
 R_SUN_cm = ac.R_sun.to("cm").value
 PARSEC_CM = ac.pc.to("cm").value
 AU_cm = ac.au.to("cm").value  # cm (Astronomical Unit)
@@ -19,6 +19,16 @@ M_SUN_cgs = ac.M_sun.cgs.value  # g
 boltzmann = ac.k_B.to("erg / K").value # erg/K = g cm**2/s**2/K (boltzmann const)
 N_A   = ac.N_A.value # /mol (Avagadro constant)
 sigma = ac.sigma_sb.to("erg / (cm2 s K4)").value # erg/cm**2/s/K**4 (stefan-boltzmann)
+
+# Planck constant in erg*s
+H_PLANCK = ac.h.to("erg s").value
+
+# 1 / (h * c) with wavelength expected in Angstrom
+# Derivation:
+# photons = flux_erg * lambda_cm / (h * c)
+# lambda_cm = lambda_Angstrom * 1e-8
+# => factor = (1 / (h * c)) 
+PHOTON_ENERGY_CONVERSION_A = (1.0 / (H_PLANCK * C_LIGHT_Angst))
 
 #Parameters for MgII
 MgII1w      = 2795.5280 #MgIIh wavelength 

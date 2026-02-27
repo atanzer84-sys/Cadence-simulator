@@ -6,16 +6,18 @@ from instrument.bias_image import generate_bias_image
 from instrument.dark_image import generate_dark_image
 from instrument.cosmic_image import generate_cosmic_rays
 from configs.global_config import GlobalConfig, get_global_config
+from instrument.background_image import generate_Background_Image
+from domain.star import Star
 
-def build_science_images (spectra_2d_nuv, spectra_2d_vis, nuv: SpectroscopyChannel, vis: SpectroscopyChannel, ctx: RunContext):
+def build_science_images (spectra_2d_nuv, spectra_2d_vis, nuv: SpectroscopyChannel, vis: SpectroscopyChannel, ctx: RunContext, star: Star):
 
     cfg = get_global_config()
-    nuv_img = build_science_image(spectra_2d_nuv, nuv, ctx, cfg)
-    vis_img = build_science_image(spectra_2d_vis, vis, ctx, cfg)
+    nuv_img = build_science_image(spectra_2d_nuv, nuv, ctx, cfg, star)
+    vis_img = build_science_image(spectra_2d_vis, vis, ctx, cfg, star)
     return nuv_img, vis_img
 
 
-def build_science_image(spectra_2d, channel: SpectroscopyChannel, ctx: RunContext, cfg: GlobalConfig):
+def build_science_image(spectra_2d, channel: SpectroscopyChannel, ctx: RunContext, cfg: GlobalConfig, star: Star):
     logging.info("Science Image generation starting for channel %s", channel.channel_name)
     print(f"Science Image generation starting for channel {channel.channel_name}.")
     nx = channel.x_pixels
@@ -40,6 +42,10 @@ def build_science_image(spectra_2d, channel: SpectroscopyChannel, ctx: RunContex
     image += photon_noise
     ctx.write_image_png.write_image(image, "SCIENCE_PHOTON_NOISE", ctx, channel)
 
+    background = generate_Background_Image(ctx, channel, cfg, star)
+    image += background
+    ctx.write_image_png.write_image(image, "SCIENCE_BACKGROUND", ctx, channel)
+    
     cosmic = generate_cosmic_rays(ctx, channel, cfg)
     image += cosmic
     ctx.write_image_png.write_image(image, "SCIENCE_COSMIC", ctx, channel)
