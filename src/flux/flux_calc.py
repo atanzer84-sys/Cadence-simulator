@@ -66,13 +66,8 @@ def calculateFluxOnEarth(star: Star, ctx: RunContext):
     ctx.test_mode.dump_1d_array(wavelengths, flux_unred, ctx.output_dir, star.name, "FluxCalc_7_after_unred", perChannel=True, zoom=True)
     ctx.produce_plots.plot_flux_and_photons_windows(wavelengths, flux_unred, ctx.output_dir, star, "FluxCalc_1_Flux", "Flux", "Flux [erg s⁻¹ cm⁻² Å⁻¹]")
 
-    # Convert Flux to Photons
-    photons_star = convert_flux_to_photons(flux_unred, wavelengths)
-
-    ctx.produce_plots.plot_flux_and_photons_windows(wavelengths, photons_star, ctx.output_dir, star, "FluxCalc_2_photons",  "Photon Flux", "Photon flux [photons s⁻¹ cm⁻² Å⁻¹]")
-    ctx.test_mode.dump_1d_array(wavelengths, photons_star, ctx.output_dir, star.name, "FluxCalc_8_photons_star", perChannel=True, zoom=True)
-
-    return photons_star, wavelengths
+  
+    return flux_unred, wavelengths
 
 def load_model_for_temperature(t_star):
     """
@@ -213,9 +208,3 @@ def apply_unred(wavelengths, flux_at_earth, ebv):
     logging.info("UNRED extinction correction applied")
     return flux_unred
 
-def convert_flux_to_photons(flux_unred, wavelengths):
-    logging.info("Converting flux to photon flux")
-    photon_flux = flux_unred * 5.03e7 * wavelengths #from ergs/s/cm2/A to photons/s/cm2/A
-
-    logging.info(f"photon_flux_at_earth_A shape: {photon_flux.shape}")
-    return photon_flux
