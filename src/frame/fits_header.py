@@ -5,6 +5,8 @@ from flux.flux_calc import calculate_glon_glat
 from astropy.time import Time
 from astropy.coordinates import Angle
 from astropy.io import fits
+import numpy as np
+from configs.channel_config import SpectroscopyChannel
 
 def initialize_fits_header(star: Star, timestamp: datetime):
     """
@@ -41,5 +43,63 @@ def initialize_fits_header(star: Star, timestamp: datetime):
     header.append(("DEC_HEX",   dec_hex,                            "Declination in dd:mm:ss.sss"))
     header.append(("CCDTEMP",   -50.00,                             "CCD temperature"))
 
+
+    return header
+
+
+def append_image_stats_header(header, image) -> None:
+    """
+    Append basic statistics for a 2D image to an existing FITS header.
+    """
+    if header is None:
+        return
+
+    header.append(("MEAN",   float(image.mean()),      "Mean value of the frame"))
+    header.append(("MEDIAN", float(np.median(image)),  "Median value of the frame"))
+    header.append(("STDDEV", float(image.std()),       "Standard deviation of the frame"))
+    header.append(("MAX",    float(image.max()),       "Maximum value of the frame"))
+    header.append(("MIN",    float(image.min()),       "Minimum value of the frame"))
+
+
+def append_channel_frame_header(header, channel: SpectroscopyChannel, exptime_s: float, include_bias: bool = True, include_dark: bool = True) -> None:
+    """
+    Append repeated simulator keywords that depend on channel + exposure.
+    Controlled by flags so bias/dark/science can share one function.
+    """
+    if header is None:
+        return
+
+    header.append(("EXPTIME", float(exptime_s),             "Exposure time of observation"))
+    header.append(("YCUT1",   int(0),                       "Bottom of science box extraction"))
+    header.append(("YCUT2",   int(channel.y_pixels - 1),    "Top of science box extraction"))
+    header.append(("CCDGAIN", float(channel.ccd_gain),      "CCD gain"))
+
+    if include_bias:
+        header.append(("B_OFFSET", float(channel.bias_offset), "Bias offset used to generate frame"))
+        header.append(("RNOISE",   float(channel.read_noise),  "Bias Read noise used to generate frame"))
+
+    if include_dark:
+        header.append(("DARKSIG", float(channel.dark_current_sigma), "Dark noise sigma used to generate frame"))
+        header.append(("DARKVAL", float(channel.dark_noise),         "Input dark value used to generate frame"))
+
+
+def append_base_frame_header(base_header, filetype: str, channel: SpectroscopyChannel, index0: int):
+    """
+    Create a per-frame header copy and append the repeated identity keys.
+
+    index0 is 0-based (your loop counter i).
+    label defaults to filetype (so "DARK" -> "Dark" for EXP_ID/OBS_ID).
+    """
+    if base_header is None:
+        return None
+
+    header = base_header.copy()
+
+    k = index0 + 1
+
+    header.append(("FILETYPE",  filetype,               "Type of observation"))
+    header.append(("CHANNEL",   channel.channel_name,   "Detector channel"))
+    header.append(("EXP_ID",    f"{filetype} {k}",      "Exposure ID"))
+    header.append(("OBS_ID",    f"Obs {filetype} {k}",  "Observation ID"))
 
     return header

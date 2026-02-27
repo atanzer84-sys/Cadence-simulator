@@ -1,7 +1,7 @@
-import numpy as np
 import logging
 from configs.channel_config import SpectroscopyChannel
 from frame.frame_class import Frame
+from frame.fits_header import append_image_stats_header, append_channel_frame_header, append_base_frame_header
 
 
 def generate_science_frames(image, channel: SpectroscopyChannel, n_frames, base_header):
@@ -12,20 +12,7 @@ def generate_science_frames(image, channel: SpectroscopyChannel, n_frames, base_
     frames = []
 
     for i in range(n_frames):
-        header = base_header.copy()
-        header.append(("FILETYPE", "SCIENCE", "Type of observation"))
-        header.append(("CHANNEL", channel.channel_name, "Detector channel"))
-        header.append(("EXP_ID", f"Science {i+1}", "Exposure ID"))
-        header.append(("OBS_ID", f"Obs Science {i+1}", "Observation ID"))
-        header.append(("EXPTIME", float(exposure_time_s), "Exposure time of observation"))
-        header.append(("YCUT1", 0, "Bottom of science box extraction"))
-        header.append(("YCUT2", channel.y_pixels - 1, "Top of science box extraction"))
-        header.append(("CCDGAIN", channel.ccd_gain, "CCD gain"))
-        header.append(("B_OFFSET", float(channel.bias_offset), "Bias offset used to generate frame"))
-        header.append(("RNOISE", float(channel.read_noise), "Bias Read noise used to generate frame"))
-        header.append(("DARKSIG", float(channel.dark_current_sigma), "Dark noise sigma used to generate frame"))
-        header.append(("DARKVAL", float(channel.dark_noise), "Input dark value used to generate frame"))
-
+        header = append_base_frame_header(base_header, filetype="SCIENCE", channel=channel, index0=i)
         frame = generate_science_frame(image, channel, header)
         frames.append(frame)
 
@@ -34,14 +21,9 @@ def generate_science_frames(image, channel: SpectroscopyChannel, n_frames, base_
 
 def generate_science_frame(image, channel: SpectroscopyChannel, header):
 
-
     science = image
-
-    header.append(("MEAN",   float(science.mean()),     "Mean value of the frame"))
-    header.append(("MEDIAN", float(np.median(science)), "Median value of the frame"))
-    header.append(("STDDEV", float(science.std()),      "Standard deviation of the frame"))
-    header.append(("MAX",    float(science.max()),      "Maximum value of the frame"))
-    header.append(("MIN",    float(science.min()),      "Minimum value of the frame"))
+    append_image_stats_header(header, science)
+    append_channel_frame_header(header, channel, exptime_s=channel.exposure_s, include_bias=True, include_dark=True)
 
     return Frame(data=science, header=header, frame_type="science", channel_tag=channel.channel_name)
 
