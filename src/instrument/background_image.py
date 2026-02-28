@@ -28,88 +28,7 @@ def generate_Background_Image(channel: SpectroscopyChannel, ctx: RunContext, cfg
 
     if channel.background_type == "default":
 
-        wl_bg = channel.background_wavelength # Å
-        flux_bg = channel.background_flux # erg / s / cm² / Å
-        logging.info("Background type 'default': using background spectrum with %d wavelength points and %d flux points.", wl_bg.size, flux_bg.size)
-
-        wl_bg = np.asarray(wl_bg)
-        flux_bg = np.asarray(flux_bg)
-
-        np.savetxt(
-            ctx.output_dir / "PY_background_raw.txt",
-            np.column_stack((wl_bg, flux_bg)),
-        )
-        # IDL:
-        # background_in = data_bg[1,*] * 25 * 5.03e7 * data_bg[0,*]
-        # from ergs/s/cm2/A to photons/s/cm2/A
-
-        # Convert surface brightness to “per sky pixel” by multiplying by sky pixel area:
-        flux_bg_per_sky_pixel = flux_bg * channel.sky_pixel_area_arcsec2
-
-        # convert photons per Angstrom into photons per pixel - converting to photons/s/cm2/per pixel
-        photons_per_A_per_sky_pixel = convert_flux_to_photons(flux_bg_per_sky_pixel, wl_bg)
-        np.savetxt(
-            ctx.output_dir / f"PY_1_background_photons_{channel.channel_name}.txt",
-            np.column_stack((wl_bg, photons_per_A_per_sky_pixel)),
-        )
-
-
-        # 3) IDL interpol(...) equivalent onto the grid IDL uses for the image row
-        # Use the same target wavelength grid that your IDL variable `wavelength` represents.
-        # In your Python context, that is almost certainly:
-        # spline = CubicSpline(wl_bg, photons_per_A_per_sky_pixel, extrapolate=True)  # or extrapolate=False if you want to forbid it
-        # background = spline(channel.effective_area_wavelength)
-
-        # background = np.interp(channel.effective_area_wavelength, wl_bg, photons_per_A_per_sky_pixel)
-
-        spline = CubicSpline(
-            wl_bg,
-            photons_per_A_per_sky_pixel,
-            bc_type="natural",      # matches IDL much better
-            extrapolate=True
-        )
-
-        background = spline(channel.effective_area_wavelength)
-        np.savetxt(
-            ctx.output_dir / f"PY_2_background_interpolate_{channel.channel_name}.txt",
-            np.column_stack((channel.effective_area_wavelength, background)),
-        )
-
-        # aeff2 = channel.effective_area
-        aeff_spline = CubicSpline(
-            channel.effective_area_wavelength,
-            channel.effective_area,
-            bc_type="natural",
-            extrapolate=True
-        )
-
-        aeff2 = aeff_spline(channel.effective_area_wavelength)
-
-
-        np.savetxt(
-            ctx.output_dir / f"PY_3_aeff2_{channel.channel_name}.txt",
-            np.column_stack((channel.effective_area_wavelength, aeff2)),
-            fmt="%.16e",
-        )
-
-        scaled_spectrum = background * aeff2
-
-        np.savetxt(
-            ctx.output_dir / f"PY_4_scaled_spectrum_{channel.channel_name}.txt",
-            np.column_stack((channel.effective_area_wavelength, scaled_spectrum)),
-            fmt="%.16e",
-        )
-        # counts_s_px_convolved = counts_per_s_px_conv_per_channel(photons_per_A_per_sky_pixel, wl_bg, channel, star, ctx, filename_suffix= "Background")
-
-        # np.savetxt(
-        #     ctx.output_dir / "PY_background_counts.txt",
-        #     np.column_stack((channel.effective_area_wavelength, counts_s_px_convolved)),
-        # )
-        image[:, :] = scaled_spectrum[np.newaxis, :]
-        image*=channel.exposure_s
-
-        logging.debug("Default background 2D image shape: %s", image.shape)
-        ctx.write_image_png.write_image(image, "BACKGROUND_only", ctx, channel)
+       image = generate_background_default_image(channel, ctx)
 
 
     if channel.background_type == "calc":
@@ -190,5 +109,33 @@ def generate_Background_Image(channel: SpectroscopyChannel, ctx: RunContext, cfg
         logging.debug("Default background 2D image shape: %s", image.shape)
         ctx.write_image_png.write_image(image, "BACKGROUND_only", ctx, channel)
 
+
+    return image
+
+
+def generate_background_default_image(channel: SpectroscopyChannel, ctx: RunContext):
+    wl_bg = channel.background_wavelength # Å
+    flux_bg = channel.background_flux # erg / s / cm² / Å
+    logging.info("Background type 'default': using background spectrum with %d wavelength points and %d flux points.", wl_bg.size, flux_bg.size)
+
+    # IDL:
+    # background_in = data_bg[1,*] * 25 * 5.03e7 * data_bg[0,*]
+    # from ergs/s/cm2/A to photons/s/cm2/A
+    # Convert surface brightness to “per sky pixel” by multiplying by sky pixel area:
+    flux_bg_per_sky_pixel = flux_bg * channel.sky_pixel_area_arcsec2
+
+    # convert photons per Angstrom into photons per pixel - converting to photons/s/cm2/per pixel
+    photons_per_A_per_sky_pixel = convert_flux_to_photons(flux_bg_per_sky_pixel, wl_bg)
+
+    spline = CubicSpline(wl_bg, photons_per_A_per_sky_pixel, bc_type="natural", extrapolate=True)
+    background = spline(channel.effective_area_wavelength)
+
+    scaled_spectrum = background * channel.effective_area
+
+    image[:, :] = scaled_spectrum[np.newaxis, :]
+    image*=channel.exposure_s
+
+    logging.debug("Default background 2D image shape: %s", image.shape)
+    ctx.write_image_png.write_image(image, "BACKGROUND_only", ctx, channel)
 
     return image
