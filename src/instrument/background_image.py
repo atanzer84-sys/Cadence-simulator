@@ -1,11 +1,9 @@
 import logging
 import numpy as np
-from configs.global_config import GlobalConfig
 from loaders.run_waltzer_context import RunContext
 from configs.channel_config import SpectroscopyChannel
 from domain.star import Star
 from instrument.prepare_detector_images import convert_flux_to_photons
-from instrument.spectral_convolution import counts_per_s_px_conv_per_channel
 from utils.constants import ARCSEC2_PER_SR
 from astropy.time import Time
 from astropy.coordinates import SkyCoord, get_sun, BarycentricTrueEcliptic
