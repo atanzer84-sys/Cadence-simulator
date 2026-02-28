@@ -28,7 +28,7 @@ def generate_Background_Image(channel: SpectroscopyChannel, ctx: RunContext, cfg
 
     if channel.background_type == "default":
 
-       image = generate_background_default_image(channel, ctx)
+       image = generate_background_default_image(image, channel, ctx)
 
 
     if channel.background_type == "calc":
@@ -113,7 +113,7 @@ def generate_Background_Image(channel: SpectroscopyChannel, ctx: RunContext, cfg
     return image
 
 
-def generate_background_default_image(channel: SpectroscopyChannel, ctx: RunContext):
+def generate_background_default_image(image, channel: SpectroscopyChannel, ctx: RunContext):
     wl_bg = channel.background_wavelength # Å
     flux_bg = channel.background_flux # erg / s / cm² / Å
     logging.info("Background type 'default': using background spectrum with %d wavelength points and %d flux points.", wl_bg.size, flux_bg.size)
@@ -133,7 +133,7 @@ def generate_background_default_image(channel: SpectroscopyChannel, ctx: RunCont
     scaled_spectrum = background * channel.effective_area
 
     image[:, :] = scaled_spectrum[np.newaxis, :]
-    image*=channel.exposure_s
+    # image*=channel.exposure_s
 
     logging.debug("Default background 2D image shape: %s", image.shape)
     ctx.write_image_png.write_image(image, "BACKGROUND_only", ctx, channel)
