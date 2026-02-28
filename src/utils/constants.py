@@ -3,6 +3,7 @@ Physical and simulator-wide constants.
 Do not modify at runtime. Or ever, because tests will fail.
 """
 import astropy.constants as ac
+import astropy.units as u
 
 # physics constants
 C_LIGHT_km_s = ac.c.to("km/s").value
@@ -29,6 +30,9 @@ H_PLANCK = ac.h.to("erg s").value
 # lambda_cm = lambda_Angstrom * 1e-8
 # => factor = (1 / (h * c)) 
 PHOTON_ENERGY_CONVERSION_A = (1.0 / (H_PLANCK * C_LIGHT_Angst))
+# 1 steradian expressed in square arcseconds
+# (used to convert surface brightness from per steradian to per arcsec² / pixel units)
+ARCSEC2_PER_SR = (1 * u.sr).to(u.arcsec**2).value
 
 #Parameters for MgII
 MgII1w      = 2795.5280 #MgIIh wavelength 
