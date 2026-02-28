@@ -6,6 +6,8 @@ import numpy as np
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from astropy.time import Time
+
 from instrument.background_image import (
     generate_Background_Image,
     generate_background_default_image,
@@ -72,6 +74,11 @@ def _ctx(tmp_path):
 def _star(ra=90.0, dec=0.0):
     """Minimal Star-like object with right_ascension and declination for calc background."""
     return SimpleNamespace(right_ascension=ra, declination=dec)
+
+
+# Fixed JD for reproducible calc-background tests; patch Time.now only so get_sun(time) gets a real Time.
+_FIXED_JD = 2457095.5
+_fixed_time_now = Time(_FIXED_JD, format="jd", scale="utc")
 
 
 # --- generate_Background_Image ---
@@ -156,11 +163,9 @@ def test_generate_background_image_calc_shape_and_write(tmp_path):
         sky_pixel_area_arcsec2=1.0,
     )
     ctx = _ctx(tmp_path)
-    # Star at ra=90, dec=0; we need elb_h and ela_h to land in range. Patch Time so sun is fixed.
     star = _star(ra=90.0, dec=0.0)
 
-    with patch("instrument.background_image.Time") as mock_time:
-        mock_time.now.return_value.utc.jd = 2457095.5
+    with patch("instrument.background_image.Time.now", return_value=_fixed_time_now):
         image = generate_Background_Image(ch, ctx, star)
 
     assert image.shape == (ch.y_pixels, ch.x_pixels)
@@ -242,8 +247,7 @@ def test_generate_background_calculated_image_shape_and_positive():
     )
     star = _star(ra=0.0, dec=0.0)
 
-    with patch("instrument.background_image.Time") as mock_time:
-        mock_time.now.return_value.utc.jd = 2457095.5
+    with patch("instrument.background_image.Time.now", return_value=_fixed_time_now):
         result = generate_background_calculated_image(ch, star)
 
     assert result.ndim == 1
@@ -257,9 +261,12 @@ def test_generate_background_calculated_image_zod_value_scaling():
     The zodiacal spectrum is scaled by the single zod_value looked up from
     zod_dist; doubling that value (via grid content) should change the output proportionally.
     We use a fixed Time and known star so that the same (i,j) is selected.
+    Grid layout: row 0 = elb coords (deg), column 0 = ela coords (deg); (i,j) cell = zod value.
+    Use a wide coordinate range so elb_h/ela_h from star+sun always fall inside.
     """
-    zod_dist_small = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=float)
-    zod_dist_large = np.array([[2.0, 4.0], [6.0, 8.0]], dtype=float)
+    # (2,2): coords ela=[-100, 100], elb=[-100, 200]; zod value at (1,1) is 1.0 vs 2.0
+    zod_dist_small = np.array([[-100.0, 200.0], [100.0, 1.0]], dtype=float)
+    zod_dist_large = np.array([[-100.0, 200.0], [100.0, 2.0]], dtype=float)
     wl_sol = np.array([2000.0, 3000.0], dtype=float)
     flux_sol = np.array([1.0, 1.0], dtype=float)
     eff_wl = np.array([2000.0, 3000.0], dtype=float)
@@ -280,8 +287,7 @@ def test_generate_background_calculated_image_zod_value_scaling():
     )
     star = _star(ra=0.0, dec=0.0)
 
-    with patch("instrument.background_image.Time") as mock_time:
-        mock_time.now.return_value.utc.jd = 2457095.5
+    with patch("instrument.background_image.Time.now", return_value=_fixed_time_now):
         out_small = generate_background_calculated_image(ch_small, star)
         out_large = generate_background_calculated_image(ch_large, star)
 
