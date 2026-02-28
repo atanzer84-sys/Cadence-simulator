@@ -352,11 +352,13 @@ def test_load_background_file_malformed_numeric_row_raises(monkeypatch, tmp_path
 
 # ----------------------------------------------------------------------
 # load_zod_dist_file: direct tests
+# No file provided ("" / "   ") -> None; empty file -> ValueError; missing file -> ValueError;
+# single column / malformed -> ValueError; valid 2D table -> transposed array.
 # ----------------------------------------------------------------------
 
 
-def test_load_zod_dist_file_empty_filename_returns_none():
-    """Empty or blank filename returns None without touching the filesystem."""
+def test_load_zod_dist_file_no_file_provided_returns_none():
+    """When no file is configured (empty or blank filename), returns None without touching the filesystem."""
     assert load_zod_dist_file("") is None
     assert load_zod_dist_file("   ") is None
 
@@ -396,13 +398,13 @@ def test_load_zod_dist_file_one_column_raises(monkeypatch, tmp_path):
 
 
 def test_load_zod_dist_file_empty_file_raises(monkeypatch, tmp_path):
-    """Empty file (no numeric rows) raises ValueError."""
+    """File exists but is empty (no numeric rows) yields invalid table and raises ValueError."""
     monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
     data_dir = tmp_path / "data"
     data_dir.mkdir()
     _write(data_dir / "zod.txt", "")
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Invalid zodiacal distribution table"):
         load_zod_dist_file("zod.txt")
 
 
@@ -419,11 +421,13 @@ def test_load_zod_dist_file_malformed_row_raises(monkeypatch, tmp_path):
 
 # ----------------------------------------------------------------------
 # load_zod_spectrum_file: direct tests
+# No file provided ("" / "   ") -> (None, None); empty file -> ValueError; missing file -> ValueError;
+# one column / malformed -> ValueError; valid 2-column table -> (wavelength, spectrum).
 # ----------------------------------------------------------------------
 
 
-def test_load_zod_spectrum_file_empty_filename_returns_none_none():
-    """Empty or blank filename returns (None, None) without touching the filesystem."""
+def test_load_zod_spectrum_file_no_file_provided_returns_none_none():
+    """When no file is configured (empty or blank filename), returns (None, None) without touching the filesystem."""
     assert load_zod_spectrum_file("") == (None, None)
     assert load_zod_spectrum_file("   ") == (None, None)
 
@@ -462,13 +466,13 @@ def test_load_zod_spectrum_file_one_column_raises(monkeypatch, tmp_path):
 
 
 def test_load_zod_spectrum_file_empty_file_raises(monkeypatch, tmp_path):
-    """Empty file (no numeric rows) raises ValueError."""
+    """File exists but is empty (no numeric rows) yields invalid table and raises ValueError."""
     monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
     data_dir = tmp_path / "data"
     data_dir.mkdir()
     _write(data_dir / "zod_spec.txt", "")
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Invalid zodiacal spectrum table"):
         load_zod_spectrum_file("zod_spec.txt")
 
 

@@ -29,7 +29,7 @@ def generate_Background_Image(channel: SpectroscopyChannel, ctx: RunContext, sta
     elif channel.background_type == "calc":
         background = generate_background_calculated_image(channel, star)
 
-    background = background * channel.effective_area
+    background *= channel.effective_area
     image[:, :] = background[np.newaxis, :]
     image*=channel.exposure_s
 
