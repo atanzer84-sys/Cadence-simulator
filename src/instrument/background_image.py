@@ -5,10 +5,10 @@ from configs.channel_config import SpectroscopyChannel
 from domain.star import Star
 from instrument.prepare_detector_images import convert_flux_to_photons
 from utils.constants import ARCSEC2_PER_SR
-from astropy.time import Time
 from astropy.coordinates import SkyCoord, get_sun, BarycentricTrueEcliptic
 import astropy.units as u
 from scipy.interpolate import CubicSpline
+from astropy.time import Time
 
 
 def generate_Background_Image(channel: SpectroscopyChannel, ctx: RunContext, star: Star ) -> np.ndarray:
@@ -25,16 +25,15 @@ def generate_Background_Image(channel: SpectroscopyChannel, ctx: RunContext, sta
         return image
 
     if channel.background_type == "default":
-       background = generate_background_default_image(channel)
-
-    if channel.background_type == "calc":
-       background = generate_background_calculated_image(channel, star)
+        background = generate_background_default_image(channel)
+    elif channel.background_type == "calc":
+        background = generate_background_calculated_image(channel, star)
 
     background = background * channel.effective_area
     image[:, :] = background[np.newaxis, :]
     image*=channel.exposure_s
 
-    logging.debug("Default background 2D image shape: %s", image.shape)
+    logging.debug("Background 2D image created: %s", image.shape)
     ctx.write_image_png.write_image(image, "BACKGROUND_only", ctx, channel)
 
     return image
@@ -62,11 +61,8 @@ def generate_background_default_image(channel: SpectroscopyChannel):
 
 def generate_background_calculated_image(channel: SpectroscopyChannel, star: Star):
 
-    # sunpos, jd, ra_s, dec_s
-    # timestamp = ctx.timestamp
-    # time = Time(timestamp, scale='utc')
-    # jd = float(time.jd)
-    jd = 2457095.5
+    jd = float(Time.now().utc.jd)
+    # jd = 2457095.5
     time = Time(jd, format="jd", scale="utc")
     sun_icrs = get_sun(time).icrs
     ra_s = float(sun_icrs.ra.to_value(u.deg))
@@ -91,11 +87,12 @@ def generate_background_calculated_image(channel: SpectroscopyChannel, star: Sta
         elb_h = 360 - elb_h
     ela_h = int(ela)
 
-    def _fmt(x: float) -> str:
-        return f"{x:.16e}".strip()
-
-    logging.info("Background type 'calc': running calculated (zodiacal) background image."
-        "targ_ra=%s targ_dec=%s targ_elb=%s targ_ela=%s sunpos_jd=%s sunpos_ra=%s sunpos_dec=%s sunpos_elb=%s sunpos_ela=%s elb_h=%s ela_h=%s", _fmt(ra), _fmt(dec), _fmt(elb), _fmt(ela), _fmt(jd), _fmt(ra_s), _fmt(dec_s), _fmt(elb_s), _fmt(ela_s), _fmt(float(elb_h)), _fmt(float(ela_h)))
+    logging.info(
+        "Background type 'calc': running calculated (zodiacal) background image. "
+        "targ_ra=%s targ_dec=%s targ_elb=%s targ_ela=%s sunpos_jd=%s sunpos_ra=%s sunpos_dec=%s "
+        "sunpos_elb=%s sunpos_ela=%s elb_h=%s ela_h=%s",
+        ra, dec, elb, ela, jd, ra_s, dec_s, elb_s, ela_s, elb_h, ela_h,
+    )
 
 
     i = 0
@@ -117,7 +114,7 @@ def generate_background_calculated_image(channel: SpectroscopyChannel, star: Sta
 
 
     zod_value = data_zod[i,j]
-    logging.info("zod_value=" + f"{zod_value:24.16E}".strip())
+    logging.info("zod_value=%s", zod_value)
 
     wl_sol = np.asarray(channel.zod_spectrum_wavelength, dtype=np.float64)
     flux_sol = np.asarray(channel.zod_spectrum_flux, dtype=np.float64)
