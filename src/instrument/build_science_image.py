@@ -42,7 +42,7 @@ def build_science_image(spectra_2d, channel: SpectroscopyChannel, ctx: RunContex
     image += photon_noise
     ctx.write_image_png.write_image(image, "SCIENCE_PHOTON_NOISE", ctx, channel)
 
-    background = generate_Background_Image(channel, ctx, cfg, star)
+    background = generate_Background_Image(channel, ctx, star)
     image += background
     ctx.write_image_png.write_image(image, "SCIENCE_BACKGROUND", ctx, channel)
     

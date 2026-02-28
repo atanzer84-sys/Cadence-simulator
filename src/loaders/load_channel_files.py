@@ -290,7 +290,7 @@ def load_zod_dist_file(filename: str) -> np.ndarray:
         raise ValueError(msg)
 
     try:
-        data = np.loadtxt(path)
+        data = np.loadtxt(path).T
     except Exception as exc:
         msg = f"Failed to parse zodiacal distribution file: {path}"
         logging.error(msg)
