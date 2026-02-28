@@ -371,8 +371,8 @@ def test_load_zod_dist_file_success(monkeypatch, tmp_path):
     data = load_zod_dist_file("zod_dist.txt")
 
     assert data.ndim == 2
-    assert data.shape == (2, 3)
-    assert np.allclose(data, [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
+    assert data.shape == (3, 2)
+    assert np.allclose(data, [[1.0, 4.0], [2.0, 5.0], [3.0, 6.0]])
 
 
 def test_load_zod_dist_file_missing_file_raises(monkeypatch, tmp_path):
