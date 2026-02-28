@@ -42,63 +42,6 @@ print("Gaia Source ID:", getcol(best, "source_id"))
 print("RA, DEC:", best['ra'], best['dec'])
 print("G mag:", best['phot_g_mean_mag'])
 
-# for column in gaia_tbl.columns:
-#     print(column) #display the columns in the table
-
-
-# print("\n--- Gaia Match ---")
-# print("Designation:", best["designation"])
-# print("Source ID:", best["source_id"])
-
-# print("RA (deg):", best["ra"])
-# print("DEC (deg):", best["dec"])
-
-# print("Teff (K):", best["teff_gspphot"])
-# print("log g:", best["logg_gspphot"])
-# print("[M/H]:", best["mh_gspphot"])
-
-# print("Distance (pc):", best["distance_gspphot"])
-
-# print("Gaia G mag:", best["phot_g_mean_mag"])
-# print("BP mag:", best["phot_bp_mean_mag"])
-# print("RP mag:", best["phot_rp_mean_mag"])
-
-# print("Parallax (mas):", best["parallax"])
-# print("RUWE:", best["ruwe"])
-
-
-# query = f"""
-# SELECT *
-# FROM gaiadr3.astrophysical_parameters
-# WHERE source_id = {best["source_id"]}
-# """
-
-# job = Gaia.launch_job_async(query)
-# astro = job.get_results()
-
-# # print(astro.colnames)
-
-
-# query = f"""
-# SELECT *
-# FROM gaiadr3.gaia_source AS gs
-# LEFT JOIN gaiadr3.astrophysical_parameters AS ap
-# USING (source_id)
-# WHERE gs.source_id = {best["source_id"]}
-# """
-# job = Gaia.launch_job_async(query)
-# full = job.get_results()
-
-# print("Number of rows:", len(full))
-# print("Number of columns:", len(full.colnames))
-# print(full.colnames)
-
-# row = full[0]
-
-# for col in full.colnames:
-#     print(col, "=", row[col])
-
-
 
 from astroquery.gaia import Gaia
 from astropy.coordinates import SkyCoord
