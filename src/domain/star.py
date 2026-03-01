@@ -18,7 +18,7 @@ class Star:
     v_magnitude: float | None
     gaia_magnitude: float | None
     log_r: float | None
-    radius_sun_cm: float
+    radius_sun_cm: float | None
     mass_sun_kg: float | None
 
     @classmethod
@@ -26,6 +26,7 @@ class Star:
         cls,
         star_params: Dict[str, Any],
         required_keys: list[str],
+        log_output: bool = True,
     ) -> "Star":
         def is_missing(v: Any) -> bool:
             return v is None or (isinstance(v, str) and v.strip() == "")
@@ -34,20 +35,18 @@ class Star:
         if missing:
             raise ValueError(f"Star missing required keys at construction: {missing}")
         
-        print("==== STAR Created ====")
-        print(f"Star created: {star_params['name']}")
+        if log_output:
+            print("==== STAR Created ====")
+            print(f"Star created: {star_params['name']}")
+
 
         radius = star_params.get("radius")
-        mass = star_params.get("mass")
-
         if radius is None:
             raise ValueError("Star missing required key at construction: ['radius']")
-
-        if mass is None:
-            raise ValueError("Star missing required key at construction: ['mass']")
-
         radius_sun_cm = radius * R_SUN_cm
-        mass_sun_kg = mass * M_SUN_kg
+
+        mass = star_params.get("mass")
+        mass_sun_kg = mass * M_SUN_kg if mass is not None else None
 
         star = cls(
             name=star_params["name"],
