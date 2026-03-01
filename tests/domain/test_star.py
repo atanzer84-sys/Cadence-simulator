@@ -40,6 +40,20 @@ def test_star_empty_required_key_raises():
         Star.from_params(params, required_keys=["name", "radius", "mass"])
 
 
+def test_star_missing_effective_temperature_raises():
+    # Verifies that when effective_temperature is required but missing, Star.from_params raises ValueError.
+    params = {
+        "name": "HD 1234",
+        "radius": 2.0,
+    }
+
+    with pytest.raises(ValueError, match="effective_temperature"):
+        Star.from_params(
+            params,
+            required_keys=["name", "radius", "effective_temperature"],
+        )
+
+
 def test_star_is_frozen():
     # Verifies that Star dataclass is immutable.
     params = {
@@ -52,15 +66,3 @@ def test_star_is_frozen():
 
     with pytest.raises(Exception):
         star.radius = 5.0
-
-
-
-def test_star_missing_mass_raises():
-    # Verifies that Star.from_params raises ValueError when mass is missing.
-    params = {
-        "name": "HD 1234",
-        "radius": 2.0,
-    }
-
-    with pytest.raises(ValueError):
-        Star.from_params(params, required_keys=["name", "radius", "mass"])
