@@ -8,7 +8,6 @@ from domain.planet import Planet
 from frame.frame_pipeline import generate_Frames
 from instrument.prepare_detector_images import prepare_all_detector_images_all_channels
 from instrument.build_science_image import build_science_images
-import numpy as np
 
 
 def main():
@@ -25,8 +24,6 @@ def main():
         # calculating flux on earth, convoluting it to instrument properties and returning a 2d image without any additional information
         spectra_2d_nuv, spectra_2d_vis = prepare_all_detector_images_all_channels(star, run_ctx, nuv_channel, vis_channel)
 
-        # image_nuv = np.zeros((nuv_channel.y_pixels, nuv_channel.y_pixels), dtype=np.float64)
-        # image_vis = np.zeros((vis_channel.y_pixels, vis_channel.y_pixels), dtype=np.float64)
 
         nuv_image, vis_image = build_science_images(spectra_2d_nuv, spectra_2d_vis, nuv_channel, vis_channel, run_ctx, star)
         # generating bias, dark and science frames for NUV, VIS

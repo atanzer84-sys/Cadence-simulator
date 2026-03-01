@@ -1,6 +1,5 @@
 import logging
 import numpy as np
-from loaders.run_waltzer_context import get_repo_root
 from domain.star import Star
 from utils.constants import C_LIGHT_Angst, PARSEC_CM
 from configs.global_config import get_global_config
