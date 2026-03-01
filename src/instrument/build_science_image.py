@@ -44,7 +44,7 @@ def build_science_image(spectra_2d, channel: SpectroscopyChannel, ctx: RunContex
     image += spectra
     ctx.write_image_png.write_image(image, "SCIENCE_SPECTRA", ctx, channel)
 
-    photon_noise = apply_photon_noise_gauss_from_spectra2d(spectra_2d*exposure)
+    photon_noise = apply_photon_noise_gauss_from_spectra2d(spectra_2d*exposure, channel, ctx)
     image += photon_noise
     ctx.write_image_png.write_image(image, "SCIENCE_PHOTON_NOISE", ctx, channel)
 
@@ -64,9 +64,11 @@ def build_science_image(spectra_2d, channel: SpectroscopyChannel, ctx: RunContex
     return image
     
 
-def apply_photon_noise_gauss_from_spectra2d(spectra_2d_exposure):
+def apply_photon_noise_gauss_from_spectra2d(spectra_2d_exposure, channel: SpectroscopyChannel, ctx: RunContext):
     
     distr = np.random.normal(loc=0.0, scale=1.0, size=spectra_2d_exposure.shape)
     sigma = np.sqrt(np.clip(spectra_2d_exposure, 0, None))
     noise = distr * sigma
+    ctx.write_image_png.write_image(noise, "NOISE_ONLY", ctx, channel)
+
     return noise

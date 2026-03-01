@@ -53,6 +53,11 @@ def create_background_star_catalog(table):
         # 4a) Convert Gaia row into canonical param dict
         star_params = get_gaia_stellar_properties(row, log_output=False)
 
+        # ---- magnitude hard cutoff ----
+        if star_params.get("gaia_magnitude") is None:
+            continue
+        if float(star_params["gaia_magnitude"]) > 18.0:
+            continue
         # 4b) Assign unique name
         if "source_id" in row.colnames and row["source_id"] is not None:
             star_params["name"] = f"gaia_{int(row['source_id'])}"
@@ -101,7 +106,8 @@ def load_required_stellar_parameters():
 
 def load_background_csv_if_exists(star: Star) -> Table | None:
     repo_root = get_repo_root()
-    csv_path = repo_root / "data" / "BackgroundStars" / f"{star.name}.csv"
+    csv_name = star.name.replace(" ", "_")
+    csv_path = repo_root / "data" / "BackgroundStars" / f"{csv_name}.csv"
 
     if not csv_path.exists():
         return None
@@ -111,6 +117,7 @@ def load_background_csv_if_exists(star: Star) -> Table | None:
     logging.info("Background stars: loading cached CSV: %s", csv_path)
     logging.info("Loaded background CSV for %s: rows=%d, columns=%s", star.name, len(table), list(table.colnames))
     return table
+
 
 
 def gaia_lookup_for_background_stars(star: Star):

@@ -31,6 +31,12 @@ def _save_single_frame_png(array: np.ndarray, filename: Path, title: str, stats_
     ax = fig.add_subplot(gs[0, 0])
     vmin = np.percentile(array, 1)
     vmax = np.percentile(array, 99.9)
+    # Fallback for sparse images (e.g., COSMIC_ONLY): percentiles can both be 0
+    if (not np.isfinite(vmin)) or (not np.isfinite(vmax)) or (vmax <= vmin):
+        vmin = float(np.min(array))
+        vmax = float(np.max(array))
+        if vmax <= vmin:
+            vmax = vmin + 1.0
     ax.imshow(array, origin="lower", aspect="equal", cmap="gray", vmin=vmin, vmax=vmax)
     ax.set_xlim(-0.5, nx - 0.5)
     ax.set_ylim(-0.5, ny - 0.5)
@@ -155,7 +161,7 @@ def plot_photon_flux(wavelengths, values, output_dir, star : Star, filename_tag,
     ax.set_ylabel(y_label)
     teff_str = f"{star.effective_temperature:.2f}" if star.effective_temperature is not None else "—"
     dist_str = f"{star.distance_pc:.2f}" if star.distance_pc is not None else "—"
-    ax.set_title(f"{star.name}: {title_text} | {wmin:.2f}–{wmax:.2f} Å, M={teff_str} K, d={dist_str} pc", fontsize=11)
+    ax.set_title(f"{star.name}: {title_text} | {wmin:.2f}–{wmax:.2f} Å, T_eff={teff_str} K, d={dist_str} pc", fontsize=11)
     fig.savefig(Path(output_dir) / f"{star.name}_{filename_tag}_{key}.png", dpi=200, bbox_inches="tight")
     plt.close(fig)
 
