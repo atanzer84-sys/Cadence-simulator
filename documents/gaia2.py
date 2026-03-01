@@ -30,9 +30,9 @@ def gaia_nearby_stars_with_params_by_name(target_name: str, radius_arcsec: float
 
     # keep only what you need from gaia_source
     cone_small = cone["source_id", "ra", "dec", "parallax", "phot_g_mean_mag"]
-    ts("Filtering G < 15...")
-    cone_small = cone_small[cone_small["phot_g_mean_mag"] < 16.0]
-    ts("Rows after mag filter:", len(cone_small))
+    # ts("Filtering G < 15...")
+    # cone_small = cone_small[cone_small["phot_g_mean_mag"] < 16.0]
+    # ts("Rows after mag filter:", len(cone_small))
     # 2) pull only AP columns for these IDs (no spatial function)
     ids = [str(int(x)) for x in cone_small["source_id"]]
     ts("Querying astrophysical_parameters for", len(ids), "source_ids...")

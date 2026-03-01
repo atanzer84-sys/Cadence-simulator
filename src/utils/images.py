@@ -107,7 +107,9 @@ def write_frames_png(frames, headers, frame_type, channel_tag, ctx: RunContext, 
     logging.info("Writing %d %s PNG frame(s) for channel %s to %s", n_frames, frame_type, channel_tag, ctx.output_dir)
 
     star_name = str(star.name).replace(" ", "_")
-    title_base = f"{star.name}: {channel_tag} {frame_type} | M={star.effective_temperature} K, d={star.distance_pc} pc"
+    teff_str = star.effective_temperature if star.effective_temperature is not None else "—"
+    dist_str = star.distance_pc if star.distance_pc is not None else "—"
+    title_base = f"{star.name}: {channel_tag} {frame_type} | $T_{{\\mathrm{{eff}}}}$={teff_str} K, $d$={dist_str} pc"
 
     for k, (frame, header) in enumerate(zip(frames, headers)):
         filename = ctx.output_dir / f"WALTzER_{star_name}_{channel_tag}_{frame_type}_{k:05d}.png"
@@ -161,7 +163,7 @@ def plot_photon_flux(wavelengths, values, output_dir, star : Star, filename_tag,
     ax.set_ylabel(y_label)
     teff_str = f"{star.effective_temperature:.2f}" if star.effective_temperature is not None else "—"
     dist_str = f"{star.distance_pc:.2f}" if star.distance_pc is not None else "—"
-    ax.set_title(f"{star.name}: {title_text} | {wmin:.2f}–{wmax:.2f} Å, T_eff={teff_str} K, d={dist_str} pc", fontsize=11)
+    ax.set_title(f"{star.name}: {title_text} | {wmin:.2f}–{wmax:.2f} Å, $T_{{\\mathrm{{eff}}}}$={teff_str} K, $d$={dist_str} pc", fontsize=11)
     fig.savefig(Path(output_dir) / f"{star.name}_{filename_tag}_{key}.png", dpi=200, bbox_inches="tight")
     plt.close(fig)
 

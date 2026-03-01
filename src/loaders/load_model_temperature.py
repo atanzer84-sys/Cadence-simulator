@@ -32,8 +32,10 @@ def load_model_for_temperature(t_star):
     t_pick = min(temps, key=lambda t: abs(t - t_target))
     delta = abs(t_pick - t_target)
 
-    if delta > 500:
-        logging.warning("MODEL_TEMP_LARGE_DELTA requested=%g K picked=%g K delta=%g K", t_target, t_pick, delta)
+    if delta > 300:
+        msg = f"MODEL_TEMP_LARGE_DELTA: requested={t_target:.0f} K, picked={t_pick} K, delta={delta:.0f} K"
+        logging.warning(msg)
+        print(msg)
 
     subdir = f"t{t_pick:05d}g4.4"
     model_file = models_dir / subdir / "model.flx"

@@ -2,6 +2,13 @@ import numpy as np
 import logging
 import math
 
+import os
+from astropy.coordinates import SkyCoord
+import astropy.units as u
+from astroquery.gaia import Gaia
+from astropy.table import Table
+from loaders.run_waltzer_context import get_repo_root
+
 GAIA_PROVIDES = {
     "right_ascension",
     "declination",
@@ -50,7 +57,6 @@ def lookup_star_gaia(star_params: dict, missing_star) -> dict:
     except Exception as e:
         logging.error("Gaia lookup failed for %s: %s", target_name, str(e))
         return {}
-
 
 def query_gaia_by_name(target_name, radius_arcsec=2.0):
     from astroquery.gaia import Gaia
@@ -128,3 +134,4 @@ def get_gaia_stellar_properties(gaia_row, log_output: bool = True):
         logging.info("Gaia stellar parameters extracted: %s", gaia_star_params)    
     
     return gaia_star_params
+
