@@ -64,6 +64,7 @@ def _star_for_frames():
         name="HD 2685",
         mass=1.1,
         distance_pc=100.0,
+        effective_temperature=5778.0,
     )
 
 
@@ -137,7 +138,7 @@ def test_format_header_custom_fmt_str():
 
 
 def _dummy_star():
-    return SimpleNamespace(name="TestStar", mass=1.0, distance_pc=10.0)
+    return SimpleNamespace(name="TestStar", mass=1.0, distance_pc=10.0, effective_temperature=5778.0)
 
 
 def test_write_frames_png_empty_frames_returns_without_creating_files(tmp_path):
