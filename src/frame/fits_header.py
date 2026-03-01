@@ -31,7 +31,7 @@ def initialize_fits_header(star: Star, timestamp: datetime):
     header.append(("TRGET",     star.name ,                         "Target Name"))
     header.append(("TARGT_ID",  star.name ,                         "Target ID"))
     header.append(("TARGT_D",   star.distance_pc ,                  "Target distance in pc"))
-    header.append(("TARGT_MS",  star.mass_sun_kg ,                  "Target mass in Sun_mass in kg"))
+    header.append(("TARGT_MS",  star.effective_temperature ,        "Target effective temperature"))
     header.append(("VMAG",      star.v_magnitude ,                  "V magnitude of the target"))
     header.append(("RA",        star.right_ascension,               "Right ascension in degrees"))
     header.append(("DEC",       star.declination,                   "Declination in degrees"))

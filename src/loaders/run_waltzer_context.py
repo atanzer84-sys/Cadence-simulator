@@ -104,16 +104,9 @@ def initialize_waltzer_runtime_context():
         test_mode=test_mode,
         produce_plots=produce_plots,
         write_image_png=write_image_png,
-
     )
-    logging.info(
-        "RunContext initialized: target=%s output_dir=%s test_mode=%s produce_plots=%s write_image_png=%s",
-        run_ctx.target_name,
-        run_ctx.output_dir,
-        run_ctx.test_mode,
-        run_ctx.produce_plots,
-        run_ctx.write_image_png is not None,
-    )
+    logging.info("RunContext initialized: target=%s output_dir=%s test_mode=%s produce_plots=%s write_image_png=%s",
+        run_ctx.target_name, run_ctx.output_dir, run_ctx.test_mode, run_ctx.produce_plots, run_ctx.write_image_png is not None)
     return run_ctx, user_cfg
 
 def load_cfg_and_user_config():
