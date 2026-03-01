@@ -3,7 +3,7 @@ import types
 from dataclasses import fields
 from typing import Any, get_args, get_origin, Union
 
-def get_missing_properties(parameters: dict, required_keys: list[str]) -> list[str]:
+def get_missing_properties(parameters: dict, required_keys: list[str], log_output: bool = True) -> list[str]:
     """
     Return list of required keys that are missing in parameters.
 
@@ -19,11 +19,11 @@ def get_missing_properties(parameters: dict, required_keys: list[str]) -> list[s
             return True
         return False
 
-
-    logging.info("Checking missing properties...")
-    logging.info("Required keys: %s", required_keys)
-    logging.info("Current parameters: %s", parameters)
-    logging.info("Missing properties result: %s", [k for k in required_keys if k not in parameters or is_missing(parameters.get(k))])
+    if log_output:
+        logging.info("Checking missing properties...")
+        logging.info("Required keys: %s", required_keys)
+        logging.info("Current parameters: %s", parameters)
+        logging.info("Missing properties result: %s", [k for k in required_keys if k not in parameters or is_missing(parameters.get(k))])
 
     return [k for k in required_keys if k not in parameters or is_missing(parameters.get(k))]
 

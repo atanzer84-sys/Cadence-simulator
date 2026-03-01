@@ -103,9 +103,11 @@ def query_gaia(sourceID):
 
     return gaia_result_row[0]
 
-def get_gaia_stellar_properties(gaia_row):
+def get_gaia_stellar_properties(gaia_row, log_output: bool = True):
     def _to_float(value):
         if value is None:
+            return None
+        if np.ma.is_masked(value):
             return None
         value = float(value)
         return None if math.isnan(value) else value
@@ -122,5 +124,7 @@ def get_gaia_stellar_properties(gaia_row):
         "v_magnitude": _to_float(gaia_row.get("phot_g_mean_mag")),
         "gaia_magnitude": _to_float(gaia_row.get("phot_g_mean_mag")),
     }
-    logging.info("Gaia stellar parameters extracted: %s", gaia_star_params)
+    if log_output:
+        logging.info("Gaia stellar parameters extracted: %s", gaia_star_params)    
+    
     return gaia_star_params

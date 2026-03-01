@@ -21,8 +21,7 @@ def load_stellar_and_planetary_properties(target_name_user_input):
         planet_star_dictionary, target_name = load_matching_excel_row_from_excel(excel_path, target_name_user_input)
 
         # load the excel config, because it defines what is a star's and planet's property. easily expandable.
-        mapping_path = repo_root / "configs" / "excel_mapping.cfg"
-        mapping = load_excel_cfg(mapping_path)
+        mapping = load_excel_mapping()
 
         # getting (still dirty) separate dictionaries for planetary and stellar properties
         planet_params, star_params = map_to_planet_or_star_dictionary(planet_star_dictionary, mapping, target_name)
@@ -38,8 +37,7 @@ def load_stellar_and_planetary_properties(target_name_user_input):
             star_params = merge_gaia_into_star_params(star_params, gaia_star_params)
 
         # getting spectral type from mamjeck table.
-        mamajek_path = repo_root / "data" / "stellar_param_mamjeck.txt"
-        star_params = infer_mamajek_spectral_type(star_params, mamajek_path)
+        star_params= infer_mamajek(star_params)
         star_params = apply_log_r_fallback(star_params)
 
         # now we finally have a list on missing parameters and can throw exceptions, because with missing parameters we can not do our simulation run.
@@ -64,6 +62,17 @@ def load_stellar_and_planetary_properties(target_name_user_input):
         )
         raise
 
+
+def load_excel_mapping():
+    repo_root = get_repo_root()
+    mapping_path = repo_root / "configs" / "excel_mapping.cfg"
+    return load_excel_cfg(mapping_path)
+
+def infer_mamajek(star_params, log_output: bool = True):
+    repo_root = get_repo_root()
+    mamajek_path = repo_root / "data" / "stellar_param_mamjeck.txt"
+    return infer_mamajek_spectral_type(star_params, mamajek_path, log_output)
+
 def _find_excel_file(repo_root: Path):
     try:
         # Ignore temporary Excel lock files (e.g. "~$Targets_V10p1.xlsx")
@@ -72,25 +81,18 @@ def _find_excel_file(repo_root: Path):
         ]
 
         if len(excel_files) == 0:
-            raise FileNotFoundError(
-                f"No Excel file found in repo root ({repo_root})"
-            )
+            raise FileNotFoundError(f"No Excel file found in repo root ({repo_root})")
 
         if len(excel_files) > 1:
             names = [f.name for f in excel_files]
-            raise ValueError(
-                f"Multiple Excel files found in repo root: {names}"
-            )
+            raise ValueError(f"Multiple Excel files found in repo root: {names}")
 
         logging.info("Using Excel file to look up target: '%s'", excel_files[0])
 
         return excel_files[0]
 
     except Exception:
-        logging.exception(
-            "Failed to locate Excel file in repo root: %s",
-            repo_root,
-        )
+        logging.exception("Failed to locate Excel file in repo root: %s", repo_root)
         raise
 
 def merge_gaia_into_star_params(star_params, gaia_star_params):
@@ -109,46 +111,40 @@ def merge_gaia_into_star_params(star_params, gaia_star_params):
 
     return star_params
 
-def infer_mamajek_spectral_type(star_params, mamajek_path):
+def infer_mamajek_spectral_type(star_params, mamajek_path, log_output: bool = True):
     mamajek_path = str(mamajek_path)
-    logging.info("Loading Mamajek table from %s", mamajek_path)
+    if log_output:
+        logging.info("Loading Mamajek table from %s", mamajek_path)
 
     data = ascii.read(mamajek_path, comment="#")
-    logging.info("Mamajek table loaded successfully (%d rows)", len(data))
+    if log_output:
+        logging.info("Mamajek table loaded successfully (%d rows)", len(data))
     Sp = np.array(data["col1"])
     T_book = np.array(data["col2"], dtype=float)
 
     Teff_raw = star_params.get("effective_temperature")
 
     if Teff_raw is None:
-        logging.error(
-            "Mamajek inference aborted: 'effective_temperature' is missing. Current star_params keys: %s", list(star_params.keys()),
-        )
-        raise ValueError(
-                "Cannot infer spectral type: effective_temperature is None. "
-            )
+        logging.error("Mamajek inference aborted: 'effective_temperature' is missing. Current star_params keys: %s", list(star_params.keys()))
+        raise ValueError("Cannot infer spectral type: effective_temperature is None.")
     try:
         Teff = float(Teff_raw)
 
     except (TypeError, ValueError) as e:
-        logging.error(
-            "Mamajek inference failed: effective_temperature=%r is not convertible to float.",
-            Teff_raw,
-        )
-        raise ValueError(
-            f"Cannot infer spectral type: invalid effective_temperature value {Teff_raw!r}"
-        ) from e
+        logging.error("Mamajek inference failed: effective_temperature=%r is not convertible to float.", Teff_raw)
+        raise ValueError(f"Cannot infer spectral type: invalid effective_temperature value {Teff_raw!r}") from e
 
     idx = int(np.abs(T_book - Teff).argmin())
     spectral_type = str(Sp[idx])
 
     star_params["spectral_type"] = spectral_type
 
-    logging.info("Set spectral_type=%s inferred from Teff=%s K",spectral_type,Teff)
+    if log_output:
+        logging.info("Set spectral_type=%s inferred from Teff=%s K",spectral_type,Teff)
 
     return star_params
 
-def apply_log_r_fallback(star_params: dict) -> dict:
+def apply_log_r_fallback(star_params: dict, log_output: bool = True) -> dict:
     global_config = get_global_config()
     if not global_config.enable_log_r_fallback:
         logging.info("log_r fallback skipped: enable_log_r_fallback=%s", global_config.enable_log_r_fallback)
@@ -176,7 +172,7 @@ def apply_log_r_fallback(star_params: dict) -> dict:
         star_params["log_r"] = hot_val
     else:
         star_params["log_r"] = cool_val
-
-    logging.info("log_r fallback applied: Teff=%s threshold=%s -> log_r=%s", Teff, threshold, star_params["log_r"])
+    if log_output:
+        logging.info("log_r fallback applied: Teff=%s threshold=%s -> log_r=%s", Teff, threshold, star_params["log_r"])
 
     return star_params
