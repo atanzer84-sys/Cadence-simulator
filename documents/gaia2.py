@@ -64,7 +64,7 @@ def gaia_nearby_stars_with_params_by_name(target_name: str, radius_arcsec: float
 
 
 def main():
-    TARGET_NAME = "KELT-9"
+    TARGET_NAME = "HD 2685"
     RADIUS_ARCSEC = 150.0
 
     tbl, coord = gaia_nearby_stars_with_params_by_name(TARGET_NAME, radius_arcsec=RADIUS_ARCSEC)
