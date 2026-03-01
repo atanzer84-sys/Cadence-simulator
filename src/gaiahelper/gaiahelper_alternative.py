@@ -1,10 +1,20 @@
-from astroquery.gaia import Gaia
 from astropy.coordinates import SkyCoord
 import astropy.units as u
 from datetime import datetime
 from astropy.table import join
 from loaders.run_waltzer_context import setup_output_directory
 
+from astroquery.gaia import GaiaClass
+from astroquery.utils.tap.core import TapPlus
+
+GAIA_TAP_URL = "https://gaia.ari.uni-heidelberg.de/tap"
+
+Gaia = GaiaClass()
+Gaia.MAIN_GAIA_TAP_URL = GAIA_TAP_URL
+Gaia.GAIA_TAP_URL = GAIA_TAP_URL
+
+# Force a fresh TAP connection pointing at ARI
+Gaia._tap = TapPlus(url=GAIA_TAP_URL)
 
 def ts(*args):
     print(datetime.now().strftime('%H:%M:%S'), *args)
@@ -16,27 +26,10 @@ def gaia_nearby_stars_with_params_by_name(target_name: str, radius_arcsec: float
 
     # 1) fast: cone search in gaia_source
     ts("Running cone search on gaia_source (150 arcsec)...")
-
-    # job1 = Gaia.cone_search_async(coord, radius=radius_arcsec * u.arcsec)
-    # cone = job1.get_results()
-    Gaia.TIMEOUT = 120
-
-    ra0 = coord.ra.deg
-    dec0 = coord.dec.deg
-    radius_deg = radius_arcsec / 3600.0
-
-    query_cone = f"""
-    SELECT source_id, ra, dec, parallax, phot_g_mean_mag
-    FROM gaiadr3.gaia_source
-    WHERE 1 = CONTAINS(
-    POINT('ICRS', ra, dec),
-    CIRCLE('ICRS', {ra0}, {dec0}, {radius_deg})
-    )
-    """
-
-    job1 = Gaia.launch_job_async(query_cone)
+    ts("Using Gaia TAP:", getattr(Gaia, "GAIA_TAP_URL", None))
+    ts("Using TAP object URL:", getattr(getattr(Gaia, "_tap", None), "url", None))
+    job1 = Gaia.cone_search_async(coord, radius=radius_arcsec * u.arcsec)
     cone = job1.get_results()
-    
     if len(cone) == 0:
         return cone, coord
     ts(f"Cone search done. Rows: {len(cone)}")
