@@ -7,19 +7,25 @@ from instrument.dark_image import generate_dark_image
 from instrument.cosmic_image import generate_cosmic_rays
 from configs.global_config import GlobalConfig, get_global_config
 from instrument.background_image import generate_Background_Image
+from instrument.background_stars_image import generate_Background_Stars_Image
 from domain.star import Star
+from domain.star_catalog import StarCatalog
+from loaders.load_background_stars import lookup_background_stars
 
 def build_science_images (spectra_2d_nuv, spectra_2d_vis, nuv: SpectroscopyChannel, vis: SpectroscopyChannel, ctx: RunContext, star: Star):
 
     cfg = get_global_config()
-    nuv_img = build_science_image(spectra_2d_nuv, nuv, ctx, cfg, star)
-    vis_img = build_science_image(spectra_2d_vis, vis, ctx, cfg, star)
+
+    background_stars_catalog = lookup_background_stars(ctx, cfg, star)
+    nuv_img = build_science_image(spectra_2d_nuv, nuv, ctx, cfg, star, background_stars_catalog)
+    vis_img = build_science_image(spectra_2d_vis, vis, ctx, cfg, star, background_stars_catalog)
+
     return nuv_img, vis_img
 
 
-def build_science_image(spectra_2d, channel: SpectroscopyChannel, ctx: RunContext, cfg: GlobalConfig, star: Star):
+def build_science_image(spectra_2d, channel: SpectroscopyChannel, ctx: RunContext, cfg: GlobalConfig, star: Star, background_stars_catalog: StarCatalog):
     logging.info("Science Image generation starting for channel %s", channel.channel_name)
-    print(f"Science Image generation starting for channel {channel.channel_name}.")
+    print(f"==== SCIENCE IMAGE GENERATION STARTING FOR CHANNEL {channel.channel_name} =====")
     nx = channel.x_pixels
     ny = channel.y_pixels
     image = np.zeros((ny, nx))
@@ -46,6 +52,9 @@ def build_science_image(spectra_2d, channel: SpectroscopyChannel, ctx: RunContex
     image += background
     ctx.write_image_png.write_image(image, "SCIENCE_BACKGROUND", ctx, channel)
     
+    generate_Background_Stars_Image(channel, ctx, star, background_stars_catalog)
+
+
     cosmic = generate_cosmic_rays(ctx, channel, cfg)
     image += cosmic
     ctx.write_image_png.write_image(image, "SCIENCE_COSMIC", ctx, channel)

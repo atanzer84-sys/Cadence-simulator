@@ -1,6 +1,5 @@
 from astroquery.gaia import Gaia
 from astropy.coordinates import SkyCoord
-import astropy.units as u
 from datetime import datetime
 from astropy.table import join
 from loaders.run_waltzer_context import setup_output_directory

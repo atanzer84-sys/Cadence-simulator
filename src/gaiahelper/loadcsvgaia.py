@@ -1,8 +1,5 @@
 # src/gaiahelper/loadcsvgaia.py
 
-from pathlib import Path
-from astropy.table import Table
-
 def main():
     from pathlib import Path
     from astropy.table import Table

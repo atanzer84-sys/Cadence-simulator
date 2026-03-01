@@ -75,29 +75,30 @@ def gaussbroad(wavelength, spectra, hwhm):
         #  if hwhm le 0.0 then return,s			#true: no broadening
 
     #Calculate (uniform) dispersion.
-
-    dw = (wavelength[-1] - wavelength[0]) / len(wavelength)		#wavelength change per pixel
+    #wavelength change per pixel
+    dw = (wavelength[-1] - wavelength[0]) / (len(wavelength) - 1)
 
     #gauus=make
-    for _ in range(0, len(wavelength)):
-        #Make smoothing gaussian# extend to 4 sigma.
-        #Note: 4.0 / sqrt(2.0*numpy.log(2.0)) = 3.3972872 & sqrt(numpy.log(2.0))=0.83255461
-        #  sqrt(numpy.log(2.0)/pi)=0.46971864 (*1.0000632 to correct for >4 sigma wings)
-        if(hwhm > 5*(wavelength[-1] - wavelength[0])): 
-            return np.full(len(wavelength),np.sum(spectra)/len(wavelength))
+    # for _ in range(0, len(wavelength)):
         
-        nhalf = int(3.3972872*hwhm/dw)		## points in half gaussian
-        ng = 2 * nhalf + 1				## points in gaussian (odd!)
-        wg = dw * (np.arange(ng) - (ng-1)/2.0)	#wavelength scale of gaussian
-        xg = ( (0.83255461) / hwhm) * wg 		#convenient absisca
-        gpro = ( (0.46974832) * dw / hwhm) * np.exp(-xg*xg)#unit area gaussian w/ FWHM
-        gpro=gpro/np.sum(gpro)
+    #Make smoothing gaussian# extend to 4 sigma.
+    #Note: 4.0 / sqrt(2.0*numpy.log(2.0)) = 3.3972872 & sqrt(numpy.log(2.0))=0.83255461
+    #  sqrt(numpy.log(2.0)/pi)=0.46971864 (*1.0000632 to correct for >4 sigma wings)
+    if(hwhm > 5*(wavelength[-1] - wavelength[0])): 
+        return np.full(len(wavelength),np.sum(spectra)/len(wavelength))
+    
+    nhalf = int(3.3972872*hwhm/dw)		## points in half gaussian
+    ng = 2 * nhalf + 1				## points in gaussian (odd!)
+    wg = dw * (np.arange(ng) - (ng-1)/2.0)	#wavelength scale of gaussian
+    xg = ( (0.83255461) / hwhm) * wg 		#convenient absisca
+    gpro = ( (0.46974832) * dw / hwhm) * np.exp(-xg*xg)#unit area gaussian w/ FWHM
+    gpro=gpro/np.sum(gpro)
 
-        # if _ % 1000 == 0:
-        #     sigma = float(hwhm) / float(np.sqrt(2.0 * np.log(2.0)))
-        #     fwhm = 2.0 * float(hwhm)
-        #     half_width = float(nhalf) * float(dw)
-            # logging.info("GAUSS PARAMS: wave0=%g wave-1=%g len(wl)=%d hwhm=%g fwhm=%g sigma=%g dw=%g nhalf=%d ng=%d half_width=%g halfwidth_sigma=%g wg0=%g wgmid=%g wglast=%g xg0=%g g0=%g gsum=%g",float(wavelength[0]), float(wavelength[-1]), int(len(wavelength)),float(hwhm), float(fwhm), float(sigma), float(dw), int(nhalf), int(ng), float(half_width), float(half_width / sigma), float(wg[0]), float(wg[len(wg)//2]), float(wg[-1]), float(xg[0]), float(gpro[0]), float(np.sum(gpro)))
+    # if _ % 1000 == 0:
+    #     sigma = float(hwhm) / float(np.sqrt(2.0 * np.log(2.0)))
+    #     fwhm = 2.0 * float(hwhm)
+    #     half_width = float(nhalf) * float(dw)
+        # logging.info("GAUSS PARAMS: wave0=%g wave-1=%g len(wl)=%d hwhm=%g fwhm=%g sigma=%g dw=%g nhalf=%d ng=%d half_width=%g halfwidth_sigma=%g wg0=%g wgmid=%g wglast=%g xg0=%g g0=%g gsum=%g",float(wavelength[0]), float(wavelength[-1]), int(len(wavelength)),float(hwhm), float(fwhm), float(sigma), float(dw), int(nhalf), int(ng), float(half_width), float(half_width / sigma), float(wg[0]), float(wg[len(wg)//2]), float(wg[-1]), float(xg[0]), float(gpro[0]), float(np.sum(gpro)))
 
     #Pad spectrum ends to minimize impact of Fourier ringing.
     npad = nhalf + 2				## pad pixels on each end

@@ -10,34 +10,37 @@ from configs.global_config import get_global_config
 from utils.constants import PHOTON_ENERGY_CONVERSION_A
 
 def prepare_all_detector_images_all_channels(star: Star, ctx: RunContext, nuv: SpectroscopyChannel, vis: SpectroscopyChannel):
-    logging.info("Starting convolution to instrument")
-    print("Starting convolution to instrument")
-
+    print("==== STARTING CALCULATION FOR FLUX TO INSTRUMENT =====")
     flux, wavelengths_total = calculateFluxOnEarth(star, ctx)
 
+    logging.info("Starting convolution to instrument")
+    print("==== STARTING CONVOLUTION TO INSTRUMENT =====")
     spectra_2d_nuv = prepare_all_detector_images_one_channel(flux, wavelengths_total, nuv, ctx, star)
     spectra_2d_vis = prepare_all_detector_images_one_channel(flux, wavelengths_total, vis, ctx, star)
 
     return spectra_2d_nuv, spectra_2d_vis
 
-def prepare_all_detector_images_one_channel(flux: np.ndarray, wavelengths: np.ndarray,channel: SpectroscopyChannel, ctx: RunContext, star: Star):
+def compute_counts_per_s_px_one_channel(flux: np.ndarray, wavelengths: np.ndarray, channel: SpectroscopyChannel, ctx: RunContext, star: Star):
 
+    logging.info("Computing counts per second per pixel for channel %s", channel.channel_name)
     cfg = get_global_config()
-    # 1) flux -> photons
-    # from ergs/s/cm2/A to photons/s/cm2/A
-    photons_star = convert_flux_to_photons(flux, wavelengths)
-    ctx.produce_plots.plot_flux_and_photons_windows(wavelengths, photons_star, ctx.output_dir, star, "FluxCalc_2_photons",  "Photon Flux", "Photon flux [photons s⁻¹ cm⁻² Å⁻¹]")
-    ctx.test_mode.dump_1d_array(wavelengths, photons_star, ctx.output_dir, star.name, "FluxCalc_8_photons_star", perChannel=True, zoom=True)
 
+    photons_star = convert_flux_to_photons(flux, wavelengths)
+    ctx.produce_plots.plot_flux_and_photons_windows(wavelengths, photons_star, ctx.output_dir, star, "FluxCalc_2_photons", "Photon Flux", "Photon flux [photons s⁻¹ cm⁻² Å⁻¹]")
+    ctx.test_mode.dump_1d_array(wavelengths, photons_star, ctx.output_dir, star.name, "FluxCalc_8_photons_star", perChannel=True, zoom=True)
+    
     # 2) photons -> broadened -> counts/s/pixel (single channel path, reusing existing pieces)
     broadened_flux, wavelength = compute_broadened_channel_flux(photons_star, wavelengths, channel, ctx.output_dir, cfg, star, ctx)
-
     counts_s_px_convolved = counts_per_s_px_conv_per_channel(broadened_flux, wavelength, channel, star, ctx)
 
-    # 3) counts -> 2D
-    spectra_2d = spread_1d_spectrum_to_2d(counts_s_px_convolved, channel)
+    return counts_s_px_convolved
 
+def prepare_all_detector_images_one_channel(flux: np.ndarray, wavelengths: np.ndarray, channel: SpectroscopyChannel, ctx: RunContext, star: Star):
+    counts_s_px_convolved = compute_counts_per_s_px_one_channel(flux, wavelengths, channel, ctx, star)
+    spectra_2d = spread_1d_spectrum_to_2d(counts_s_px_convolved, channel)
     return spectra_2d
+
+
 
 def convert_flux_to_photons(flux_unred, wavelengths):
     logging.info("Converting flux to photon flux")

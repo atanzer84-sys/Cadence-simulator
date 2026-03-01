@@ -13,7 +13,7 @@ from configs.global_config import GlobalConfig
 from domain.star_catalog import StarCatalog
 from loaders.load_stellar_and_planetary_properties import load_excel_mapping , infer_mamajek, apply_log_r_fallback, get_missing_properties
 from loaders.load_gaia import get_gaia_stellar_properties
-
+from flux.flux_calc import calculateFluxOnEarth
 
 
 def lookup_background_stars(ctx: RunContext, cfg: GlobalConfig, star: Star):
@@ -26,11 +26,24 @@ def lookup_background_stars(ctx: RunContext, cfg: GlobalConfig, star: Star):
 
     catalog = create_background_star_catalog(table)
 
+    total = len(catalog.stars_by_id)
+    logging.info("Starting flux calculation for %d background stars", total)
+    print(f"==== STARTING FLUX CALCULATION FOR {total} BACKGROUND STARS =====")
+    
+    for i, (star_id, bg_star) in enumerate(catalog.stars_by_id.items(), start=1):
+        logging.info("Calculating Flux on Earth %d/%d for %s", i, total, star_id)
+
+        print(f"Flux {i}/{total} for {star_id}")
+        flux_unred, wavelengths = calculateFluxOnEarth(bg_star, ctx)
+        catalog.flux_earth_by_id[star_id] = (wavelengths, flux_unred)    
+
+    return catalog
 
 def create_background_star_catalog(table):
     
     catalog = StarCatalog()
     required_keys = load_required_stellar_parameters()
+    min_teff = 3400.0
 
     # --------------------------------------------------
     # 4) Iterate over Gaia rows and build background stars
@@ -55,14 +68,21 @@ def create_background_star_catalog(table):
 
         if star_params.get("effective_temperature") is not None:
             star_params = infer_mamajek(star_params, log_output=False)
+        
         if star_params.get("radius") is not None:
             star_params = apply_log_r_fallback(star_params, log_output=False)
+        
         missing_star_final = get_missing_properties(star_params, required_keys, log_output=False)
         if missing_star_final:
             logging.info("Background star %s skipped. Missing: %s", star_params.get("name"), missing_star_final)
             continue
         if "distance" in star_params:
             star_params["distance"] = star_params.pop("distance")
+
+        # we don't have cool models.
+        if star_params.get("effective_temperature") is not None and float(star_params["effective_temperature"]) < min_teff:
+            logging.info("Background star %s skipped. Teff=%s < %s K", star_params.get("name"), star_params.get("effective_temperature"), min_teff)
+            continue
         # 4e) Create Star object
         bg_star = Star.from_params(star_params, required_keys, log_output = False)
 

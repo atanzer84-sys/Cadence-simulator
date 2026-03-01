@@ -87,7 +87,7 @@ class RunContext:
     write_image_png: _NoOpWriteImagePng
 
 def initialize_waltzer_runtime_context():
-    print("Getting started...")
+    print("==== LOADING AND INITIALIZING =====")
     output_dir, timestamp_str, timestamp = setup_output_directory()
     setup_logger(output_dir, timestamp_str)
     user_cfg = load_cfg_and_user_config()

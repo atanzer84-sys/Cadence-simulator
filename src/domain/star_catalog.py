@@ -1,7 +1,7 @@
 # src/domain/star_catalog.py
 
 from dataclasses import dataclass, field
-from typing import Callable, Dict, Tuple, Any
+from typing import Callable, Dict, Tuple
 
 import numpy as np
 
@@ -32,16 +32,15 @@ class StarCatalog:
         self.flux_earth_by_id[star_id] = flux_earth
         return flux_earth
 
-    def get_counts(self, star_id: str, band: str, compute: Callable[[Star, FluxEarth], CountsPerPixel]) -> CountsPerPixel:
-        key = (star_id, band)
-        if key in self.counts_by_id_and_band:
-            return self.counts_by_id_and_band[key]
-        flux_earth = self.get_flux_earth(star_id, compute=lambda s: compute_flux_earth(s))
-        star = self.get_star(star_id)
-        counts = compute(star, flux_earth)
-        self.counts_by_id_and_band[key] = counts
-        return counts
-
+    # def get_counts(self, star_id: str, band: str, compute: Callable[[Star, FluxEarth], CountsPerPixel]) -> CountsPerPixel:
+    #     key = (star_id, band)
+    #     if key in self.counts_by_id_and_band:
+    #         return self.counts_by_id_and_band[key]
+    #     flux_earth = self.get_flux_earth(star_id, compute=lambda s: compute_flux_earth(s))
+    #     star = self.get_star(star_id)
+    #     counts = compute(star, flux_earth)
+    #     self.counts_by_id_and_band[key] = counts
+    #     return counts
 
 # You will provide these functions from your existing pipeline code.
 def compute_flux_earth(star: Star) -> FluxEarth:
