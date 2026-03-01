@@ -10,6 +10,9 @@ from astropy.coordinates import SkyCoord
 from astropy.table import join
 from astroquery.gaia import Gaia
 from configs.global_config import GlobalConfig
+from domain.star_catalog import StarCatalog
+from loaders.load_stellar_and_planetary_properties import load_excel_mapping , infer_mamajek, apply_log_r_fallback, get_missing_properties
+from loaders.load_gaia import get_gaia_stellar_properties
 
 
 
@@ -18,7 +21,63 @@ def lookup_background_stars(ctx: RunContext, cfg: GlobalConfig, star: Star):
 
     if table is None:
         table = gaia_lookup_for_background_stars(star)
+    if table is None or len(table) == 0:
+        return StarCatalog()
 
+    catalog = create_background_star_catalog(table)
+
+
+def create_background_star_catalog(table):
+    
+    catalog = StarCatalog()
+    required_keys = load_required_stellar_parameters()
+
+    # --------------------------------------------------
+    # 4) Iterate over Gaia rows and build background stars
+    # --------------------------------------------------
+    for row in table:
+
+        # 4a) Convert Gaia row into canonical param dict
+        star_params = get_gaia_stellar_properties(row, log_output=False)
+
+        # 4b) Assign unique name
+        if "source_id" in row.colnames and row["source_id"] is not None:
+            star_params["name"] = f"gaia_{int(row['source_id'])}"
+        else:
+            star_params["name"] = "0000"
+
+        # 4c) Distance fallback (only if missing)
+        if star_params.get("distance") is None:
+            if "parallax" in row.colnames:
+                par = row["parallax"]
+                if par is not None and not np.ma.is_masked(par) and np.isfinite(par) and float(par) > 0.0:
+                    star_params["distance"] = 1000.0 / float(par)
+
+        if star_params.get("effective_temperature") is not None:
+            star_params = infer_mamajek(star_params, log_output=False)
+        if star_params.get("radius") is not None:
+            star_params = apply_log_r_fallback(star_params, log_output=False)
+        missing_star_final = get_missing_properties(star_params, required_keys, log_output=False)
+        if missing_star_final:
+            logging.info("Background star %s skipped. Missing: %s", star_params.get("name"), missing_star_final)
+            continue
+        if "distance" in star_params:
+            star_params["distance"] = star_params.pop("distance")
+        # 4e) Create Star object
+        bg_star = Star.from_params(star_params, required_keys, log_output = False)
+
+        # 4f) Add to catalog
+        catalog.add_star(bg_star.name, bg_star)
+
+    # --------------------------------------------------
+    # 5) Return catalog of valid background stars
+    # --------------------------------------------------
+    return catalog
+
+
+def load_required_stellar_parameters():
+    mapping = load_excel_mapping()
+    return mapping["required_stellar_parameters"]
 
 def load_background_csv_if_exists(star: Star) -> Table | None:
     repo_root = get_repo_root()
