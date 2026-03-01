@@ -14,19 +14,15 @@ git merge
 
 
 # parallel run from terminal
-
-for i in {1..5}; do
-    /Users/andreatanzer/.venvs/shared/bin/python src/waltzer_simulator.py parameters${i}.txt &
-done
-wait
-
 for i in {001..005}; do
     /Users/andreatanzer/.venvs/shared/bin/python src/waltzer_simulator.py "input/parameters/parameter_${i}.txt" &
 done
 wait
 
-for i in {001..025}; do
-    /Users/andreatanzer/.venvs/shared/bin/python src/waltzer_simulator.py "input/parameters/parameter_${i}.txt" &
+for i in 001 002 073 017; do
+    /Users/andreatanzer/.venvs/shared/bin/python \
+    "/Users/andreatanzer/Documents/Space Science/MasterThesis/WALTzER-simulator/src/waltzer_simulator.py" \
+    "input/parameters/parameter_${i}.txt" &
 done
 wait
 
