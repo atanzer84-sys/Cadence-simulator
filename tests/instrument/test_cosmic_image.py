@@ -45,6 +45,7 @@ _COMMON_CFG = dict(
     write_non_science_frames_png=False,
     n_science_frames_per_channel=1,
     write_science_frames_png=False,
+    magnitude_cutoff=20.0,
     test_mode=True,
     produce_Plots=False,
 )
