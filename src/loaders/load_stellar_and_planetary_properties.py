@@ -34,7 +34,7 @@ def load_stellar_and_planetary_properties(target_name_user_input):
         missing_for_gaia = [k for k in missing_star if k in GAIA_PROVIDES]
 
         if missing_for_gaia:
-            gaia_star_params = lookup_star_gaia(star_params, missing_for_gaia)
+            gaia_star_params = lookup_star_gaia(star_params, missing_for_gaia, cfg)
             # merge missing only (Excel wins)
             star_params = merge_gaia_into_star_params(star_params, gaia_star_params)
 

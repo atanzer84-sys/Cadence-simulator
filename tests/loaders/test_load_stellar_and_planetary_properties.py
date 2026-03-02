@@ -15,6 +15,38 @@ from loaders.load_stellar_and_planetary_properties import (
 from loaders import load_stellar_and_planetary_properties as lspp
 
 
+def _dummy_global_cfg(**overrides) -> GlobalConfig:
+    """Build a minimal GlobalConfig for tests, with sensible defaults and optional overrides."""
+    base = dict(
+        line_core_emission=False,
+        interstellar_absorption=False,
+        mg2_col=None,
+        mg1_col=None,
+        fe2_col=None,
+        sigmaMg22=0.257,
+        sigmaMg21=0.288,
+        enable_log_r_fallback=False,
+        log_r_teff_threshold=0.0,
+        log_r_hot_value=0.0,
+        log_r_cool_value=0.0,
+        n_non_science_frames=0,
+        write_non_science_frames_png=False,
+        n_science_frames_per_channel=1,
+        write_science_frames_png=False,
+        cosmic_rays_min=0,
+        cosmic_rays_max=0,
+        cosmic_ray_signal_electrons=72000,
+        cosmic_ray_length_min_px=1,
+        cosmic_ray_length_max_px=1,
+        magnitude_cutoff=20.0,
+        GAIA_USE_ASYNC_JOBS=0,
+        test_mode=False,
+        produce_Plots=False,
+    )
+    base.update(overrides)
+    return GlobalConfig(**base)
+
+
 def test_find_excel_file_no_excel(tmp_path: Path) -> None:
     """No *.xlsx files -> FileNotFoundError."""
     with pytest.raises(FileNotFoundError) as exc_info:
@@ -66,31 +98,7 @@ def test_load_stellar_and_planetary_properties_raises_file_not_found(monkeypatch
     )
 
     # load_stellar_and_planetary_properties now requires a loaded GlobalConfig.
-    dummy_cfg = GlobalConfig(
-        line_core_emission=False,
-        interstellar_absorption=False,
-        mg2_col=None,
-        mg1_col=None,
-        fe2_col=None,
-        sigmaMg22=0.257,
-        sigmaMg21=0.288,
-        enable_log_r_fallback=False,
-        log_r_teff_threshold=0.0,
-        log_r_hot_value=0.0,
-        log_r_cool_value=0.0,
-        n_non_science_frames=0,
-        write_non_science_frames_png=False,
-        n_science_frames_per_channel=1,
-        write_science_frames_png=False,
-        cosmic_rays_min=0,
-        cosmic_rays_max=0,
-        cosmic_ray_signal_electrons=72000,
-        cosmic_ray_length_min_px=1,
-        cosmic_ray_length_max_px=1,
-        magnitude_cutoff=20.0,
-        test_mode=False,
-        produce_Plots=False,
-    )
+    dummy_cfg = _dummy_global_cfg()
     monkeypatch.setattr(lspp, "get_global_config", lambda: dummy_cfg)
 
     with pytest.raises(FileNotFoundError):
@@ -106,31 +114,7 @@ def test_load_stellar_and_planetary_properties_raises_value_error(monkeypatch):
         lambda _p, _t: (_ for _ in ()).throw(ValueError("bad excel")),
     )
 
-    dummy_cfg = GlobalConfig(
-        line_core_emission=False,
-        interstellar_absorption=False,
-        mg2_col=None,
-        mg1_col=None,
-        fe2_col=None,
-        sigmaMg22=0.257,
-        sigmaMg21=0.288,
-        enable_log_r_fallback=False,
-        log_r_teff_threshold=0.0,
-        log_r_hot_value=0.0,
-        log_r_cool_value=0.0,
-        n_non_science_frames=0,
-        write_non_science_frames_png=False,
-        n_science_frames_per_channel=1,
-        write_science_frames_png=False,
-        cosmic_rays_min=0,
-        cosmic_rays_max=0,
-        cosmic_ray_signal_electrons=72000,
-        cosmic_ray_length_min_px=1,
-        cosmic_ray_length_max_px=1,
-        magnitude_cutoff=20.0,
-        test_mode=False,
-        produce_Plots=False,
-    )
+    dummy_cfg = _dummy_global_cfg()
     monkeypatch.setattr(lspp, "get_global_config", lambda: dummy_cfg)
 
     with pytest.raises(ValueError):
@@ -233,30 +217,18 @@ def test_merge_gaia_into_star_params_none_gaia_returns_original():
 
 @pytest.fixture
 def global_cfg_log_r(monkeypatch):
-    cfg = GlobalConfig(
-        line_core_emission=False,
-        interstellar_absorption=False,
-        mg2_col=None,
-        mg1_col=None,
-        fe2_col=None,
-        sigmaMg22=0.257,
-        sigmaMg21=0.288,
+    cfg = _dummy_global_cfg(
         enable_log_r_fallback=True,
         log_r_teff_threshold=5500.0,
         log_r_hot_value=-4.2,
         log_r_cool_value=-4.8,
         test_mode=True,
         produce_Plots=False,
-        n_non_science_frames=0,
-        write_non_science_frames_png=False,
-        n_science_frames_per_channel=1,
-        write_science_frames_png=0,
-        cosmic_ray_signal_electrons = 72000,
-        cosmic_rays_min = 5,
-        cosmic_rays_max = 10,
-        cosmic_ray_length_min_px = 10,
-        cosmic_ray_length_max_px = 20,
-        magnitude_cutoff=20.0,
+        cosmic_rays_min=5,
+        cosmic_rays_max=10,
+        cosmic_ray_signal_electrons=72000,
+        cosmic_ray_length_min_px=10,
+        cosmic_ray_length_max_px=20,
     )
     monkeypatch.setattr(gc, "_GLOBAL", cfg, raising=False)
     return cfg
@@ -264,30 +236,18 @@ def global_cfg_log_r(monkeypatch):
 
 @pytest.fixture
 def global_cfg_log_r_disabled(monkeypatch):
-    cfg = GlobalConfig(
-        line_core_emission=False,
-        interstellar_absorption=False,
-        mg2_col=None,
-        mg1_col=None,
-        fe2_col=None,
-        sigmaMg22=0.257,
-        sigmaMg21=0.288,
+    cfg = _dummy_global_cfg(
         enable_log_r_fallback=False,
         log_r_teff_threshold=5500.0,
         log_r_hot_value=-4.2,
         log_r_cool_value=-4.8,
         test_mode=True,
         produce_Plots=False,
-        n_non_science_frames=0,
-        write_non_science_frames_png=False,
-        n_science_frames_per_channel=1,
-        write_science_frames_png=0,
-        cosmic_ray_signal_electrons = 72000,
-        cosmic_rays_min = 5,
-        cosmic_rays_max = 10,
-        cosmic_ray_length_min_px = 10,
-        cosmic_ray_length_max_px = 20,
-        magnitude_cutoff=20.0,
+        cosmic_rays_min=5,
+        cosmic_rays_max=10,
+        cosmic_ray_signal_electrons=72000,
+        cosmic_ray_length_min_px=10,
+        cosmic_ray_length_max_px=20,
     )
     monkeypatch.setattr(gc, "_GLOBAL", cfg, raising=False)
     return cfg

@@ -32,7 +32,7 @@ class GlobalConfig:
 
     # Magnitude cutoff for background star calculation and Gaia fetching (G mag limit).
     magnitude_cutoff: float
-
+    GAIA_USE_ASYNC_JOBS: bool
     test_mode: bool
     produce_Plots: bool
 
@@ -96,6 +96,7 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
         cosmic_ray_length_max_px=_as_int(raw.get("cosmic_ray_length_max_px", 20), key="cosmic_ray_length_max_px"),
 
         magnitude_cutoff=_as_float(raw.get("magnitude_cutoff", 20.0), key="magnitude_cutoff"),
+        GAIA_USE_ASYNC_JOBS=_as_bool(raw.get("GAIA_USE_ASYNC_JOBS", 1), key="GAIA_USE_ASYNC_JOBS"),
 
         test_mode=_as_bool(raw.get("test_mode", 0), key="test_mode"),    
         produce_Plots=_as_bool(raw.get("produce_Plots", 0), key="produce_Plots",),    

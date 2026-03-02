@@ -48,6 +48,7 @@ _COMMON_CFG = dict(
     magnitude_cutoff=20.0,
     test_mode=True,
     produce_Plots=False,
+    GAIA_USE_ASYNC_JOBS=1,
 )
 
 

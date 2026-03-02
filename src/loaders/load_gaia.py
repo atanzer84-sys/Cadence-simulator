@@ -6,6 +6,7 @@ from astropy.table import join, vstack as table_vstack
 import astropy.units as u
 from domain.star import Star
 from astropy.table import Table
+from configs.global_config import GlobalConfig
 
 GAIA_PROVIDES = {
     "right_ascension",
@@ -21,10 +22,7 @@ GAIA_PROVIDES = {
 }
 
 
-GAIA_USE_ASYNC_JOBS: bool = True
-
-
-def lookup_star_gaia(star_params: dict, missing_star) -> dict:
+def lookup_star_gaia(star_params: dict, missing_star, cfg: GlobalConfig) -> dict:
     target_name = star_params["name"]
     logging.info("Gaia lookup required for star: %s for missing required parameters: %s", target_name, missing_star)
     print("Gaia lookup required for star: %s" % target_name)
@@ -41,7 +39,7 @@ def lookup_star_gaia(star_params: dict, missing_star) -> dict:
             logging.info("Gaia lookup using name resolution for star %s (no RA/Dec in parameters; missing=%s)", target_name, missing_star)
             center = SkyCoord.from_name(target_name)
 
-        cone_table = _gaia_cone_search(center, radius_arcsec=2.0, g_mag_limit=None)
+        cone_table = _gaia_cone_search(center, radius_arcsec=2.0, g_mag_limit=None, GAIA_USE_ASYNC_JOBS=cfg.GAIA_USE_ASYNC_JOBS)
         if cone_table is None or len(cone_table) == 0:
             logging.warning("No Gaia cone result found for %s", target_name)
             return {}
@@ -54,7 +52,7 @@ def lookup_star_gaia(star_params: dict, missing_star) -> dict:
         source_id = int(central_row["source_id"])
         print("source id (nearest):", source_id, "| sep_arcsec=", central_sep)
 
-        gaia_row = query_gaia(source_id)
+        gaia_row = query_gaia(source_id, cfg.GAIA_USE_ASYNC_JOBS)
         if not gaia_row:
             return {}
 
@@ -72,7 +70,7 @@ def lookup_star_gaia(star_params: dict, missing_star) -> dict:
         logging.error("Gaia lookup failed for %s: %s", target_name, str(e))
         return {}
 
-def query_gaia(sourceID):
+def query_gaia(sourceID, GAIA_USE_ASYNC_JOBS):
     query = f"""
         SELECT
             gs.source_id,
@@ -93,7 +91,7 @@ def query_gaia(sourceID):
 
         WHERE gs.source_id = {sourceID}
         """
-    gaia_result_row = _run_gaia_job(query)
+    gaia_result_row = _run_gaia_job(query, GAIA_USE_ASYNC_JOBS)
 
     if len(gaia_result_row) == 0:
         logging.warning("No Gaia joined row returned for (source_id=%s)", sourceID)
@@ -133,7 +131,7 @@ def get_gaia_stellar_properties(gaia_row, log_output: bool = True):
 
 
 
-def gaia_lookup_for_background_stars(star: Star, g_mag_limit) -> Table | None:
+def gaia_lookup_for_background_stars(star: Star, g_mag_limit, GAIA_USE_ASYNC_JOBS) -> Table | None:
     """
     Fetch background stars from Gaia in a cone around the target star.
 
@@ -154,12 +152,12 @@ def gaia_lookup_for_background_stars(star: Star, g_mag_limit) -> Table | None:
     """
     radius_arcsec = 150.0
 
-    print(f"==== Gaia background search: START (g_mag_limit={g_mag_limit}) =====")
-    logging.info("Gaia background search: START (g_mag_limit=%s)", g_mag_limit)
+    print(f"==== Gaia background search: START (g_mag_limit={g_mag_limit}, GAIA_USE_ASYNC_JOBS={GAIA_USE_ASYNC_JOBS}) =====")
+    logging.info("Gaia background search: START (g_mag_limit=%s, GAIA_USE_ASYNC_JOBS=%s)", g_mag_limit, GAIA_USE_ASYNC_JOBS)
 
     center = SkyCoord(ra=star.right_ascension * u.deg, dec=star.declination * u.deg, frame="icrs")
 
-    cone_small = _gaia_cone_search(center, radius_arcsec, g_mag_limit)
+    cone_small = _gaia_cone_search(center, radius_arcsec, g_mag_limit=g_mag_limit, GAIA_USE_ASYNC_JOBS=GAIA_USE_ASYNC_JOBS)
     if cone_small is None or len(cone_small) == 0:
         return None
 
@@ -196,20 +194,18 @@ def gaia_lookup_for_background_stars(star: Star, g_mag_limit) -> Table | None:
     return field_joined
 
 
-def _run_gaia_job(query: str, async_override: bool | None = None):
+def _run_gaia_job(query: str, GAIA_USE_ASYNC_JOBS):
     """
-    Run a Gaia TAP job with a shared sync/async switch.
+    Run a Gaia TAP job using the GAIA_USE_ASYNC_JOBS flag from GlobalConfig.
 
     Parameters
     ----------
     query : str
         ADQL query string.
-    async_override : bool | None
-        If True, force async; if False, force sync; if None, use GAIA_USE_ASYNC_JOBS.
     """
     from astroquery.gaia import Gaia
 
-    use_async = GAIA_USE_ASYNC_JOBS if async_override is None else async_override
+    use_async = GAIA_USE_ASYNC_JOBS
     if use_async:
         job = Gaia.launch_job_async(query)
     else:
@@ -217,15 +213,17 @@ def _run_gaia_job(query: str, async_override: bool | None = None):
     return job.get_results() if hasattr(job, "get_results") else job
 
 
-def _gaia_cone_search(center: SkyCoord, radius_arcsec: float, g_mag_limit: float | None = None) -> Table | None:
+def _gaia_cone_search(center: SkyCoord, radius_arcsec: float, g_mag_limit: float, GAIA_USE_ASYNC_JOBS) -> Table | None:
     """Cone search on gaia_source, slice columns. If g_mag_limit is set, keep only rows with phot_g_mean_mag < g_mag_limit. Returns table or None."""
     try:
         from astroquery.gaia import Gaia
 
         use_async = GAIA_USE_ASYNC_JOBS
         if use_async:
+            logging.info("Gaia background search: using ASYNC cone_search (GAIA_USE_ASYNC_JOBS=True)")
             cone_result = Gaia.cone_search_async(center, radius=radius_arcsec * u.arcsec)
         else:
+            logging.info("Gaia background search: using SYNC cone_search (GAIA_USE_ASYNC_JOBS=False)")
             cone_result = Gaia.cone_search(center, radius=radius_arcsec * u.arcsec)
         cone = cone_result.get_results() if hasattr(cone_result, "get_results") else cone_result
     except Exception as e:
@@ -326,7 +324,7 @@ def _gaia_fetch_ap_and_join(field_cone: Table, ap_batch_size: int = 500) -> Tabl
             WHERE source_id IN ({in_list})
         """
         try:
-            tbl = _run_gaia_job(ap_query, async_override=False)
+            tbl = _run_gaia_job(ap_query)
             if tbl is not None and len(tbl) > 0:
                 ap_tables.append(tbl)
         except Exception as e:

@@ -14,7 +14,7 @@ from loaders.load_gaia import gaia_lookup_for_background_stars
 def lookup_background_stars(ctx: RunContext, cfg: GlobalConfig, star: Star):
     table = load_background_csv_if_exists(star)
     if table is None:
-        table = gaia_lookup_for_background_stars(star, g_mag_limit=cfg.magnitude_cutoff)
+        table = gaia_lookup_for_background_stars(star, g_mag_limit=cfg.magnitude_cutoff, GAIA_USE_ASYNC_JOBS=cfg.GAIA_USE_ASYNC_JOBS)
         if table is not None and len(table) > 0:
             save_background_stars_csv(table, ctx.output_dir, star.name)
     if table is None or len(table) == 0:
