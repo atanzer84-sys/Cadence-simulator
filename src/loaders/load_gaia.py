@@ -21,7 +21,7 @@ GAIA_PROVIDES = {
 }
 
 
-GAIA_USE_ASYNC_JOBS: bool = False
+GAIA_USE_ASYNC_JOBS: bool = True
 
 
 def lookup_star_gaia(star_params: dict, missing_star) -> dict:
@@ -133,7 +133,7 @@ def get_gaia_stellar_properties(gaia_row, log_output: bool = True):
 
 
 
-def gaia_lookup_for_background_stars(star: Star) -> Table | None:
+def gaia_lookup_for_background_stars(star: Star, g_mag_limit) -> Table | None:
     """
     Fetch background stars from Gaia in a cone around the target star.
 
@@ -153,11 +153,9 @@ def gaia_lookup_for_background_stars(star: Star) -> Table | None:
         no field after removing central, or on Gaia/TAP error.
     """
     radius_arcsec = 150.0
-    # g_mag_limit: float | None = 18.0  # set to None to disable magnitude filter
-    g_mag_limit = None
 
-    print("==== Gaia background search: START =====")
-    logging.info("Gaia background search: START")
+    print(f"==== Gaia background search: START (g_mag_limit={g_mag_limit}) =====")
+    logging.info("Gaia background search: START (g_mag_limit=%s)", g_mag_limit)
 
     center = SkyCoord(ra=star.right_ascension * u.deg, dec=star.declination * u.deg, frame="icrs")
 
@@ -220,11 +218,15 @@ def _run_gaia_job(query: str, async_override: bool | None = None):
 
 
 def _gaia_cone_search(center: SkyCoord, radius_arcsec: float, g_mag_limit: float | None = None) -> Table | None:
-    from astroquery.gaia import Gaia
-
     """Cone search on gaia_source, slice columns. If g_mag_limit is set, keep only rows with phot_g_mean_mag < g_mag_limit. Returns table or None."""
     try:
-        cone_result = Gaia.cone_search(center, radius=radius_arcsec * u.arcsec)
+        from astroquery.gaia import Gaia
+
+        use_async = GAIA_USE_ASYNC_JOBS
+        if use_async:
+            cone_result = Gaia.cone_search_async(center, radius=radius_arcsec * u.arcsec)
+        else:
+            cone_result = Gaia.cone_search(center, radius=radius_arcsec * u.arcsec)
         cone = cone_result.get_results() if hasattr(cone_result, "get_results") else cone_result
     except Exception as e:
         msg = f"Gaia background search: cone search failed: {e}"

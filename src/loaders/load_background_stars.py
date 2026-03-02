@@ -14,13 +14,13 @@ from loaders.load_gaia import gaia_lookup_for_background_stars
 def lookup_background_stars(ctx: RunContext, cfg: GlobalConfig, star: Star):
     table = load_background_csv_if_exists(star)
     if table is None:
-        table = gaia_lookup_for_background_stars(star)
+        table = gaia_lookup_for_background_stars(star, g_mag_limit=cfg.magnitude_cutoff)
         if table is not None and len(table) > 0:
             save_background_stars_csv(table, ctx.output_dir, star.name)
     if table is None or len(table) == 0:
         return StarCatalog()
 
-    catalog = create_background_star_catalog(table)
+    catalog = create_background_star_catalog(table, cfg)
 
     total = len(catalog.stars_by_id)
     logging.info("Starting flux calculation for %d background stars", total)
@@ -48,16 +48,13 @@ def load_background_csv_if_exists(star: Star) -> Table | None:
     logging.info("Loaded background CSV for %s: rows=%d, columns=%s", star.name, len(table), list(table.colnames))
     return table
 
-def create_background_star_catalog(table):
-    
+def create_background_star_catalog(table, cfg:GlobalConfig):
     catalog = StarCatalog()
     required_keys = load_required_stellar_parameters()
 
     for row in table:
-
         star_params = get_gaia_stellar_properties(row, log_output=False)
-        # TODO: MAGNITUDE CUTOFF
-        if not _passes_magnitude_cutoff(star_params):
+        if not _passes_magnitude_cutoff(star_params, max_mag=cfg.magnitude_cutoff):
             continue
 
         _set_background_star_name(star_params, row)
@@ -67,7 +64,7 @@ def create_background_star_catalog(table):
             star_params = infer_mamajek(star_params, log_output=False)
         
         if star_params.get("radius") is not None:
-            star_params = apply_log_r_fallback(star_params, log_output=False)
+            star_params = apply_log_r_fallback(star_params, cfg, log_output=False)
 
         if not _ensure_required_properties(star_params, required_keys):
             continue

@@ -7,10 +7,12 @@ from loaders.load_excel import load_matching_excel_row_from_excel, load_excel_cf
 from loaders.parameter_preprocessing import get_missing_properties, clean_and_cast_parameters
 from loaders.load_gaia import lookup_star_gaia, GAIA_PROVIDES
 from astropy.io import ascii
-from configs.global_config import get_global_config
+from configs.global_config import GlobalConfig, get_global_config
 from loaders.run_waltzer_context import get_repo_root
 
 def load_stellar_and_planetary_properties(target_name_user_input):
+    cfg = get_global_config()
+
     try:
         repo_root = get_repo_root()
 
@@ -38,7 +40,7 @@ def load_stellar_and_planetary_properties(target_name_user_input):
 
         # getting spectral type from mamjeck table.
         star_params= infer_mamajek(star_params)
-        star_params = apply_log_r_fallback(star_params)
+        star_params = apply_log_r_fallback(star_params, cfg=cfg)
 
         # now we finally have a list on missing parameters and can throw exceptions, because with missing parameters we can not do our simulation run.
         missing_star_final = get_missing_properties(star_params, mapping["required_stellar_parameters"])
@@ -144,10 +146,9 @@ def infer_mamajek_spectral_type(star_params, mamajek_path, log_output: bool = Tr
 
     return star_params
 
-def apply_log_r_fallback(star_params: dict, log_output: bool = True) -> dict:
-    global_config = get_global_config()
-    if not global_config.enable_log_r_fallback:
-        logging.info("log_r fallback skipped: enable_log_r_fallback=%s", global_config.enable_log_r_fallback)
+def apply_log_r_fallback(star_params: dict, cfg: GlobalConfig, log_output: bool = True) -> dict:
+    if not cfg.enable_log_r_fallback:
+        logging.info("log_r fallback skipped: enable_log_r_fallback=%s", cfg.enable_log_r_fallback)
         return star_params
 
     if star_params.get("log_r") is not None:
@@ -164,9 +165,9 @@ def apply_log_r_fallback(star_params: dict, log_output: bool = True) -> dict:
         logging.exception("log_r fallback failed: invalid Teff=%r", Teff)
         return star_params
 
-    threshold = global_config.log_r_teff_threshold
-    hot_val = global_config.log_r_hot_value
-    cool_val = global_config.log_r_cool_value
+    threshold = cfg.log_r_teff_threshold
+    hot_val = cfg.log_r_hot_value
+    cool_val = cfg.log_r_cool_value
 
     if Teff > threshold:
         star_params["log_r"] = hot_val

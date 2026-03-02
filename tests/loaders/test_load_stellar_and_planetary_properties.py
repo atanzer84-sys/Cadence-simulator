@@ -59,7 +59,39 @@ def test_find_excel_file_ignores_excel_lock_files(tmp_path: Path) -> None:
 
 def test_load_stellar_and_planetary_properties_raises_file_not_found(monkeypatch):
     monkeypatch.setattr(lspp, "get_repo_root", lambda base_dir=None: Path("/tmp"))
-    monkeypatch.setattr(lspp, "_find_excel_file", lambda repo_root: (_ for _ in ()).throw(FileNotFoundError("no excel")))
+    monkeypatch.setattr(
+        lspp,
+        "_find_excel_file",
+        lambda repo_root: (_ for _ in ()).throw(FileNotFoundError("no excel")),
+    )
+
+    # load_stellar_and_planetary_properties now requires a loaded GlobalConfig.
+    dummy_cfg = GlobalConfig(
+        line_core_emission=False,
+        interstellar_absorption=False,
+        mg2_col=None,
+        mg1_col=None,
+        fe2_col=None,
+        sigmaMg22=0.257,
+        sigmaMg21=0.288,
+        enable_log_r_fallback=False,
+        log_r_teff_threshold=0.0,
+        log_r_hot_value=0.0,
+        log_r_cool_value=0.0,
+        n_non_science_frames=0,
+        write_non_science_frames_png=False,
+        n_science_frames_per_channel=1,
+        write_science_frames_png=False,
+        cosmic_rays_min=0,
+        cosmic_rays_max=0,
+        cosmic_ray_signal_electrons=72000,
+        cosmic_ray_length_min_px=1,
+        cosmic_ray_length_max_px=1,
+        magnitude_cutoff=20.0,
+        test_mode=False,
+        produce_Plots=False,
+    )
+    monkeypatch.setattr(lspp, "get_global_config", lambda: dummy_cfg)
 
     with pytest.raises(FileNotFoundError):
         load_stellar_and_planetary_properties("Target")
@@ -68,7 +100,38 @@ def test_load_stellar_and_planetary_properties_raises_file_not_found(monkeypatch
 def test_load_stellar_and_planetary_properties_raises_value_error(monkeypatch):
     monkeypatch.setattr(lspp, "get_repo_root", lambda base_dir=None: Path("/tmp"))
     monkeypatch.setattr(lspp, "_find_excel_file", lambda repo_root: Path("/tmp/Targets.xlsx"))
-    monkeypatch.setattr(lspp, "load_matching_excel_row_from_excel", lambda _p, _t: (_ for _ in ()).throw(ValueError("bad excel")))
+    monkeypatch.setattr(
+        lspp,
+        "load_matching_excel_row_from_excel",
+        lambda _p, _t: (_ for _ in ()).throw(ValueError("bad excel")),
+    )
+
+    dummy_cfg = GlobalConfig(
+        line_core_emission=False,
+        interstellar_absorption=False,
+        mg2_col=None,
+        mg1_col=None,
+        fe2_col=None,
+        sigmaMg22=0.257,
+        sigmaMg21=0.288,
+        enable_log_r_fallback=False,
+        log_r_teff_threshold=0.0,
+        log_r_hot_value=0.0,
+        log_r_cool_value=0.0,
+        n_non_science_frames=0,
+        write_non_science_frames_png=False,
+        n_science_frames_per_channel=1,
+        write_science_frames_png=False,
+        cosmic_rays_min=0,
+        cosmic_rays_max=0,
+        cosmic_ray_signal_electrons=72000,
+        cosmic_ray_length_min_px=1,
+        cosmic_ray_length_max_px=1,
+        magnitude_cutoff=20.0,
+        test_mode=False,
+        produce_Plots=False,
+    )
+    monkeypatch.setattr(lspp, "get_global_config", lambda: dummy_cfg)
 
     with pytest.raises(ValueError):
         load_stellar_and_planetary_properties("Target")
@@ -232,7 +295,7 @@ def global_cfg_log_r_disabled(monkeypatch):
 
 def test_apply_log_r_fallback_disabled_does_not_modify_dict(global_cfg_log_r_disabled):
     star_params = {"effective_temperature": 6000}
-    out = apply_log_r_fallback(star_params)
+    out = apply_log_r_fallback(star_params, cfg=global_cfg_log_r_disabled)
 
     assert out is star_params
     assert "log_r" not in star_params
@@ -241,7 +304,7 @@ def test_apply_log_r_fallback_disabled_does_not_modify_dict(global_cfg_log_r_dis
 def test_apply_log_r_fallback_does_not_override_existing_log_r(global_cfg_log_r):
     star_params = {"effective_temperature": 6000, "log_r": -9.9}
 
-    out = apply_log_r_fallback(star_params)
+    out = apply_log_r_fallback(star_params, cfg=global_cfg_log_r)
 
     assert out is star_params
     assert star_params["log_r"] == -9.9
@@ -249,19 +312,19 @@ def test_apply_log_r_fallback_does_not_override_existing_log_r(global_cfg_log_r)
 
 def test_apply_log_r_fallback_sets_hot_or_cool_value_based_on_threshold(global_cfg_log_r):
     star_hot = {"effective_temperature": "6000"}
-    out_hot = apply_log_r_fallback(star_hot)
+    out_hot = apply_log_r_fallback(star_hot, cfg=global_cfg_log_r)
     assert out_hot is star_hot
     assert star_hot["log_r"] == -4.2
 
     star_cool = {"effective_temperature": "5000"}
-    out_cool = apply_log_r_fallback(star_cool)
+    out_cool = apply_log_r_fallback(star_cool, cfg=global_cfg_log_r)
     assert out_cool is star_cool
     assert star_cool["log_r"] == -4.8
 
 
 def test_apply_log_r_fallback_missing_teff_does_not_modify_dict(global_cfg_log_r):
     star_params = {}
-    out = apply_log_r_fallback(star_params)
+    out = apply_log_r_fallback(star_params, cfg=global_cfg_log_r)
 
     assert out is star_params
     assert "log_r" not in star_params
@@ -269,7 +332,7 @@ def test_apply_log_r_fallback_missing_teff_does_not_modify_dict(global_cfg_log_r
 
 def test_apply_log_r_fallback_invalid_teff_does_not_modify_dict(global_cfg_log_r):
     star_params = {"effective_temperature": "nope"}
-    out = apply_log_r_fallback(star_params)
+    out = apply_log_r_fallback(star_params, cfg=global_cfg_log_r)
 
     assert out is star_params
     assert "log_r" not in star_params
