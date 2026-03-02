@@ -30,6 +30,9 @@ class GlobalConfig:
     cosmic_ray_length_min_px: int
     cosmic_ray_length_max_px: int
 
+    # Magnitude cutoff for background star calculation and Gaia fetching (G mag limit).
+    magnitude_cutoff: float
+
     test_mode: bool
     produce_Plots: bool
 
@@ -91,6 +94,8 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
         cosmic_ray_signal_electrons=_as_int(raw.get("cosmic_ray_signal_electrons", 720000), key="cosmic_ray_signal_electrons"),
         cosmic_ray_length_min_px=_as_int(raw.get("cosmic_ray_length_min_px", 10), key="cosmic_ray_length_min_px"),
         cosmic_ray_length_max_px=_as_int(raw.get("cosmic_ray_length_max_px", 20), key="cosmic_ray_length_max_px"),
+
+        magnitude_cutoff=_as_float(raw.get("magnitude_cutoff", 20.0), key="magnitude_cutoff"),
 
         test_mode=_as_bool(raw.get("test_mode", 0), key="test_mode"),    
         produce_Plots=_as_bool(raw.get("produce_Plots", 0), key="produce_Plots",),    
