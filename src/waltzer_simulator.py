@@ -14,7 +14,7 @@ def main():
     try:
         
         run_ctx, user_cfg = initialize_waltzer_runtime_context()
-        nuv_channel, vis_channel, _ = load_channels_config(user_cfg)
+        nuv_channel, vis_channel, nir_channel = load_channels_config(user_cfg)
 
         planet_param, stellar_param, required_planetary_parameters, required_stellar_parameters = load_stellar_and_planetary_properties(user_cfg.target_name)
 
@@ -22,7 +22,7 @@ def main():
         _ = Planet.from_params(planet_param, required_keys=required_planetary_parameters)
 
         # calculating flux on earth, convoluting it to instrument properties and returning a 2d image without any additional information
-        spectra_2d_nuv, spectra_2d_vis = prepare_all_detector_images_all_channels(star, run_ctx, nuv_channel, vis_channel)
+        spectra_2d_nuv, spectra_2d_vis, counts_s_px_nir = prepare_all_detector_images_all_channels(star, run_ctx, nuv_channel, vis_channel, nir_channel)
 
 
         nuv_image, vis_image = build_science_images(spectra_2d_nuv, spectra_2d_vis, nuv_channel, vis_channel, run_ctx, star)

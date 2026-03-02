@@ -332,3 +332,50 @@ def load_zod_spectrum_file(filename: str) -> tuple[np.ndarray | None, np.ndarray
     spectrum = data[:, 1].astype(float, copy=False)
     logging.info("Zodiacal spectrum loaded (%s): rows=%d", filename, wavelength.shape[0])
     return wavelength, spectrum
+
+
+
+def load_psf_profile_file(filename: str) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Load radial PSF profile file.
+
+    Expected format:
+        column 0 -> radial distance in pixels
+        column 1 -> normalized PSF intensity
+
+    Returns:
+        psf_radial_distance: np.ndarray
+        psf_radial_flux: np.ndarray
+    """
+    repo_root = get_repo_root()
+
+    if not filename or filename.strip() == "":
+        raise ValueError("PSF profile file not configured.")
+
+    path = (repo_root / "data" / filename).resolve()
+    logging.info("Loading PSF profile file: %s", path)
+
+    if not path.exists():
+        raise ValueError(f"PSF profile file not found: {path}")
+
+    try:
+        data = np.loadtxt(path)
+    except Exception as exc:
+        raise ValueError(f"Failed to parse PSF profile file: {path}") from exc
+
+    if data.ndim != 2 or data.shape[1] < 2:
+        raise ValueError(f"Invalid PSF profile table structure: {path}")
+
+    rad = data[:, 0].astype(float, copy=False)
+    flux = data[:, 1].astype(float, copy=False)
+
+    mask = rad >= 0.0
+    psf_radial_distance = rad[mask]
+    psf_radial_flux = flux[mask]
+
+    if psf_radial_distance.shape[0] == 0:
+        raise ValueError(f"No positive radial values found in PSF file: {path}")
+
+    logging.info("PSF profile loaded (%s): rows=%d", filename, psf_radial_distance.shape[0])
+
+    return psf_radial_distance, psf_radial_flux

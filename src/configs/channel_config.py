@@ -15,6 +15,11 @@ class Channel:
     ccd_gain: float
     exposure_s: float
     source_file: str
+    effective_area_file: str
+    effective_area_wavelength: np.ndarray
+    effective_area: np.ndarray
+    pixel_scale: float
+
     
     def __post_init__(self):
         values = []
@@ -28,13 +33,10 @@ class Channel:
 
 @dataclass(frozen=True, slots=True)
 class SpectroscopyChannel(Channel):
-    effective_area_file: str
     mode: int
     spread_profile_file: str
     spread_half_height_pix: int
-    effective_area_wavelength: np.ndarray
-    effective_area: np.ndarray
-    pixel_scale: float
+
     slit_position_x_arcsec: float
     slit_position_y_arcsec: float
     slope: float
@@ -52,5 +54,7 @@ class SpectroscopyChannel(Channel):
 
 @dataclass(frozen=True, slots=True)
 class PhotometryChannel(Channel):
-    pass
+    aperture_pix: float
+    psf_radial_distance: np.ndarray | None = None
+    psf_radial_flux: np.ndarray | None = None
 

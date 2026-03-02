@@ -1,11 +1,11 @@
 import numpy as np
 import logging
 from domain.star import Star
-from configs.channel_config import SpectroscopyChannel
+from configs.channel_config import Channel
 from loaders.run_waltzer_context import RunContext
 
 
-def compute_broadened_channel_flux(photon_flux_at_earth: np.ndarray, wavelengths_total: np.ndarray, channel: SpectroscopyChannel, output_dir, cfg, star: Star, ctx: RunContext):
+def compute_broadened_channel_flux(photon_flux_at_earth: np.ndarray, wavelengths_total: np.ndarray, channel: Channel, output_dir, cfg, star: Star, ctx: RunContext):
 
     # Cut up array to broaden with gauss later
     cut_photon_flux, wavelength = cut_wavelength_window_with_margin(photon_flux_at_earth, wavelengths_total, channel, output_dir, cfg, star, ctx)
@@ -20,7 +20,7 @@ def compute_broadened_channel_flux(photon_flux_at_earth: np.ndarray, wavelengths
     return photon_flux_smoothed, wavelength
 
 
-def cut_wavelength_window_with_margin(photon_flux_at_earth: np.ndarray, wavelengths_total: np.ndarray, channel: SpectroscopyChannel, output_dir, cfg, star: Star, ctx: RunContext, margin_A: float = 200.0):
+def cut_wavelength_window_with_margin(photon_flux_at_earth: np.ndarray, wavelengths_total: np.ndarray, channel: Channel, output_dir, cfg, star: Star, ctx: RunContext, margin_A: float = 200.0):
     wl_min = channel.effective_area_wavelength[0]
     wl_max = channel.effective_area_wavelength[-1]
 
@@ -79,20 +79,20 @@ def gaussbroad(wavelength, spectra, hwhm):
     dw = (wavelength[-1] - wavelength[0]) / (len(wavelength) - 1)
 
     #gauus=make
-    # for _ in range(0, len(wavelength)):
+    for _ in range(0, len(wavelength)):
         
-    #Make smoothing gaussian# extend to 4 sigma.
-    #Note: 4.0 / sqrt(2.0*numpy.log(2.0)) = 3.3972872 & sqrt(numpy.log(2.0))=0.83255461
-    #  sqrt(numpy.log(2.0)/pi)=0.46971864 (*1.0000632 to correct for >4 sigma wings)
-    if(hwhm > 5*(wavelength[-1] - wavelength[0])): 
-        return np.full(len(wavelength),np.sum(spectra)/len(wavelength))
-    
-    nhalf = int(3.3972872*hwhm/dw)		## points in half gaussian
-    ng = 2 * nhalf + 1				## points in gaussian (odd!)
-    wg = dw * (np.arange(ng) - (ng-1)/2.0)	#wavelength scale of gaussian
-    xg = ( (0.83255461) / hwhm) * wg 		#convenient absisca
-    gpro = ( (0.46974832) * dw / hwhm) * np.exp(-xg*xg)#unit area gaussian w/ FWHM
-    gpro=gpro/np.sum(gpro)
+        #Make smoothing gaussian# extend to 4 sigma.
+        #Note: 4.0 / sqrt(2.0*numpy.log(2.0)) = 3.3972872 & sqrt(numpy.log(2.0))=0.83255461
+        #  sqrt(numpy.log(2.0)/pi)=0.46971864 (*1.0000632 to correct for >4 sigma wings)
+        if(hwhm > 5*(wavelength[-1] - wavelength[0])): 
+            return np.full(len(wavelength),np.sum(spectra)/len(wavelength))
+        
+        nhalf = int(3.3972872*hwhm/dw)		## points in half gaussian
+        ng = 2 * nhalf + 1				## points in gaussian (odd!)
+        wg = dw * (np.arange(ng) - (ng-1)/2.0)	#wavelength scale of gaussian
+        xg = ( (0.83255461) / hwhm) * wg 		#convenient absisca
+        gpro = ( (0.46974832) * dw / hwhm) * np.exp(-xg*xg)#unit area gaussian w/ FWHM
+        gpro=gpro/np.sum(gpro)
 
     # if _ % 1000 == 0:
     #     sigma = float(hwhm) / float(np.sqrt(2.0 * np.log(2.0)))

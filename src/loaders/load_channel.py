@@ -3,7 +3,7 @@ from pathlib import Path
 import logging
 from configs.channel_config import SpectroscopyChannel, PhotometryChannel
 from configs.user_config import UserConfig
-from loaders.load_channel_files import load_effective_area_file, load_spread_profile_file, load_background_file, load_zod_dist_file, load_zod_spectrum_file
+from loaders.load_channel_files import load_effective_area_file, load_spread_profile_file, load_background_file, load_zod_dist_file, load_zod_spectrum_file, load_psf_profile_file
 
 def load_channels_config(user_cfg: UserConfig):
     repo_root = get_repo_root()
@@ -33,8 +33,20 @@ def load_channel_config(path: Path, exposure_s:float):
     source_file=str(path)
 
 
+    effective_area_file=str(raw.get("effective_area_file", "")).strip()
+    effective_area_wavelength, effective_area, pixel_scale = load_effective_area_file(effective_area_file)
+    if len(effective_area_wavelength) != x_pixels:
+        logging.error("%s: effective_area_file=%s len(wavelength)=%d != x_pixels=%d source_file=%s", channel_name, effective_area_file, len (effective_area_wavelength), x_pixels, source_file, )
+        raise ValueError(
+            f"{channel_name}: effective_area_file={effective_area_file} "
+            f"len(wavelength)={len(effective_area_wavelength)} != x_pixels={x_pixels} "
+            f"source_file={source_file}"
+        )
 
     if channel_name == "IR":
+        aperture_pix = _as_float(raw["aperture_pix"], key="aperture_pix")
+        psf_file = str(raw["psf_profile_file"]).strip()
+        psf_radial_distance, psf_radial_flux = load_psf_profile_file(psf_file)
         return PhotometryChannel(
             channel_name=channel_name,
             x_pixels=x_pixels,
@@ -47,21 +59,19 @@ def load_channel_config(path: Path, exposure_s:float):
             ccd_gain=ccd_gain,
             exposure_s=exposure_s,
             source_file=source_file,
+            effective_area_file=effective_area_file,
+            effective_area_wavelength=effective_area_wavelength,
+            effective_area=effective_area,
+            pixel_scale=pixel_scale,
+            aperture_pix=aperture_pix,
+            psf_radial_distance=psf_radial_distance,
+            psf_radial_flux=psf_radial_flux,
         )
 
     mode=_as_int(raw["mode"], key="mode")
     spread_profile_file=str(raw.get("spread_profile_file", "")).strip()
     spread_half_height_pix=_as_optional_int(raw.get("spread_half_height_pix", None)) or 0
     
-    effective_area_file=str(raw.get("effective_area_file", "")).strip()
-    effective_area_wavelength, effective_area, pixel_scale = load_effective_area_file(effective_area_file)
-    if len(effective_area_wavelength) != x_pixels:
-        logging.error("%s: effective_area_file=%s len(wavelength)=%d != x_pixels=%d source_file=%s", channel_name, effective_area_file, len (effective_area_wavelength), x_pixels, source_file, )
-        raise ValueError(
-            f"{channel_name}: effective_area_file={effective_area_file} "
-            f"len(wavelength)={len(effective_area_wavelength)} != x_pixels={x_pixels} "
-            f"source_file={source_file}"
-        )
         
     spread_pos, spread_w, spread_wl_header = load_spread_profile_file(spread_profile_file, channel_name)
     slit_position_x_arcsec = _as_float(raw.get("slit_position_x_arcsec", 0.0), key="slit_position_x_arcsec")
@@ -108,19 +118,19 @@ def load_channel_config(path: Path, exposure_s:float):
         dark_current_sigma=dark_current_sigma,
         read_noise=read_noise,
         bias_offset=bias_offset,
-        effective_area_file=effective_area_file,
         ccd_gain=ccd_gain,
         exposure_s=exposure_s,
-        mode=mode,
-        spread_profile_file=spread_profile_file,
-        spread_half_height_pix=spread_half_height_pix,
+        source_file=source_file,
+        effective_area_file=effective_area_file,
         effective_area_wavelength=effective_area_wavelength,
         effective_area=effective_area,
         pixel_scale=pixel_scale,
+        mode=mode,
+        spread_profile_file=spread_profile_file,
+        spread_half_height_pix=spread_half_height_pix,
         spread_y_positions=spread_pos,
         spread_y_weights=spread_w,
         spread_y_wavelengths=spread_wl_header,
-        source_file=source_file,
         slit_position_x_arcsec=slit_position_x_arcsec,
         slit_position_y_arcsec=slit_position_y_arcsec,
         slope=slope,
