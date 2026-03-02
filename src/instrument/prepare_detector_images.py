@@ -43,8 +43,10 @@ def prepare_detector_image_photometry(flux: np.ndarray, wavelengths: np. ndarray
     nir_rate_frame = np.zeros((channel.y_pixels, channel.x_pixels), dtype=float)
     cx = channel.x_pixels // 2
     cy = channel.y_pixels // 2
-    
+
     paste_stamp_center(nir_rate_frame, psf, cx, cy)
+
+    ctx.write_image_png.write_image(nir_rate_frame, "nir_rate_frame_only", ctx, channel)
 
     return nir_rate_frame
 
@@ -93,5 +95,5 @@ def compute_photometry_signal_parameters(counts_s_px: np.ndarray, channel:  Phot
 
     # Map up to 5*sigma away from the center
     npix = int(5.0 * sigma)
-    logging.info("Photometry: band rate (e-/s)=%g npix=%d", source_flux_s, npix)
+    logging.info("Photometry: aperture_pix=%.3f radius=%.3f sigma=%.3f npix=%d stamp_size=%dx%d", channel.aperture_pix, radius, sigma, npix, 2*npix+1, 2*npix+1)
     return source_flux_s, npix

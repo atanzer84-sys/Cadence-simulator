@@ -22,10 +22,10 @@ def main():
         _ = Planet.from_params(planet_param, required_keys=required_planetary_parameters)
 
         # calculating flux on earth, convoluting it to instrument properties and returning a 2d image without any additional information
-        spectra_2d_nuv, spectra_2d_vis, nir_rate_frame = prepare_all_detector_images_all_channels(star, run_ctx, nuv_channel, vis_channel, nir_channel)
+        spectra_2d_nuv, spectra_2d_vis, _ = prepare_all_detector_images_all_channels(star, run_ctx, nuv_channel, vis_channel, nir_channel)
 
 
-        nuv_image, vis_image = build_science_images(spectra_2d_nuv, spectra_2d_vis, nir_rate_frame, nuv_channel, vis_channel, nir_channel, run_ctx, star)
+        nuv_image, vis_image = build_science_images(spectra_2d_nuv, spectra_2d_vis, nuv_channel, vis_channel, run_ctx, star)
         # generating bias, dark and science frames for NUV, VIS
         generate_Frames(nuv_image, vis_image, nuv_channel, vis_channel, run_ctx, star)
 
