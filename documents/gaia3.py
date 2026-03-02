@@ -52,7 +52,6 @@ def gaia_unified_verification(target_name: str, radius_arcsec: float = 150.0):
 def main():
     TARGET_NAME = "HD 2685"
     RADIUS_ARCSEC = 150.0
-
     tbl, coord = gaia_unified_verification(TARGET_NAME, radius_arcsec=RADIUS_ARCSEC)
 
     cols = [
