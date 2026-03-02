@@ -193,6 +193,7 @@ def global_cfg_log_r(monkeypatch):
         cosmic_rays_max = 10,
         cosmic_ray_length_min_px = 10,
         cosmic_ray_length_max_px = 20,
+        magnitude_cutoff=20.0,
     )
     monkeypatch.setattr(gc, "_GLOBAL", cfg, raising=False)
     return cfg
@@ -223,6 +224,7 @@ def global_cfg_log_r_disabled(monkeypatch):
         cosmic_rays_max = 10,
         cosmic_ray_length_min_px = 10,
         cosmic_ray_length_max_px = 20,
+        magnitude_cutoff=20.0,
     )
     monkeypatch.setattr(gc, "_GLOBAL", cfg, raising=False)
     return cfg
