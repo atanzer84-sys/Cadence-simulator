@@ -8,7 +8,7 @@ from instrument.spectrum_spread import spread_1d_spectrum_to_2d
 from instrument.spectral_convolution import counts_per_s_px_conv_per_channel, compute_broadened_channel_flux
 from configs.global_config import get_global_config
 from utils.constants import PHOTON_ENERGY_CONVERSION_A
-from psf_spread import build_psf_stamp_from_radial_profile, paste_stamp_center
+from instrument.psf_spread import build_psf_stamp_from_radial_profile, paste_stamp_center
 
 def prepare_all_detector_images_all_channels(star: Star, ctx: RunContext, nuv: SpectroscopyChannel, vis: SpectroscopyChannel, nir: PhotometryChannel):
     print("==== STARTING CALCULATION FOR FLUX TO INSTRUMENT =====")
@@ -20,9 +20,9 @@ def prepare_all_detector_images_all_channels(star: Star, ctx: RunContext, nuv: S
     spectra_2d_vis = prepare_all_detector_images_spectroscopy(flux, wavelengths_total, vis, ctx, star)
 
     # NIR Channel = Photometry
-    psf = prepare_detector_image_photometry(flux, wavelengths_total, nir, ctx, star)
+    nir_rate_frame = prepare_detector_image_photometry(flux, wavelengths_total, nir, ctx, star)
     
-    return spectra_2d_nuv, spectra_2d_vis, psf
+    return spectra_2d_nuv, spectra_2d_vis, nir_rate_frame
 
 def prepare_all_detector_images_spectroscopy(flux: np.ndarray, wavelengths: np.ndarray, channel: SpectroscopyChannel, ctx: RunContext, star: Star):
     counts_s_px_convolved = compute_counts_per_s_px_one_channel(flux, wavelengths, channel, ctx, star)
@@ -30,14 +30,23 @@ def prepare_all_detector_images_spectroscopy(flux: np.ndarray, wavelengths: np.n
     return spectra_2d
 
 def prepare_detector_image_photometry(flux: np.ndarray, wavelengths: np. ndarray, channel: PhotometryChannel, ctx: RunContext, star: Star):
-    logging.info("Preparing photometry detector image for channel %s", channel.channel_name)
+    logging.info("=== PHOTOMETRY START: channel=%s star=%s ===",
+                 channel.channel_name, star.name)
+
     counts_s_px_nir = compute_counts_per_s_px_one_channel(flux, wavelengths, channel, ctx, star)
     source_e, npix = compute_photometry_signal_parameters(counts_s_px_nir, channel)
 
     psf = build_psf_stamp_from_radial_profile(channel.psf_radial_distance, channel.psf_radial_flux, npix)
 
     psf*=source_e
-    return psf
+
+    nir_rate_frame = np.zeros((channel.y_pixels, channel.x_pixels), dtype=float)
+    cx = channel.x_pixels // 2
+    cy = channel.y_pixels // 2
+    
+    paste_stamp_center(nir_rate_frame, psf, cx, cy)
+
+    return nir_rate_frame
 
 
 
@@ -75,17 +84,14 @@ def compute_photometry_signal_parameters(counts_s_px: np.ndarray, channel:  Phot
 
     # Collapse to scalar band rate
     source_flux_s = float(np.sum(counts_s_px))
-    logging.info("Photometry: band-integrated source rate (e-/s) = %.3e", source_flux_s)
 
     # Aperture photometry
     radius = 0.5 * channel.aperture_pix
     # For a Gaussian profile, assume that the standard deviation is a
     # third of the aperture radius
     sigma = radius / 3.0
-    logging.info("Photometry: aperture radius=%.3f pix, sigma=%.3f pix (channel=%s)", radius, sigma, getattr(channel, "channel_name", "NIR"),)
 
     # Map up to 5*sigma away from the center
     npix = int(5.0 * sigma)
-    logging.info("Photometry: PSF half-size npix=%d (5*sigma)", npix)
-
+    logging.info("Photometry: band rate (e-/s)=%g npix=%d", source_flux_s, npix)
     return source_flux_s, npix

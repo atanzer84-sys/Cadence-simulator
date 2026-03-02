@@ -14,6 +14,17 @@ def _channel(name="NUV"):
     )
 
 
+def _photometry_channel(name="NIR"):
+    return SimpleNamespace(
+        channel_name=name,
+        x_pixels=4,
+        y_pixels=3,
+        aperture_pix=6.0,
+        psf_radial_distance=np.array([0.0, 1.0]),
+        psf_radial_flux=np.array([1.0, 0.5]),
+    )
+
+
 def _ctx(tmp_path):
     return SimpleNamespace(output_dir=tmp_path)
 
@@ -27,23 +38,28 @@ def test_prepare_all_detector_images_calls_dependencies_and_returns_shapes(tmp_p
     ctx = _ctx(tmp_path)
     nuv = _channel("NUV")
     vis = _channel("VIS")
+    nir = _photometry_channel("NIR")
 
     photon_flux = np.array([1.0, 2.0, 3.0], dtype=float)
     wavelengths = np.array([100.0, 101.0, 102.0], dtype=float)
 
     fake_spectra_nuv = np.ones((nuv.y_pixels, nuv.x_pixels), dtype=float)
     fake_spectra_vis = np.ones((vis.y_pixels, vis.x_pixels), dtype=float) * 3.0
+    fake_psf_nir = np.ones((5, 5), dtype=float) * 7.0
 
     with patch(
         "instrument.prepare_detector_images.calculateFluxOnEarth",
         return_value=(photon_flux, wavelengths),
     ) as mock_flux, patch(
-        "instrument.prepare_detector_images.prepare_all_detector_images_one_channel",
+        "instrument.prepare_detector_images.prepare_all_detector_images_spectroscopy",
         side_effect=[fake_spectra_nuv, fake_spectra_vis],
-    ) as mock_one_channel:
+    ) as mock_spec, patch(
+        "instrument.prepare_detector_images.prepare_detector_image_photometry",
+        return_value=fake_psf_nir,
+    ) as mock_phot:
 
-        spectra_2d_nuv, spectra_2d_vis = prepare_all_detector_images_all_channels(
-            star, ctx, nuv, vis
+        spectra_2d_nuv, spectra_2d_vis, psf_nir = prepare_all_detector_images_all_channels(
+            star, ctx, nuv, vis, nir
         )
 
     # calculateFluxOnEarth called once with star, ctx
@@ -52,9 +68,9 @@ def test_prepare_all_detector_images_calls_dependencies_and_returns_shapes(tmp_p
     assert args[0] is star
     assert args[1] is ctx
 
-    # prepare_all_detector_images_one_channel called twice: NUV then VIS
-    assert mock_one_channel.call_count == 2
-    (args_nuv, _), (args_vis, _) = mock_one_channel.call_args_list
+    # Spectroscopy path called twice: NUV then VIS
+    assert mock_spec.call_count == 2
+    (args_nuv, _), (args_vis, _) = mock_spec.call_args_list
     # First call: NUV channel
     assert np.allclose(args_nuv[0], photon_flux)
     assert np.allclose(args_nuv[1], wavelengths)
@@ -68,9 +84,19 @@ def test_prepare_all_detector_images_calls_dependencies_and_returns_shapes(tmp_p
     assert args_vis[3] is ctx
     assert args_vis[4] is star
 
+    # Photometry path called once with NIR
+    mock_phot.assert_called_once()
+    args_nir, _ = mock_phot.call_args
+    assert np.allclose(args_nir[0], photon_flux)
+    assert np.allclose(args_nir[1], wavelengths)
+    assert args_nir[2] is nir
+    assert args_nir[3] is ctx
+    assert args_nir[4] is star
+
     # Returned spectra have expected shapes and values
     assert spectra_2d_nuv.shape == (nuv.y_pixels, nuv.x_pixels)
     assert spectra_2d_vis.shape == (vis.y_pixels, vis.x_pixels)
     assert np.allclose(spectra_2d_nuv, fake_spectra_nuv)
     assert np.allclose(spectra_2d_vis, fake_spectra_vis)
+    assert np.allclose(psf_nir, fake_psf_nir)
 

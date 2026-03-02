@@ -19,6 +19,7 @@ _SPREAD_LOADER = "loaders.load_channel.load_spread_profile_file"
 _BG_LOADER = "loaders.load_channel.load_background_file"
 _ZOD_DIST_LOADER = "loaders.load_channel.load_zod_dist_file"
 _ZOD_SPECTRUM_LOADER = "loaders.load_channel.load_zod_spectrum_file"
+_PSF_LOADER = "loaders.load_channel.load_psf_profile_file"
 _REPO_ROOT = "loaders.load_channel.get_repo_root"
 # Where file loaders (EA, spread, background) resolve paths:
 _REPO_ROOT_FILES = "loaders.load_channel_files.get_repo_root"
@@ -260,8 +261,14 @@ def test_load_channel_config_invalid_float_raises_valueerror(tmp_path):
         load_channel_config(cfg_path, exposure_s=10.0)
 
 
-def test_load_channel_config_ignores_comments(tmp_path):
+def test_load_channel_config_ignores_comments(monkeypatch, tmp_path):
     """Full-line and inline comments are ignored during parsing."""
+    # IR path now loads effective area + PSF profile.
+    wl = np.arange(2048, dtype=float)
+    ea = np.ones(2048, dtype=float)
+    monkeypatch.setattr(_EA_LOADER, lambda _f: (wl, ea, 0.01))
+    monkeypatch.setattr(_PSF_LOADER, lambda _f: (np.array([0.0, 1.0]), np.array([1.0, 0.5])))
+
     cfg_path = tmp_path / "comments.cfg"
     cfg_path.write_text(
         """
@@ -277,6 +284,8 @@ def test_load_channel_config_ignores_comments(tmp_path):
         mode = 1
         bias_offset = 0.0
         ccd_gain = 1.0
+        aperture_pix = 4.0
+        psf_profile_file = psf.txt
         spread_profile_file =
         spread_half_height_pix = 0
         """,
@@ -309,12 +318,22 @@ def test_load_channel_config_missing_required_key_raises_keyerror(tmp_path):
         load_channel_config(cfg_path, exposure_s=10.0)
 
 
-def test_channel_is_frozen(tmp_path):
+def test_channel_is_frozen(monkeypatch, tmp_path):
     """SpectroscopyChannel and PhotometryChannel are immutable (frozen dataclass)."""
     from dataclasses import FrozenInstanceError
 
+    monkeypatch.setattr(_EA_LOADER, lambda _f: (np.array([1.0, 2.0]), np.array([0.1, 0.2]), 0.01))
+    monkeypatch.setattr(_PSF_LOADER, lambda _f: (np.array([0.0, 1.0]), np.array([1.0, 0.5])))
+
     cfg_path = tmp_path / "ir.cfg"
-    _write_cfg(cfg_path, channel_name="IR")
+    _write_cfg(
+        cfg_path,
+        channel_name="IR",
+        x_pixels=2,
+        effective_area_file="ir.txt",
+        aperture_pix=4.0,
+        psf_profile_file="psf.txt",
+    )
 
     ch = load_channel_config(cfg_path, exposure_s=10.0)
 
@@ -322,8 +341,13 @@ def test_channel_is_frozen(tmp_path):
         ch.x_pixels = 200
 
 
-def test_load_channel_config_duplicate_keys_last_wins(tmp_path):
+def test_load_channel_config_duplicate_keys_last_wins(monkeypatch, tmp_path):
     """When a key appears multiple times, the last occurrence overwrites earlier ones."""
+    wl = np.arange(2048, dtype=float)
+    ea = np.ones(2048, dtype=float)
+    monkeypatch.setattr(_EA_LOADER, lambda _f: (wl, ea, 0.01))
+    monkeypatch.setattr(_PSF_LOADER, lambda _f: (np.array([0.0, 1.0]), np.array([1.0, 0.5])))
+
     cfg_path = tmp_path / "channel.cfg"
     cfg_path.write_text(
         """
@@ -339,6 +363,8 @@ def test_load_channel_config_duplicate_keys_last_wins(tmp_path):
         mode = 1
         bias_offset = 0.0
         ccd_gain = 1.0
+        aperture_pix = 4.0
+        psf_profile_file = psf.txt
         spread_profile_file =
         spread_half_height_pix = 0
         """,
@@ -666,7 +692,14 @@ def test_load_channels_config_calls_load_channel_config_three_times(monkeypatch,
 
     _write_cfg(nuv_cfg, channel_name="NUV", effective_area_file="nuv.txt", x_pixels=2)
     _write_cfg(vis_cfg, channel_name="VIS", effective_area_file="vis.txt", x_pixels=2)
-    _write_cfg(ir_cfg, channel_name="IR", effective_area_file="ir.txt", x_pixels=2)
+    _write_cfg(
+        ir_cfg,
+        channel_name="IR",
+        effective_area_file="ir.txt",
+        x_pixels=2,
+        aperture_pix=4.0,
+        psf_profile_file="psf.txt",
+    )
 
     def _fake_ea(filename: str):
         return np.array([1.0, 2.0]), np.array([0.1, 0.2]), 0.01
@@ -674,6 +707,7 @@ def test_load_channels_config_calls_load_channel_config_three_times(monkeypatch,
     monkeypatch.setattr(_EA_LOADER, _fake_ea)
     monkeypatch.setattr(_SPREAD_LOADER, _no_spread)
     monkeypatch.setattr(_BG_LOADER, _no_background)
+    monkeypatch.setattr(_PSF_LOADER, lambda _f: (np.array([0.0, 1.0]), np.array([1.0, 0.5])))
 
     user_cfg = _UserCfgChannels(exposure_NUV_s=3.0, exposure_VIS_s=4.0, exposure_IR_s=5.0)
 
@@ -692,8 +726,8 @@ def test_load_channels_config_calls_load_channel_config_three_times(monkeypatch,
 # ----------------------------------------------------------------------
 
 
-def test_load_channel_config_ir_returns_photometry_channel_without_loading_ea(monkeypatch, tmp_path):
-    """load_channel_config for IR returns PhotometryChannel without calling load_effective_area_file."""
+def test_load_channel_config_ir_returns_photometry_channel(monkeypatch, tmp_path):
+    """load_channel_config for IR returns PhotometryChannel and loads EA/PSF inputs."""
     ea_calls = []
 
     def _fake_ea(filename: str):
@@ -702,13 +736,21 @@ def test_load_channel_config_ir_returns_photometry_channel_without_loading_ea(mo
 
     monkeypatch.setattr(_EA_LOADER, _fake_ea)
     monkeypatch.setattr(_SPREAD_LOADER, _no_spread)
+    monkeypatch.setattr(_PSF_LOADER, lambda _f: (np.array([0.0, 1.0]), np.array([1.0, 0.5])))
 
     cfg_path = tmp_path / "ir.cfg"
-    _write_cfg(cfg_path, channel_name="IR", effective_area_file="ir.txt", x_pixels=2)
+    _write_cfg(
+        cfg_path,
+        channel_name="IR",
+        effective_area_file="ir.txt",
+        x_pixels=2,
+        aperture_pix=4.0,
+        psf_profile_file="psf.txt",
+    )
 
     ch = load_channel_config(cfg_path, exposure_s=5.0)
 
     assert isinstance(ch, PhotometryChannel)
     assert ch.channel_name == "IR"
     assert ch.exposure_s == pytest.approx(5.0)
-    assert ea_calls == []  # IR skips effective area loading
+    assert ea_calls == ["ir.txt"]

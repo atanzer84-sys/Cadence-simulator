@@ -14,17 +14,13 @@ def build_psf_stamp_from_radial_profile(psf_radial_distance: np.ndarray, psf_rad
         raise ValueError(f"Invalid npix={npix}. Must be >= 1.")
 
 
-    logging.info(
-        "PSF stamp: building from radial profile (npix=%d, profile points=%d)",
-        npix,
-        len(psf_radial_distance),
-    )
+    logging.info("PSF stamp: building from radial profile (npix=%d, profile points=%d)", npix, len(psf_radial_distance))
+
     psf_r = si.interp1d(psf_radial_distance, psf_radial_flux, kind="slinear", bounds_error=False, fill_value="extrapolate")
 
     x = np.arange(-npix, npix + 1)
     y = np.arange(-npix, npix + 1)
     X, Y = np.meshgrid(x, y)
-
 
     # r = np.sqrt(X**2 + Y**2)
 
@@ -40,28 +36,31 @@ def build_psf_stamp_from_radial_profile(psf_radial_distance: np.ndarray, psf_rad
         raise ValueError("PSF stamp sums to zero (check PSF profile values).")
 
     psf /= s
-    side = 2 * npix + 1
-    logging.info("PSF stamp: built shape (%d, %d), normalized sum=1.0", side, side)
+
+    logging.info("Photometry: PSF stamp shape=%s sum(before scale)=%g", psf.shape, np.sum(psf))
+
     return psf
 
-# def paste_stamp_center(frame: np.ndarray, stamp: np.ndarray, cx: int, cy: int) -> None: 
-#     """
-#     In-place paste of stamp into frame, centered at (cx, cy).
-#     Crops automatically at edges.
-#     """
-#     h, w = frame.shape
-#     sh, sw = stamp.shape
-#     hy = sh // 2
-#     hx = sw // 2
+def paste_stamp_center(frame: np.ndarray, stamp: np.ndarray, cx: int, cy: int) -> None: 
+    """
+    In-place paste of stamp into frame, centered at (cx, cy).
+    Crops automatically at edges.
+    """
+    h, w = frame.shape
+    sh, sw = stamp.shape
+    hy = sh // 2
+    hx = sw // 2
 
-#     x0 = max(0, cx - hx)
-#     x1 = min(w, cx + hx + 1)
-#     y0 = max(0, cy - hy)
-#     y1 = min(h, cy + hy + 1)
+    x0 = max(0, cx - hx)
+    x1 = min(w, cx + hx + 1)
+    y0 = max(0, cy - hy)
+    y1 = min(h, cy + hy + 1)
 
-#     sx0 = x0 - (cx - hx)
-#     sx1 = sx0 + (x1 - x0)
-#     sy0 = y0 - (cy - hy)
-#     sy1 = sy0 + (y1 - y0)
+    sx0 = x0 - (cx - hx)
+    sx1 = sx0 + (x1 - x0)
+    sy0 = y0 - (cy - hy)
+    sy1 = sy0 + (y1 - y0)
 
-#     frame[y0:y1, x0:x1] += stamp[sy0:sy1, sx0:sx1]
+    frame[y0:y1, x0:x1] += stamp[sy0:sy1, sx0:sx1]
+    
+    logging.info("Photometry: frame sum=%g max_pixel_rate=%g", np.sum(frame), np.max(frame))
