@@ -6,7 +6,6 @@ Run this to confirm the results are identical to your previous method.
 
 from astroquery.gaia import Gaia
 from astropy.coordinates import SkyCoord
-import astropy.units as u
 from datetime import datetime
 import numpy as np
 
@@ -52,7 +51,7 @@ def gaia_unified_verification(target_name: str, radius_arcsec: float = 150.0):
 def main():
     TARGET_NAME = "HD 2685"
     RADIUS_ARCSEC = 150.0
-    tbl, coord = gaia_unified_verification(TARGET_NAME, radius_arcsec=RADIUS_ARCSEC)
+    tbl, _ = gaia_unified_verification(TARGET_NAME, radius_arcsec=RADIUS_ARCSEC)
 
     cols = [
         "source_id", "ra", "dec", "parallax", "phot_g_mean_mag",
