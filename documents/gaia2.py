@@ -51,7 +51,9 @@ def gaia_nearby_stars_with_params_by_name(target_name: str, radius_arcsec: float
     WHERE source_id IN ({ids_sql})
     """
 
+    print ("before gaia async")
     job2 = Gaia.launch_job_async(query)
+    print ("after gaia async")
     ap = job2.get_results()
     ts("AP query returned rows:", len(ap))
     # 3) local join on source_id
