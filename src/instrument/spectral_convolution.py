@@ -109,7 +109,7 @@ def gaussbroad(wavelength, spectra, hwhm):
     sout = sout[npad:npad+len(wavelength)]			#trim to original data/length
     return sout					#return broadened spectrum.
 
-def counts_per_s_px_conv_per_channel(broadened_photon_flux: np.ndarray, wavelength: np.ndarray, channel: SpectroscopyChannel, star: Star, ctx: RunContext, filename_suffix: str | None = None):
+def counts_per_s_px_conv_per_channel(broadened_photon_flux: np.ndarray, wavelength: np.ndarray, channel: Channel, star: Star, ctx: RunContext, filename_suffix: str | None = None):
     """
     Convert photon flux at Earth [photons/cm²/s/Å] into counts/s/pixel for a single channel and gauss broaden it.
     """

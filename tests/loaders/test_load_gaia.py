@@ -2,7 +2,6 @@ from astropy.coordinates import SkyCoord
 from astropy.table import Table
 import astropy.units as u
 from types import SimpleNamespace
-import numpy as np
 
 from loaders import load_gaia
 
