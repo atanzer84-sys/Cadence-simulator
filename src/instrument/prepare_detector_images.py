@@ -8,22 +8,23 @@ from instrument.spectrum_spread import spread_1d_spectrum_to_2d
 from instrument.spectral_convolution import counts_per_s_px_conv_per_channel, compute_broadened_channel_flux
 from configs.global_config import get_global_config
 from utils.constants import PHOTON_ENERGY_CONVERSION_A
-from instrument.psf_spread import photometry_rate_1d_to_2d
+from instrument.psf_spread import spread_1d_photometry_to_2d
 
 def prepare_all_detector_images_all_channels(star: Star, ctx: RunContext, nuv: SpectroscopyChannel, vis: SpectroscopyChannel, nir: PhotometryChannel):
     print("==== STARTING CALCULATION FOR FLUX TO INSTRUMENT =====")
     flux, wavelengths_total = calculateFluxOnEarth(star, ctx)
 
     logging.info("Starting convolution to instrument")
-    print("==== STARTING CONVOLUTION TO INSTRUMENT =====")
-    # NUV and VIS Channel
-    spectra_2d_nuv = prepare_all_detector_images_spectroscopy(flux, wavelengths_total, nuv, ctx, star)
-    spectra_2d_vis = prepare_all_detector_images_spectroscopy(flux, wavelengths_total, vis, ctx, star)
+    print("==== STARTING CONVOLUTION TO INSTRUMENT (NUV & VIS)=====")
+    # # NUV and VIS Channel
+    # spectra_2d_nuv = prepare_all_detector_images_spectroscopy(flux, wavelengths_total, nuv, ctx, star)
+    # spectra_2d_vis = prepare_all_detector_images_spectroscopy(flux, wavelengths_total, vis, ctx, star)
 
+    print("==== STARTING CONVOLUTION TO INSTRUMENT (NIR)=====")
     # NIR Channel
     nir_rate_frame = prepare_detector_image_photometry(flux, wavelengths_total, nir, ctx, star)
     
-    return spectra_2d_nuv, spectra_2d_vis, nir_rate_frame
+    # return spectra_2d_nuv, spectra_2d_vis, nir_rate_frame
 
 def prepare_all_detector_images_spectroscopy(flux: np.ndarray, wavelengths: np.ndarray, channel: SpectroscopyChannel, ctx: RunContext, star: Star):
     counts_s_px_convolved = compute_counts_per_s_px_one_channel(flux, wavelengths, channel, ctx, star)
@@ -31,11 +32,10 @@ def prepare_all_detector_images_spectroscopy(flux: np.ndarray, wavelengths: np.n
     return spectra_2d
 
 def prepare_detector_image_photometry(flux: np.ndarray, wavelengths: np. ndarray, channel: PhotometryChannel, ctx: RunContext, star: Star):
-    logging.info("=== PHOTOMETRY START: channel=%s star=%s ===",
-                 channel.channel_name, star.name)
+    logging.info("PHOTOMETRY START: channel=%s star=%s", channel.channel_name, star.name)
 
     counts_s_px_nir = compute_counts_per_s_px_one_channel(flux, wavelengths, channel, ctx, star)
-    rate_image_e_s = photometry_rate_1d_to_2d(counts_s_px_nir, channel, ctx)
+    rate_image_e_s = spread_1d_photometry_to_2d(counts_s_px_nir, channel, ctx)
     return rate_image_e_s
 
 
