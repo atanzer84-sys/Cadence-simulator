@@ -35,13 +35,7 @@ def load_channel_config(path: Path, exposure_s:float):
 
     effective_area_file=str(raw.get("effective_area_file", "")).strip()
     effective_area_wavelength, effective_area, pixel_scale = load_effective_area_file(effective_area_file)
-    if len(effective_area_wavelength) != x_pixels:
-        logging.error("%s: effective_area_file=%s len(wavelength)=%d != x_pixels=%d source_file=%s", channel_name, effective_area_file, len (effective_area_wavelength), x_pixels, source_file, )
-        raise ValueError(
-            f"{channel_name}: effective_area_file={effective_area_file} "
-            f"len(wavelength)={len(effective_area_wavelength)} != x_pixels={x_pixels} "
-            f"source_file={source_file}"
-        )
+
 
     if channel_name == "NIR":
         aperture_pix = _as_float(raw["aperture_pix"], key="aperture_pix")
@@ -73,6 +67,17 @@ def load_channel_config(path: Path, exposure_s:float):
             source_position_y_arcsec=source_position_y_arcsec,
         )
 
+    # Spectroscopy only:
+    # For dispersive channels (NUV/VIS), wavelength bins map 1:1 to detector x pixels.
+    # Therefore the effective area table must have exactly x_pixels entries.
+    # Photometry channels return earlier and are not subject to this constraint.
+    if len(effective_area_wavelength) != x_pixels:
+        logging.error("%s: effective_area_file=%s len(wavelength)=%d != x_pixels=%d source_file=%s", channel_name, effective_area_file, len (effective_area_wavelength), x_pixels, source_file, )
+        raise ValueError(
+            f"{channel_name}: effective_area_file={effective_area_file} "
+            f"len(wavelength)={len(effective_area_wavelength)} != x_pixels={x_pixels} "
+            f"source_file={source_file}"
+        )
     mode=_as_int(raw["mode"], key="mode")
     spread_profile_file=str(raw.get("spread_profile_file", "")).strip()
     spread_half_height_pix=_as_optional_int(raw.get("spread_half_height_pix", None)) or 0
