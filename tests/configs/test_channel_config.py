@@ -38,7 +38,7 @@ def test_spectroscopy_channel_init():
 
 def test_photometry_channel_init():
     ch = PhotometryChannel(
-        channel_name="IR",
+        channel_name="NIR",
         x_pixels=100,
         y_pixels=100,
         resolution_factor=1.0,
@@ -56,5 +56,5 @@ def test_photometry_channel_init():
         aperture_pix=4.0,
     )
 
-    assert ch.channel_name == "IR"
+    assert ch.channel_name == "NIR"
     assert ch.exposure_s == 5.0

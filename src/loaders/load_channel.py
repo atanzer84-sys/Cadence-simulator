@@ -10,7 +10,7 @@ def load_channels_config(user_cfg: UserConfig):
     # load channel config, not cached, pass it through
     nuv_channel = load_channel_config(repo_root / "configs" / "waltzer_nuv.cfg", user_cfg.exposure_NUV_s)
     vis_channel = load_channel_config(repo_root / "configs" / "waltzer_vis.cfg", user_cfg.exposure_VIS_s)
-    ir_channel  = load_channel_config(repo_root / "configs" / "waltzer_ir.cfg", user_cfg.exposure_IR_s)
+    ir_channel  = load_channel_config(repo_root / "configs" / "waltzer_nir.cfg", user_cfg.exposure_IR_s)
 
     return nuv_channel, vis_channel, ir_channel
 
@@ -43,7 +43,7 @@ def load_channel_config(path: Path, exposure_s:float):
             f"source_file={source_file}"
         )
 
-    if channel_name == "IR":
+    if channel_name == "NIR":
         aperture_pix = _as_float(raw["aperture_pix"], key="aperture_pix")
         psf_file = str(raw["psf_profile_file"]).strip()
         psf_radial_distance, psf_radial_flux = load_psf_profile_file(psf_file)

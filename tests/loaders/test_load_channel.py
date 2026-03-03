@@ -246,7 +246,7 @@ def test_load_channel_config_missing_file_raises(tmp_path):
 def test_load_channel_config_invalid_int_raises_valueerror(tmp_path):
     """Non-integer x_pixels raises ValueError."""
     cfg_path = tmp_path / "bad_int.cfg"
-    _write_cfg(cfg_path, channel_name="IR", x_pixels="not_an_int")
+    _write_cfg(cfg_path, channel_name="NIR", x_pixels="not_an_int")
 
     with pytest.raises(ValueError, match="x_pixels"):
         load_channel_config(cfg_path, exposure_s=10.0)
@@ -255,7 +255,7 @@ def test_load_channel_config_invalid_int_raises_valueerror(tmp_path):
 def test_load_channel_config_invalid_float_raises_valueerror(tmp_path):
     """Non-float resolution_factor raises ValueError."""
     cfg_path = tmp_path / "bad_float.cfg"
-    _write_cfg(cfg_path, channel_name="IR", resolution_factor="not_a_float")
+    _write_cfg(cfg_path, channel_name="NIR", resolution_factor="not_a_float")
 
     with pytest.raises(ValueError, match="resolution_factor"):
         load_channel_config(cfg_path, exposure_s=10.0)
@@ -279,7 +279,7 @@ def test_load_channel_config_ignores_comments(monkeypatch, tmp_path):
         dark_noise = 0.01
         read_noise = 3.2
         effective_area_file = ir.txt   # calibration file
-        channel_name = IR
+        channel_name = NIR
         dark_current_sigma = 0.001
         mode = 1
         bias_offset = 0.0
@@ -296,7 +296,7 @@ def test_load_channel_config_ignores_comments(monkeypatch, tmp_path):
 
     assert ch.x_pixels == 2048
     assert ch.read_noise == pytest.approx(3.2)
-    assert ch.channel_name == "IR"
+    assert ch.channel_name == "NIR"
 
 
 def test_load_channel_config_missing_required_key_raises_keyerror(tmp_path):
@@ -328,7 +328,7 @@ def test_channel_is_frozen(monkeypatch, tmp_path):
     cfg_path = tmp_path / "ir.cfg"
     _write_cfg(
         cfg_path,
-        channel_name="IR",
+        channel_name="NIR",
         x_pixels=2,
         effective_area_file="ir.txt",
         aperture_pix=4.0,
@@ -687,14 +687,14 @@ def test_load_channels_config_calls_load_channel_config_three_times(monkeypatch,
 
     nuv_cfg = tmp_path / "configs" / "waltzer_nuv.cfg"
     vis_cfg = tmp_path / "configs" / "waltzer_vis.cfg"
-    ir_cfg = tmp_path / "configs" / "waltzer_ir.cfg"
+    ir_cfg = tmp_path / "configs" / "waltzer_nir.cfg"
     nuv_cfg.parent.mkdir(parents=True, exist_ok=True)
 
     _write_cfg(nuv_cfg, channel_name="NUV", effective_area_file="nuv.txt", x_pixels=2)
     _write_cfg(vis_cfg, channel_name="VIS", effective_area_file="vis.txt", x_pixels=2)
     _write_cfg(
         ir_cfg,
-        channel_name="IR",
+        channel_name="NIR",
         effective_area_file="ir.txt",
         x_pixels=2,
         aperture_pix=4.0,
@@ -718,7 +718,7 @@ def test_load_channels_config_calls_load_channel_config_three_times(monkeypatch,
     assert isinstance(ir_ch, PhotometryChannel)
     assert nuv_ch.channel_name == "NUV"
     assert vis_ch.channel_name == "VIS"
-    assert ir_ch.channel_name == "IR"
+    assert ir_ch.channel_name == "NIR"
 
 
 # ----------------------------------------------------------------------
@@ -741,7 +741,7 @@ def test_load_channel_config_ir_returns_photometry_channel(monkeypatch, tmp_path
     cfg_path = tmp_path / "ir.cfg"
     _write_cfg(
         cfg_path,
-        channel_name="IR",
+        channel_name="NIR",
         effective_area_file="ir.txt",
         x_pixels=2,
         aperture_pix=4.0,
@@ -751,6 +751,6 @@ def test_load_channel_config_ir_returns_photometry_channel(monkeypatch, tmp_path
     ch = load_channel_config(cfg_path, exposure_s=5.0)
 
     assert isinstance(ch, PhotometryChannel)
-    assert ch.channel_name == "IR"
+    assert ch.channel_name == "NIR"
     assert ch.exposure_s == pytest.approx(5.0)
     assert ea_calls == ["ir.txt"]

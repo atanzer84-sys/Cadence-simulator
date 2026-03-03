@@ -1,6 +1,6 @@
 import numpy as np
 from pathlib import Path
-from utils.constants import (debug_wavelength_range_nuv, debug_wavelength_range_vis, debug_wavelength_range_ir, DEBUG_WL_A_NUV, DEBUG_WL_A_VIS, DEBUG_WL_A_IR)
+from utils.constants import (debug_wavelength_range_nuv, debug_wavelength_range_vis, debug_wavelength_range_ir, DEBUG_WL_A_NUV, DEBUG_WL_A_VIS, DEBUG_WL_A_NIR)
 
 
 
@@ -25,7 +25,7 @@ def dump_3d_array(array, output_dir, star_name: str, tag: str, perChannel: bool 
     if zoom:
         _dump(f"{star_name}_{tag}_NUV_zoom.txt", *DEBUG_WL_A_NUV)
         _dump(f"{star_name}_{tag}_VIS_zoom.txt", *DEBUG_WL_A_VIS)
-        _dump(f"{star_name}_{tag}_IR_zoom.txt",  *DEBUG_WL_A_IR)
+        _dump(f"{star_name}_{tag}_IR_zoom.txt",  *DEBUG_WL_A_NIR)
 
 
 
@@ -41,7 +41,7 @@ def dump_1d_array(wave, array, output_dir, star_name: str, tag: str, perChannel:
     if zoom:
         dump_masked_1d(wave, array, output_dir, f"{star_name}_{tag}_NUV_zoom.txt", *DEBUG_WL_A_NUV, fmt)
         dump_masked_1d(wave, array, output_dir, f"{star_name}_{tag}_VIS_zoom.txt", *DEBUG_WL_A_VIS, fmt)
-        dump_masked_1d(wave, array, output_dir, f"{star_name}_{tag}_IR_zoom.txt",  *DEBUG_WL_A_IR,  fmt)
+        dump_masked_1d(wave, array, output_dir, f"{star_name}_{tag}_IR_zoom.txt",  *DEBUG_WL_A_NIR,  fmt)
 
 
 def dump_masked_1d(wave, array, output_dir, filename, wmin, wmax, fmt="%.18e"):
@@ -66,9 +66,9 @@ def dump_1d_for_channel(wave, array, output_dir, star_name: str, tag: str, chann
     elif channel_name == "VIS":
         full_range = debug_wavelength_range_vis
         zoom_range = DEBUG_WL_A_VIS
-    elif channel_name == "IR":
+    elif channel_name == "NIR":
         full_range = debug_wavelength_range_ir
-        zoom_range = DEBUG_WL_A_IR
+        zoom_range = DEBUG_WL_A_NIR
     else:
         raise ValueError("cal_name must be 'NUV', 'VIS', or 'IR'")
 

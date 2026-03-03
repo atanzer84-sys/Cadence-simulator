@@ -1,7 +1,7 @@
 import logging
 import matplotlib.pyplot as plt
 from pathlib import Path
-from utils.constants import debug_wavelength_range_ir, debug_wavelength_range_nuv, debug_wavelength_range_vis, DEBUG_WL_A_NUV, DEBUG_WL_A_VIS, DEBUG_WL_A_IR
+from utils.constants import debug_wavelength_range_ir, debug_wavelength_range_nuv, debug_wavelength_range_vis, DEBUG_WL_A_NUV, DEBUG_WL_A_VIS, DEBUG_WL_A_NIR
 from loaders.run_waltzer_context import RunContext
 from domain.star import Star
 import numpy as np
@@ -155,7 +155,7 @@ def plot_photon_flux(wavelengths, values, output_dir, star : Star, filename_tag,
     fig, ax = plt.subplots(figsize=(12, 4))
 
     band = key.split("_")[0].lower()
-    colors = {"nuv": "darkblue", "vis": "darkgreen", "ir": "darkred"}
+    colors = {"nuv": "darkblue", "vis": "darkgreen", "nir": "darkred"}
     color = colors.get(band, "black")
 
     ax.plot(wl, flux, color=color, linewidth=0.4, alpha=0.6)
@@ -175,7 +175,7 @@ def plot_flux_and_photons_windows(wavelengths, values, output_dir, star: Star, f
     if perChannel:
         plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, "NUV", debug_wavelength_range_nuv[0], debug_wavelength_range_nuv[1])
         plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, "VIS", debug_wavelength_range_vis[0], debug_wavelength_range_vis[1])
-        plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, "IR",  debug_wavelength_range_ir[0],  debug_wavelength_range_ir[1])
+        plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, "NIR",  debug_wavelength_range_ir[0],  debug_wavelength_range_ir[1])
 
     if full:
         plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, "full", float(wavelengths.min()), float(wavelengths.max()))
@@ -183,7 +183,7 @@ def plot_flux_and_photons_windows(wavelengths, values, output_dir, star: Star, f
     if zoom:
         plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, "NUV_zoom", *DEBUG_WL_A_NUV)
         plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, "VIS_zoom", *DEBUG_WL_A_VIS)
-        plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, "IR_zoom",  *DEBUG_WL_A_IR)
+        plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, "IR_zoom",  *DEBUG_WL_A_NIR)
 
 
 def plot_1d_for_channel(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, channel_name: str, full: bool = False, zoom: bool = False):
@@ -193,9 +193,9 @@ def plot_1d_for_channel(wavelengths, values, output_dir, star, filename_tag, tit
     elif channel_name == "VIS":
         full_range = debug_wavelength_range_vis
         zoom_range = DEBUG_WL_A_VIS
-    elif channel_name == "IR":
+    elif channel_name == "NIR":
         full_range = debug_wavelength_range_ir
-        zoom_range = DEBUG_WL_A_IR
+        zoom_range = DEBUG_WL_A_NIR
     else:
         raise ValueError("channel_name must be 'NUV', 'VIS', or 'IR'")
 

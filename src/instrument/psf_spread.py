@@ -1,18 +1,59 @@
 import logging
 import numpy as np
 import scipy.interpolate as si
+from configs.channel_config import PhotometryChannel
+from loaders.run_waltzer_context import RunContext
+
+def photometry_rate_1d_to_2d(counts_s_px_convolved: np.ndarray, channel: PhotometryChannel, ctx: RunContext) -> np.ndarray:
+    electrons_s_nir, npix = compute_photometry_signal_parameters(counts_s_px_convolved, channel)
+
+    psf_stamp_norm = build_psf_stamp_from_radial_profile(channel.psf_radial_distance, channel.psf_radial_flux, npix)
+
+    psf_stamp_electrons_per_second = psf_stamp_norm * electrons_s_nir
+
+    nir_image_e_s = np.zeros((channel.y_pixels, channel.x_pixels), dtype=float)
+    cx = channel.x_pixels // 2
+    cy = channel.y_pixels // 2
+    paste_stamp_center(nir_image_e_s, psf_stamp_electrons_per_second, cx, cy)
+
+    ctx.write_image_png.write_image(nir_image_e_s, "nir_image_frame_only", ctx, channel)
+
+    return nir_image_e_s
+
+
+
+def compute_photometry_signal_parameters(counts_s_px: np.ndarray, channel:  PhotometryChannel,) -> tuple[float, float, float, float, int]:
+    """
+    From convolved counts per wavelength bin, compute:
+        - band-integrated rate (e-/s)
+        - total electrons for exposure
+        - aperture radius (pix)
+        - Gaussian sigma (pix)
+        - PSF half-size npix
+    """
+
+    # Collapse to scalar band rate
+    source_flux_s = float(np.sum(counts_s_px))
+
+    # Aperture photometry
+    radius = 0.5 * channel.aperture_pix
+    # For a Gaussian profile, assume that the standard deviation is a
+    # third of the aperture radius
+    sigma = radius / 3.0
+
+    # Map up to 5*sigma away from the center
+    npix = int(5.0 * sigma)
+    logging.info("Photometry: aperture_pix=%.3f radius=%.3f sigma=%.3f npix=%d stamp_size=%dx%d", channel.aperture_pix, radius, sigma, npix, 2*npix+1, 2*npix+1)
+    return source_flux_s, npix
+
 
 def build_psf_stamp_from_radial_profile(psf_radial_distance: np.ndarray, psf_radial_flux: np.ndarray, npix: int) -> np.ndarray:
     """
     Returns a 2D PSF stamp of shape (2*npix+1, 2*npix+1), normalized so sum = 1.
     Radial distance is in pixels.
     """
-    if psf_radial_distance is None or psf_radial_flux is None:
-        raise ValueError("PSF radial profile not loaded (psf_radial_distance/psf_radial_flux).")
-
     if npix < 1:
         raise ValueError(f"Invalid npix={npix}. Must be >= 1.")
-
 
     logging.info("PSF stamp: building from radial profile (npix=%d, profile points=%d)", npix, len(psf_radial_distance))
 

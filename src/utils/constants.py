@@ -67,7 +67,7 @@ debug_wavelength_range_ir = [8250, 18000]
 # wavelengths for test_dumps and comparisons in A
 DEBUG_WL_A_NUV = (2790.0, 2850.0)
 DEBUG_WL_A_VIS = (5550.0, 5630.0)
-DEBUG_WL_A_IR  = (11000.0, 11100.0)
+DEBUG_WL_A_NIR  = (11000.0, 11100.0)
 
 
 if __name__ == "__main__":

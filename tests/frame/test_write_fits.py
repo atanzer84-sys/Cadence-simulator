@@ -108,10 +108,10 @@ def test_write_fits_more_headers_than_frames_truncates(tmp_path):
         fits.Header([("B", "2", "")]),
     ]
 
-    write_fits_frames(frames, headers, "DARK", "IR", ctx)
+    write_fits_frames(frames, headers, "DARK", "NIR", ctx)
 
-    assert (tmp_path / "WALTzER_TestStar_IR_DARK_00000.fits").exists()
-    assert not (tmp_path / "WALTzER_TestStar_IR_DARK_00001.fits").exists()
+    assert (tmp_path / "WALTzER_TestStar_NIR_DARK_00000.fits").exists()
+    assert not (tmp_path / "WALTzER_TestStar_NIR_DARK_00001.fits").exists()
 
 
 # --- Overwrite ---
@@ -140,12 +140,12 @@ def test_write_fits_channel_tags_nuv_vis_ir(tmp_path):
     frame = np.zeros((1, 1))
     hdr = fits.Header()
 
-    for tag in ("NUV", "VIS", "IR"):
+    for tag in ("NUV", "VIS", "NIR"):
         write_fits_frames([frame], [hdr.copy()], "bias", tag, ctx)
 
     assert (tmp_path / "WALTzER_TestStar_NUV_bias_00000.fits").exists()
     assert (tmp_path / "WALTzER_TestStar_VIS_bias_00000.fits").exists()
-    assert (tmp_path / "WALTzER_TestStar_IR_bias_00000.fits").exists()
+    assert (tmp_path / "WALTzER_TestStar_NIR_bias_00000.fits").exists()
 
 
 def test_write_fits_frame_types_bias_dark_science(tmp_path):
