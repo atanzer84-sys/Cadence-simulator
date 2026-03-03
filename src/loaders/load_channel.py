@@ -3,16 +3,16 @@ from pathlib import Path
 import logging
 from configs.channel_config import SpectroscopyChannel, PhotometryChannel
 from configs.user_config import UserConfig
-from loaders.load_channel_files import load_effective_area_file, load_spread_profile_file, load_background_file, load_zod_dist_file, load_zod_spectrum_file, load_psf_profile_file
+from loaders.load_channel_files import load_effective_area_file, load_spread_profile_file_spectroscopy, load_background_file, load_zod_dist_file, load_zod_spectrum_file, load_spread_profile_file_photometry, load_psf_profile_file
 
 def load_channels_config(user_cfg: UserConfig):
     repo_root = get_repo_root()
     # load channel config, not cached, pass it through
     nuv_channel = load_channel_config(repo_root / "configs" / "waltzer_nuv.cfg", user_cfg.exposure_NUV_s)
     vis_channel = load_channel_config(repo_root / "configs" / "waltzer_vis.cfg", user_cfg.exposure_VIS_s)
-    ir_channel  = load_channel_config(repo_root / "configs" / "waltzer_nir.cfg", user_cfg.exposure_IR_s)
+    nir_channel  = load_channel_config(repo_root / "configs" / "waltzer_nir.cfg", user_cfg.exposure_IR_s)
 
-    return nuv_channel, vis_channel, ir_channel
+    return nuv_channel, vis_channel, nir_channel
 
 
 
@@ -32,15 +32,19 @@ def load_channel_config(path: Path, exposure_s:float):
     ccd_gain=_as_float(raw.get("ccd_gain", 1.0), key="ccd_gain")
     source_file=str(path)
 
-
     effective_area_file=str(raw.get("effective_area_file", "")).strip()
     effective_area_wavelength, effective_area, pixel_scale = load_effective_area_file(effective_area_file)
+    
+    spread_profile_file=str(raw.get("spread_profile_file", "")).strip()
 
 
     if channel_name == "NIR":
         aperture_pix = _as_float(raw["aperture_pix"], key="aperture_pix")
+        spread_positions, spread_y_weights, spread_x_weights, spread_anchors = load_spread_profile_file_photometry(spread_profile_file, channel_name)
+
         psf_file = str(raw["psf_profile_file"]).strip()
         psf_radial_distance, psf_radial_flux = load_psf_profile_file(psf_file)
+
         source_position_x_arcsec = _as_float(raw.get("source_position_x_arcsec", 0.0), key="source_position_x_arcsec")
         source_position_y_arcsec = _as_float(raw.get("source_position_y_arcsec", 0.0), key="source_position_y_arcsec")
         
@@ -61,10 +65,16 @@ def load_channel_config(path: Path, exposure_s:float):
             effective_area=effective_area,
             pixel_scale=pixel_scale,
             aperture_pix=aperture_pix,
-            psf_radial_distance=psf_radial_distance,
-            psf_radial_flux=psf_radial_flux,
+            spread_profile_file=spread_profile_file,
+            spread_positions= spread_positions,
+            spread_y_weights= spread_y_weights,
+            spread_x_weights = spread_x_weights,
+            spread_anchors=spread_anchors,
             source_position_x_arcsec=source_position_x_arcsec,
             source_position_y_arcsec=source_position_y_arcsec,
+            psf_radial_distance=psf_radial_distance,
+            psf_radial_flux=psf_radial_flux,
+
         )
 
     # Spectroscopy only:
@@ -79,11 +89,9 @@ def load_channel_config(path: Path, exposure_s:float):
             f"source_file={source_file}"
         )
     mode=_as_int(raw["mode"], key="mode")
-    spread_profile_file=str(raw.get("spread_profile_file", "")).strip()
     spread_half_height_pix=_as_optional_int(raw.get("spread_half_height_pix", None)) or 0
-    
         
-    spread_pos, spread_w, spread_wl_header = load_spread_profile_file(spread_profile_file, channel_name)
+    spread_pos, spread_w, spread_wl_header = load_spread_profile_file_spectroscopy(spread_profile_file, channel_name)
     slit_position_x_arcsec = _as_float(raw.get("slit_position_x_arcsec", 0.0), key="slit_position_x_arcsec")
     slit_position_y_arcsec = _as_float(raw.get("slit_position_y_arcsec", 0.0), key="slit_position_y_arcsec")
     slope = _as_float(raw.get("slope", 0.0), key="slope")
@@ -200,3 +208,4 @@ def _parse_simple_kv(path: Path) -> dict[str, str]:
         k, v = (p.strip() for p in s.split("=", 1))
         data[k] = v
     return data
+

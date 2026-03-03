@@ -92,7 +92,7 @@ def load_effective_area_file(effective_area_filename: str) -> tuple[np.ndarray, 
     return wavelength, eff_area, pixel_scale
 
 
-def load_spread_profile_file(spread_filename: str, channel_name: str) -> tuple[np.ndarray | None, np.ndarray | None, np.ndarray | None]:
+def load_spread_profile_file_spectroscopy(spread_filename: str, channel_name: str) -> tuple[np.ndarray | None, np.ndarray | None, np.ndarray | None]:
     repo_root = get_repo_root()
     
     if not spread_filename or spread_filename.strip() == "": 
@@ -379,3 +379,109 @@ def load_psf_profile_file(filename: str) -> tuple[np.ndarray, np.ndarray]:
     logging.info("PSF profile loaded (%s): rows=%d", filename, psf_radial_distance.shape[0])
 
     return psf_radial_distance, psf_radial_flux
+
+def load_spread_profile_file_photometry(
+    spread_filename: str,
+    channel_name: str,
+) -> tuple[np.ndarray | None, np.ndarray | None, np.ndarray | None, np.ndarray | None]:
+    """
+    Photometry spread file loader.
+
+    Expected header:
+        pixels 0_Y 0_X 115_Y 115_X 230_Y 230_X 324_Y 324_X
+
+    Returns:
+        spread_positions: (Ny,) dy offsets (from 'pixels')
+        spread_y_weights: (Ny, Nanchors) from '*_Y' columns
+        spread_x_weights: (Ny, Nanchors) from '*_X' columns
+        spread_anchors:   (Nanchors,) anchor values parsed from headers (0,115,230,324)
+    """
+    repo_root = get_repo_root()
+
+    if not spread_filename or spread_filename.strip() == "":
+        logging.info("Channel %s: no spread profile configured.", channel_name)
+        return None, None, None, None
+
+    path = (repo_root / "data" / spread_filename).resolve()
+    logging.info("Channel %s: loading spread profile file: %s", channel_name, path)
+
+    if not path.exists():
+        logging.error("Channel %s: spread profile file not found: %s", channel_name, path)
+        raise ValueError(f"Spread profile file not found: {path}")
+
+    lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    skiprows = _find_first_numeric_row_index(lines, path)
+
+    header_line = None
+    for line in lines[:skiprows]:
+        s = line.strip()
+        if s.startswith("pixels"):
+            header_line = s
+            break
+
+    if header_line is None:
+        raise ValueError(f"Spread header line starting with 'pixels' not found in file: {path}")
+
+    headers = header_line.split()
+
+    y_col_indices: list[int] = []
+    x_col_indices: list[int] = []
+    y_anchors: list[float] = []
+    x_anchors: list[float] = []
+
+    for idx, h in enumerate(headers):
+        if idx == 0:
+            continue
+
+        if h.endswith("_Y") or h.endswith("_X"):
+            try:
+                a = float(h.split("_")[0])
+            except Exception as exc:
+                raise ValueError(f"Failed to parse anchor from spread header column: {h} in {path}") from exc
+
+            if h.endswith("_Y"):
+                y_col_indices.append(idx)
+                y_anchors.append(a)
+            else:
+                x_col_indices.append(idx)
+                x_anchors.append(a)
+
+    if len(y_col_indices) < 1:
+        raise ValueError(f"No *_Y columns found in spread header in file: {path}")
+    if len(x_col_indices) < 1:
+        raise ValueError(f"No *_X columns found in spread header in file: {path}")
+
+    spread_anchors_y = np.array(y_anchors, dtype=float)
+    spread_anchors_x = np.array(x_anchors, dtype=float)
+
+    if spread_anchors_y.shape != spread_anchors_x.shape or np.any(spread_anchors_y != spread_anchors_x):
+        raise ValueError(
+            f"Spread file anchor mismatch between *_Y and *_X columns in {path}. "
+            f"Y={spread_anchors_y}, X={spread_anchors_x}"
+        )
+
+    spread_anchors = spread_anchors_y
+
+    try:
+        data = np.loadtxt(path, skiprows=skiprows)
+    except Exception as exc:
+        raise ValueError(f"Failed to parse numeric spread table from file: {path}") from exc
+
+    if data.ndim != 2:
+        raise ValueError(f"Invalid spread table structure in file: {path}")
+
+    if data.shape[1] < max(max(y_col_indices), max(x_col_indices)) + 1:
+        raise ValueError(f"Spread table missing required columns in file: {path}")
+
+    spread_positions = data[:, 0].astype(float, copy=False)
+    spread_y_weights = data[:, y_col_indices].astype(float, copy=False)
+    spread_x_weights = data[:, x_col_indices].astype(float, copy=False)
+
+    if spread_y_weights.shape[0] != spread_positions.shape[0] or spread_x_weights.shape[0] != spread_positions.shape[0]:
+        raise ValueError("Spread profile row mismatch")
+
+    logging.info("Channel %s: spread loaded rows=%d anchors=%d anchors=%s", channel_name, spread_positions.shape[0], spread_anchors.shape[0], spread_anchors)
+    logging.info("Channel %s: spread column sums Y=%s", channel_name, spread_y_weights.sum(axis=0))
+    logging.info("Channel %s: spread column sums X=%s", channel_name, spread_x_weights.sum(axis=0))
+
+    return spread_positions, spread_y_weights, spread_x_weights, spread_anchors

@@ -55,8 +55,16 @@ class SpectroscopyChannel(Channel):
 @dataclass(frozen=True, slots=True)
 class PhotometryChannel(Channel):
     aperture_pix: float
+    spread_profile_file: str
+
     psf_radial_distance: np.ndarray | None = None
     psf_radial_flux: np.ndarray | None = None
+
+    spread_positions: np.ndarray | None = None
+    spread_y_weights: np.ndarray | None = None
+
+    spread_x_weights: np.ndarray | None = None
+    spread_anchors: np.ndarray | None = None
+
     source_position_x_arcsec: float | None = None
     source_position_y_arcsec: float | None = None
-
