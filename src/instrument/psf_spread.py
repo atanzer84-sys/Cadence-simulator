@@ -12,8 +12,18 @@ def photometry_rate_1d_to_2d(counts_s_px_convolved: np.ndarray, channel: Photome
     psf_stamp_electrons_per_second = psf_stamp_norm * electrons_s_nir
 
     nir_image_e_s = np.zeros((channel.y_pixels, channel.x_pixels), dtype=float)
-    cx = channel.x_pixels // 2
-    cy = channel.y_pixels // 2
+    if channel.source_position_x_arcsec != 0.0 or channel.source_position_y_arcsec != 0.0:
+        raise NotImplementedError("Non-zero photometry source position not implemented yet.")
+    # center in pixels
+    cx_center = channel.x_pixels // 2
+    cy_center = channel.y_pixels // 2
+
+    # convert arcsec offsets to pixels
+    dx_pix = channel.source_position_x_arcsec / channel.pixel_scale
+    dy_pix = channel.source_position_y_arcsec / channel.pixel_scale
+
+    cx = int(cx_center + dx_pix)
+    cy = int(cy_center + dy_pix)
     paste_stamp_center(nir_image_e_s, psf_stamp_electrons_per_second, cx, cy)
 
     ctx.write_image_png.write_image(nir_image_e_s, "nir_image_frame_only", ctx, channel)

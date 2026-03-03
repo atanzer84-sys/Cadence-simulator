@@ -47,6 +47,9 @@ def load_channel_config(path: Path, exposure_s:float):
         aperture_pix = _as_float(raw["aperture_pix"], key="aperture_pix")
         psf_file = str(raw["psf_profile_file"]).strip()
         psf_radial_distance, psf_radial_flux = load_psf_profile_file(psf_file)
+        source_position_x_arcsec = _as_float(raw.get("source_position_x_arcsec", 0.0), key="source_position_x_arcsec")
+        source_position_y_arcsec = _as_float(raw.get("source_position_y_arcsec", 0.0), key="source_position_y_arcsec")
+        
         return PhotometryChannel(
             channel_name=channel_name,
             x_pixels=x_pixels,
@@ -66,6 +69,8 @@ def load_channel_config(path: Path, exposure_s:float):
             aperture_pix=aperture_pix,
             psf_radial_distance=psf_radial_distance,
             psf_radial_flux=psf_radial_flux,
+            source_position_x_arcsec=source_position_x_arcsec,
+            source_position_y_arcsec=source_position_y_arcsec,
         )
 
     mode=_as_int(raw["mode"], key="mode")

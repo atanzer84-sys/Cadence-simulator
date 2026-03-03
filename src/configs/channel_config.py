@@ -57,4 +57,6 @@ class PhotometryChannel(Channel):
     aperture_pix: float
     psf_radial_distance: np.ndarray | None = None
     psf_radial_flux: np.ndarray | None = None
+    source_position_x_arcsec: float | None = None
+    source_position_y_arcsec: float | None = None
 
