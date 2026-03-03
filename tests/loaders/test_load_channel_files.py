@@ -1,7 +1,7 @@
 """
 Direct tests for low-level calibration file loaders:
 - load_effective_area_file
-- load_spread_profile_file
+- load_spread_profile_file_spectroscopy
 - load_background_file
 - load_zod_dist_file
 - load_zod_spectrum_file
@@ -14,7 +14,7 @@ import pytest
 
 from loaders.load_channel_files import (
     load_effective_area_file,
-    load_spread_profile_file,
+    load_spread_profile_file_spectroscopy,
     load_background_file,
     load_zod_dist_file,
     load_zod_spectrum_file,
@@ -219,57 +219,57 @@ def test_load_effective_area_file_malformed_numeric_row_raises(monkeypatch, tmp_
 
 
 # ----------------------------------------------------------------------
-# load_spread_profile_file: direct tests
+# load_spread_profile_file_spectroscopy: direct tests
 # ----------------------------------------------------------------------
 
 
-def test_load_spread_profile_file_success(monkeypatch, tmp_path):
-    """load_spread_profile_file loads positions, weights, wavelengths from real file."""
+def test_load_spread_profile_file_spectroscopy_success(monkeypatch, tmp_path):
+    """load_spread_profile_file_spectroscopy loads positions, weights, wavelengths from real file."""
     monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
     data_dir = tmp_path / "data"
     data_dir.mkdir()
     spread_path = data_dir / "spread.txt"
     _write_spread_file(spread_path, wavelengths=[1000.0, 1100.0], num_rows=3)
 
-    positions, weights, wavelengths = load_spread_profile_file("spread.txt", "NUV")
+    positions, weights, wavelengths = load_spread_profile_file_spectroscopy("spread.txt", "NUV")
 
     assert np.allclose(positions, [0.0, 1.0, 2.0])
     assert weights.shape == (3, 2)
     assert np.allclose(wavelengths, [1000.0, 1100.0])
 
 
-def test_load_spread_profile_file_missing_file_raises(monkeypatch, tmp_path):
-    """load_spread_profile_file raises ValueError when file does not exist (non-empty filename)."""
+def test_load_spread_profile_file_spectroscopy_missing_file_raises(monkeypatch, tmp_path):
+    """load_spread_profile_file_spectroscopy raises ValueError when file does not exist (non-empty filename)."""
     monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
     (tmp_path / "data").mkdir(exist_ok=True)
 
     with pytest.raises(ValueError, match="Spread profile file not found"):
-        load_spread_profile_file("nonexistent_spread.txt", "NUV")
+        load_spread_profile_file_spectroscopy("nonexistent_spread.txt", "NUV")
 
 
-def test_load_spread_profile_file_missing_pixels_header_raises(monkeypatch, tmp_path):
-    """load_spread_profile_file raises ValueError when 'pixels' header line is absent."""
+def test_load_spread_profile_file_spectroscopy_missing_pixels_header_raises(monkeypatch, tmp_path):
+    """load_spread_profile_file_spectroscopy raises ValueError when 'pixels' header line is absent."""
     monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
     data_dir = tmp_path / "data"
     data_dir.mkdir()
     _write(data_dir / "spread.txt", "# comment\n0  0.1 0.2\n1  0.3 0.4\n")
 
     with pytest.raises(ValueError, match="No 'pixels"):
-        load_spread_profile_file("spread.txt", "NUV")
+        load_spread_profile_file_spectroscopy("spread.txt", "NUV")
 
 
-def test_load_spread_profile_file_header_count_mismatch_raises(monkeypatch, tmp_path):
-    """load_spread_profile_file raises ValueError when header wavelength count != weight columns."""
+def test_load_spread_profile_file_spectroscopy_header_count_mismatch_raises(monkeypatch, tmp_path):
+    """load_spread_profile_file_spectroscopy raises ValueError when header wavelength count != weight columns."""
     monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
     data_dir = tmp_path / "data"
     data_dir.mkdir()
     _write(data_dir / "spread.txt", "pixels 1000 1100 1200\n0  0.1 0.2\n1  0.3 0.4\n")
 
     with pytest.raises(ValueError, match="wavelength count does not match weight columns"):
-        load_spread_profile_file("spread.txt", "NUV")
+        load_spread_profile_file_spectroscopy("spread.txt", "NUV")
 
 
-def test_load_spread_profile_file_leading_trailing_whitespace_ok(monkeypatch, tmp_path):
+def test_load_spread_profile_file_spectroscopy_leading_trailing_whitespace_ok(monkeypatch, tmp_path):
     """Whitespace and blank lines do not break spread parsing; output dtypes are float."""
     monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
     data_dir = tmp_path / "data"
@@ -279,7 +279,7 @@ def test_load_spread_profile_file_leading_trailing_whitespace_ok(monkeypatch, tm
         "   pixels   1000   1100   \n\n  0    0.10   0.20   \n  1    0.30   0.40   \n\n",
     )
 
-    pos, w, wl = load_spread_profile_file("spread.txt", "NUV")
+    pos, w, wl = load_spread_profile_file_spectroscopy("spread.txt", "NUV")
     assert pos.dtype == float
     assert w.dtype == float
     assert wl.dtype == float

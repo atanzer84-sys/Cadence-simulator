@@ -15,7 +15,7 @@ from loaders.load_channel import (
 
 # Monkeypatch targets (avoids repeating long strings)
 _EA_LOADER = "loaders.load_channel.load_effective_area_file"
-_SPREAD_LOADER = "loaders.load_channel.load_spread_profile_file"
+_SPREAD_LOADER = "loaders.load_channel.load_spread_profile_file_spectroscopy"
 _BG_LOADER = "loaders.load_channel.load_background_file"
 _ZOD_DIST_LOADER = "loaders.load_channel.load_zod_dist_file"
 _ZOD_SPECTRUM_LOADER = "loaders.load_channel.load_zod_spectrum_file"
