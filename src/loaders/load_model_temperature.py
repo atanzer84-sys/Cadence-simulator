@@ -3,7 +3,7 @@ import numpy as np
 from loaders.run_waltzer_context import get_repo_root
 import re
 from pathlib import Path
-from utils.helpers import print_if_enabled
+from utils.helpers import announce, print_if_enabled
 
 
 def _get_available_models(models_dir: Path) -> list[tuple[int, Path]]:
@@ -42,8 +42,8 @@ def load_model_for_temperature(t_star, announce_user: bool = False):
 
     if model_file.is_file():
         model_data = np.loadtxt(model_file)
-        logging.info("Loaded stellar model %s for Teff=%s K (picked=%s K)", model_file.relative_to(models_dir), t_star, t_pick)
-        print_if_enabled(f"Loaded stellar model for Teff={t_target:.0f} K (picked={t_pick} K).", announce_user)
+        msg = f"Loaded stellar model {model_file.relative_to(models_dir)} for Teff={t_target:.0f} K (picked={t_pick} K)"
+        announce(msg, announce_user)
         return model_data
 
     raise FileNotFoundError(

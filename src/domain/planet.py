@@ -27,8 +27,12 @@ class Planet:
         if missing:
             raise ValueError(f"Planet missing required keys at construction: {missing}")
 
-        print("\n==== PLANET Created ====")
-        print(f"Planet created: {planet_params['name']}")
+        msg1 = "\n==== PLANET Created ===="
+        msg2 = f"Planet created: {planet_params['name']}"
+        print(msg1)
+        print(msg2)
+        logging.info(msg1.strip())
+        logging.info(msg2)
 
         planet = cls(
             name=planet_params["name"],

@@ -196,8 +196,9 @@ def get_user_parameter_path():
     else:
         parameter_file = resolve_path_under(repo_root, "input", "parameters.txt")
 
-    logging.info("Using parameter file: %s", parameter_file)
-    print("User parameter file loaded: ", parameter_file.resolve())
+    msg = f"User parameter file loaded: {parameter_file.resolve()}"
+    print(msg)
+    logging.info(msg)
 
     if not parameter_file.exists():
         logging.exception("Parameter file not found: %s", parameter_file)

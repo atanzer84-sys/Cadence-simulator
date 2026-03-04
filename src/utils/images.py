@@ -5,7 +5,7 @@ from utils.constants import debug_wavelength_range_ir, debug_wavelength_range_nu
 from loaders.run_waltzer_context import RunContext
 from domain.star import Star
 import numpy as np
-from configs.channel_config import Channel
+from configs.channel_config import Channel, PhotometryChannel
 from domain.star_catalog import StarCatalog
 
 STATS_KEYS = {
@@ -58,7 +58,9 @@ def _save_single_frame_png(array: np.ndarray, filename: Path, title: str, stats_
     logging.debug("Wrote %s", filename)
 
 
-def write_image_png(array, frame_type: str, ctx: RunContext, channel: Channel, show_stats: bool = True, use_percentile_scaling: bool = True) -> None:
+def write_image_png(array, frame_type: str, ctx: RunContext, channel: Channel, show_stats: bool = True) -> None:
+    """Write 2D array as PNG. Uses percentile scaling for spectroscopy, min/max for photometry (NIR)."""
+    use_percentile_scaling = not isinstance(channel, PhotometryChannel)
     logging.info("WRITE_IMAGE_PNG called | frame_type=%s | channel=%s | shape=%s", frame_type, channel.channel_name, array.shape)
 
     star_name = str(ctx.target_name).replace(" ", "_")

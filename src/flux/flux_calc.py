@@ -11,11 +11,11 @@ from astropy.coordinates import SkyCoord
 from astropy import units as u
 from loaders.run_waltzer_context import RunContext
 from loaders.load_model_temperature import load_model_for_temperature
-from utils.helpers import print_if_enabled
+from utils.helpers import announce
 
 
 def calculateFluxOnEarth(star: Star, ctx: RunContext, announce_user: bool = False):
-    print_if_enabled(f"Starting to calculate Flux on Earth for target star {star.name}", announce_user)
+    announce(f"Starting to calculate Flux on Earth for target star {star.name}", announce_user)
     cfg = get_global_config()
 
     model_data = load_model_for_temperature(star.effective_temperature, announce_user=announce_user)
@@ -96,8 +96,7 @@ def convertStellarModelToFlux(model_data, r_star):
     return flux_lambda
 
 def apply_ism_absorption(data, ebv, cfg, announce_user: bool = False):
-    print_if_enabled("Starting ISM absorption", announce_user)
-    logging.info("Starting ISM absorption")
+    announce("Starting ISM absorption", announce_user)
     logging.info("ISM input: E(B-V)=%s", ebv)
 
     if cfg.mg2_col is None:
@@ -150,16 +149,14 @@ def calculate_glon_glat(right_ascension, declination):
     return glon, glat
 
 def compute_flux_at_earth(flux_lambda_diluted, distance_pc, announce_user: bool = False):
-    logging.info("Calculating flux at Earth")
-    print_if_enabled("Starting Flux at Earth calculation", announce_user)
+    announce("Starting Flux at Earth calculation", announce_user)
     flux_di = flux_lambda_diluted[:,1]
     flux_at_earth = flux_di / (4.0 * np.pi * (distance_pc * PARSEC_CM) ** 2)
     logging.info("Flux at Earth calculation finished")
     return flux_at_earth
 
 def apply_unred(wavelengths, flux_at_earth, ebv, announce_user: bool = False):
-    print_if_enabled("Starting to apply UNRED extinction correction", announce_user)
-    logging.info("Applying UNRED extinction correction")
+    announce("Starting to apply UNRED extinction correction", announce_user)
     ebv = -1.0 * ebv
     flux_unred = unred(wavelengths, flux_at_earth, ebv=ebv, R_V=3.1)
     logging.info("UNRED extinction correction applied")

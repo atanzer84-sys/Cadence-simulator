@@ -9,7 +9,7 @@ def apply_line_core_emission(flux, sigmaMg22, sigmaMg21, logR, spectral_type, an
     Thin wrapper around legacy cute_snr_lca.
     """
     print_if_enabled("Starting to apply line core emission", announce_user)
-    logging.info("Applying Mg II line core emission: "
+    logging.info("Starting to apply line core emission: Applying Mg II line core emission: "
         "spectral_type=%s, logR=%s, sigmaMg22=%.6f, sigmaMg21=%.6f", spectral_type, logR, sigmaMg22, sigmaMg21)
     flux_before = flux[:, 1].copy()
 

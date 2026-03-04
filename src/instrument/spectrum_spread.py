@@ -2,12 +2,12 @@
 import numpy as np
 import logging
 from configs.channel_config import SpectroscopyChannel
+from utils.helpers import announce
 
 
 def spread_1d_spectrum_to_2d(counts_s_pixel_convolved, channel: SpectroscopyChannel):
 
-    logging.info("Spread 1D counts [counts/s/pixel] to 2D detector image for channel %s", channel.channel_name)
-    print(f"Spreading 1D counts to 2D detector image for channel {channel.channel_name}.")
+    announce(f"Spreading 1D counts to 2D detector image for channel {channel.channel_name}.", to_user=True)
 
     nx = channel.x_pixels
     mode = channel.mode

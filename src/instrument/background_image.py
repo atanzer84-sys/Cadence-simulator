@@ -30,6 +30,13 @@ def generate_background_image(channel: SpectroscopyChannel, ctx: RunContext, sta
         background = generate_background_calculated_image(channel, star)
 
     background *= channel.effective_area
+    if len(background) != nx:
+        # Photometry channel: effective area has different wavelength sampling than detector x_pixels. Resample.
+        background = np.interp(
+            np.linspace(0, len(background) - 1, nx),
+            np.arange(len(background)),
+            background,
+        )
     image[:, :] = background[np.newaxis, :]
     image*=channel.exposure_s
 

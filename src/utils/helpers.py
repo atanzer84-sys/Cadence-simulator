@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 
@@ -5,6 +6,12 @@ def print_if_enabled(message: str, enabled: bool) -> None:
     """Print a user-facing message only when enabled."""
     if enabled:
         print(message)
+
+
+def announce(message: str, to_user: bool = False) -> None:
+    """Print to user when enabled, and always log. Single call for both."""
+    print_if_enabled(message, to_user)
+    logging.info(message)
 
 
 def resolve_path_under(base_dir: Path, *parts: str | Path) -> Path:

@@ -50,7 +50,9 @@ def load_stellar_and_planetary_properties(target_name_user_input):
 
         star_params = clean_and_cast_parameters(star_params, Star)
         planet_params = clean_and_cast_parameters(planet_params, Planet)
-        print("Configurations loaded, checked and parsed.")
+        msg = "Configurations loaded, checked and parsed."
+        print(msg)
+        logging.info(msg)
         return (planet_params, star_params, mapping["required_planetary_parameters"], mapping["required_stellar_parameters"]
         )
     except Exception:

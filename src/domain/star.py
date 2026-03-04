@@ -36,8 +36,12 @@ class Star:
             raise ValueError(f"Star missing required keys at construction: {missing}")
         
         if log_output:
-            print("\n==== Target STAR Created ====")
-            print(f"Star created: {star_params['name']}")
+            msg1 = "\n==== Target STAR Created ===="
+            msg2 = f"Star created: {star_params['name']}"
+            print(msg1)
+            print(msg2)
+            logging.info(msg1.strip())
+            logging.info(msg2)
 
 
         radius = star_params.get("radius")

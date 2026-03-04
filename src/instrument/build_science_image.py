@@ -1,7 +1,7 @@
 import logging
 import numpy as np
 from loaders.run_waltzer_context import RunContext
-from configs.channel_config import SpectroscopyChannel, PhotometryChannel
+from configs.channel_config import SpectroscopyChannel, PhotometryChannel, Channel
 from instrument.bias_image import generate_bias_image
 from instrument.dark_image import generate_dark_image
 from instrument.cosmic_image import generate_cosmic_rays
@@ -16,19 +16,27 @@ def build_science_images (spectra_2d_nuv, spectra_2d_vis, rate_nir, nuv: Spectro
 
     cfg = get_global_config()
 
-    background_stars_catalog = lookup_background_stars(ctx, cfg, star)
+    # background_stars_catalog = lookup_background_stars(ctx, cfg, star)
+
+    # print("\n==== STARTING SCIENCE IMAGE GENERATION (NUV & VIS) =====")
+    # nuv_img = build_science_image(spectra_2d_nuv, nuv, ctx, cfg, star, background_stars_catalog)
+    # vis_img = build_science_image(spectra_2d_vis, vis, ctx, cfg, star, background_stars_catalog)
+
+    # print("\n==== STARTING SCIENCE IMAGE GENERATION (NIR) =====")
+    # nir_img = build_science_image(rate_nir, vis, ctx, cfg, star, background_stars_catalog)
 
     print("\n==== STARTING SCIENCE IMAGE GENERATION (NUV & VIS) =====")
-    nuv_img = build_science_image(spectra_2d_nuv, nuv, ctx, cfg, star, background_stars_catalog)
-    vis_img = build_science_image(spectra_2d_vis, vis, ctx, cfg, star, background_stars_catalog)
+    nuv_img = build_science_image(spectra_2d_nuv, nuv, ctx, cfg, star)
+    vis_img = build_science_image(spectra_2d_vis, vis, ctx, cfg, star)
 
     print("\n==== STARTING SCIENCE IMAGE GENERATION (NIR) =====")
-    # nir_img = build_science_image(spectra_2d_vis, vis, ctx, cfg, star, background_stars_catalog)
+    nir_img = build_science_image(rate_nir, nir, ctx, cfg, star)
 
-    return nuv_img, vis_img
+    return nuv_img, vis_img, nir_img
 
 
-def build_science_image(spectra_2d, channel: SpectroscopyChannel, ctx: RunContext, cfg: GlobalConfig, star: Star, background_stars_catalog: StarCatalog):
+# def build_science_image(spectra_2d, channel: SpectroscopyChannel, ctx: RunContext, cfg: GlobalConfig, star: Star, background_stars_catalog: StarCatalog):
+def build_science_image(spectra_2d, channel: Channel, ctx: RunContext, cfg: GlobalConfig, star: Star):
     logging.info("Science Image generation starting for channel %s", channel.channel_name)
     nx = channel.x_pixels
     ny = channel.y_pixels
@@ -45,6 +53,7 @@ def build_science_image(spectra_2d, channel: SpectroscopyChannel, ctx: RunContex
     ctx.write_image_png.write_image(image, "SCIENCE_DARK", ctx, channel)
 
     spectra = spectra_2d * exposure
+    ctx.write_image_png.write_image(spectra, "SIGNAL_ONLY", ctx, channel)
     image += spectra
     ctx.write_image_png.write_image(image, "SCIENCE_SPECTRA", ctx, channel)
 
@@ -56,7 +65,7 @@ def build_science_image(spectra_2d, channel: SpectroscopyChannel, ctx: RunContex
     image += background
     ctx.write_image_png.write_image(image, "SCIENCE_BACKGROUND", ctx, channel)
     
-    generate_background_stars_image(channel, ctx, star, background_stars_catalog)
+    # generate_background_stars_image(channel, ctx, star, background_stars_catalog)
 
 
     cosmic = generate_cosmic_rays(ctx, channel, cfg)
@@ -65,6 +74,8 @@ def build_science_image(spectra_2d, channel: SpectroscopyChannel, ctx: RunContex
     
 
     image = image * ccd_gain
+    ctx.write_image_png.write_image(image, "SCIENCE_COMPLETELY_MERGED", ctx, channel)
+
     return image
     
 

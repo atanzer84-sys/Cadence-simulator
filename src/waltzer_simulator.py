@@ -25,7 +25,7 @@ def main():
         spectra_2d_nuv, spectra_2d_vis, rate_nir = prepare_all_detector_images_all_channels(star, run_ctx, nuv_channel, vis_channel, nir_channel)
 
         # generating single science images that are then stacked
-        nuv_image, vis_image = build_science_images(spectra_2d_nuv, spectra_2d_vis, rate_nir, nuv_channel, vis_channel, nir_channel, run_ctx, star)
+        nuv_image, vis_image, nir_image = build_science_images(spectra_2d_nuv, spectra_2d_vis, rate_nir, nuv_channel, vis_channel, nir_channel, run_ctx, star)
         
         # generating bias, dark and science frames (fits) for NUV, VIS
         generate_frames(nuv_image, vis_image, nuv_channel, vis_channel, run_ctx, star)
