@@ -5,7 +5,7 @@ from utils.constants import debug_wavelength_range_ir, debug_wavelength_range_nu
 from loaders.run_waltzer_context import RunContext
 from domain.star import Star
 import numpy as np
-from configs.channel_config import Channel, PhotometryChannel
+from configs.channel_config import Channel
 from domain.star_catalog import StarCatalog
 
 STATS_KEYS = {
@@ -20,7 +20,7 @@ _TEXT_H_IN = 0.7
 _GAP_IN = 0.8
 
 
-def _save_single_frame_png(array: np.ndarray, filename: Path, title: str, stats_text: str | None = None, use_percentile_scaling: bool = True) -> None:
+def _save_single_frame_png(array: np.ndarray, filename: Path, title: str, stats_text: str | None = None) -> None:
     """Draw one 2D image with optional stats line; save to filename. Shared by write_image_png and write_frames_png."""
     ny, nx = array.shape
     img_h_in = max(2.0, _WIDTH_IN * (ny / nx))
@@ -29,12 +29,8 @@ def _save_single_frame_png(array: np.ndarray, filename: Path, title: str, stats_
     gs = fig.add_gridspec(nrows=3, ncols=1, height_ratios=[img_h_in, _GAP_IN, _TEXT_H_IN], hspace=0)
 
     ax = fig.add_subplot(gs[0, 0])
-    if use_percentile_scaling:
-        vmin = np.percentile(array, 1)
-        vmax = np.percentile(array, 99.9)
-    else:
-        vmin = float(np.min(array))
-        vmax = float(np.max(array))
+    vmin = np.percentile(array, 1)
+    vmax = np.percentile(array, 99.9)
     # Fallback for sparse/flat images: scaling bounds can collapse
     if (not np.isfinite(vmin)) or (not np.isfinite(vmax)) or (vmax <= vmin):
         vmin = float(np.min(array))
@@ -59,8 +55,7 @@ def _save_single_frame_png(array: np.ndarray, filename: Path, title: str, stats_
 
 
 def write_image_png(array, frame_type: str, ctx: RunContext, channel: Channel, show_stats: bool = True) -> None:
-    """Write 2D array as PNG. Uses percentile scaling for spectroscopy, min/max for photometry (NIR)."""
-    use_percentile_scaling = not isinstance(channel, PhotometryChannel)
+    """Write 2D array as PNG. Uses percentile scaling (1–99.9) like write_frames_png."""
     logging.info("WRITE_IMAGE_PNG called | frame_type=%s | channel=%s | shape=%s", frame_type, channel.channel_name, array.shape)
 
     star_name = str(ctx.target_name).replace(" ", "_")
@@ -84,7 +79,7 @@ def write_image_png(array, frame_type: str, ctx: RunContext, channel: Channel, s
             f"RNOISE={_v(rn)}  B_OFFSET={_v(bo)}  DARKVAL={_v(dv, '.3f')}  DARKSIG={_v(ds, '.3f')}  EXPTIME={_v(ex, '.3f')}"
         )
 
-    _save_single_frame_png(array, filename, title, stats_text, use_percentile_scaling=use_percentile_scaling)
+    _save_single_frame_png(array, filename, title, stats_text)
 
 
 def _header_val(header, key):
