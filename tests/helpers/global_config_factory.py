@@ -1,0 +1,43 @@
+"""Shared GlobalConfig factory for tests."""
+
+from configs.global_config import GlobalConfig
+
+# Keep this in sync with required GlobalConfig fields.
+BASE_GLOBAL_CFG = {
+    "line_core_emission": False,
+    "interstellar_absorption": False,
+    "mg2_col": None,
+    "mg1_col": None,
+    "fe2_col": None,
+    "sigmaMg22": 0.257,
+    "sigmaMg21": 0.288,
+    "enable_log_r_fallback": False,
+    "log_r_teff_threshold": 0.0,
+    "log_r_hot_value": 0.0,
+    "log_r_cool_value": 0.0,
+    "n_non_science_frames": 0,
+    "write_non_science_frames_png": False,
+    "n_science_frames_per_channel": 1,
+    "write_science_frames_png": False,
+    "cosmic_rays_min": 0,
+    "cosmic_rays_max": 0,
+    "cosmic_ray_signal_electrons": 72000,
+    "cosmic_ray_length_min_px": 1,
+    "cosmic_ray_length_max_px": 1,
+    "magnitude_cutoff": 20.0,
+    "GAIA_USE_ASYNC_JOBS": 0,
+    "background_type": None,
+    "background_file": None,
+    "sky_pixel_area_arcsec2": None,
+    "zod_dist_file": None,
+    "zod_spectrum_file": None,
+    "test_mode": False,
+    "produce_Plots": False,
+}
+
+
+def make_global_cfg(**overrides) -> GlobalConfig:
+    """Build a GlobalConfig from shared defaults with per-test overrides."""
+    params = dict(BASE_GLOBAL_CFG)
+    params.update(overrides)
+    return GlobalConfig(**params)

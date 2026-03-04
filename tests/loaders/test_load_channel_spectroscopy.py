@@ -19,8 +19,14 @@ from tests.loaders._load_channel_test_helpers import (
     write_cfg,
     write_ea_file,
     write_spread_file,
+    set_test_global_cfg,
     load_channel_config,
 )
+
+
+@pytest.fixture(autouse=True)
+def default_test_global_cfg():
+    set_test_global_cfg()
 
 
 def test_load_channel_config_calls_ea_loader_with_effective_area_file(monkeypatch, tmp_path):
@@ -210,14 +216,13 @@ def test_load_channel_config_sets_background_wavelength_and_flux_from_loader(mon
     monkeypatch.setattr(_EA_LOADER, _fake_ea)
     monkeypatch.setattr(_SPREAD_LOADER, no_spread)
     monkeypatch.setattr(_BG_LOADER, _fake_bg)
+    set_test_global_cfg(background_type="default", background_file="bg.txt", sky_pixel_area_arcsec2=25.0)
 
     cfg_path = tmp_path / "nuv.cfg"
     write_cfg(
         cfg_path,
         effective_area_file="nuv.txt",
         x_pixels=2,
-        background_type="default",
-        background_file="bg.txt",
     )
 
     ch = load_channel_config(cfg_path, exposure_s=10.0)
@@ -242,7 +247,7 @@ def test_load_channel_config_no_background_values_set(monkeypatch, tmp_path):
     assert ch.zod_dist is None
     assert ch.zod_spectrum_wavelength is None
     assert ch.zod_spectrum_flux is None
-    assert ch.sky_pixel_area_arcsec2 == pytest.approx(25.0)
+    assert ch.sky_pixel_area_arcsec2 is None
 
 
 def test_load_channel_config_background_type_empty_or_whitespace_treated_as_none(monkeypatch, tmp_path):
@@ -251,12 +256,12 @@ def test_load_channel_config_background_type_empty_or_whitespace_treated_as_none
     monkeypatch.setattr(_BG_LOADER, no_background)
 
     for value in ("", "   ", "  \t  "):
+        set_test_global_cfg(background_type=value)
         cfg_path = tmp_path / "nuv.cfg"
         write_cfg(
             cfg_path,
             effective_area_file="nuv.txt",
             x_pixels=2,
-            background_type=value,
         )
         ch = load_channel_config(cfg_path, exposure_s=10.0)
         assert ch.background_type is None
@@ -275,14 +280,13 @@ def test_load_channel_config_background_type_default_calls_background_loader(mon
         return None, None
 
     monkeypatch.setattr(_BG_LOADER, _fake_bg)
+    set_test_global_cfg(background_type="default", background_file="", sky_pixel_area_arcsec2=25.0)
 
     cfg_path = tmp_path / "nuv.cfg"
     write_cfg(
         cfg_path,
         effective_area_file="nuv.txt",
         x_pixels=2,
-        background_type="default",
-        background_file="",
     )
 
     ch = load_channel_config(cfg_path, exposure_s=10.0)
@@ -312,15 +316,18 @@ def test_load_channel_config_background_type_calc_calls_zod_loaders(monkeypatch,
 
     monkeypatch.setattr(_ZOD_DIST_LOADER, _fake_zod_dist)
     monkeypatch.setattr(_ZOD_SPECTRUM_LOADER, _fake_zod_spectrum)
+    set_test_global_cfg(
+        background_type="calc",
+        zod_dist_file="zod_dist.txt",
+        zod_spectrum_file="zod_spec.txt",
+        sky_pixel_area_arcsec2=25.0,
+    )
 
     cfg_path = tmp_path / "nuv.cfg"
     write_cfg(
         cfg_path,
         effective_area_file="nuv.txt",
         x_pixels=2,
-        background_type="calc",
-        zod_dist_file="zod_dist.txt",
-        zod_spectrum_file="zod_spec.txt",
     )
 
     ch = load_channel_config(cfg_path, exposure_s=10.0)
@@ -331,84 +338,63 @@ def test_load_channel_config_background_type_calc_calls_zod_loaders(monkeypatch,
     assert np.allclose(ch.zod_spectrum_flux, zod_flux)
 
 
-def test_load_channel_config_background_type_calc_empty_zod_filenames(monkeypatch, tmp_path):
+def test_load_channel_config_background_type_calc_missing_files_raises(monkeypatch, tmp_path):
     monkeypatch.setattr(_EA_LOADER, lambda _: (np.array([1.0, 2.0]), np.array([0.1, 0.2]), 0.01))
     monkeypatch.setattr(_SPREAD_LOADER, no_spread)
     monkeypatch.setattr(_BG_LOADER, no_background)
 
-    def _fake_zod_dist(filename: str):
-        return None
-
-    def _fake_zod_spectrum(filename: str):
-        return None, None
-
-    monkeypatch.setattr(_ZOD_DIST_LOADER, _fake_zod_dist)
-    monkeypatch.setattr(_ZOD_SPECTRUM_LOADER, _fake_zod_spectrum)
-
-    cfg_path = tmp_path / "nuv.cfg"
-    write_cfg(
-        cfg_path,
-        effective_area_file="nuv.txt",
-        x_pixels=2,
+    set_test_global_cfg(
         background_type="calc",
-        zod_dist_file="",
-        zod_spectrum_file="",
+        zod_dist_file=None,
+        zod_spectrum_file=None,
+        sky_pixel_area_arcsec2=25.0,
     )
 
-    ch = load_channel_config(cfg_path, exposure_s=10.0)
+    cfg_path = tmp_path / "nuv.cfg"
+    write_cfg(cfg_path, effective_area_file="nuv.txt", x_pixels=2)
+    with pytest.raises(ValueError) as exc:
+        load_channel_config(cfg_path, exposure_s=10.0)
+    assert "background_type=calc requires zod_dist_file and zod_spectrum_file" in str(exc.value)
 
-    assert ch.background_type == "calc"
-    assert ch.zod_dist is None
-    assert ch.zod_spectrum_wavelength is None
-    assert ch.zod_spectrum_flux is None
 
-
-def test_load_channel_config_invalid_background_type_disabled_with_warning(monkeypatch, tmp_path, caplog):
+def test_load_channel_config_invalid_background_type_raises(monkeypatch, tmp_path):
     monkeypatch.setattr(_EA_LOADER, lambda _: (np.array([1.0, 2.0]), np.array([0.1, 0.2]), 0.01))
     monkeypatch.setattr(_SPREAD_LOADER, no_spread)
     monkeypatch.setattr(_BG_LOADER, no_background)
 
+    set_test_global_cfg(background_type="foo")
     cfg_path = tmp_path / "nuv.cfg"
-    write_cfg(
-        cfg_path,
-        effective_area_file="nuv.txt",
-        x_pixels=2,
-        background_type="foo",
-    )
-
-    ch = load_channel_config(cfg_path, exposure_s=10.0)
-
-    assert ch.background_type is None
-    assert ch.background_wavelength is None
-    assert ch.background_flux is None
-    assert "invalid background_type" in caplog.text.lower()
-    assert "foo" in caplog.text.lower()
+    write_cfg(cfg_path, effective_area_file="nuv.txt", x_pixels=2)
+    with pytest.raises(ValueError) as exc:
+        load_channel_config(cfg_path, exposure_s=10.0)
+    assert "invalid background_type='foo'" in str(exc.value)
 
 
 def test_load_channel_config_sky_pixel_area_default(monkeypatch, tmp_path):
     monkeypatch.setattr(_EA_LOADER, lambda _: (np.array([1.0, 2.0]), np.array([0.1, 0.2]), 0.01))
     monkeypatch.setattr(_SPREAD_LOADER, no_spread)
     monkeypatch.setattr(_BG_LOADER, no_background)
+    set_test_global_cfg()
 
     cfg_path = tmp_path / "nuv.cfg"
     write_cfg(cfg_path, effective_area_file="nuv.txt", x_pixels=2)
 
     ch = load_channel_config(cfg_path, exposure_s=10.0)
 
-    assert ch.sky_pixel_area_arcsec2 == pytest.approx(25.0)
+    assert ch.sky_pixel_area_arcsec2 is None
 
 
 def test_load_channel_config_sky_pixel_area_override(monkeypatch, tmp_path):
     monkeypatch.setattr(_EA_LOADER, lambda _: (np.array([1.0, 2.0]), np.array([0.1, 0.2]), 0.01))
     monkeypatch.setattr(_SPREAD_LOADER, no_spread)
     monkeypatch.setattr(_BG_LOADER, no_background)
+    set_test_global_cfg(sky_pixel_area_arcsec2=10.5)
 
     cfg_path = tmp_path / "nuv.cfg"
     write_cfg(
         cfg_path,
         effective_area_file="nuv.txt",
         x_pixels=2,
-        sky_pixel_area_arcsec2=10.5,
     )
 
     ch = load_channel_config(cfg_path, exposure_s=10.0)
@@ -420,14 +406,13 @@ def test_load_channel_config_background_type_case_insensitive(monkeypatch, tmp_p
     monkeypatch.setattr(_EA_LOADER, lambda _: (np.array([1.0, 2.0]), np.array([0.1, 0.2]), 0.01))
     monkeypatch.setattr(_SPREAD_LOADER, no_spread)
     monkeypatch.setattr(_BG_LOADER, lambda _: (np.array([1.0]), np.array([0.1])))
+    set_test_global_cfg(background_type="DEFAULT", background_file="bg.txt", sky_pixel_area_arcsec2=25.0)
 
     cfg_path = tmp_path / "nuv.cfg"
     write_cfg(
         cfg_path,
         effective_area_file="nuv.txt",
         x_pixels=2,
-        background_type="DEFAULT",
-        background_file="bg.txt",
     )
 
     ch = load_channel_config(cfg_path, exposure_s=10.0)

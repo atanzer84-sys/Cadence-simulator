@@ -34,6 +34,11 @@ class GlobalConfig:
     magnitude_cutoff: float
     GAIA_USE_ASYNC_JOBS: bool
 
+    background_type: str | None
+    background_file: str | None
+    sky_pixel_area_arcsec2: float | None
+    zod_dist_file: str | None
+    zod_spectrum_file: str | None   
 
     test_mode: bool
     produce_Plots: bool
@@ -99,6 +104,11 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
 
         magnitude_cutoff=_as_float(raw.get("magnitude_cutoff", 20.0), key="magnitude_cutoff"),
         GAIA_USE_ASYNC_JOBS=_as_bool(raw.get("GAIA_USE_ASYNC_JOBS", 1), key="GAIA_USE_ASYNC_JOBS"),
+        background_type=_as_optional_lower_str(raw.get("background_type", "")),
+        background_file=_as_optional_str(raw.get("background_file", "")),
+        sky_pixel_area_arcsec2=_as_optional_float(raw.get("sky_pixel_area_arcsec2", None)),
+        zod_dist_file=_as_optional_str(raw.get("zod_dist_file", "")),
+        zod_spectrum_file=_as_optional_str(raw.get("zod_spectrum_file", "")),
 
         test_mode=_as_bool(raw.get("test_mode", 0), key="test_mode"),    
         produce_Plots=_as_bool(raw.get("produce_Plots", 0), key="produce_Plots",),    
@@ -117,6 +127,21 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
 
     logging.info("Global config loaded: %s", cfg)
     return cfg
+
+def _as_optional_str(v: object | None) -> str | None:
+    if v is None:
+        return None
+    s = str(v).strip()
+    if s == "" or s.casefold() == "none":
+        return None
+    return s
+
+
+def _as_optional_lower_str(v: object | None) -> str | None:
+    s = _as_optional_str(v)
+    if s is None:
+        return None
+    return s.casefold()
 
 def _as_int(value, *, key: str) -> int:
     try:

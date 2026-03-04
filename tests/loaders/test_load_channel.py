@@ -16,11 +16,17 @@ from tests.loaders._load_channel_test_helpers import (
     fake_psf_image_loader,
     no_background,
     no_spread,
+    set_test_global_cfg,
     write_cfg,
     write_cfg_with_comments,
     load_channel_config,
     load_channels_config,
 )
+
+
+@pytest.fixture(autouse=True)
+def default_test_global_cfg():
+    set_test_global_cfg()
 
 
 def _assert_error_contains(exc: BaseException, *needles: str) -> None:

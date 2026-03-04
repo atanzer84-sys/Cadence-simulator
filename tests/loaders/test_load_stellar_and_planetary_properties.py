@@ -5,7 +5,6 @@ from pathlib import Path
 import pytest
 
 import configs.global_config as gc
-from configs.global_config import GlobalConfig
 from loaders.load_stellar_and_planetary_properties import (
     apply_log_r_fallback,
     infer_mamajek_spectral_type,
@@ -13,38 +12,12 @@ from loaders.load_stellar_and_planetary_properties import (
     merge_gaia_into_star_params,
 )
 from loaders import load_stellar_and_planetary_properties as lspp
+from tests.helpers.global_config_factory import make_global_cfg
 
 
-def _dummy_global_cfg(**overrides) -> GlobalConfig:
+def _dummy_global_cfg(**overrides):
     """Build a minimal GlobalConfig for tests, with sensible defaults and optional overrides."""
-    base = dict(
-        line_core_emission=False,
-        interstellar_absorption=False,
-        mg2_col=None,
-        mg1_col=None,
-        fe2_col=None,
-        sigmaMg22=0.257,
-        sigmaMg21=0.288,
-        enable_log_r_fallback=False,
-        log_r_teff_threshold=0.0,
-        log_r_hot_value=0.0,
-        log_r_cool_value=0.0,
-        n_non_science_frames=0,
-        write_non_science_frames_png=False,
-        n_science_frames_per_channel=1,
-        write_science_frames_png=False,
-        cosmic_rays_min=0,
-        cosmic_rays_max=0,
-        cosmic_ray_signal_electrons=72000,
-        cosmic_ray_length_min_px=1,
-        cosmic_ray_length_max_px=1,
-        magnitude_cutoff=20.0,
-        GAIA_USE_ASYNC_JOBS=0,
-        test_mode=False,
-        produce_Plots=False,
-    )
-    base.update(overrides)
-    return GlobalConfig(**base)
+    return make_global_cfg(**overrides)
 
 
 def test_find_excel_file_no_excel(tmp_path: Path) -> None:

@@ -78,8 +78,7 @@ def load_effective_area_file(effective_area_filename: str) -> tuple[np.ndarray, 
 
     return wavelength, eff_area, pixel_scale
 
-# TODO:
-def load_background_file(background_filename: str) -> tuple[np.ndarray, np.ndarray]:
+def load_background_file(background_filename: str) -> tuple[np.ndarray | None, np.ndarray | None]:
     """
     Load background spectrum table.
 
@@ -212,7 +211,7 @@ def parse_spread_header_wavelengths(lines: list[str], path: Path, channel_name: 
     logging.error("Channel %s: no 'pixels ...' header line found in %s", channel_name, path)
     raise ValueError(f"No 'pixels ...' header line found in spread profile file: {path}")
 
-def load_zod_dist_file(filename: str) -> np.ndarray:
+def load_zod_dist_file(filename: str) -> np.ndarray | None:
     repo_root = get_repo_root()
     if not filename or filename.strip() == "":
         logging.info("No zodiacal distribution file configured.")

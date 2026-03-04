@@ -1,8 +1,8 @@
 import numpy as np
 from types import SimpleNamespace
 
-from configs.global_config import GlobalConfig
 from instrument.cosmic_image import generate_cosmic_rays
+from tests.helpers.global_config_factory import make_global_cfg
 
 
 # Minimal channel-like object used for cosmic-ray image generation tests.
@@ -29,63 +29,43 @@ def _ctx(tmp_path):
     )
 
 
-_COMMON_CFG = dict(
-    line_core_emission=False,
-    interstellar_absorption=False,
-    mg2_col=None,
-    mg1_col=None,
-    fe2_col=None,
-    sigmaMg22=0.257,
-    sigmaMg21=0.288,
-    enable_log_r_fallback=False,
-    log_r_teff_threshold=0.0,
-    log_r_hot_value=0.0,
-    log_r_cool_value=0.0,
-    n_non_science_frames=0,
-    write_non_science_frames_png=False,
-    n_science_frames_per_channel=1,
-    write_science_frames_png=False,
-    magnitude_cutoff=20.0,
-    test_mode=True,
-    produce_Plots=False,
-    GAIA_USE_ASYNC_JOBS=1,
-)
-
-
-def _cfg_zero_rays() -> GlobalConfig:
-    params = dict(_COMMON_CFG)
-    params.update(
+def _cfg_zero_rays():
+    return make_global_cfg(
         cosmic_rays_min=0,
         cosmic_rays_max=0,
         cosmic_ray_signal_electrons=72000,
         cosmic_ray_length_min_px=1,
         cosmic_ray_length_max_px=3,
+        test_mode=True,
+        produce_Plots=False,
+        GAIA_USE_ASYNC_JOBS=1,
     )
-    return GlobalConfig(**params)
 
 
-def _cfg_three_rays() -> GlobalConfig:
-    params = dict(_COMMON_CFG)
-    params.update(
+def _cfg_three_rays():
+    return make_global_cfg(
         cosmic_rays_min=3,
         cosmic_rays_max=3,
         cosmic_ray_signal_electrons=50,
         cosmic_ray_length_min_px=2,
         cosmic_ray_length_max_px=4,
+        test_mode=True,
+        produce_Plots=False,
+        GAIA_USE_ASYNC_JOBS=1,
     )
-    return GlobalConfig(**params)
 
 
-def _cfg_single_ray_small_detector() -> GlobalConfig:
-    params = dict(_COMMON_CFG)
-    params.update(
+def _cfg_single_ray_small_detector():
+    return make_global_cfg(
         cosmic_rays_min=1,
         cosmic_rays_max=1,
         cosmic_ray_signal_electrons=123,
         cosmic_ray_length_min_px=5,
         cosmic_ray_length_max_px=5,
+        test_mode=True,
+        produce_Plots=False,
+        GAIA_USE_ASYNC_JOBS=1,
     )
-    return GlobalConfig(**params)
 
 
 # No cosmic rays configured should yield an all-zero image but still trigger one COSMIC_ONLY write.

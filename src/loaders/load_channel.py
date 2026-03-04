@@ -6,9 +6,12 @@ from configs.user_config import UserConfig
 from loaders.load_channel_files_common import load_effective_area_file, load_background_file, load_zod_dist_file, load_zod_spectrum_file
 from loaders.load_channel_files_spectroscopy import load_spread_profile_file_spectroscopy
 from loaders.load_channel_files_photometry import load_psf_image_file
+from configs.global_config import get_global_config
+
 
 def load_channels_config(user_cfg: UserConfig, ctx):
     repo_root = get_repo_root()
+
     # load channel config, not cached, pass it through
     nuv_channel = load_channel_config(repo_root / "configs" / "waltzer_nuv.cfg", user_cfg.exposure_NUV_s, ctx)
     vis_channel = load_channel_config(repo_root / "configs" / "waltzer_vis.cfg", user_cfg.exposure_VIS_s, ctx)
@@ -17,8 +20,8 @@ def load_channels_config(user_cfg: UserConfig, ctx):
     return nuv_channel, vis_channel, nir_channel
 
 
-
 def load_channel_config(path: Path, exposure_s: float, ctx):
+
     logging.info("Reading channel config from %s", path)
 
     raw = _parse_simple_kv(path)
@@ -36,6 +39,8 @@ def load_channel_config(path: Path, exposure_s: float, ctx):
     effective_area_file=str(raw.get("effective_area_file", "")).strip()
     effective_area_wavelength, effective_area, pixel_scale = load_effective_area_file(effective_area_file)
     
+    background_type, background_wavelength, background_flux, sky_pixel_area_arcsec2, zod_dist, zod_spec_wl, zod_spec_flux = _load_background_from_global_cfg()
+
     if channel_name == "NIR":
         psf_file = str(raw.get("psf_file", "")).strip()
         psf_image, psf_center_y, psf_center_x = load_psf_image_file(psf_file, channel_name, ctx)
@@ -64,18 +69,22 @@ def load_channel_config(path: Path, exposure_s: float, ctx):
             psf_center_y=psf_center_y,
             source_position_x_arcsec=source_position_x_arcsec,
             source_position_y_arcsec=source_position_y_arcsec,
+            background_type=background_type,
+            background_wavelength=background_wavelength,
+            background_flux=background_flux,
+            sky_pixel_area_arcsec2=sky_pixel_area_arcsec2,
+            zod_dist=zod_dist,
+            zod_spectrum_wavelength=zod_spec_wl,
+            zod_spectrum_flux=zod_spec_flux,
+
         )
 
     # Spectroscopy only:
-    spread_profile_file=str(raw.get("spread_profile_file", "")).strip()
-    if len(effective_area_wavelength) != x_pixels:
-        logging.error("%s: effective_area_file=%s len(wavelength)=%d != x_pixels=%d source_file=%s", channel_name, effective_area_file, len (effective_area_wavelength), x_pixels, source_file, )
-        raise ValueError(
-            f"{channel_name}: effective_area_file={effective_area_file} "
-            f"len(wavelength)={len(effective_area_wavelength)} != x_pixels={x_pixels} "
-            f"source_file={source_file}"
-        )
+    # effective area only matches x pixels in spectroscopy
+    _ensure_effective_area_matches_x_pixels(channel_name, effective_area_file, effective_area_wavelength, x_pixels, source_file)
+    
     mode=_as_int(raw["mode"], key="mode")
+    spread_profile_file=str(raw.get("spread_profile_file", "")).strip()
     spread_half_height_pix=_as_optional_int(raw.get("spread_half_height_pix", None)) or 0
         
     spread_pos, spread_w, spread_wl_header = load_spread_profile_file_spectroscopy(spread_profile_file, channel_name)
@@ -83,36 +92,6 @@ def load_channel_config(path: Path, exposure_s: float, ctx):
     slit_position_y_arcsec = _as_float(raw.get("slit_position_y_arcsec", 0.0), key="slit_position_y_arcsec")
     slope = _as_float(raw.get("slope", 0.0), key="slope")
     intercept_pixels = _as_float(raw.get("intercept_pixels", 0.0), key="intercept_pixels")
-
-    background_type = str(raw.get("background_type", "")).strip().lower()
-    if background_type == "":
-        background_type = None
-
-    background_wavelength = None
-    background_flux = None
-    sky_pixel_area_arcsec2 = _as_float(raw.get("sky_pixel_area_arcsec2", 25.0), key="sky_pixel_area_arcsec2")
-    zod_dist = None
-    zod_spec_wl = None
-    zod_spec_flux = None
-
-    if background_type == "default":
-        background_file = str(raw.get("background_file", "")).strip()
-        background_wavelength, background_flux = load_background_file(background_file)
-
-    elif background_type == "calc":
-        zod_dist_file = str(raw.get("zod_dist_file", "")).strip()
-        zod_spectrum_file = str(raw.get("zod_spectrum_file", "")).strip()
-        zod_dist = load_zod_dist_file(zod_dist_file)
-        zod_spec_wl, zod_spec_flux = load_zod_spectrum_file(zod_spectrum_file)
-
-    elif background_type is not None:
-        logging.warning(
-            "Channel %s: invalid background_type='%s'. Background disabled.",
-            channel_name,
-            background_type,
-        )
-        background_type = None
-
 
     return SpectroscopyChannel(
         channel_name=channel_name,
@@ -195,4 +174,50 @@ def _parse_simple_kv(path: Path) -> dict[str, str]:
         k, v = (p.strip() for p in s.split("=", 1))
         data[k] = v
     return data
+
+def _load_background_from_global_cfg():
+    cfg = get_global_config()
+
+    background_type = (cfg.background_type or "").strip().lower()
+    if background_type == "":
+        background_type = None
+
+    background_wavelength = None
+    background_flux = None
+    sky_pixel_area_arcsec2 = cfg.sky_pixel_area_arcsec2  # may be None
+    zod_dist = None
+    zod_spec_wl = None
+    zod_spec_flux = None
+
+    if background_type is None:
+        return (background_type, background_wavelength, background_flux, sky_pixel_area_arcsec2, zod_dist, zod_spec_wl, zod_spec_flux)
+
+    if background_type == "default":
+        if cfg.background_file is None:
+            raise ValueError("global.cfg: background_type=default requires background_file")
+        if cfg.sky_pixel_area_arcsec2 is None:
+            raise ValueError("global.cfg: background_type=default requires sky_pixel_area_arcsec2")
+        background_wavelength, background_flux = load_background_file(cfg.background_file)
+
+    elif background_type == "calc":
+        if cfg.zod_dist_file is None or cfg.zod_spectrum_file is None:
+            raise ValueError("global.cfg: background_type=calc requires zod_dist_file and zod_spectrum_file")
+        if cfg.sky_pixel_area_arcsec2 is None:
+            raise ValueError("global.cfg: background_type=calc requires sky_pixel_area_arcsec2")
+        zod_dist = load_zod_dist_file(cfg.zod_dist_file)
+        zod_spec_wl, zod_spec_flux = load_zod_spectrum_file(cfg.zod_spectrum_file)
+
+    else:
+        raise ValueError(
+            f"global.cfg: invalid background_type={background_type!r} (expected: default, calc, or empty)"
+        )
+
+    return background_type, background_wavelength, background_flux, sky_pixel_area_arcsec2, zod_dist, zod_spec_wl, zod_spec_flux
+
+def _ensure_effective_area_matches_x_pixels(channel_name: str, effective_area_file: str, effective_area_wavelength, x_pixels: int, source_file: str) -> None:
+
+    if len(effective_area_wavelength) != x_pixels:
+        logging.error("%s: effective_area_file=%s len(wavelength)=%d != x_pixels=%d source_file=%s", channel_name, effective_area_file, len(effective_area_wavelength), x_pixels, source_file)
+    
+        raise ValueError(f"{channel_name}: effective_area_file={effective_area_file} len(wavelength)={len(effective_area_wavelength)} != x_pixels={x_pixels} source_file={source_file}")
 

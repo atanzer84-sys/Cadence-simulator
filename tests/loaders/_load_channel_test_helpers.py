@@ -7,6 +7,8 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import numpy as np
+import configs.global_config as gc
+from tests.helpers.global_config_factory import make_global_cfg
 
 from loaders.load_channel import (
     load_channel_config as _load_channel_config,
@@ -49,6 +51,11 @@ _SHARED_CFG = {
     "source_position_y_arcsec": 0.0,
 }
 _CTX = SimpleNamespace(output_dir=Path("."), target_name="TEST")
+
+
+def set_test_global_cfg(**overrides) -> None:
+    """Set test GlobalConfig used by loaders.load_channel.get_global_config()."""
+    gc._GLOBAL = make_global_cfg(**overrides)
 
 
 def load_channel_config(path: Path, exposure_s: float):

@@ -13,9 +13,15 @@ from tests.loaders._load_channel_test_helpers import (
     _PSF_LOADER,
     _SPREAD_LOADER,
     fake_psf_image_loader,
+    set_test_global_cfg,
     write_cfg,
     load_channel_config,
 )
+
+
+@pytest.fixture(autouse=True)
+def default_test_global_cfg():
+    set_test_global_cfg()
 
 
 def test_channel_is_frozen(monkeypatch, tmp_path):
