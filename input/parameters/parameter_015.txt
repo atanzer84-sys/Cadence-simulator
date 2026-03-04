@@ -8,6 +8,6 @@ target_name = HD 149026
 total_observation_length_h = 11.11
 
 # Exposure time of the Channels in seconds
-exposure_NUV_s = 100.0
-exposure_VIS_s = 10.0
-exposure_IR_s = 111.2
+exposure_NUV_s = 300.0
+exposure_VIS_s = 60.0
+exposure_IR_s = 5.0
