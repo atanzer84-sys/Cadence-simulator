@@ -98,15 +98,15 @@ def test_calculateFluxOnEarth_no_optional_steps_called(monkeypatch, tmp_path):
     monkeypatch.setattr("flux.flux_calc.apply_ism_absorption", fake_ism)
 
     monkeypatch.setattr("flux.flux_calc.load_model_for_temperature",
-                        lambda _: np.array([[100.0, 1.0, 1.0]]))
+                        lambda _, announce_user=False: np.array([[100.0, 1.0, 1.0]]))
     monkeypatch.setattr("flux.flux_calc.convertStellarModelToFlux",
                         lambda d, _: d)
     monkeypatch.setattr("flux.flux_calc.compute_ebv_av",
                         lambda *a: (0.0, 0.0))
     monkeypatch.setattr("flux.flux_calc.compute_flux_at_earth",
-                        lambda d, _: d[:, 1])
+                        lambda d, _, announce_user=False: d[:, 1])
     monkeypatch.setattr("flux.flux_calc.apply_unred",
-                        lambda w, f, e: f)
+                        lambda w, f, e, announce_user=False: f)
     monkeypatch.setattr("instrument.prepare_detector_images.convert_flux_to_photons",
                         lambda f, w: f)
 
@@ -157,15 +157,15 @@ def test_calculateFluxOnEarth_optional_steps_called(monkeypatch, tmp_path):
     monkeypatch.setattr("flux.flux_calc.apply_ism_absorption", fake_ism)
 
     monkeypatch.setattr("flux.flux_calc.load_model_for_temperature",
-                        lambda _: np.array([[100.0, 1.0, 1.0]]))
+                        lambda _, announce_user=False: np.array([[100.0, 1.0, 1.0]]))
     monkeypatch.setattr("flux.flux_calc.convertStellarModelToFlux",
                         lambda d, _: d)
     monkeypatch.setattr("flux.flux_calc.compute_ebv_av",
                         lambda *a: (0.1, 0.0))
     monkeypatch.setattr("flux.flux_calc.compute_flux_at_earth",
-                        lambda d, _: d[:, 1])
+                        lambda d, _, announce_user=False: d[:, 1])
     monkeypatch.setattr("flux.flux_calc.apply_unred",
-                        lambda w, f, e: f)
+                        lambda w, f, e, announce_user=False: f)
     monkeypatch.setattr("instrument.prepare_detector_images.convert_flux_to_photons",
                         lambda f, w: f)
 
@@ -197,11 +197,11 @@ def test_calculateFluxOnEarth_returns_photons_and_wavelengths_same_length(monkey
     )
 
     monkeypatch.setattr("flux.flux_calc.get_global_config", lambda: cfg)
-    monkeypatch.setattr("flux.flux_calc.load_model_for_temperature", lambda _: np.array([[100.0, 1.0, 1.0]]))
+    monkeypatch.setattr("flux.flux_calc.load_model_for_temperature", lambda _, announce_user=False: np.array([[100.0, 1.0, 1.0]]))
     monkeypatch.setattr("flux.flux_calc.convertStellarModelToFlux", lambda d, _: d)
     monkeypatch.setattr("flux.flux_calc.compute_ebv_av", lambda *a: (0.0, 0.0))
-    monkeypatch.setattr("flux.flux_calc.compute_flux_at_earth", lambda d, _: d[:, 1])
-    monkeypatch.setattr("flux.flux_calc.apply_unred", lambda w, f, e: f)
+    monkeypatch.setattr("flux.flux_calc.compute_flux_at_earth", lambda d, _, announce_user=False: d[:, 1])
+    monkeypatch.setattr("flux.flux_calc.apply_unred", lambda w, f, e, announce_user=False: f)
     monkeypatch.setattr("instrument.prepare_detector_images.convert_flux_to_photons", lambda f, w: f)
 
     star = SimpleNamespace(
@@ -237,12 +237,12 @@ def test_calculateFluxOnEarth_executes_test_mode_instrumentation(monkeypatch, tm
     )
     monkeypatch.setattr(
         "flux.flux_calc.load_model_for_temperature",
-        lambda _t: np.column_stack((np.array([1000.0, 1100.0]), np.array([1.0, 1.0]))),
+        lambda _t, announce_user=False: np.column_stack((np.array([1000.0, 1100.0]), np.array([1.0, 1.0]))),
     )
     monkeypatch.setattr("flux.flux_calc.convertStellarModelToFlux", lambda model, _r: model)
     monkeypatch.setattr("flux.flux_calc.compute_ebv_av", lambda *_a: (0.0, 0.0))
-    monkeypatch.setattr("flux.flux_calc.compute_flux_at_earth", lambda data, _d: data[:, 1])
-    monkeypatch.setattr("flux.flux_calc.apply_unred", lambda _w, f, _e: f)
+    monkeypatch.setattr("flux.flux_calc.compute_flux_at_earth", lambda data, _d, announce_user=False: data[:, 1])
+    monkeypatch.setattr("flux.flux_calc.apply_unred", lambda _w, f, _e, announce_user=False: f)
     monkeypatch.setattr("instrument.prepare_detector_images.convert_flux_to_photons", lambda f, _w: f)
 
     cfg = SimpleNamespace(

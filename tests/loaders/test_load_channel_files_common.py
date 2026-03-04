@@ -1,10 +1,5 @@
 """
-Direct tests for low-level calibration file loaders:
-- load_effective_area_file
-- load_spread_profile_file_spectroscopy
-- load_background_file
-- load_zod_dist_file
-- load_zod_spectrum_file
+Direct tests for common low-level calibration file loaders.
 """
 
 from pathlib import Path
@@ -12,15 +7,21 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from loaders.load_channel_files import (
-    load_effective_area_file,
-    load_spread_profile_file_spectroscopy,
+from loaders.load_channel_files_common import (
     load_background_file,
+    load_effective_area_file,
     load_zod_dist_file,
     load_zod_spectrum_file,
 )
 
-_REPO_ROOT = "loaders.load_channel_files.get_repo_root"
+_REPO_ROOT_COMMON = "loaders.load_channel_files_common.get_repo_root"
+
+
+def _assert_error_contains(exc: BaseException, *needles: str) -> None:
+    """Assert a raised error message contains stable keyword fragments."""
+    msg = str(exc).lower()
+    for needle in needles:
+        assert needle.lower() in msg
 
 
 def _write(path: Path, text: str) -> None:
@@ -38,25 +39,9 @@ def _write_ea_file(path: Path, pixel_scale: float = 0.01, rows: int = 3) -> None
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
-def _write_spread_file(path: Path, wavelengths: list[float], num_rows: int = 3) -> None:
-    """Write a minimal spread profile file (pixels header + dy + weight columns)."""
-    wl_str = "  ".join(str(w) for w in wavelengths)
-    lines = ["# comment", f"pixels  {wl_str}"]
-    for i in range(num_rows):
-        dy = float(i)
-        weights = "  ".join("0.5" for _ in wavelengths)
-        lines.append(f"{dy}  {weights}")
-    path.write_text("\n".join(lines), encoding="utf-8")
-
-
-# ----------------------------------------------------------------------
-# load_effective_area_file: direct tests
-# ----------------------------------------------------------------------
-
-
 def test_load_effective_area_file_success(monkeypatch, tmp_path):
     """load_effective_area_file loads wavelength, effective_area, pixel_scale from real file."""
-    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    monkeypatch.setattr(_REPO_ROOT_COMMON, lambda: tmp_path)
     data_dir = tmp_path / "data"
     data_dir.mkdir()
     ea_path = data_dir / "ea.txt"
@@ -72,40 +57,43 @@ def test_load_effective_area_file_success(monkeypatch, tmp_path):
 
 def test_load_effective_area_file_missing_file_raises(monkeypatch, tmp_path):
     """load_effective_area_file raises ValueError when file does not exist."""
-    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    monkeypatch.setattr(_REPO_ROOT_COMMON, lambda: tmp_path)
     (tmp_path / "data").mkdir(exist_ok=True)
 
-    with pytest.raises(ValueError, match="Effective area file not found"):
+    with pytest.raises(ValueError) as exc:
         load_effective_area_file("nonexistent.txt")
+    _assert_error_contains(exc.value, "effective area", "not found")
 
 
 def test_load_effective_area_file_missing_pixel_scale_raises(monkeypatch, tmp_path):
     """load_effective_area_file raises ValueError when '# Pixel scale:' header is missing."""
-    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    monkeypatch.setattr(_REPO_ROOT_COMMON, lambda: tmp_path)
     data_dir = tmp_path / "data"
     data_dir.mkdir()
     ea_path = data_dir / "ea.txt"
     ea_path.write_text("1000  0.1\n1100  0.2\n", encoding="utf-8")
 
-    with pytest.raises(ValueError, match="Missing required header line"):
+    with pytest.raises(ValueError) as exc:
         load_effective_area_file("ea.txt")
+    _assert_error_contains(exc.value, "pixel scale", "header")
 
 
 def test_load_effective_area_file_no_numeric_data_raises(monkeypatch, tmp_path):
     """load_effective_area_file raises ValueError when no numeric data rows exist."""
-    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    monkeypatch.setattr(_REPO_ROOT_COMMON, lambda: tmp_path)
     data_dir = tmp_path / "data"
     data_dir.mkdir()
     ea_path = data_dir / "ea.txt"
     ea_path.write_text("# Pixel scale: 0.01\n# only comments\nWavelength  EA\n", encoding="utf-8")
 
-    with pytest.raises(ValueError, match="Could not find any numeric data"):
+    with pytest.raises(ValueError) as exc:
         load_effective_area_file("ea.txt")
+    _assert_error_contains(exc.value, "numeric data")
 
 
 def test_load_effective_area_file_invalid_pixel_scale_raises(monkeypatch, tmp_path):
     """load_effective_area_file raises ValueError when pixel scale value is non-numeric."""
-    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    monkeypatch.setattr(_REPO_ROOT_COMMON, lambda: tmp_path)
     data_dir = tmp_path / "data"
     data_dir.mkdir()
     _write(
@@ -113,13 +101,14 @@ def test_load_effective_area_file_invalid_pixel_scale_raises(monkeypatch, tmp_pa
         "# Pixel scale: not_a_number\nWavelength EffectiveArea\n1000  0.1\n1100  0.2\n",
     )
 
-    with pytest.raises(ValueError, match="Invalid pixel scale value"):
+    with pytest.raises(ValueError) as exc:
         load_effective_area_file("ea.txt")
+    _assert_error_contains(exc.value, "pixel scale", "invalid")
 
 
 def test_load_effective_area_file_one_column_table_raises(monkeypatch, tmp_path):
     """load_effective_area_file raises ValueError for one-column table (ndim==1 guard)."""
-    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    monkeypatch.setattr(_REPO_ROOT_COMMON, lambda: tmp_path)
     data_dir = tmp_path / "data"
     data_dir.mkdir()
     _write(
@@ -127,24 +116,26 @@ def test_load_effective_area_file_one_column_table_raises(monkeypatch, tmp_path)
         "# Pixel scale: 0.417684\nWavelength\n2397.0000\n2397.4177\n2397.8354\n",
     )
 
-    with pytest.raises(ValueError, match="Invalid effective area table structure"):
+    with pytest.raises(ValueError) as exc:
         load_effective_area_file("ea.txt")
+    _assert_error_contains(exc.value, "effective area", "table")
 
 
 def test_load_effective_area_file_one_row_two_columns_raises(monkeypatch, tmp_path):
     """load_effective_area_file raises ValueError for single numeric row (np.loadtxt returns 1D)."""
-    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    monkeypatch.setattr(_REPO_ROOT_COMMON, lambda: tmp_path)
     data_dir = tmp_path / "data"
     data_dir.mkdir()
     _write(data_dir / "ea.txt", "# Pixel scale: 0.5\nWavelength EffectiveArea\n1500  0.42\n")
 
-    with pytest.raises(ValueError, match="Invalid effective area table structure"):
+    with pytest.raises(ValueError) as exc:
         load_effective_area_file("ea.txt")
+    _assert_error_contains(exc.value, "effective area", "table")
 
 
 def test_load_effective_area_file_header_lines_after_pixel_scale_ok(monkeypatch, tmp_path):
     """Extra comment lines after pixel scale header do not break parsing."""
-    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    monkeypatch.setattr(_REPO_ROOT_COMMON, lambda: tmp_path)
     data_dir = tmp_path / "data"
     data_dir.mkdir()
     _write(
@@ -161,7 +152,7 @@ def test_load_effective_area_file_header_lines_after_pixel_scale_ok(monkeypatch,
 
 def test_load_effective_area_file_extra_columns_first_and_last_used(monkeypatch, tmp_path):
     """With extra columns, first column is wavelength and last column is effective area."""
-    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    monkeypatch.setattr(_REPO_ROOT_COMMON, lambda: tmp_path)
     data_dir = tmp_path / "data"
     data_dir.mkdir()
     _write(
@@ -176,7 +167,7 @@ def test_load_effective_area_file_extra_columns_first_and_last_used(monkeypatch,
 
 def test_load_effective_area_file_leading_trailing_whitespace_ok(monkeypatch, tmp_path):
     """Whitespace and tabs around numeric values do not break parsing."""
-    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    monkeypatch.setattr(_REPO_ROOT_COMMON, lambda: tmp_path)
     data_dir = tmp_path / "data"
     data_dir.mkdir()
     _write(
@@ -191,7 +182,7 @@ def test_load_effective_area_file_leading_trailing_whitespace_ok(monkeypatch, tm
 
 def test_load_effective_area_file_blank_lines_inside_numeric_block_ok(monkeypatch, tmp_path):
     """Blank lines between numeric rows are tolerated."""
-    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    monkeypatch.setattr(_REPO_ROOT_COMMON, lambda: tmp_path)
     data_dir = tmp_path / "data"
     data_dir.mkdir()
     _write(
@@ -206,7 +197,7 @@ def test_load_effective_area_file_blank_lines_inside_numeric_block_ok(monkeypatc
 
 def test_load_effective_area_file_malformed_numeric_row_raises(monkeypatch, tmp_path):
     """Malformed numeric row causes parse failure rather than silent skip."""
-    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    monkeypatch.setattr(_REPO_ROOT_COMMON, lambda: tmp_path)
     data_dir = tmp_path / "data"
     data_dir.mkdir()
     _write(
@@ -214,86 +205,9 @@ def test_load_effective_area_file_malformed_numeric_row_raises(monkeypatch, tmp_
         "# Pixel scale: 0.01\nWavelength foo EffectiveArea\n1000  1  0.10\n1100  2  BAD\n1200  3  0.30\n",
     )
 
-    with pytest.raises(ValueError, match="Failed to parse numeric data"):
+    with pytest.raises(ValueError) as exc:
         load_effective_area_file("ea.txt")
-
-
-# ----------------------------------------------------------------------
-# load_spread_profile_file_spectroscopy: direct tests
-# ----------------------------------------------------------------------
-
-
-def test_load_spread_profile_file_spectroscopy_success(monkeypatch, tmp_path):
-    """load_spread_profile_file_spectroscopy loads positions, weights, wavelengths from real file."""
-    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
-    data_dir = tmp_path / "data"
-    data_dir.mkdir()
-    spread_path = data_dir / "spread.txt"
-    _write_spread_file(spread_path, wavelengths=[1000.0, 1100.0], num_rows=3)
-
-    positions, weights, wavelengths = load_spread_profile_file_spectroscopy("spread.txt", "NUV")
-
-    assert np.allclose(positions, [0.0, 1.0, 2.0])
-    assert weights.shape == (3, 2)
-    assert np.allclose(wavelengths, [1000.0, 1100.0])
-
-
-def test_load_spread_profile_file_spectroscopy_missing_file_raises(monkeypatch, tmp_path):
-    """load_spread_profile_file_spectroscopy raises ValueError when file does not exist (non-empty filename)."""
-    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
-    (tmp_path / "data").mkdir(exist_ok=True)
-
-    with pytest.raises(ValueError, match="Spread profile file not found"):
-        load_spread_profile_file_spectroscopy("nonexistent_spread.txt", "NUV")
-
-
-def test_load_spread_profile_file_spectroscopy_missing_pixels_header_raises(monkeypatch, tmp_path):
-    """load_spread_profile_file_spectroscopy raises ValueError when 'pixels' header line is absent."""
-    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
-    data_dir = tmp_path / "data"
-    data_dir.mkdir()
-    _write(data_dir / "spread.txt", "# comment\n0  0.1 0.2\n1  0.3 0.4\n")
-
-    with pytest.raises(ValueError, match="No 'pixels"):
-        load_spread_profile_file_spectroscopy("spread.txt", "NUV")
-
-
-def test_load_spread_profile_file_spectroscopy_header_count_mismatch_raises(monkeypatch, tmp_path):
-    """load_spread_profile_file_spectroscopy raises ValueError when header wavelength count != weight columns."""
-    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
-    data_dir = tmp_path / "data"
-    data_dir.mkdir()
-    _write(data_dir / "spread.txt", "pixels 1000 1100 1200\n0  0.1 0.2\n1  0.3 0.4\n")
-
-    with pytest.raises(ValueError, match="wavelength count does not match weight columns"):
-        load_spread_profile_file_spectroscopy("spread.txt", "NUV")
-
-
-def test_load_spread_profile_file_spectroscopy_leading_trailing_whitespace_ok(monkeypatch, tmp_path):
-    """Whitespace and blank lines do not break spread parsing; output dtypes are float."""
-    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
-    data_dir = tmp_path / "data"
-    data_dir.mkdir()
-    _write(
-        data_dir / "spread.txt",
-        "   pixels   1000   1100   \n\n  0    0.10   0.20   \n  1    0.30   0.40   \n\n",
-    )
-
-    pos, w, wl = load_spread_profile_file_spectroscopy("spread.txt", "NUV")
-    assert pos.dtype == float
-    assert w.dtype == float
-    assert wl.dtype == float
-    assert pos.shape == (2,)
-    assert w.shape == (2, 2)
-    assert wl.shape == (2,)
-    assert wl[0] == pytest.approx(1000.0)
-    assert wl[1] == pytest.approx(1100.0)
-    assert w[1, 1] == pytest.approx(0.40)
-
-
-# ----------------------------------------------------------------------
-# load_background_file: direct tests
-# ----------------------------------------------------------------------
+    _assert_error_contains(exc.value, "parse", "numeric")
 
 
 def test_load_background_file_empty_filename_returns_none_none():
@@ -304,7 +218,7 @@ def test_load_background_file_empty_filename_returns_none_none():
 
 def test_load_background_file_success(monkeypatch, tmp_path):
     """load_background_file loads wavelength and flux from a simple two-column table."""
-    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    monkeypatch.setattr(_REPO_ROOT_COMMON, lambda: tmp_path)
     data_dir = tmp_path / "data"
     data_dir.mkdir()
     bg_path = data_dir / "bg.txt"
@@ -318,27 +232,29 @@ def test_load_background_file_success(monkeypatch, tmp_path):
 
 def test_load_background_file_missing_file_raises(monkeypatch, tmp_path):
     """load_background_file raises ValueError when the file does not exist."""
-    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    monkeypatch.setattr(_REPO_ROOT_COMMON, lambda: tmp_path)
     (tmp_path / "data").mkdir(exist_ok=True)
 
-    with pytest.raises(ValueError, match="Background file not found"):
+    with pytest.raises(ValueError) as exc:
         load_background_file("missing_bg.txt")
+    _assert_error_contains(exc.value, "background", "not found")
 
 
 def test_load_background_file_one_column_table_raises(monkeypatch, tmp_path):
     """One-column numeric table is rejected as invalid background structure."""
-    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    monkeypatch.setattr(_REPO_ROOT_COMMON, lambda: tmp_path)
     data_dir = tmp_path / "data"
     data_dir.mkdir()
     _write(data_dir / "bg.txt", "1000\n1100\n")
 
-    with pytest.raises(ValueError, match="Invalid background table structure"):
+    with pytest.raises(ValueError) as exc:
         load_background_file("bg.txt")
+    _assert_error_contains(exc.value, "background", "table")
 
 
 def test_load_background_file_malformed_numeric_row_raises(monkeypatch, tmp_path):
     """Malformed numeric row causes parse failure rather than silent skip."""
-    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    monkeypatch.setattr(_REPO_ROOT_COMMON, lambda: tmp_path)
     data_dir = tmp_path / "data"
     data_dir.mkdir()
     _write(
@@ -346,15 +262,9 @@ def test_load_background_file_malformed_numeric_row_raises(monkeypatch, tmp_path
         "1000  0.1\n1100  BAD\n1200  0.3\n",
     )
 
-    with pytest.raises(ValueError, match="Failed to parse numeric data"):
+    with pytest.raises(ValueError) as exc:
         load_background_file("bg.txt")
-
-
-# ----------------------------------------------------------------------
-# load_zod_dist_file: direct tests
-# No file provided ("" / "   ") -> None; empty file -> ValueError; missing file -> ValueError;
-# single column / malformed -> ValueError; valid 2D table -> transposed array.
-# ----------------------------------------------------------------------
+    _assert_error_contains(exc.value, "parse", "numeric")
 
 
 def test_load_zod_dist_file_no_file_provided_returns_none():
@@ -365,7 +275,7 @@ def test_load_zod_dist_file_no_file_provided_returns_none():
 
 def test_load_zod_dist_file_success(monkeypatch, tmp_path):
     """load_zod_dist_file loads a 2D numeric table from file."""
-    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    monkeypatch.setattr(_REPO_ROOT_COMMON, lambda: tmp_path)
     data_dir = tmp_path / "data"
     data_dir.mkdir()
     _write(data_dir / "zod_dist.txt", "1.0  2.0  3.0\n4.0  5.0  6.0\n")
@@ -379,51 +289,48 @@ def test_load_zod_dist_file_success(monkeypatch, tmp_path):
 
 def test_load_zod_dist_file_missing_file_raises(monkeypatch, tmp_path):
     """load_zod_dist_file raises ValueError when the file does not exist."""
-    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    monkeypatch.setattr(_REPO_ROOT_COMMON, lambda: tmp_path)
     (tmp_path / "data").mkdir(exist_ok=True)
 
-    with pytest.raises(ValueError, match="Zodiacal distribution file not found"):
+    with pytest.raises(ValueError) as exc:
         load_zod_dist_file("missing_zod.txt")
+    _assert_error_contains(exc.value, "zodiacal", "distribution", "not found")
 
 
 def test_load_zod_dist_file_one_column_raises(monkeypatch, tmp_path):
     """Single-column data yields 1D array and is rejected as invalid table."""
-    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    monkeypatch.setattr(_REPO_ROOT_COMMON, lambda: tmp_path)
     data_dir = tmp_path / "data"
     data_dir.mkdir()
     _write(data_dir / "zod.txt", "1.0\n2.0\n3.0\n")
 
-    with pytest.raises(ValueError, match="Invalid zodiacal distribution table"):
+    with pytest.raises(ValueError) as exc:
         load_zod_dist_file("zod.txt")
+    _assert_error_contains(exc.value, "zodiacal", "distribution", "table")
 
 
 def test_load_zod_dist_file_empty_file_raises(monkeypatch, tmp_path):
     """File exists but is empty (no numeric rows) yields invalid table and raises ValueError."""
-    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    monkeypatch.setattr(_REPO_ROOT_COMMON, lambda: tmp_path)
     data_dir = tmp_path / "data"
     data_dir.mkdir()
     _write(data_dir / "zod.txt", "")
 
-    with pytest.raises(ValueError, match="Invalid zodiacal distribution table"):
+    with pytest.raises(ValueError) as exc:
         load_zod_dist_file("zod.txt")
+    _assert_error_contains(exc.value, "zodiacal", "distribution", "table")
 
 
 def test_load_zod_dist_file_malformed_row_raises(monkeypatch, tmp_path):
     """Malformed numeric row causes parse failure."""
-    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    monkeypatch.setattr(_REPO_ROOT_COMMON, lambda: tmp_path)
     data_dir = tmp_path / "data"
     data_dir.mkdir()
     _write(data_dir / "zod.txt", "1.0  2.0\n3.0  BAD\n5.0  6.0\n")
 
-    with pytest.raises(ValueError, match="Failed to parse"):
+    with pytest.raises(ValueError) as exc:
         load_zod_dist_file("zod.txt")
-
-
-# ----------------------------------------------------------------------
-# load_zod_spectrum_file: direct tests
-# No file provided ("" / "   ") -> (None, None); empty file -> ValueError; missing file -> ValueError;
-# one column / malformed -> ValueError; valid 2-column table -> (wavelength, spectrum).
-# ----------------------------------------------------------------------
+    _assert_error_contains(exc.value, "parse", "zodiacal")
 
 
 def test_load_zod_spectrum_file_no_file_provided_returns_none_none():
@@ -434,7 +341,7 @@ def test_load_zod_spectrum_file_no_file_provided_returns_none_none():
 
 def test_load_zod_spectrum_file_success(monkeypatch, tmp_path):
     """load_zod_spectrum_file loads wavelength and spectrum columns from file."""
-    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    monkeypatch.setattr(_REPO_ROOT_COMMON, lambda: tmp_path)
     data_dir = tmp_path / "data"
     data_dir.mkdir()
     _write(data_dir / "zod_spec.txt", "1000  0.5\n1100  0.6\n1200  0.7\n")
@@ -447,42 +354,45 @@ def test_load_zod_spectrum_file_success(monkeypatch, tmp_path):
 
 def test_load_zod_spectrum_file_missing_file_raises(monkeypatch, tmp_path):
     """load_zod_spectrum_file raises ValueError when the file does not exist."""
-    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    monkeypatch.setattr(_REPO_ROOT_COMMON, lambda: tmp_path)
     (tmp_path / "data").mkdir(exist_ok=True)
 
-    with pytest.raises(ValueError, match="Zodiacal spectrum file not found"):
+    with pytest.raises(ValueError) as exc:
         load_zod_spectrum_file("missing_spec.txt")
+    _assert_error_contains(exc.value, "zodiacal", "spectrum", "not found")
 
 
 def test_load_zod_spectrum_file_one_column_raises(monkeypatch, tmp_path):
     """One-column table is rejected as invalid spectrum structure."""
-    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    monkeypatch.setattr(_REPO_ROOT_COMMON, lambda: tmp_path)
     data_dir = tmp_path / "data"
     data_dir.mkdir()
     _write(data_dir / "zod_spec.txt", "1000\n1100\n1200\n")
 
-    with pytest.raises(ValueError, match="Invalid zodiacal spectrum table"):
+    with pytest.raises(ValueError) as exc:
         load_zod_spectrum_file("zod_spec.txt")
+    _assert_error_contains(exc.value, "zodiacal", "spectrum", "table")
 
 
 def test_load_zod_spectrum_file_empty_file_raises(monkeypatch, tmp_path):
     """File exists but is empty (no numeric rows) yields invalid table and raises ValueError."""
-    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    monkeypatch.setattr(_REPO_ROOT_COMMON, lambda: tmp_path)
     data_dir = tmp_path / "data"
     data_dir.mkdir()
     _write(data_dir / "zod_spec.txt", "")
 
-    with pytest.raises(ValueError, match="Invalid zodiacal spectrum table"):
+    with pytest.raises(ValueError) as exc:
         load_zod_spectrum_file("zod_spec.txt")
+    _assert_error_contains(exc.value, "zodiacal", "spectrum", "table")
 
 
 def test_load_zod_spectrum_file_malformed_row_raises(monkeypatch, tmp_path):
     """Malformed numeric row causes parse failure."""
-    monkeypatch.setattr(_REPO_ROOT, lambda: tmp_path)
+    monkeypatch.setattr(_REPO_ROOT_COMMON, lambda: tmp_path)
     data_dir = tmp_path / "data"
     data_dir.mkdir()
     _write(data_dir / "zod_spec.txt", "1000  0.5\n1100  BAD\n1200  0.7\n")
 
-    with pytest.raises(ValueError, match="Failed to parse"):
+    with pytest.raises(ValueError) as exc:
         load_zod_spectrum_file("zod_spec.txt")
-
+    _assert_error_contains(exc.value, "parse", "zodiacal")

@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 from loaders.load_model_temperature import (
     load_model_for_temperature,
-    _get_available_model_temps,
+    _get_available_models,
 )
 
 def _find_tests_dir() -> Path:
@@ -22,25 +22,25 @@ MODELS_DIR = FIXTURES_ROOT / "data" / "models"
 
 
 def test_get_available_model_temps_returns_sorted_matching_dirs(tmp_path):
-    """_get_available_model_temps returns sorted list of temps from dir names tXXXXXg4.4."""
+    """_get_available_models returns sorted temperatures from matching model dir names."""
     (tmp_path / "t05700g4.4").mkdir()
     (tmp_path / "t05800g4.4").mkdir()
     (tmp_path / "t05600g4.4").mkdir()
     (tmp_path / "other").mkdir()
     (tmp_path / "t12345g4.4").mkdir()
 
-    temps = _get_available_model_temps(tmp_path)
+    temps = [t for t, _ in _get_available_models(tmp_path)]
 
     assert temps == [5600, 5700, 5800, 12345]
 
 
 def test_get_available_model_temps_ignores_files(tmp_path):
-    """_get_available_model_temps ignores files and non-matching names."""
+    """_get_available_models ignores files and non-matching names."""
     (tmp_path / "t05700g4.4").mkdir()
     (tmp_path / "file.txt").write_text("x")
     (tmp_path / "t05700g44").mkdir()  # wrong pattern (no dot)
 
-    temps = _get_available_model_temps(tmp_path)
+    temps = [t for t, _ in _get_available_models(tmp_path)]
 
     assert temps == [5700]
 
@@ -67,10 +67,10 @@ def test_load_model_exact_match():
 def test_load_model_no_models_raises():
     """load_model_for_temperature raises FileNotFoundError when no stellar model dirs exist."""
     with patch("loaders.load_model_temperature.get_repo_root") as mock_root, \
-         patch("loaders.load_model_temperature._get_available_model_temps") as mock_temps:
+         patch("loaders.load_model_temperature._get_available_models") as mock_models:
 
         mock_root.return_value = Path("/fake/repo")
-        mock_temps.return_value = []
+        mock_models.return_value = []
 
         with pytest.raises(FileNotFoundError, match="No stellar models found"):
             load_model_for_temperature(5756.0)
@@ -79,11 +79,11 @@ def test_load_model_no_models_raises():
 def test_load_model_file_missing_raises():
     """load_model_for_temperature raises when model dir exists but model.flx is missing."""
     with patch("loaders.load_model_temperature.get_repo_root") as mock_root, \
-         patch("loaders.load_model_temperature._get_available_model_temps") as mock_temps, \
+         patch("loaders.load_model_temperature._get_available_models") as mock_models, \
          patch.object(Path, "is_file", return_value=False):
 
         mock_root.return_value = Path("/fake/repo")
-        mock_temps.return_value = [5700]
+        mock_models.return_value = [(5700, Path("/fake/repo/data/models/t05700g4.4"))]
 
         with pytest.raises(FileNotFoundError, match="model.flx missing"):
             load_model_for_temperature(5756.0)

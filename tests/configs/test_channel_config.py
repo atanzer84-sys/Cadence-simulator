@@ -1,4 +1,6 @@
 import numpy as np
+import pytest
+from dataclasses import FrozenInstanceError
 
 from configs.channel_config import SpectroscopyChannel, PhotometryChannel
 
@@ -53,7 +55,38 @@ def test_photometry_channel_init():
         effective_area_wavelength=np.array([1000.0, 1001.0]),
         effective_area=np.array([0.1, 0.2]),
         pixel_scale=1.0,
+        psf_file="nir_psf.txt",
     )
 
     assert ch.channel_name == "NIR"
     assert ch.exposure_s == 5.0
+    assert ch.psf_file == "nir_psf.txt"
+    assert ch.psf_image is None
+    assert ch.psf_center_x is None
+    assert ch.psf_center_y is None
+    assert ch.source_position_x_arcsec is None
+    assert ch.source_position_y_arcsec is None
+
+
+def test_photometry_channel_is_frozen():
+    ch = PhotometryChannel(
+        channel_name="NIR",
+        x_pixels=10,
+        y_pixels=10,
+        resolution_factor=1.0,
+        dark_noise=0.0,
+        dark_current_sigma=0.0,
+        read_noise=1.0,
+        bias_offset=0.0,
+        ccd_gain=1.0,
+        exposure_s=5.0,
+        source_file="cfg",
+        effective_area_file="ea_ir.txt",
+        effective_area_wavelength=np.array([1000.0]),
+        effective_area=np.array([0.1]),
+        pixel_scale=1.0,
+        psf_file="nir_psf.txt",
+    )
+
+    with pytest.raises(FrozenInstanceError):
+        ch.psf_file = "other.txt"

@@ -3,7 +3,9 @@ from pathlib import Path
 import logging
 from configs.channel_config import SpectroscopyChannel, PhotometryChannel
 from configs.user_config import UserConfig
-from loaders.load_channel_files import load_effective_area_file, load_spread_profile_file_spectroscopy, load_background_file, load_zod_dist_file, load_zod_spectrum_file, load_psf_image_file
+from loaders.load_channel_files_common import load_effective_area_file, load_background_file, load_zod_dist_file, load_zod_spectrum_file
+from loaders.load_channel_files_spectroscopy import load_spread_profile_file_spectroscopy
+from loaders.load_channel_files_photometry import load_psf_image_file
 
 def load_channels_config(user_cfg: UserConfig, ctx):
     repo_root = get_repo_root()

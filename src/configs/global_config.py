@@ -33,6 +33,8 @@ class GlobalConfig:
     # Magnitude cutoff for background star calculation and Gaia fetching (G mag limit).
     magnitude_cutoff: float
     GAIA_USE_ASYNC_JOBS: bool
+
+
     test_mode: bool
     produce_Plots: bool
 

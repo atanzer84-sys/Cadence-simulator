@@ -27,7 +27,7 @@ def test_main_catches_exception_exits_with_message(monkeypatch, tmp_path, capsys
     def fake_init():
         return run_ctx, user_cfg
 
-    def fake_load_channels(_user_cfg):
+    def fake_load_channels(_user_cfg, _run_ctx):
         return SimpleNamespace(), SimpleNamespace(), SimpleNamespace()
 
     monkeypatch.setattr(waltzer_simulator, "initialize_waltzer_runtime_context", fake_init)
