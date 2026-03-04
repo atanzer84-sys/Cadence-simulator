@@ -128,9 +128,6 @@ def get_gaia_stellar_properties(gaia_row, log_output: bool = True):
     return gaia_star_params
 
 
-
-
-
 def gaia_lookup_for_background_stars(star: Star, g_mag_limit, GAIA_USE_ASYNC_JOBS) -> Table | None:
     """
     Fetch background stars from Gaia in a cone around the target star.

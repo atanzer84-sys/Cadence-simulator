@@ -87,7 +87,7 @@ class RunContext:
     write_image_png: _NoOpWriteImagePng
 
 def initialize_waltzer_runtime_context():
-    print("==== LOADING AND INITIALIZING =====")
+    print("\n==== LOADING AND INITIALIZING WALTzER SIMULATOR =====")
     output_dir, timestamp_str, timestamp = setup_output_directory()
     setup_logger(output_dir, timestamp_str)
     user_cfg = load_cfg_and_user_config()
@@ -105,8 +105,7 @@ def initialize_waltzer_runtime_context():
         produce_plots=produce_plots,
         write_image_png=write_image_png,
     )
-    logging.info("RunContext initialized: target=%s output_dir=%s test_mode=%s produce_plots=%s write_image_png=%s",
-        run_ctx.target_name, run_ctx.output_dir, run_ctx.test_mode, run_ctx.produce_plots, run_ctx.write_image_png is not None)
+    logging.info("RunContext initialized: target=%s output_dir=%s test_mode=%s produce_plots=%s write_image_png=%s", run_ctx.target_name, run_ctx.output_dir, run_ctx.test_mode, run_ctx.produce_plots, run_ctx.write_image_png is not None)
     return run_ctx, user_cfg
 
 def load_cfg_and_user_config():
@@ -184,23 +183,19 @@ def get_user_parameter_path():
     pathlib.Path
         Path to the parameter file. Only returns on success; exits on error.
     """
-    # Too many arguments
     if len(sys.argv) > 2:
         logging.error("Too many command line arguments: %s", sys.argv)
         print("Usage: python waltzer_simulator.py [parameters_file]")
         sys.exit(1)
 
-    # One argument → use it
     if len(sys.argv) == 2:
         parameter_file = Path(sys.argv[1])
     else:
-        # No argument → default
         parameter_file = get_repo_root() / "input" / "parameters.txt"
 
     logging.info("Using parameter file: %s", parameter_file.resolve())
     print("User parameter file loaded: ", parameter_file.resolve())
 
-    # Validate existence
     if not parameter_file.exists():
         logging.exception("Parameter file not found: %s", parameter_file)
         print(f"Input error: parameter file not found: {parameter_file}", file=sys.stderr)

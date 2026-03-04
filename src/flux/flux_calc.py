@@ -11,13 +11,14 @@ from astropy.coordinates import SkyCoord
 from astropy import units as u
 from loaders.run_waltzer_context import RunContext
 from loaders.load_model_temperature import load_model_for_temperature
+from utils.helpers import print_if_enabled
 
 
-def calculateFluxOnEarth(star: Star, ctx: RunContext):
-    print("Starting to calculate Flux on Earth")
+def calculateFluxOnEarth(star: Star, ctx: RunContext, announce_user: bool = False):
+    print_if_enabled(f"Starting to calculate Flux on Earth for target star {star.name}", announce_user)
     cfg = get_global_config()
 
-    model_data = load_model_for_temperature(star.effective_temperature)
+    model_data = load_model_for_temperature(star.effective_temperature, announce_user=announce_user)
     ctx.test_mode.dump_3d_array(model_data, ctx.output_dir, star.name, "FluxCalc_1_model_input", perChannel=True, zoom=True) 
 
 
@@ -32,7 +33,7 @@ def calculateFluxOnEarth(star: Star, ctx: RunContext):
     if cfg.line_core_emission:
 
         # ACTUAL LCA EMISSION 
-        flux_lambda_diluted = apply_line_core_emission(flux_lambda_diluted, cfg.sigmaMg22, cfg.sigmaMg21, star.log_r, star.spectral_type)
+        flux_lambda_diluted = apply_line_core_emission(flux_lambda_diluted, cfg.sigmaMg22, cfg.sigmaMg21, star.log_r, star.spectral_type, announce_user=announce_user)
 
         ctx.test_mode.dump_3d_array(flux_lambda_diluted, ctx.output_dir, star.name, "FluxCalc_3_after_line_core_emission", perChannel=True, zoom=True)
     else:
@@ -45,7 +46,7 @@ def calculateFluxOnEarth(star: Star, ctx: RunContext):
     if cfg.interstellar_absorption:
 
         # ACTUAL ISM_ABS CALL
-        flux_lambda_diluted = apply_ism_absorption(flux_lambda_diluted, ebv, cfg)
+        flux_lambda_diluted = apply_ism_absorption(flux_lambda_diluted, ebv, cfg, announce_user=announce_user)
 
         ctx.test_mode.dump_3d_array(flux_lambda_diluted, ctx.output_dir, star.name, "FluxCalc_4_after_ISM", perChannel=True, zoom=True)
 
@@ -57,16 +58,15 @@ def calculateFluxOnEarth(star: Star, ctx: RunContext):
     ctx.test_mode.dump_1d_array(wavelengths, flux_di_before, ctx.output_dir, star.name, "FluxCalc_5_before_flux_at_earth", perChannel=True, zoom=True)
 
     # FINALLY FLUX ON EARTH
-    flux_at_earth = compute_flux_at_earth(flux_lambda_diluted, star.distance_pc)
+    flux_at_earth = compute_flux_at_earth(flux_lambda_diluted, star.distance_pc, announce_user=announce_user)
 
     ctx.test_mode.dump_1d_array(wavelengths, flux_at_earth, ctx.output_dir, star.name, "FluxCalc_6_after_flux_at_earth", perChannel=True, zoom=True)
 
     # UNRED FLUX
-    flux_unred = apply_unred(wavelengths, flux_at_earth, ebv)
+    flux_unred = apply_unred(wavelengths, flux_at_earth, ebv, announce_user=announce_user)
 
     ctx.test_mode.dump_1d_array(wavelengths, flux_unred, ctx.output_dir, star.name, "FluxCalc_7_after_unred", perChannel=True, zoom=True)
     ctx.produce_plots.plot_flux_and_photons_windows(wavelengths, flux_unred, ctx.output_dir, star, "FluxCalc_1_Flux", "Flux", "Flux [erg s⁻¹ cm⁻² Å⁻¹]")
-
   
     return flux_unred, wavelengths
 
@@ -78,7 +78,7 @@ def convertStellarModelToFlux(model_data, r_star):
     Resulting quantity is stellar spectral luminosity (erg/s/A),
     later converted to flux at Earth by geometric dilution.
     '''
-    intensity_lambda        = np.zeros(np.shape(model_data))
+    intensity_lambda = np.zeros(np.shape(model_data))
     flux_lambda  = np.zeros(np.shape(model_data))
     # we convert from frq to wavelength using lambda in Angstrom: F_lambda = F_nu * c / lambda^2
     # Unit before: erg/cm2/s/Hz, After:  ergs/cm2/s/A
@@ -91,16 +91,12 @@ def convertStellarModelToFlux(model_data, r_star):
     flux_lambda[:,0]  = model_data[:,0]
     flux_lambda[:,1]  = intensity_lambda[:,1] * 4 * np.pi * (r_star**2) * 4 * np.pi
     flux_lambda[:,2]  = intensity_lambda[:,2] * 4 * np.pi * (r_star**2) * 4 * np.pi
-    logging.info(
-        "Converting intensity to luminosity for r_star=%.6e cm with %d wavelength points",
-        r_star,
-        model_data.shape[0]
-    )
+    logging.info("Converting intensity to luminosity for r_star=%.6e cm with %d wavelength points", r_star, model_data.shape[0])
 
     return flux_lambda
 
-def apply_ism_absorption(data, ebv, cfg):
-    print("Starting ISM absorption")
+def apply_ism_absorption(data, ebv, cfg, announce_user: bool = False):
+    print_if_enabled("Starting ISM absorption", announce_user)
     logging.info("Starting ISM absorption")
     logging.info("ISM input: E(B-V)=%s", ebv)
 
@@ -153,15 +149,16 @@ def calculate_glon_glat(right_ascension, declination):
     glat = c.galactic.b.deg
     return glon, glat
 
-def compute_flux_at_earth(flux_lambda_diluted, distance_pc):
+def compute_flux_at_earth(flux_lambda_diluted, distance_pc, announce_user: bool = False):
     logging.info("Calculating flux at Earth")
+    print_if_enabled("Starting Flux at Earth calculation", announce_user)
     flux_di = flux_lambda_diluted[:,1]
     flux_at_earth = flux_di / (4.0 * np.pi * (distance_pc * PARSEC_CM) ** 2)
-    print("Flux at Earth calculation finished.")
     logging.info("Flux at Earth calculation finished")
     return flux_at_earth
 
-def apply_unred(wavelengths, flux_at_earth, ebv):
+def apply_unred(wavelengths, flux_at_earth, ebv, announce_user: bool = False):
+    print_if_enabled("Starting to apply UNRED extinction correction", announce_user)
     logging.info("Applying UNRED extinction correction")
     ebv = -1.0 * ebv
     flux_unred = unred(wavelengths, flux_at_earth, ebv=ebv, R_V=3.1)

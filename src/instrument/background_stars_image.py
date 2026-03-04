@@ -11,7 +11,7 @@ from utils.images import plot_background_star_counts
 def generate_Background_Stars_Image(channel: SpectroscopyChannel, ctx: RunContext, star: Star, background_stars_catalog: StarCatalog):
 
     logging.info("Generating background stars image for channel %s", channel.channel_name)
-    print(f"Generating background stars image for channel {channel.channel_name}.")
+    print(f"\nGenerating background stars image for channel {channel.channel_name}.")
     nx = channel.x_pixels
     ny = channel.y_pixels
     image = np.zeros((ny, nx), dtype=np.float64)

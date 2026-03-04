@@ -14,7 +14,8 @@ def generate_Frames(nuv_image, vis_image, nuv: SpectroscopyChannel, vis: Spectro
     global_cfg = get_global_config()
     n_non_science_frames = global_cfg.n_non_science_frames
     logging.info("FITS generation starting (n_non_science_frames=%d)", n_non_science_frames)
-    print("FITS generation starting.")
+    print("\n==== STARTING FITS GENERATION (NUV & VIS & NIR) =====")
+
     n_science_frames = global_cfg.n_science_frames_per_channel
 
     header = initialize_fits_header(star, ctx.timestamp)

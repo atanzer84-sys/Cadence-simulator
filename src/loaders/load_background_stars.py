@@ -12,11 +12,15 @@ from flux.flux_calc import calculateFluxOnEarth
 from loaders.load_gaia import gaia_lookup_for_background_stars
 
 def lookup_background_stars(ctx: RunContext, cfg: GlobalConfig, star: Star):
+    print("\n==== STARTING BACKGROUND STAR LOOKUP VIA GAIA OR CSV =====")
+
     table = load_background_csv_if_exists(star)
     if table is None:
         table = gaia_lookup_for_background_stars(star, g_mag_limit=cfg.magnitude_cutoff, GAIA_USE_ASYNC_JOBS=cfg.GAIA_USE_ASYNC_JOBS)
         if table is not None and len(table) > 0:
             save_background_stars_csv(table, ctx.output_dir, star.name)
+    else:
+        print(f"Background stars loaded from CSV cache ({len(table)} rows).")
     if table is None or len(table) == 0:
         return StarCatalog()
 
@@ -24,12 +28,11 @@ def lookup_background_stars(ctx: RunContext, cfg: GlobalConfig, star: Star):
 
     total = len(catalog.stars_by_id)
     logging.info("Starting flux calculation for %d background stars", total)
-    print(f"==== STARTING FLUX CALCULATION FOR {total} BACKGROUND STARS =====")
+    print(f"\n==== STARTING FLUX CALCULATION FOR {total} BACKGROUND STARS =====")
     
     for i, (star_id, bg_star) in enumerate(catalog.stars_by_id.items(), start=1):
         logging.info("Calculating Flux on Earth %d/%d for %s", i, total, star_id)
-
-        print(f"Flux {i}/{total} for {star_id}")
+        print(f"Flux Calculation for Star: {i}/{total} for {star_id}")
         flux_unred, wavelengths = calculateFluxOnEarth(bg_star, ctx)
         catalog.flux_earth_by_id[star_id] = (wavelengths, flux_unred)    
 

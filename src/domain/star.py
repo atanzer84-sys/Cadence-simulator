@@ -36,7 +36,7 @@ class Star:
             raise ValueError(f"Star missing required keys at construction: {missing}")
         
         if log_output:
-            print("==== Target STAR Created ====")
+            print("\n==== Target STAR Created ====")
             print(f"Star created: {star_params['name']}")
 
 

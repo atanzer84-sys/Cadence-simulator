@@ -19,7 +19,6 @@ class Channel:
     effective_area_wavelength: np.ndarray
     effective_area: np.ndarray
     pixel_scale: float
-
     
     def __post_init__(self):
         values = []
@@ -36,7 +35,6 @@ class SpectroscopyChannel(Channel):
     mode: int
     spread_profile_file: str
     spread_half_height_pix: int
-
     slit_position_x_arcsec: float
     slit_position_y_arcsec: float
     slope: float
@@ -54,20 +52,9 @@ class SpectroscopyChannel(Channel):
 
 @dataclass(frozen=True, slots=True)
 class PhotometryChannel(Channel):
-    aperture_pix: float
-    spread_profile_file: str
     psf_file: str
-
-    psf_radial_distance: np.ndarray | None = None
-    psf_radial_flux: np.ndarray | None = None
-    spread_positions: np.ndarray | None = None
-    spread_y_weights: np.ndarray | None = None
-    spread_x_weights: np.ndarray | None = None
-    spread_anchors: np.ndarray | None = None
-
     psf_image: np.ndarray | None = None
     psf_center_x: int | None = None
     psf_center_y: int | None = None
-
     source_position_x_arcsec: float | None = None
     source_position_y_arcsec: float | None = None

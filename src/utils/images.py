@@ -209,7 +209,7 @@ def plot_1d_for_channel(wavelengths, values, output_dir, star, filename_tag, tit
         plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, f"{channel_name}_zoom", zoom_range[0], zoom_range[1])
 
 
-def plot_background_star_counts(background_stars_catalog: StarCatalog, channel: SpectroscopyChannel, ctx: RunContext):
+def plot_background_star_counts(background_stars_catalog: StarCatalog, channel: Channel, ctx: RunContext):
 
     wavelength = channel.effective_area_wavelength
     stars_sorted = sorted(background_stars_catalog.stars_by_id.items(), key=lambda item: item[1].gaia_magnitude)

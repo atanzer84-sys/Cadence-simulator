@@ -3,7 +3,7 @@ from pathlib import Path
 import logging
 from configs.channel_config import SpectroscopyChannel, PhotometryChannel
 from configs.user_config import UserConfig
-from loaders.load_channel_files import load_effective_area_file, load_spread_profile_file_spectroscopy, load_background_file, load_zod_dist_file, load_zod_spectrum_file, load_spread_profile_file_photometry, load_psf_profile_file, load_psf_image_file
+from loaders.load_channel_files import load_effective_area_file, load_spread_profile_file_spectroscopy, load_background_file, load_zod_dist_file, load_zod_spectrum_file, load_psf_image_file
 
 def load_channels_config(user_cfg: UserConfig, ctx):
     repo_root = get_repo_root()
@@ -20,7 +20,6 @@ def load_channel_config(path: Path, exposure_s: float, ctx):
     logging.info("Reading channel config from %s", path)
 
     raw = _parse_simple_kv(path)
-
     channel_name=str(raw["channel_name"]).strip()
     x_pixels=_as_int(raw["x_pixels"], key="x_pixels")
     y_pixels=_as_int(raw["y_pixels"], key="y_pixels")
@@ -35,19 +34,9 @@ def load_channel_config(path: Path, exposure_s: float, ctx):
     effective_area_file=str(raw.get("effective_area_file", "")).strip()
     effective_area_wavelength, effective_area, pixel_scale = load_effective_area_file(effective_area_file)
     
-    spread_profile_file=str(raw.get("spread_profile_file", "")).strip()
-
-
     if channel_name == "NIR":
-        aperture_pix = _as_float(raw["aperture_pix"], key="aperture_pix")
-        spread_positions, spread_y_weights, spread_x_weights, spread_anchors = load_spread_profile_file_photometry(spread_profile_file, channel_name)
-
-        psf_profile_file = str(raw["psf_profile_file"]).strip()
-        psf_radial_distance, psf_radial_flux = load_psf_profile_file(psf_profile_file)
-
         psf_file = str(raw.get("psf_file", "")).strip()
         psf_image, psf_center_y, psf_center_x = load_psf_image_file(psf_file, channel_name, ctx)
-
         source_position_x_arcsec = _as_float(raw.get("source_position_x_arcsec", 0.0), key="source_position_x_arcsec")
         source_position_y_arcsec = _as_float(raw.get("source_position_y_arcsec", 0.0), key="source_position_y_arcsec")
         
@@ -67,26 +56,16 @@ def load_channel_config(path: Path, exposure_s: float, ctx):
             effective_area_wavelength=effective_area_wavelength,
             effective_area=effective_area,
             pixel_scale=pixel_scale,
-            aperture_pix=aperture_pix,
-            spread_profile_file=spread_profile_file,
-            spread_positions= spread_positions,
-            spread_y_weights= spread_y_weights,
-            spread_x_weights = spread_x_weights,
-            spread_anchors=spread_anchors,
-            source_position_x_arcsec=source_position_x_arcsec,
-            source_position_y_arcsec=source_position_y_arcsec,
-            psf_radial_distance=psf_radial_distance,
-            psf_radial_flux=psf_radial_flux,
             psf_file=psf_file,
             psf_image=psf_image,
             psf_center_x=psf_center_x,
             psf_center_y=psf_center_y,
+            source_position_x_arcsec=source_position_x_arcsec,
+            source_position_y_arcsec=source_position_y_arcsec,
         )
 
     # Spectroscopy only:
-    # For dispersive channels (NUV/VIS), wavelength bins map 1:1 to detector x pixels.
-    # Therefore the effective area table must have exactly x_pixels entries.
-    # Photometry channels return earlier and are not subject to this constraint.
+    spread_profile_file=str(raw.get("spread_profile_file", "")).strip()
     if len(effective_area_wavelength) != x_pixels:
         logging.error("%s: effective_area_file=%s len(wavelength)=%d != x_pixels=%d source_file=%s", channel_name, effective_area_file, len (effective_area_wavelength), x_pixels, source_file, )
         raise ValueError(
@@ -162,10 +141,10 @@ def load_channel_config(path: Path, exposure_s: float, ctx):
         background_type=background_type,
         background_wavelength=background_wavelength,
         background_flux=background_flux,
+        sky_pixel_area_arcsec2=sky_pixel_area_arcsec2,
         zod_dist=zod_dist,
         zod_spectrum_wavelength=zod_spec_wl,
         zod_spectrum_flux=zod_spec_flux,
-        sky_pixel_area_arcsec2=sky_pixel_area_arcsec2,
     )  
 
 

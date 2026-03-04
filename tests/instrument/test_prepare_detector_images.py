@@ -19,7 +19,6 @@ def _photometry_channel(name="NIR"):
         channel_name=name,
         x_pixels=4,
         y_pixels=3,
-        aperture_pix=6.0,
         psf_radial_distance=np.array([0.0, 1.0]),
         psf_radial_flux=np.array([1.0, 0.5]),
     )

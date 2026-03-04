@@ -3,6 +3,7 @@ import numpy as np
 from loaders.run_waltzer_context import get_repo_root
 import re
 from pathlib import Path
+from utils.helpers import print_if_enabled
 
 
 def _get_available_models(models_dir: Path) -> list[tuple[int, Path]]:
@@ -16,7 +17,7 @@ def _get_available_models(models_dir: Path) -> list[tuple[int, Path]]:
     models.sort(key=lambda item: item[0])
     return models
 
-def load_model_for_temperature(t_star):
+def load_model_for_temperature(t_star, announce_user: bool = False):
     """
     Load stellar model spectrum for given effective temperature.
     Mirrors legacy selection logic exactly.
@@ -35,13 +36,14 @@ def load_model_for_temperature(t_star):
     if delta > 300:
         msg = f"MODEL_TEMP_LARGE_DELTA: requested={t_target:.0f} K, picked={t_pick} K, delta={delta:.0f} K"
         logging.warning(msg)
-        print(msg)
+        print_if_enabled(msg, announce_user)
 
     model_file = model_dir / "model.flx"
 
     if model_file.is_file():
         model_data = np.loadtxt(model_file)
         logging.info("Loaded stellar model %s for Teff=%s K (picked=%s K)", model_file.relative_to(models_dir), t_star, t_pick)
+        print_if_enabled(f"Loaded stellar model for Teff={t_target:.0f} K (picked={t_pick} K).", announce_user)
         return model_data
 
     raise FileNotFoundError(

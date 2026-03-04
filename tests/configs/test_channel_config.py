@@ -53,7 +53,6 @@ def test_photometry_channel_init():
         effective_area_wavelength=np.array([1000.0, 1001.0]),
         effective_area=np.array([0.1, 0.2]),
         pixel_scale=1.0,
-        aperture_pix=4.0,
     )
 
     assert ch.channel_name == "NIR"

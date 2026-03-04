@@ -1,7 +1,7 @@
 import logging
 import numpy as np
 from loaders.run_waltzer_context import RunContext
-from configs.channel_config import SpectroscopyChannel
+from configs.channel_config import SpectroscopyChannel, PhotometryChannel
 from instrument.bias_image import generate_bias_image
 from instrument.dark_image import generate_dark_image
 from instrument.cosmic_image import generate_cosmic_rays
@@ -12,20 +12,24 @@ from domain.star import Star
 from domain.star_catalog import StarCatalog
 from loaders.load_background_stars import lookup_background_stars
 
-def build_science_images (spectra_2d_nuv, spectra_2d_vis, nuv: SpectroscopyChannel, vis: SpectroscopyChannel, ctx: RunContext, star: Star):
+def build_science_images (spectra_2d_nuv, spectra_2d_vis, rate_nir, nuv: SpectroscopyChannel, vis: SpectroscopyChannel, nir: PhotometryChannel, ctx: RunContext, star: Star):
 
     cfg = get_global_config()
 
     background_stars_catalog = lookup_background_stars(ctx, cfg, star)
+
+    print("\n==== STARTING SCIENCE IMAGE GENERATION (NUV & VIS) =====")
     nuv_img = build_science_image(spectra_2d_nuv, nuv, ctx, cfg, star, background_stars_catalog)
     vis_img = build_science_image(spectra_2d_vis, vis, ctx, cfg, star, background_stars_catalog)
+
+    print("\n==== STARTING SCIENCE IMAGE GENERATION (NIR) =====")
+    # nir_img = build_science_image(spectra_2d_vis, vis, ctx, cfg, star, background_stars_catalog)
 
     return nuv_img, vis_img
 
 
 def build_science_image(spectra_2d, channel: SpectroscopyChannel, ctx: RunContext, cfg: GlobalConfig, star: Star, background_stars_catalog: StarCatalog):
     logging.info("Science Image generation starting for channel %s", channel.channel_name)
-    print(f"==== SCIENCE IMAGE GENERATION STARTING FOR CHANNEL {channel.channel_name} =====")
     nx = channel.x_pixels
     ny = channel.y_pixels
     image = np.zeros((ny, nx))

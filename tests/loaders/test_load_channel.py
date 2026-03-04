@@ -24,6 +24,32 @@ _REPO_ROOT = "loaders.load_channel.get_repo_root"
 # Where file loaders (EA, spread, background) resolve paths:
 _REPO_ROOT_FILES = "loaders.load_channel_files.get_repo_root"
 
+# Single shared config template for all tests.
+# Individual tests only override what they need.
+_SHARED_CFG = {
+    "channel_name": "NUV",
+    "x_pixels": 2,
+    "y_pixels": 10,
+    "resolution_factor": 1.0,
+    "dark_noise": 0.01,
+    "dark_current_sigma": 0.001,
+    "read_noise": 3.0,
+    "effective_area_file": "nuv.txt",
+    "bias_offset": 0.0,
+    "ccd_gain": 1.0,
+    "mode": 1,
+    "spread_profile_file": "",
+    "spread_half_height_pix": 2,
+    "background_file": "",
+    # NIR-only fields kept here so tests can switch channel_name without
+    # repeating another config template.
+    "aperture_pix": 4.0,
+    "psf_profile_file": "psf.txt",
+    "psf_file": "",
+    "source_position_x_arcsec": 0.0,
+    "source_position_y_arcsec": 0.0,
+}
+
 
 @dataclass
 class _UserCfgChannels:
@@ -34,25 +60,10 @@ class _UserCfgChannels:
 
 
 def _write_cfg(path: Path, **kwargs) -> None:
-    """Write a minimal NUV/VIS channel config file."""
-    defaults = {
-        "channel_name": "NUV",
-        "x_pixels": 2,
-        "y_pixels": 10,
-        "resolution_factor": 1.0,
-        "dark_noise": 0.01,
-        "dark_current_sigma": 0.001,
-        "read_noise": 3.0,
-        "effective_area_file": "nuv.txt",
-        "bias_offset": 0.0,
-        "ccd_gain": 1.0,
-        "mode": 1,
-        "spread_profile_file": "",
-        "spread_half_height_pix": 2,
-        "background_file": "",
-    }
-    defaults.update(kwargs)
-    lines = [f"{k} = {v}" for k, v in defaults.items()]
+    """Write a test channel cfg from one shared template + overrides."""
+    cfg = dict(_SHARED_CFG)
+    cfg.update(kwargs)
+    lines = [f"{k} = {v}" for k, v in cfg.items()]
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
@@ -270,25 +281,38 @@ def test_load_channel_config_ignores_comments(monkeypatch, tmp_path):
     monkeypatch.setattr(_PSF_LOADER, lambda _f: (np.array([0.0, 1.0]), np.array([1.0, 0.5])))
 
     cfg_path = tmp_path / "comments.cfg"
+    cfg = dict(_SHARED_CFG)
+    cfg.update(
+        {
+            "channel_name": "NIR",
+            "x_pixels": 2048,
+            "y_pixels": 1024,
+            "read_noise": 3.2,
+            "effective_area_file": "ir.txt",
+            "spread_half_height_pix": 0,
+        }
+    )
     cfg_path.write_text(
-        """
-        # detector configuration
-        x_pixels = 2048      # detector width
-        y_pixels = 1024
-        resolution_factor = 1.0
-        dark_noise = 0.01
-        read_noise = 3.2
-        effective_area_file = ir.txt   # calibration file
-        channel_name = NIR
-        dark_current_sigma = 0.001
-        mode = 1
-        bias_offset = 0.0
-        ccd_gain = 1.0
-        aperture_pix = 4.0
-        psf_profile_file = psf.txt
-        spread_profile_file =
-        spread_half_height_pix = 0
-        """,
+        "\n".join(
+            [
+                "# detector configuration",
+                f"x_pixels = {cfg['x_pixels']}      # detector width",
+                f"y_pixels = {cfg['y_pixels']}",
+                f"resolution_factor = {cfg['resolution_factor']}",
+                f"dark_noise = {cfg['dark_noise']}",
+                f"read_noise = {cfg['read_noise']}",
+                f"effective_area_file = {cfg['effective_area_file']}   # calibration file",
+                f"channel_name = {cfg['channel_name']}",
+                f"dark_current_sigma = {cfg['dark_current_sigma']}",
+                f"mode = {cfg['mode']}",
+                f"bias_offset = {cfg['bias_offset']}",
+                f"ccd_gain = {cfg['ccd_gain']}",
+                f"aperture_pix = {cfg['aperture_pix']}",
+                f"psf_profile_file = {cfg['psf_profile_file']}",
+                f"spread_profile_file = {cfg['spread_profile_file']}",
+                f"spread_half_height_pix = {cfg['spread_half_height_pix']}",
+            ]
+        ),
         encoding="utf-8",
     )
 
@@ -349,25 +373,39 @@ def test_load_channel_config_duplicate_keys_last_wins(monkeypatch, tmp_path):
     monkeypatch.setattr(_PSF_LOADER, lambda _f: (np.array([0.0, 1.0]), np.array([1.0, 0.5])))
 
     cfg_path = tmp_path / "channel.cfg"
+    cfg = dict(_SHARED_CFG)
+    cfg.update(
+        {
+            "effective_area_file": "ea.txt",
+            "y_pixels": 512,
+            "dark_noise": 0.0,
+            "read_noise": 3.5,
+            "channel_name": "NIR",
+            "dark_current_sigma": 0.001,
+            "spread_half_height_pix": 0,
+        }
+    )
     cfg_path.write_text(
-        """
-        effective_area_file = ea.txt
-        x_pixels = 1024
-        y_pixels = 512
-        resolution_factor = 1.0
-        dark_noise = 0.0
-        read_noise = 3.5
-        channel_name = IR
-        x_pixels = 2048
-        dark_current_sigma = 0.001
-        mode = 1
-        bias_offset = 0.0
-        ccd_gain = 1.0
-        aperture_pix = 4.0
-        psf_profile_file = psf.txt
-        spread_profile_file =
-        spread_half_height_pix = 0
-        """,
+        "\n".join(
+            [
+                f"effective_area_file = {cfg['effective_area_file']}",
+                "x_pixels = 1024",
+                f"y_pixels = {cfg['y_pixels']}",
+                f"resolution_factor = {cfg['resolution_factor']}",
+                f"dark_noise = {cfg['dark_noise']}",
+                f"read_noise = {cfg['read_noise']}",
+                f"channel_name = {cfg['channel_name']}",
+                "x_pixels = 2048",
+                f"dark_current_sigma = {cfg['dark_current_sigma']}",
+                f"mode = {cfg['mode']}",
+                f"bias_offset = {cfg['bias_offset']}",
+                f"ccd_gain = {cfg['ccd_gain']}",
+                f"aperture_pix = {cfg['aperture_pix']}",
+                f"psf_profile_file = {cfg['psf_profile_file']}",
+                f"spread_profile_file = {cfg['spread_profile_file']}",
+                f"spread_half_height_pix = {cfg['spread_half_height_pix']}",
+            ]
+        ),
         encoding="utf-8",
     )
 
