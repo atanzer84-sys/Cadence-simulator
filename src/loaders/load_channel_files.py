@@ -1,8 +1,8 @@
-from loaders.run_waltzer_context import get_repo_root
+from loaders.run_waltzer_context import get_repo_root, RunContext
 from pathlib import Path
 import logging
 import numpy as np
-
+import matplotlib.pyplot as plt
 
 def load_effective_area_file(effective_area_filename: str) -> tuple[np.ndarray, np.ndarray, float]:
     """
@@ -74,20 +74,8 @@ def load_effective_area_file(effective_area_filename: str) -> tuple[np.ndarray, 
         logging.error(msg)
         raise ValueError(msg)
 
-    logging.info(
-        "Effective area loaded (%s): Rows=%d, pixel_scale=%s",
-        effective_area_filename,
-        wavelength.shape[0],
-        pixel_scale,
-    )
-
-    logging.info(
-        "Effective area summary: file=%s rows(WL)=%d rows(EA)=%d pixel_scale=%s",
-        effective_area_filename,
-        wavelength.shape[0],
-        eff_area.shape[0],
-        pixel_scale,
-    )
+    logging.info("Effective area loaded (%s): Rows=%d, pixel_scale=%s", effective_area_filename, wavelength.shape[0], pixel_scale)
+    logging.info("Effective area summary: file=%s rows(WL)=%d rows(EA)=%d pixel_scale=%s", effective_area_filename, wavelength.shape[0], eff_area.shape[0], pixel_scale)
 
     return wavelength, eff_area, pixel_scale
 
@@ -195,11 +183,7 @@ def load_background_file(background_filename: str) -> tuple[np.ndarray, np.ndarr
         logging.error(msg)
         raise ValueError(msg)
 
-    logging.info(
-        "Background loaded (%s): rows=%d",
-        background_filename,
-        wavelength.shape[0],
-    )
+    logging.info("Background loaded (%s): rows=%d", background_filename, wavelength.shape[0])
 
     return wavelength, flux
 
@@ -275,7 +259,6 @@ def _parse_spread_header_wavelengths(lines: list[str], path: Path, channel_name:
     logging.error("Channel %s: no 'pixels ...' header line found in %s", channel_name, path)
     raise ValueError(f"No 'pixels ...' header line found in spread profile file: {path}")
 
-
 def load_zod_dist_file(filename: str) -> np.ndarray:
     repo_root = get_repo_root()
     if not filename or filename.strip() == "":
@@ -302,7 +285,6 @@ def load_zod_dist_file(filename: str) -> np.ndarray:
 
     logging.info("Zodiacal distribution loaded (%s): shape=%s", filename, data.shape)
     return data
-
 
 def load_zod_spectrum_file(filename: str) -> tuple[np.ndarray | None, np.ndarray | None]:
     repo_root = get_repo_root()
@@ -332,8 +314,6 @@ def load_zod_spectrum_file(filename: str) -> tuple[np.ndarray | None, np.ndarray
     spectrum = data[:, 1].astype(float, copy=False)
     logging.info("Zodiacal spectrum loaded (%s): rows=%d", filename, wavelength.shape[0])
     return wavelength, spectrum
-
-
 
 def load_psf_profile_file(filename: str) -> tuple[np.ndarray, np.ndarray]:
     """
@@ -380,10 +360,7 @@ def load_psf_profile_file(filename: str) -> tuple[np.ndarray, np.ndarray]:
 
     return psf_radial_distance, psf_radial_flux
 
-def load_spread_profile_file_photometry(
-    spread_filename: str,
-    channel_name: str,
-) -> tuple[np.ndarray | None, np.ndarray | None, np.ndarray | None, np.ndarray | None]:
+def load_spread_profile_file_photometry(spread_filename: str, channel_name: str, ) -> tuple[np.ndarray | None, np.ndarray | None, np.ndarray | None, np.ndarray | None]:
     """
     Photometry spread file loader.
 
@@ -485,3 +462,253 @@ def load_spread_profile_file_photometry(
     logging.info("Channel %s: spread column sums X=%s", channel_name, spread_x_weights.sum(axis=0))
 
     return spread_positions, spread_y_weights, spread_x_weights, spread_anchors
+
+# def load_psf_image_file(filename: str, channel_name: str, min_cols: int = 20, stability_rows: int = 3) -> tuple[np.ndarray, int, int]:
+#     repo_root = get_repo_root()
+
+#     if not filename or filename.strip() == "":
+#         raise ValueError("PSF image file not configured.")
+
+#     path = (repo_root / "data" / filename).resolve()
+#     logging.info("Channel %s: starting PSF image load from %s", channel_name, path)
+
+#     if not path.exists():
+#         msg = f"PSF image file not found: {path}"
+#         logging.error(msg)
+#         raise ValueError(msg)
+
+#     text = path.read_text(encoding="utf-16", errors="replace").splitlines()
+#     logging.info("Channel %s: PSF file read complete with %d total lines", channel_name, len(text))
+
+#     def _try_parse_row(raw: str) -> list[float] | None:
+#         parts = raw.strip().split()
+#         if len(parts) < min_cols:
+#             return None
+#         try:
+#             return [float(x) for x in parts]
+#         except Exception:
+#             return None
+
+#     logging.info("Channel %s: searching first stable numeric PSF block (min_cols=%d, stability_rows=%d)", channel_name, min_cols, stability_rows)
+
+#     start_idx = None
+#     ncols = None
+
+#     for i in range(len(text)):
+#         row0 = _try_parse_row(text[i])
+#         if row0 is None:
+#             continue
+
+#         n = len(row0)
+
+#         ok = True
+#         for k in range(1, stability_rows + 1):
+#             if i + k >= len(text):
+#                 ok = False
+#                 break
+#             rowk = _try_parse_row(text[i + k])
+#             if rowk is None or len(rowk) != n:
+#                 ok = False
+#                 break
+
+#         if ok:
+#             start_idx = i
+#             ncols = n
+#             break
+
+#     if start_idx is None or ncols is None:
+#         msg = f"Channel {channel_name}: could not locate PSF numeric grid in file: {path}"
+#         logging.error(msg)
+#         logging.error("Channel %s: no stable numeric grid found using constraints min_cols=%d and stability_rows=%d", channel_name, min_cols, stability_rows)
+#         raise ValueError(msg)
+
+#     logging.info("Channel %s: detected PSF numeric grid start at line %d with %d columns", channel_name, start_idx, ncols)
+
+#     rows: list[list[float]] = []
+#     for j in range(start_idx, len(text)):
+#         r = _try_parse_row(text[j])
+#         if r is None or len(r) != ncols:
+#             logging.info("Channel %s: PSF grid terminated at line %d due to non-numeric row or column-count change", channel_name, j)
+#             break
+#         rows.append(r)
+
+#     psf = np.asarray(rows, dtype=float)
+
+#     # 2) center from header (if present), else fallback to peak
+#     psf_center_y = None
+#     psf_center_x = None
+
+#     logging.info("Channel %s: scanning %d header lines for PSF center metadata", channel_name, start_idx)
+#     header_lines = text[:start_idx]
+#     for line in header_lines:
+#         s = line.casefold()
+#         if "center" not in s:
+#             continue
+
+#         nums: list[int] = []
+#         for tok in line.replace(",", " ").split():
+#             try:
+#                 nums.append(int(tok))
+#             except Exception:
+#                 pass
+
+#         if len(nums) >= 2:
+#             # assume 1-based in file -> convert to 0-based
+#             psf_center_x = nums[0] - 1
+#             psf_center_y = nums[1] - 1
+#             logging.info("Channel %s: found PSF center candidate in header and converted to 0-based coordinates", channel_name)
+#             break
+
+#     if psf_center_y is None or psf_center_x is None:
+#         iy, ix = np.unravel_index(int(np.nanargmax(psf)), psf.shape)
+#         psf_center_y = int(iy)
+#         psf_center_x = int(ix)
+#         logging.info("Channel %s: PSF center not found in header, using peak at (y=%d, x=%d)", channel_name, psf_center_y, psf_center_x)
+#     else:
+#         logging.info("Channel %s: PSF center read from header as (y=%d, x=%d) [0-based]", channel_name, psf_center_y, psf_center_x)
+
+#     # 3) normalize so sum = 1
+#     total_sum = float(np.nansum(psf))
+#     if total_sum <= 0.0:
+#         raise ValueError(f"Channel {channel_name}: PSF total intensity sum is invalid: {total_sum}")
+
+#     psf /= total_sum
+
+#     # 4) recenter PSF so paste_stamp_center uses the correct optical center
+#     target_x = psf.shape[1] // 2
+#     target_y = psf.shape[0] // 2
+#     dx = int(target_x - psf_center_x)
+#     dy = int(target_y - psf_center_y)
+
+#     psf = np.roll(psf, shift=dy, axis=0)
+#     psf = np.roll(psf, shift=dx, axis=1)
+
+#     psf_center_x = int(target_x)
+#     psf_center_y = int(target_y)
+
+#     logging.info(
+#         "Channel %s: PSF loaded rows=%d cols=%d sum_norm=%g center=(y=%d,x=%d) shift=(dy=%d,dx=%d)",
+#         channel_name,
+#         psf.shape[0],
+#         psf.shape[1],
+#         float(np.nansum(psf)),
+#         psf_center_y,
+#         psf_center_x,
+#         dy,
+#         dx,
+#     )
+
+#     return psf, psf_center_y, psf_center_x
+
+def load_psf_image_file(filename: str, channel_name: str, ctx: RunContext, min_cols: int = 20, stability_rows: int = 3, ) -> tuple[np.ndarray, int, int]:
+
+    repo_root = get_repo_root()
+
+    if not filename or filename.strip() == "":
+        raise ValueError("PSF image file not configured.")
+
+    path = (repo_root / "data" / filename).resolve()
+    logging.info("Channel %s: loading PSF image file: %s", channel_name, path)
+
+    if not path.exists():
+        raise ValueError(f"PSF image file not found: {path}")
+
+    text_lines = path.read_text(encoding="utf-16", errors="replace").splitlines()
+
+    def _try_parse_row(raw: str) -> list[float] | None:
+        parts = raw.strip().split()
+        if len(parts) < min_cols:
+            return None
+        try:
+            return [float(x) for x in parts]
+        except Exception:
+            return None
+
+    # 1) find first stable numeric grid start
+    grid_start_line = None
+    grid_cols = None
+
+    for i in range(len(text_lines)):
+        row0 = _try_parse_row(text_lines[i])
+        if row0 is None:
+            continue
+
+        n = len(row0)
+
+        stable = True
+        for k in range(1, stability_rows + 1):
+            if i + k >= len(text_lines):
+                stable = False
+                break
+            rowk = _try_parse_row(text_lines[i + k])
+            if rowk is None or len(rowk) != n:
+                stable = False
+                break
+
+        if stable:
+            grid_start_line = i
+            grid_cols = n
+            break
+
+    if grid_start_line is None or grid_cols is None:
+        raise ValueError(f"Channel {channel_name}: could not locate PSF numeric grid in file: {path}")
+
+    # 2) read numeric grid
+    rows: list[list[float]] = []
+    for j in range(grid_start_line, len(text_lines)):
+        r = _try_parse_row(text_lines[j])
+        if r is None or len(r) != grid_cols:
+            break
+        rows.append(r)
+
+    psf = np.asarray(rows, dtype=float)
+
+    # 3) read center from header if present, else fallback to peak
+    psf_center_x = None
+    psf_center_y = None
+
+    header_lines = text_lines[:grid_start_line]
+    for line in header_lines:
+        if "center" not in line.casefold():
+            continue
+
+        ints: list[int] = []
+        for tok in line.replace(",", " ").split():
+            try:
+                ints.append(int(tok))
+            except Exception:
+                pass
+
+        if len(ints) >= 2:
+            # assume file center is 1-based -> convert to 0-based for numpy
+            psf_center_x = ints[0] - 1
+            psf_center_y = ints[1] - 1
+            break
+
+    if psf_center_x is None or psf_center_y is None:
+        peak_y, peak_x = np.unravel_index(int(np.nanargmax(psf)), psf.shape)
+        psf_center_y = int(peak_y)
+        psf_center_x = int(peak_x)
+
+    # 4) normalize so sum == 1
+    total_sum = float(np.nansum(psf))
+    if total_sum <= 0.0:
+        raise ValueError(f"Channel {channel_name}: PSF sum invalid: {total_sum}")
+
+    psf /= total_sum
+
+    logging.info("Channel %s: PSF loaded shape=(%d,%d) raw_sum=%g norm_sum=%g center=(y=%d,x=%d) grid_start_line=%d", channel_name, psf.shape[0], psf.shape[1], total_sum, float(np.nansum(psf)), int(psf_center_y), int(psf_center_x), int(grid_start_line))
+    psf_txt_path = ctx.output_dir / f"{channel_name}_psf_matrix.txt"
+    psf_png_path = ctx.output_dir / f"{channel_name}_psf_image.png"
+    np.savetxt(psf_txt_path, psf, fmt="%.18e")
+    fig, ax = plt.subplots(figsize=(6, 5))
+    im = ax.imshow(psf, origin="lower", aspect="equal", cmap="gray")
+    fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+    ax.set_xlabel("pixels")
+    ax.set_ylabel("pixels")
+    ax.set_title(f"{channel_name} PSF")
+    fig.savefig(psf_png_path, dpi=200, bbox_inches="tight")
+    plt.close(fig)
+    logging.info("Channel %s: PSF debug outputs written txt=%s png=%s", channel_name, psf_txt_path, psf_png_path)
+
+    return psf, int(psf_center_y), int(psf_center_x)

@@ -10,7 +10,7 @@ def main() -> None:
     wl_min = 1000.0
     wl_max = 19000.0
 
-    output_dir, _ = setup_output_directory()
+    output_dir, _ , _= setup_output_directory()
 
     model = load_model_for_temperature(teff)
     wl_full = np.asarray(model[:, 0], dtype=np.float64)

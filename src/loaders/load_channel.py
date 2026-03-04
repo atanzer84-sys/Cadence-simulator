@@ -3,20 +3,20 @@ from pathlib import Path
 import logging
 from configs.channel_config import SpectroscopyChannel, PhotometryChannel
 from configs.user_config import UserConfig
-from loaders.load_channel_files import load_effective_area_file, load_spread_profile_file_spectroscopy, load_background_file, load_zod_dist_file, load_zod_spectrum_file, load_spread_profile_file_photometry, load_psf_profile_file
+from loaders.load_channel_files import load_effective_area_file, load_spread_profile_file_spectroscopy, load_background_file, load_zod_dist_file, load_zod_spectrum_file, load_spread_profile_file_photometry, load_psf_profile_file, load_psf_image_file
 
-def load_channels_config(user_cfg: UserConfig):
+def load_channels_config(user_cfg: UserConfig, ctx):
     repo_root = get_repo_root()
     # load channel config, not cached, pass it through
-    nuv_channel = load_channel_config(repo_root / "configs" / "waltzer_nuv.cfg", user_cfg.exposure_NUV_s)
-    vis_channel = load_channel_config(repo_root / "configs" / "waltzer_vis.cfg", user_cfg.exposure_VIS_s)
-    nir_channel  = load_channel_config(repo_root / "configs" / "waltzer_nir.cfg", user_cfg.exposure_IR_s)
+    nuv_channel = load_channel_config(repo_root / "configs" / "waltzer_nuv.cfg", user_cfg.exposure_NUV_s, ctx)
+    vis_channel = load_channel_config(repo_root / "configs" / "waltzer_vis.cfg", user_cfg.exposure_VIS_s, ctx)
+    nir_channel  = load_channel_config(repo_root / "configs" / "waltzer_nir.cfg", user_cfg.exposure_IR_s, ctx)
 
     return nuv_channel, vis_channel, nir_channel
 
 
 
-def load_channel_config(path: Path, exposure_s:float):
+def load_channel_config(path: Path, exposure_s: float, ctx):
     logging.info("Reading channel config from %s", path)
 
     raw = _parse_simple_kv(path)
@@ -42,8 +42,11 @@ def load_channel_config(path: Path, exposure_s:float):
         aperture_pix = _as_float(raw["aperture_pix"], key="aperture_pix")
         spread_positions, spread_y_weights, spread_x_weights, spread_anchors = load_spread_profile_file_photometry(spread_profile_file, channel_name)
 
-        psf_file = str(raw["psf_profile_file"]).strip()
-        psf_radial_distance, psf_radial_flux = load_psf_profile_file(psf_file)
+        psf_profile_file = str(raw["psf_profile_file"]).strip()
+        psf_radial_distance, psf_radial_flux = load_psf_profile_file(psf_profile_file)
+
+        psf_file = str(raw.get("psf_file", "")).strip()
+        psf_image, psf_center_y, psf_center_x = load_psf_image_file(psf_file, channel_name, ctx)
 
         source_position_x_arcsec = _as_float(raw.get("source_position_x_arcsec", 0.0), key="source_position_x_arcsec")
         source_position_y_arcsec = _as_float(raw.get("source_position_y_arcsec", 0.0), key="source_position_y_arcsec")
@@ -74,7 +77,10 @@ def load_channel_config(path: Path, exposure_s:float):
             source_position_y_arcsec=source_position_y_arcsec,
             psf_radial_distance=psf_radial_distance,
             psf_radial_flux=psf_radial_flux,
-
+            psf_file=psf_file,
+            psf_image=psf_image,
+            psf_center_x=psf_center_x,
+            psf_center_y=psf_center_y,
         )
 
     # Spectroscopy only:
