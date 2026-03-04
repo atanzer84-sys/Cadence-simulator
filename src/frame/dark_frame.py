@@ -2,11 +2,11 @@
 import logging
 from frame.frame_class import Frame
 from frame.bias_frame import generate_bias_frame
-from configs.channel_config import SpectroscopyChannel
+from configs.channel_config import Channel
 from instrument.dark_image import generate_dark_image
 from frame.fits_header import append_image_stats_header, append_channel_frame_header, append_base_frame_header
 
-def generate_dark_frames(channel: SpectroscopyChannel, n_frames, base_header):
+def generate_dark_frames(channel: Channel, n_frames, base_header):
 
     logging.info("DARK: generating %d dark frames for %s (%d x %d), exptime_s=%g.", n_frames, channel.channel_name, channel.x_pixels, channel.y_pixels, channel.exposure_s)
     print(f"Creating DARK Frames for channel {channel.channel_name}.")
@@ -20,7 +20,7 @@ def generate_dark_frames(channel: SpectroscopyChannel, n_frames, base_header):
 
     return dark_frames
 
-def generate_dark_frame(channel: SpectroscopyChannel, header=None):
+def generate_dark_frame(channel: Channel, header=None):
     '''
     Dark = Bias + (dark_current * exptime)
     '''

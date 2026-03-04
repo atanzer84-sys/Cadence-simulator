@@ -1,12 +1,12 @@
 
 import logging
 from frame.frame_class import Frame
-from configs.channel_config import SpectroscopyChannel
+from configs.channel_config import Channel
 from instrument.bias_image import generate_bias_image
 from frame.fits_header import append_image_stats_header, append_channel_frame_header, append_base_frame_header
 
 
-def generate_bias_frames(channel: SpectroscopyChannel, n_frames, base_header):
+def generate_bias_frames(channel: Channel, n_frames, base_header):
 
     logging.info("BIAS: generating %d bias frames for %s (%d x %d).", n_frames, channel.channel_name, channel.x_pixels, channel.y_pixels)
     print(f"Creating BIAS Frames for channel {channel.channel_name}.")
@@ -20,7 +20,7 @@ def generate_bias_frames(channel: SpectroscopyChannel, n_frames, base_header):
 
     return bias_frames
 
-def generate_bias_frame(channel: SpectroscopyChannel, header=None):
+def generate_bias_frame(channel: Channel, header=None):
     '''
     Bias = Offset (bias_offset) + Gaussian Noise (read_noise)
     '''

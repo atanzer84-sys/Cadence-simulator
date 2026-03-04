@@ -1,10 +1,10 @@
 import logging
-from configs.channel_config import SpectroscopyChannel
+from configs.channel_config import Channel
 from frame.frame_class import Frame
 from frame.fits_header import append_image_stats_header, append_channel_frame_header, append_base_frame_header
 
 
-def generate_science_frames(image, channel: SpectroscopyChannel, n_frames, base_header):
+def generate_science_frames(image, channel: Channel, n_frames, base_header):
     exposure_time_s = channel.exposure_s
     logging.info("SCIENCE: generating %d science frames for %s (%d x %d), exptime_s=%g.", n_frames, channel.channel_name, channel.x_pixels, channel.y_pixels, exposure_time_s)
     print(f"Creating SCIENCE Frames for channel {channel.channel_name}.")
@@ -19,7 +19,7 @@ def generate_science_frames(image, channel: SpectroscopyChannel, n_frames, base_
     return frames
 
 
-def generate_science_frame(image, channel: SpectroscopyChannel, header):
+def generate_science_frame(image, channel: Channel, header):
 
     science = image
     append_image_stats_header(header, science)

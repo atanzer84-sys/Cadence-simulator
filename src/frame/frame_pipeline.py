@@ -6,11 +6,11 @@ from frame.fits_header import initialize_fits_header
 from frame.science_frame import generate_science_frames
 from frame.write_fits import write_fits_frames
 from utils.images import write_frames_png
-from configs.channel_config import SpectroscopyChannel
+from configs.channel_config import SpectroscopyChannel, PhotometryChannel
 from loaders.run_waltzer_context import RunContext
 from domain.star import Star
 
-def generate_frames(nuv_image, vis_image, nuv: SpectroscopyChannel, vis: SpectroscopyChannel, ctx: RunContext, star: Star):
+def generate_frames(nuv_image, vis_image, nir_image, nuv: SpectroscopyChannel, vis: SpectroscopyChannel, nir: PhotometryChannel, ctx: RunContext, star: Star):
     global_cfg = get_global_config()
     n_non_science_frames = global_cfg.n_non_science_frames
     logging.info("FITS generation starting (n_non_science_frames=%d)", n_non_science_frames)
@@ -23,12 +23,14 @@ def generate_frames(nuv_image, vis_image, nuv: SpectroscopyChannel, vis: Spectro
     if n_non_science_frames > 0:
         bias_nuv_frames = generate_bias_frames(nuv, n_non_science_frames, header)
         bias_vis_frames = generate_bias_frames(vis, n_non_science_frames, header)
+        bias_nir_frames = generate_bias_frames(nir, n_non_science_frames, header)
         #bias + dark = dark
         dark_nuv_frames = generate_dark_frames(nuv, n_non_science_frames, header)
         dark_vis_frames = generate_dark_frames(vis, n_non_science_frames, header)
+        dark_nir_frames = generate_dark_frames(nir, n_non_science_frames, header)
         # dark + spectra = spectra
 
-        non_science_list = [bias_nuv_frames, bias_vis_frames, dark_nuv_frames, dark_vis_frames]
+        non_science_list = [bias_nuv_frames, bias_vis_frames, dark_nuv_frames, dark_vis_frames, bias_nir_frames, dark_nir_frames]
 
         _write_fits_for_all(non_science_list, ctx)
         _write_png_for_all(non_science_list, ctx, star)
@@ -39,7 +41,8 @@ def generate_frames(nuv_image, vis_image, nuv: SpectroscopyChannel, vis: Spectro
     if n_science_frames > 0:
         science_nuv_frames = generate_science_frames(nuv_image, nuv, n_science_frames, header)
         science_vis_frames = generate_science_frames(vis_image, vis, n_science_frames, header)
-        science_lists = [science_nuv_frames, science_vis_frames]
+        science_nir_frames = generate_science_frames(nir_image, nir, n_science_frames, header)
+        science_lists = [science_nuv_frames, science_vis_frames, science_nir_frames]
 
         # Write science FITS
         _write_fits_for_all(science_lists, ctx)
