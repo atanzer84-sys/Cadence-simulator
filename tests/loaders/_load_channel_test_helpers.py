@@ -70,7 +70,7 @@ class _UserCfgChannels:
     exposure_IR_s: float
 
 
-def _write_cfg(path: Path, remove_keys: set[str] | None = None, **kwargs) -> None:
+def write_cfg(path: Path, remove_keys: set[str] | None = None, **kwargs) -> None:
     """Write a test channel cfg from one shared template + overrides."""
     cfg = dict(_SHARED_CFG)
     cfg.update(kwargs)
@@ -81,7 +81,7 @@ def _write_cfg(path: Path, remove_keys: set[str] | None = None, **kwargs) -> Non
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
-def _write_cfg_with_comments(path: Path, **kwargs) -> None:
+def write_cfg_with_comments(path: Path, **kwargs) -> None:
     """Write config from shared template while preserving inline comment parsing behavior."""
     cfg = dict(_SHARED_CFG)
     cfg.update(kwargs)
@@ -103,22 +103,22 @@ def _write_cfg_with_comments(path: Path, **kwargs) -> None:
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
-def _no_spread(_filename: str, _channel_name: str):
+def no_spread(_filename: str, _channel_name: str):
     """Return None spread data so tests don't call the real loader."""
     return None, None, None
 
 
-def _no_background(_filename: str):
+def no_background(_filename: str):
     """Return None background data so tests don't call the real loader."""
     return None, None
 
 
-def _fake_psf_image_loader(_filename: str, _channel_name: str, _ctx):
+def fake_psf_image_loader(_filename: str, _channel_name: str, _ctx):
     """Return a tiny PSF image + center for NIR tests."""
     return np.array([[1.0]]), 0, 0
 
 
-def _write_ea_file(path: Path, pixel_scale: float = 0.01, rows: int = 3) -> None:
+def write_ea_file(path: Path, pixel_scale: float = 0.01, rows: int = 3) -> None:
     """Write a minimal effective area file (wavelength, effective_area columns)."""
     lines = [f"# Pixel scale: {pixel_scale}", "Wavelength  EffectiveArea"]
     for i in range(rows):
@@ -128,7 +128,7 @@ def _write_ea_file(path: Path, pixel_scale: float = 0.01, rows: int = 3) -> None
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
-def _write_spread_file(path: Path, wavelengths: list[float], num_rows: int = 3) -> None:
+def write_spread_file(path: Path, wavelengths: list[float], num_rows: int = 3) -> None:
     """Write a minimal spread profile file (pixels header + dy + weight columns)."""
     wl_str = "  ".join(str(w) for w in wavelengths)
     lines = ["# comment", f"pixels  {wl_str}"]
