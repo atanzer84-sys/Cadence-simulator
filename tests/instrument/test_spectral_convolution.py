@@ -8,8 +8,8 @@ from instrument.spectral_convolution import (
 )
 
 
-def _cfg(test_mode=False, produce_Plots=False):
-    return SimpleNamespace(test_mode=test_mode, produce_Plots=produce_Plots)
+def _cfg(test_mode=False, produce_plots=False):
+    return SimpleNamespace(test_mode=test_mode, produce_plots=produce_plots)
 
 
 def _ctx(output_dir="OUT"):

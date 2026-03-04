@@ -3,6 +3,8 @@ import inspect
 import sys
 import logging
 from pathlib import Path
+
+from utils.helpers import ensure_path_under, resolve_path_under
 from datetime import datetime
 from configs.user_config import load_user_config, get_user_config
 from configs.global_config import load_global_config, get_global_config
@@ -55,7 +57,7 @@ def _create_produce_plots():
         plot_1d_for_channel = staticmethod(images.plot_1d_for_channel)
         plot_flux_and_photons_windows = staticmethod(images.plot_flux_and_photons_windows)
 
-    return _RealProducePlots() if get_global_config().produce_Plots else _NOOP_PLOTS
+    return _RealProducePlots() if get_global_config().produce_plots else _NOOP_PLOTS
 
 class _NoOpWriteImagePng:
     @staticmethod
@@ -188,12 +190,13 @@ def get_user_parameter_path():
         print("Usage: python waltzer_simulator.py [parameters_file]")
         sys.exit(1)
 
+    repo_root = get_repo_root()
     if len(sys.argv) == 2:
-        parameter_file = Path(sys.argv[1])
+        parameter_file = ensure_path_under(Path(sys.argv[1]), repo_root)
     else:
-        parameter_file = get_repo_root() / "input" / "parameters.txt"
+        parameter_file = resolve_path_under(repo_root, "input", "parameters.txt")
 
-    logging.info("Using parameter file: %s", parameter_file.resolve())
+    logging.info("Using parameter file: %s", parameter_file)
     print("User parameter file loaded: ", parameter_file.resolve())
 
     if not parameter_file.exists():

@@ -8,7 +8,7 @@ from instrument.prepare_detector_images import compute_counts_per_s_px_one_chann
 from utils.images import plot_background_star_counts
 
 
-def generate_Background_Stars_Image(channel: SpectroscopyChannel, ctx: RunContext, star: Star, background_stars_catalog: StarCatalog):
+def generate_background_stars_image(channel: SpectroscopyChannel, ctx: RunContext, star: Star, background_stars_catalog: StarCatalog):
 
     logging.info("Generating background stars image for channel %s", channel.channel_name)
     print(f"\nGenerating background stars image for channel {channel.channel_name}.")

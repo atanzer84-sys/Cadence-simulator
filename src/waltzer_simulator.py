@@ -5,7 +5,7 @@ from loaders.run_waltzer_context import initialize_waltzer_runtime_context
 from loaders.load_stellar_and_planetary_properties import load_stellar_and_planetary_properties
 from domain.star import Star
 from domain.planet import Planet
-from frame.frame_pipeline import generate_Frames
+from frame.frame_pipeline import generate_frames
 from instrument.prepare_detector_images import prepare_all_detector_images_all_channels
 from instrument.build_science_image import build_science_images
 
@@ -28,7 +28,7 @@ def main():
         nuv_image, vis_image = build_science_images(spectra_2d_nuv, spectra_2d_vis, rate_nir, nuv_channel, vis_channel, nir_channel, run_ctx, star)
         
         # generating bias, dark and science frames (fits) for NUV, VIS
-        generate_Frames(nuv_image, vis_image, nuv_channel, vis_channel, run_ctx, star)
+        generate_frames(nuv_image, vis_image, nuv_channel, vis_channel, run_ctx, star)
 
 
     except Exception as e:

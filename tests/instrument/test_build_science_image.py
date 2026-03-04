@@ -63,7 +63,7 @@
 #         cosmic_ray_length_min_px=1,
 #         cosmic_ray_length_max_px=1,
 #         test_mode=True,
-#         produce_Plots=False,
+#         produce_plots=False,
 #     )
 
 
@@ -77,7 +77,7 @@
 
 #     # Background image uses full SpectroscopyChannel + Star; stub it out for this minimal test channel.
 #     with patch(
-#         "instrument.build_science_image.generate_Background_Image",
+#         "instrument.build_science_image.generate_background_image",
 #         return_value=np.zeros((ch.y_pixels, ch.x_pixels), dtype=float),
 #     ):
 #         image = build_science_image(spectra_2d, ch, ctx, _cfg(), _star())
@@ -105,7 +105,7 @@
 
 #     # Stub out background so this test isolates spectra + noise behaviour on a minimal channel.
 #     with patch(
-#         "instrument.build_science_image.generate_Background_Image",
+#         "instrument.build_science_image.generate_background_image",
 #         return_value=np.zeros((ch.y_pixels, ch.x_pixels), dtype=float),
 #     ):
 #         image1 = build_science_image(spectra_2d, ch, ctx, _cfg(), _star())

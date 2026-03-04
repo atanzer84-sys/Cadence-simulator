@@ -104,14 +104,17 @@ def test_get_user_parameter_path_default_file(monkeypatch, tmp_path, capsys):
 
 
 def test_get_user_parameter_path_custom_file(monkeypatch, tmp_path, capsys):
-    (tmp_path / "custom.txt").write_text("target_name = HD 202772 A", encoding="utf-8")
+    """Custom parameter file must be under repo root (path validation)."""
+    (tmp_path / "input").mkdir(exist_ok=True)
+    (tmp_path / "input" / "custom.txt").write_text("target_name = HD 202772 A", encoding="utf-8")
 
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(sys, "argv", ["prog", "custom.txt"])
+    monkeypatch.setattr(run_waltzer_context, "get_repo_root", lambda base_dir=None: tmp_path)
+    monkeypatch.setattr(sys, "argv", ["prog", "input/custom.txt"])
 
     p = run_waltzer_context.get_user_parameter_path()
 
-    assert p == Path("custom.txt")
+    assert p.resolve() == (tmp_path / "input" / "custom.txt").resolve()
     captured = capsys.readouterr()
     assert "User parameter file loaded:" in (captured.out + captured.err)
     assert "custom.txt" in (captured.out + captured.err)
@@ -131,29 +134,33 @@ def test_get_user_parameter_path_missing_file(monkeypatch, tmp_path, capsys):
 
 
 def test_get_user_parameter_path_one_argument_absolute_path_success(monkeypatch, tmp_path):
-    param_file = tmp_path / "params.txt"
+    """Absolute path to param file must be under repo root (path validation)."""
+    (tmp_path / "input").mkdir(exist_ok=True)
+    param_file = tmp_path / "input" / "params.txt"
     param_file.write_text("target_name = HD 202772 A\n", encoding="utf-8")
 
+    monkeypatch.setattr(run_waltzer_context, "get_repo_root", lambda base_dir=None: tmp_path)
     monkeypatch.setattr("sys.argv", ["waltzer_simulator.py", str(param_file)])
     monkeypatch.chdir(tmp_path)
 
     got = run_waltzer_context.get_user_parameter_path()
 
-    assert got == param_file
+    assert got.resolve() == param_file.resolve()
 
 
 def test_get_user_parameter_path_one_argument_relative_path_success(monkeypatch, tmp_path):
+    """Relative path to param file must resolve under repo root (path validation)."""
     subdir = tmp_path / "param"
     subdir.mkdir()
     param_file = subdir / "Wasp 99.txt"
     param_file.write_text("target_name = HD 202772 A\n", encoding="utf-8")
 
     monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(run_waltzer_context, "get_repo_root", lambda base_dir=None: tmp_path)
     monkeypatch.setattr("sys.argv", ["waltzer_simulator.py", "param/Wasp 99.txt"])
 
     got = run_waltzer_context.get_user_parameter_path()
 
-    assert got == Path("param/Wasp 99.txt")
     assert got.resolve() == param_file.resolve()
 
 
@@ -168,9 +175,23 @@ def test_get_user_parameter_path_no_argument_file_not_found_exits(monkeypatch, t
     assert exc_info.value.code == 1
 
 
-def test_one_argument_file_not_found_exits(monkeypatch, tmp_path, capsys):
+def test_get_user_parameter_path_rejects_path_traversal(monkeypatch, tmp_path):
+    """Path outside repo root raises ValueError (path traversal protection)."""
+    monkeypatch.setattr(run_waltzer_context, "get_repo_root", lambda base_dir=None: tmp_path)
+    monkeypatch.setattr("sys.argv", ["waltzer_simulator.py", "../../../etc/passwd"])
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr("sys.argv", ["waltzer_simulator.py", "/nonexistent/params.txt"])
+
+    with pytest.raises(ValueError) as exc_info:
+        run_waltzer_context.get_user_parameter_path()
+
+    assert "Path traversal" in str(exc_info.value) or "outside" in str(exc_info.value).lower()
+
+
+def test_one_argument_file_not_found_exits(monkeypatch, tmp_path, capsys):
+    """Path under repo root but file missing raises SystemExit."""
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(run_waltzer_context, "get_repo_root", lambda base_dir=None: tmp_path)
+    monkeypatch.setattr("sys.argv", ["waltzer_simulator.py", "input/nonexistent_params.txt"])
 
     with pytest.raises(SystemExit) as exc_info:
         run_waltzer_context.get_user_parameter_path()
@@ -179,7 +200,6 @@ def test_one_argument_file_not_found_exits(monkeypatch, tmp_path, capsys):
     out = capsys.readouterr()
     text = out.out + out.err
     assert "not found" in text.lower()
-    assert "nonexistent" in text or "parameter" in text.lower()
 
 
 def test_invalid_params_raises_value_error(monkeypatch, tmp_path):

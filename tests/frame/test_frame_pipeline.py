@@ -3,7 +3,7 @@ from datetime import datetime
 from types import SimpleNamespace
 from unittest.mock import patch, MagicMock
 
-from frame.frame_pipeline import generate_Frames
+from frame.frame_pipeline import generate_frames
 
 
 class DummyCfg:
@@ -34,8 +34,8 @@ def _common_setup(tmp_path):
     return counts_nuv, counts_vis, nuv_cfg, vis_cfg, ctx, star
 
 
-def test_generate_Frames_minimal_uses_fits_and_respects_png_flags(tmp_path):
-    """generate_Frames orchestrates bias/dark/science and delegates to write helpers; PNG flags respected."""
+def test_generate_frames_minimal_uses_fits_and_respects_png_flags(tmp_path):
+    """generate_frames orchestrates bias/dark/science and delegates to write helpers; PNG flags respected."""
     counts_nuv, counts_vis, nuv_cfg, vis_cfg, ctx, star = _common_setup(tmp_path)
 
     mock_global_cfg = MagicMock()
@@ -52,7 +52,7 @@ def test_generate_Frames_minimal_uses_fits_and_respects_png_flags(tmp_path):
          patch("frame.frame_pipeline._write_fits_for_all") as mock_write_fits_all, \
          patch("frame.frame_pipeline._write_png_for_all") as mock_write_png_all:
 
-        generate_Frames(counts_nuv, counts_vis, nuv_cfg, vis_cfg, ctx, star)
+        generate_frames(counts_nuv, counts_vis, nuv_cfg, vis_cfg, ctx, star)
 
     mock_init_header.assert_called_once_with(star, ctx.timestamp)
     assert mock_bias.call_count == 2
@@ -66,7 +66,7 @@ def test_generate_Frames_minimal_uses_fits_and_respects_png_flags(tmp_path):
     mock_write_png_all.assert_called_once()
 
 
-def test_generate_Frames_skips_bias_dark_when_n_non_science_frames_zero(tmp_path):
+def test_generate_frames_skips_bias_dark_when_n_non_science_frames_zero(tmp_path):
     """When n_non_science_frames=0, bias/dark generation and FITS/PNG for them are skipped; science still runs."""
     counts_nuv, counts_vis, nuv_cfg, vis_cfg, ctx, star = _common_setup(tmp_path)
 
@@ -84,7 +84,7 @@ def test_generate_Frames_skips_bias_dark_when_n_non_science_frames_zero(tmp_path
          patch("frame.frame_pipeline._write_fits_for_all") as mock_write_fits_all, \
          patch("frame.frame_pipeline._write_png_for_all") as mock_write_png_all:
 
-        generate_Frames(counts_nuv, counts_vis, nuv_cfg, vis_cfg, ctx, star)
+        generate_frames(counts_nuv, counts_vis, nuv_cfg, vis_cfg, ctx, star)
 
     mock_bias.assert_not_called()
     mock_dark.assert_not_called()
@@ -97,7 +97,7 @@ def test_generate_Frames_skips_bias_dark_when_n_non_science_frames_zero(tmp_path
     mock_write_png_all.assert_not_called()
 
 
-def test_generate_Frames_skips_science_when_n_science_frames_zero(tmp_path):
+def test_generate_frames_skips_science_when_n_science_frames_zero(tmp_path):
     """When n_science_frames_per_channel=0, science generation and FITS/PNG for science are skipped; bias/dark still run."""
     counts_nuv, counts_vis, nuv_cfg, vis_cfg, ctx, star = _common_setup(tmp_path)
 
@@ -115,7 +115,7 @@ def test_generate_Frames_skips_science_when_n_science_frames_zero(tmp_path):
          patch("frame.frame_pipeline._write_fits_for_all") as mock_write_fits_all, \
          patch("frame.frame_pipeline._write_png_for_all") as mock_write_png_all:
 
-        generate_Frames(counts_nuv, counts_vis, nuv_cfg, vis_cfg, ctx, star)
+        generate_frames(counts_nuv, counts_vis, nuv_cfg, vis_cfg, ctx, star)
 
     assert mock_bias.call_count == 2
     assert mock_dark.call_count == 2

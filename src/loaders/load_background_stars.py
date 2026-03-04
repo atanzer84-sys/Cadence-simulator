@@ -4,6 +4,7 @@ from loaders.run_waltzer_context import RunContext
 from domain.star import Star
 from astropy.table import Table
 from loaders.run_waltzer_context import get_repo_root
+from utils.helpers import resolve_path_under
 from configs.global_config import GlobalConfig
 from domain.star_catalog import StarCatalog
 from loaders.load_stellar_and_planetary_properties import load_excel_mapping , infer_mamajek, apply_log_r_fallback, get_missing_properties
@@ -40,7 +41,7 @@ def lookup_background_stars(ctx: RunContext, cfg: GlobalConfig, star: Star):
 def load_background_csv_if_exists(star: Star) -> Table | None:
     repo_root = get_repo_root()
     csv_name = star.name.replace(" ", "_")
-    csv_path = repo_root / "data" / "BackgroundStars" / f"{csv_name}.csv"
+    csv_path = resolve_path_under(repo_root, "data", "BackgroundStars", f"{csv_name}.csv")
 
     if not csv_path.exists():
         return None

@@ -1,6 +1,7 @@
 from loaders.run_waltzer_context import get_repo_root, RunContext
 import logging
 import numpy as np
+from utils.helpers import resolve_path_under
 
 def load_psf_image_file(filename: str, channel_name: str, ctx: RunContext, min_cols: int = 20, stability_rows: int = 3, ) -> tuple[np.ndarray, int, int]:
 
@@ -9,7 +10,7 @@ def load_psf_image_file(filename: str, channel_name: str, ctx: RunContext, min_c
     if not filename or filename.strip() == "":
         raise ValueError("PSF image file not configured.")
 
-    path = (repo_root / "data" / filename).resolve()
+    path = resolve_path_under(repo_root, "data", filename)
     logging.info("Channel %s: loading PSF image file: %s", channel_name, path)
 
     if not path.exists():

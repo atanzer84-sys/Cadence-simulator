@@ -2,6 +2,7 @@ from pathlib import Path
 import logging
 import numpy as np
 from loaders.run_waltzer_context import get_repo_root
+from utils.helpers import resolve_path_under
 
 def load_effective_area_file(effective_area_filename: str) -> tuple[np.ndarray, np.ndarray, float]:
     """
@@ -26,7 +27,7 @@ def load_effective_area_file(effective_area_filename: str) -> tuple[np.ndarray, 
         wavelength/effective area length mismatch
     """
     repo_root = get_repo_root()
-    path = (repo_root / "data" / effective_area_filename).resolve()
+    path = resolve_path_under(repo_root, "data", effective_area_filename)
 
     logging.info("Loading effective area file: %s", path)
 
@@ -102,7 +103,7 @@ def load_background_file(background_filename: str) -> tuple[np.ndarray | None, n
         logging.info("No background file configured.")
         return None, None
 
-    path = (repo_root / "data" / background_filename).resolve()
+    path = resolve_path_under(repo_root, "data", background_filename)
 
     logging.info("Loading background file: %s", path)
 
@@ -217,7 +218,7 @@ def load_zod_dist_file(filename: str) -> np.ndarray | None:
         logging.info("No zodiacal distribution file configured.")
         return None
 
-    path = (repo_root / "data" / filename).resolve()
+    path = resolve_path_under(repo_root, "data", filename)
     logging.info("Loading zodiacal distribution file: %s", path)
     if not path.exists():
         msg = f"Zodiacal distribution file not found: {path}"
@@ -244,7 +245,7 @@ def load_zod_spectrum_file(filename: str) -> tuple[np.ndarray | None, np.ndarray
         logging.info("No zodiacal spectrum file configured.")
         return None, None
 
-    path = (repo_root / "data" / filename).resolve()
+    path = resolve_path_under(repo_root, "data", filename)
     logging.info("Loading zodiacal spectrum file: %s", path)
     if not path.exists():
         msg = f"Zodiacal spectrum file not found: {path}"

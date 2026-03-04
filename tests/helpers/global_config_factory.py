@@ -32,7 +32,7 @@ BASE_GLOBAL_CFG = {
     "zod_dist_file": None,
     "zod_spectrum_file": None,
     "test_mode": False,
-    "produce_Plots": False,
+    "produce_plots": False,
 }
 
 

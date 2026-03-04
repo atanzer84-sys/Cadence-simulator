@@ -1,7 +1,7 @@
-
 from loaders.run_waltzer_context import get_repo_root
 import logging
 import numpy as np
+from utils.helpers import resolve_path_under
 from loaders.load_channel_files_common import parse_spread_header_wavelengths, find_first_numeric_row_index
 
 def load_spread_profile_file_spectroscopy(spread_filename: str, channel_name: str) -> tuple[np.ndarray | None, np.ndarray | None, np.ndarray | None]:
@@ -11,7 +11,7 @@ def load_spread_profile_file_spectroscopy(spread_filename: str, channel_name: st
         logging.info("Channel %s: no spread profile configured.", channel_name)
         return None, None, None
 
-    path = (repo_root / "data" / spread_filename).resolve()
+    path = resolve_path_under(repo_root, "data", spread_filename)
     logging.info("Channel %s: loading spread profile file: %s", channel_name, path)
 
     if not path.exists():

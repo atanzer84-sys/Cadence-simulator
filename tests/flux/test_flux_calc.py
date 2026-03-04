@@ -90,7 +90,7 @@ def test_calculateFluxOnEarth_no_optional_steps_called(monkeypatch, tmp_path):
         line_core_emission=False,
         interstellar_absorption=False,
         test_mode=False,
-        produce_Plots=False,
+        produce_plots=False,
     )
 
     monkeypatch.setattr("flux.flux_calc.get_global_config", lambda: cfg)
@@ -144,7 +144,7 @@ def test_calculateFluxOnEarth_optional_steps_called(monkeypatch, tmp_path):
         line_core_emission=True,
         interstellar_absorption=True,
         test_mode=False,
-        produce_Plots=False,
+        produce_plots=False,
         sigmaMg22=1.0,
         sigmaMg21=1.0,
         mg2_col=None,
@@ -193,7 +193,7 @@ def test_calculateFluxOnEarth_returns_photons_and_wavelengths_same_length(monkey
         line_core_emission=False,
         interstellar_absorption=False,
         test_mode=False,
-        produce_Plots=False,
+        produce_plots=False,
     )
 
     monkeypatch.setattr("flux.flux_calc.get_global_config", lambda: cfg)
@@ -248,7 +248,7 @@ def test_calculateFluxOnEarth_executes_test_mode_instrumentation(monkeypatch, tm
     cfg = SimpleNamespace(
         line_core_emission=False,
         interstellar_absorption=False,
-        produce_Plots=False,
+        produce_plots=False,
         sigmaMg22=0.0,
         sigmaMg21=0.0,
     )

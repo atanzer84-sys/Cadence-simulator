@@ -2,6 +2,16 @@ from dataclasses import dataclass
 from pathlib import Path
 import logging
 
+from configs.config_parsing import (
+    parse_simple_kv,
+    as_int,
+    as_float,
+    as_bool,
+    as_optional_float,
+    as_optional_str,
+    as_optional_lower_str,
+)
+
 
 @dataclass(frozen=True, slots=True)
 class GlobalConfig:
@@ -41,7 +51,7 @@ class GlobalConfig:
     zod_spectrum_file: str | None   
 
     test_mode: bool
-    produce_Plots: bool
+    produce_plots: bool
 
 _GLOBAL: GlobalConfig | None = None
 
@@ -72,46 +82,46 @@ def get_global_config() -> GlobalConfig:
 def _read_global_cfg(path: Path) -> GlobalConfig:
     logging.info("Reading global config from %s", path)
 
-    raw = _parse_simple_kv(path)
+    raw = parse_simple_kv(path)
     _warn_default_used(raw, "sigmaMg22", DEFAULT_SIGMA_MG22, path=path)
     _warn_default_used(raw, "sigmaMg21", DEFAULT_SIGMA_MG21, path=path)
 
     cfg = GlobalConfig(
-        line_core_emission=_as_bool(raw.get("line_core_emission", 0), key="line_core_emission"),
-        interstellar_absorption=_as_bool(raw.get("interstellar_absorption", 0), key="interstellar_absorption"),
+        line_core_emission=as_bool(raw.get("line_core_emission", 0), key="line_core_emission"),
+        interstellar_absorption=as_bool(raw.get("interstellar_absorption", 0), key="interstellar_absorption"),
         
-        mg2_col=_as_optional_float(raw.get("mg2_col", None)),
-        mg1_col=_as_optional_float(raw.get("mg1_col", None)),
-        fe2_col=_as_optional_float(raw.get("fe2_col", None)),
-        sigmaMg22=_as_float(raw.get("sigmaMg22", DEFAULT_SIGMA_MG22), key="sigmaMgIIh"),
-        sigmaMg21=_as_float(raw.get("sigmaMg21", DEFAULT_SIGMA_MG21), key="sigmaMgIIk"),
+        mg2_col=as_optional_float(raw.get("mg2_col", None)),
+        mg1_col=as_optional_float(raw.get("mg1_col", None)),
+        fe2_col=as_optional_float(raw.get("fe2_col", None)),
+        sigmaMg22=as_float(raw.get("sigmaMg22", DEFAULT_SIGMA_MG22), key="sigmaMgIIh"),
+        sigmaMg21=as_float(raw.get("sigmaMg21", DEFAULT_SIGMA_MG21), key="sigmaMgIIk"),
         
-        enable_log_r_fallback=_as_bool(raw.get("enable_log_r_fallback", 0), key="enable_log_r_fallback"),
-        log_r_teff_threshold=_as_float(raw["log_r_teff_threshold"], key="log_r_teff_threshold"),
-        log_r_hot_value=_as_float(raw["log_r_hot_value"], key="log_r_hot_value"),
-        log_r_cool_value=_as_float(raw["log_r_cool_value"], key="log_r_cool_value"),
+        enable_log_r_fallback=as_bool(raw.get("enable_log_r_fallback", 0), key="enable_log_r_fallback"),
+        log_r_teff_threshold=as_float(raw["log_r_teff_threshold"], key="log_r_teff_threshold"),
+        log_r_hot_value=as_float(raw["log_r_hot_value"], key="log_r_hot_value"),
+        log_r_cool_value=as_float(raw["log_r_cool_value"], key="log_r_cool_value"),
         
-        n_non_science_frames=_as_int(raw.get("n_non_science_frames", 0), key="n_non_science_frames"),
-        write_non_science_frames_png=_as_bool(raw.get("write_non_science_frames_png", 0), key="write_non_science_frames_png"),
-        n_science_frames_per_channel=_as_int(raw.get("n_science_frames_per_channel", 0), key="n_science_frames_per_channel"),
-        write_science_frames_png=_as_bool(raw.get("write_science_frames_png", 0), key="write_science_frames_png"),        
+        n_non_science_frames=as_int(raw.get("n_non_science_frames", 0), key="n_non_science_frames"),
+        write_non_science_frames_png=as_bool(raw.get("write_non_science_frames_png", 0), key="write_non_science_frames_png"),
+        n_science_frames_per_channel=as_int(raw.get("n_science_frames_per_channel", 0), key="n_science_frames_per_channel"),
+        write_science_frames_png=as_bool(raw.get("write_science_frames_png", 0), key="write_science_frames_png"),        
 
-        cosmic_rays_min=_as_int(raw.get("cosmic_rays_min", 5), key="cosmic_rays_min"),
-        cosmic_rays_max=_as_int(raw.get("cosmic_rays_max", 10), key="cosmic_rays_max"),
-        cosmic_ray_signal_electrons=_as_int(raw.get("cosmic_ray_signal_electrons", 720000), key="cosmic_ray_signal_electrons"),
-        cosmic_ray_length_min_px=_as_int(raw.get("cosmic_ray_length_min_px", 10), key="cosmic_ray_length_min_px"),
-        cosmic_ray_length_max_px=_as_int(raw.get("cosmic_ray_length_max_px", 20), key="cosmic_ray_length_max_px"),
+        cosmic_rays_min=as_int(raw.get("cosmic_rays_min", 5), key="cosmic_rays_min"),
+        cosmic_rays_max=as_int(raw.get("cosmic_rays_max", 10), key="cosmic_rays_max"),
+        cosmic_ray_signal_electrons=as_int(raw.get("cosmic_ray_signal_electrons", 72000), key="cosmic_ray_signal_electrons"),
+        cosmic_ray_length_min_px=as_int(raw.get("cosmic_ray_length_min_px", 10), key="cosmic_ray_length_min_px"),
+        cosmic_ray_length_max_px=as_int(raw.get("cosmic_ray_length_max_px", 20), key="cosmic_ray_length_max_px"),
 
-        magnitude_cutoff=_as_float(raw.get("magnitude_cutoff", 20.0), key="magnitude_cutoff"),
-        GAIA_USE_ASYNC_JOBS=_as_bool(raw.get("GAIA_USE_ASYNC_JOBS", 1), key="GAIA_USE_ASYNC_JOBS"),
-        background_type=_as_optional_lower_str(raw.get("background_type", "")),
-        background_file=_as_optional_str(raw.get("background_file", "")),
-        sky_pixel_area_arcsec2=_as_optional_float(raw.get("sky_pixel_area_arcsec2", None)),
-        zod_dist_file=_as_optional_str(raw.get("zod_dist_file", "")),
-        zod_spectrum_file=_as_optional_str(raw.get("zod_spectrum_file", "")),
+        magnitude_cutoff=as_float(raw.get("magnitude_cutoff", 20.0), key="magnitude_cutoff"),
+        GAIA_USE_ASYNC_JOBS=as_bool(raw.get("GAIA_USE_ASYNC_JOBS", 1), key="GAIA_USE_ASYNC_JOBS"),
+        background_type=as_optional_lower_str(raw.get("background_type", "")),
+        background_file=as_optional_str(raw.get("background_file", "")),
+        sky_pixel_area_arcsec2=as_optional_float(raw.get("sky_pixel_area_arcsec2", None)),
+        zod_dist_file=as_optional_str(raw.get("zod_dist_file", "")),
+        zod_spectrum_file=as_optional_str(raw.get("zod_spectrum_file", "")),
 
-        test_mode=_as_bool(raw.get("test_mode", 0), key="test_mode"),    
-        produce_Plots=_as_bool(raw.get("produce_Plots", 0), key="produce_Plots",),    
+        test_mode=as_bool(raw.get("test_mode", 0), key="test_mode"),    
+        produce_plots=as_bool(raw.get("produce_plots", raw.get("produce_Plots", 0)), key="produce_plots"),    
     )
 
     _ensure_non_negative(cfg.log_r_teff_threshold, key="log_r_teff_threshold")
@@ -127,78 +137,6 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
 
     logging.info("Global config loaded: %s", cfg)
     return cfg
-
-def _as_optional_str(v: object | None) -> str | None:
-    if v is None:
-        return None
-    s = str(v).strip()
-    if s == "" or s.casefold() == "none":
-        return None
-    return s
-
-
-def _as_optional_lower_str(v: object | None) -> str | None:
-    s = _as_optional_str(v)
-    if s is None:
-        return None
-    return s.casefold()
-
-def _as_int(value, *, key: str) -> int:
-    try:
-        return int(value)
-    except Exception as exc:
-        logging.error("Invalid int for key '%s': %r", key, value)
-        raise ValueError(f"Invalid int for key '{key}': {value!r}") from exc
-
-def _as_bool(v: object, *, key: str) -> bool:
-    s = str(v).strip().casefold()
-    if s in {"1", "true", "yes", "y", "on"}:
-        return True
-    if s in {"0", "false", "no", "n", "off", ""}:
-        return False
-
-    logging.error(
-        "Invalid boolean value for config key '%s': %r",
-        key,
-        v,
-    )
-    raise ValueError(
-        f"Invalid boolean value for config key '{key}': {v!r}. "
-        "Expected one of: 0, 1, true, false, yes, no."
-    )
-
-def _as_optional_float(v: object | None) -> float | None:
-    if v is None:
-        return None
-    s = str(v).strip()
-    if s == "" or s.casefold() == "none":
-        return None
-    return float(s)
-
-def _as_float(value, *, key: str) -> float:
-    try:
-        return float(value)
-    except Exception as exc:
-        logging.error("Invalid float for key '%s': %r", key, value)
-        raise ValueError(f"Invalid float for key '{key}': {value!r}") from exc
-
-def _parse_simple_kv(path: Path) -> dict[str, str]:
-    if not path.exists():
-        logging.error("Global config file not found at %s", path)
-        raise FileNotFoundError(f"Config not found: {path}")
-
-    data: dict[str, str] = {}
-    for line in path.read_text(encoding="utf-8").splitlines():
-        s = line.strip()
-        if not s or s.startswith("#"):
-            continue
-        if "#" in s:
-            s = s.split("#", 1)[0].strip()
-        if "=" not in s:
-            continue
-        k, v = (p.strip() for p in s.split("=", 1))
-        data[k] = v
-    return data
 
 def _warn_default_used(raw: dict, key: str, default, *, path: Path) -> None:
     if key not in raw:

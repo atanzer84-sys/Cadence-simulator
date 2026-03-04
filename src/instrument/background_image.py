@@ -11,7 +11,7 @@ from scipy.interpolate import CubicSpline
 from astropy.time import Time
 
 
-def generate_Background_Image(channel: SpectroscopyChannel, ctx: RunContext, star: Star ) -> np.ndarray:
+def generate_background_image(channel: SpectroscopyChannel, ctx: RunContext, star: Star ) -> np.ndarray:
 
     nx = channel.x_pixels
     ny = channel.y_pixels

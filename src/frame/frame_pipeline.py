@@ -10,7 +10,7 @@ from configs.channel_config import SpectroscopyChannel
 from loaders.run_waltzer_context import RunContext
 from domain.star import Star
 
-def generate_Frames(nuv_image, vis_image, nuv: SpectroscopyChannel, vis: SpectroscopyChannel, ctx: RunContext, star: Star):
+def generate_frames(nuv_image, vis_image, nuv: SpectroscopyChannel, vis: SpectroscopyChannel, ctx: RunContext, star: Star):
     global_cfg = get_global_config()
     n_non_science_frames = global_cfg.n_non_science_frames
     logging.info("FITS generation starting (n_non_science_frames=%d)", n_non_science_frames)

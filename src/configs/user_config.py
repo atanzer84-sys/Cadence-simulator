@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from pathlib import Path
 import logging
 
+from configs.config_parsing import parse_simple_kv, as_float
+
 @dataclass(frozen=True, slots=True)
 class UserConfig:
     target_name: str
@@ -36,14 +38,14 @@ def get_user_config() -> UserConfig:
 
 
 def _read_user_cfg(path: Path) -> UserConfig:
-    raw = _parse_simple_kv(path)
+    raw = parse_simple_kv(path)
     try:
         cfg = UserConfig(
             target_name=_sanitize_target_name(raw["target_name"]),
-            total_observation_length_h=_as_float(raw["total_observation_length_h"], key="total_observation_length_h"),
-            exposure_NUV_s=_as_float(raw["exposure_NUV_s"], key="exposure_NUV_s"),
-            exposure_VIS_s=_as_float(raw["exposure_VIS_s"], key="exposure_VIS_s"),
-            exposure_IR_s=_as_float(raw["exposure_IR_s"], key="exposure_IR_s"),
+            total_observation_length_h=as_float(raw["total_observation_length_h"], key="total_observation_length_h"),
+            exposure_NUV_s=as_float(raw["exposure_NUV_s"], key="exposure_NUV_s"),
+            exposure_VIS_s=as_float(raw["exposure_VIS_s"], key="exposure_VIS_s"),
+            exposure_IR_s=as_float(raw["exposure_IR_s"], key="exposure_IR_s"),
         )
         logging.info("User config loaded: %s", cfg)
         return cfg
@@ -67,27 +69,3 @@ def _sanitize_target_name(v: str) -> str:
         s = s[1:-1].strip()
     return s
 
-def _as_float(value, *, key: str) -> float:
-    try:
-        return float(value)
-    except Exception as exc:
-        logging.error("Invalid float for key '%s': %r", key, value)
-        raise ValueError(f"Invalid float for key '{key}': {value!r}") from exc
-
-def _parse_simple_kv(path: Path) -> dict[str, str]:
-    if not path.exists():
-        logging.error("User config file not found at %s", path)
-        raise FileNotFoundError(f"Config not found: {path}")
-
-    data: dict[str, str] = {}
-    for line in path.read_text(encoding="utf-8").splitlines():
-        s = line.strip()
-        if not s or s.startswith("#"):
-            continue
-        if "#" in s:
-            s = s.split("#", 1)[0].strip()
-        if "=" not in s:
-            continue
-        k, v = (p.strip() for p in s.split("=", 1))
-        data[k] = v
-    return data

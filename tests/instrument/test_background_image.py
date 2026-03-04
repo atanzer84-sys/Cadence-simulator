@@ -1,6 +1,6 @@
 """
 Tests for instrument.background_image: background image generation for default and
-calculated (zodiacal) background types, and the main entry point generate_Background_Image.
+calculated (zodiacal) background types, and the main entry point generate_background_image.
 """
 import numpy as np
 from types import SimpleNamespace
@@ -9,7 +9,7 @@ from unittest.mock import patch
 from astropy.time import Time
 
 from instrument.background_image import (
-    generate_Background_Image,
+    generate_background_image,
     generate_background_default_image,
     generate_background_calculated_image,
 )
@@ -81,7 +81,7 @@ _FIXED_JD = 2457095.5
 _fixed_time_now = Time(_FIXED_JD, format="jd", scale="utc")
 
 
-# --- generate_Background_Image ---
+# --- generate_background_image ---
 
 
 def test_generate_background_image_disabled_returns_zero_image(tmp_path):
@@ -93,7 +93,7 @@ def test_generate_background_image_disabled_returns_zero_image(tmp_path):
     ctx = _ctx(tmp_path)
     star = _star()
 
-    image = generate_Background_Image(ch, ctx, star)
+    image = generate_background_image(ch, ctx, star)
 
     assert image.shape == (ch.y_pixels, ch.x_pixels)
     assert np.all(image == 0.0)
@@ -126,7 +126,7 @@ def test_generate_background_image_default_shape_and_scaling(tmp_path):
     ctx = _ctx(tmp_path)
     star = _star()
 
-    image = generate_Background_Image(ch, ctx, star)
+    image = generate_background_image(ch, ctx, star)
 
     assert image.shape == (ch.y_pixels, ch.x_pixels)
     # Each row should be identical (1D background broadcast along y)
@@ -166,7 +166,7 @@ def test_generate_background_image_calc_shape_and_write(tmp_path):
     star = _star(ra=90.0, dec=0.0)
 
     with patch("instrument.background_image.Time.now", return_value=_fixed_time_now):
-        image = generate_Background_Image(ch, ctx, star)
+        image = generate_background_image(ch, ctx, star)
 
     assert image.shape == (ch.y_pixels, ch.x_pixels)
     assert np.all(image >= 0.0)

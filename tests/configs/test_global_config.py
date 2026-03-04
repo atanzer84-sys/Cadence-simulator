@@ -276,14 +276,14 @@ def test_required_log_r_fields_parse_numeric():
 
 
 def test_optional_bool_and_int_fields_omitted_use_defaults(tmp_path):
-    """When write_non_science_frames_png, write_science_frames_png, produce_Plots and int frame fields are omitted, they use default False/0."""
+    """When write_non_science_frames_png, write_science_frames_png, produce_plots and int frame fields are omitted, they use default False/0."""
     content = _base_cfg()
     for key in (
         "write_non_science_frames_png",
         "write_science_frames_png",
         "n_non_science_frames",
         "n_science_frames_per_channel",
-        "produce_Plots",
+        "produce_plots",
     ):
         content = _cfg_drop_key(content, key)
     cfg_path = _cfg_write(tmp_path, "global_omitted_optional_bool_int.cfg", content)
@@ -291,16 +291,16 @@ def test_optional_bool_and_int_fields_omitted_use_defaults(tmp_path):
 
     assert cfg.write_non_science_frames_png is False
     assert cfg.write_science_frames_png is False
-    assert cfg.produce_Plots is False
+    assert cfg.produce_plots is False
     assert cfg.n_non_science_frames == 0
     assert cfg.n_science_frames_per_channel == 0
 
 
 def test_optional_bool_and_int_fields_set_parsed_correctly():
-    """When write_non_science_frames_png, write_science_frames_png, produce_Plots and int frame fields are set, they are parsed correctly."""
+    """When write_non_science_frames_png, write_science_frames_png, produce_plots and int frame fields are set, they are parsed correctly."""
     cfg = gc.load_global_config(_full_cfg_path())
 
-    assert cfg.produce_Plots is True
+    assert cfg.produce_plots is True
     assert cfg.write_non_science_frames_png is True
     assert cfg.write_science_frames_png is True
     assert cfg.n_non_science_frames == 3

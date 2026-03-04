@@ -6,8 +6,8 @@ from instrument.bias_image import generate_bias_image
 from instrument.dark_image import generate_dark_image
 from instrument.cosmic_image import generate_cosmic_rays
 from configs.global_config import GlobalConfig, get_global_config
-from instrument.background_image import generate_Background_Image
-from instrument.background_stars_image import generate_Background_Stars_Image
+from instrument.background_image import generate_background_image
+from instrument.background_stars_image import generate_background_stars_image
 from domain.star import Star
 from domain.star_catalog import StarCatalog
 from loaders.load_background_stars import lookup_background_stars
@@ -52,11 +52,11 @@ def build_science_image(spectra_2d, channel: SpectroscopyChannel, ctx: RunContex
     image += photon_noise
     ctx.write_image_png.write_image(image, "SCIENCE_PHOTON_NOISE", ctx, channel)
 
-    background = generate_Background_Image(channel, ctx, star)
+    background = generate_background_image(channel, ctx, star)
     image += background
     ctx.write_image_png.write_image(image, "SCIENCE_BACKGROUND", ctx, channel)
     
-    generate_Background_Stars_Image(channel, ctx, star, background_stars_catalog)
+    generate_background_stars_image(channel, ctx, star, background_stars_catalog)
 
 
     cosmic = generate_cosmic_rays(ctx, channel, cfg)
