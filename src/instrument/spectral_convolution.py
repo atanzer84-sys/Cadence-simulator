@@ -78,21 +78,19 @@ def gaussbroad(wavelength, spectra, hwhm):
     #wavelength change per pixel
     dw = (wavelength[-1] - wavelength[0]) / (len(wavelength) - 1)
 
-    #gauus=make
-    for _ in range(0, len(wavelength)):
         
-        #Make smoothing gaussian# extend to 4 sigma.
-        #Note: 4.0 / sqrt(2.0*numpy.log(2.0)) = 3.3972872 & sqrt(numpy.log(2.0))=0.83255461
-        #  sqrt(numpy.log(2.0)/pi)=0.46971864 (*1.0000632 to correct for >4 sigma wings)
-        if(hwhm > 5*(wavelength[-1] - wavelength[0])): 
-            return np.full(len(wavelength),np.sum(spectra)/len(wavelength))
-        
-        nhalf = int(3.3972872*hwhm/dw)		## points in half gaussian
-        ng = 2 * nhalf + 1				## points in gaussian (odd!)
-        wg = dw * (np.arange(ng) - (ng-1)/2.0)	#wavelength scale of gaussian
-        xg = ( (0.83255461) / hwhm) * wg 		#convenient absisca
-        gpro = ( (0.46974832) * dw / hwhm) * np.exp(-xg*xg)#unit area gaussian w/ FWHM
-        gpro=gpro/np.sum(gpro)
+    #Make smoothing gaussian# extend to 4 sigma.
+    #Note: 4.0 / sqrt(2.0*numpy.log(2.0)) = 3.3972872 & sqrt(numpy.log(2.0))=0.83255461
+    #  sqrt(numpy.log(2.0)/pi)=0.46971864 (*1.0000632 to correct for >4 sigma wings)
+    if(hwhm > 5*(wavelength[-1] - wavelength[0])): 
+        return np.full(len(wavelength),np.sum(spectra)/len(wavelength))
+    
+    nhalf = int(3.3972872*hwhm/dw)		## points in half gaussian
+    ng = 2 * nhalf + 1				## points in gaussian (odd!)
+    wg = dw * (np.arange(ng) - (ng-1)/2.0)	#wavelength scale of gaussian
+    xg = ( (0.83255461) / hwhm) * wg 		#convenient absisca
+    gpro = ( (0.46974832) * dw / hwhm) * np.exp(-xg*xg)#unit area gaussian w/ FWHM
+    gpro=gpro/np.sum(gpro)
 
     # if _ % 1000 == 0:
     #     sigma = float(hwhm) / float(np.sqrt(2.0 * np.log(2.0)))

@@ -1,7 +1,6 @@
 from loaders.run_waltzer_context import get_repo_root, RunContext
 import logging
 import numpy as np
-from utils.helpers import resolve_path_under
 
 def load_psf_image_file(filename: str, channel_name: str, ctx: RunContext, min_cols: int = 20, stability_rows: int = 3, ) -> tuple[np.ndarray, int, int]:
 
