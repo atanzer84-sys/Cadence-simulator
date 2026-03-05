@@ -1,7 +1,7 @@
 import logging
 import numpy as np
 from domain.star import Star
-from utils.constants import C_LIGHT_Angst, PARSEC_CM
+from utils.constants import C_LIGHT_Angst, PARSEC_CM, R_V
 from configs.global_config import get_global_config
 from flux.cute_line_core_emission import apply_line_core_emission
 from flux.cute_extinction import extinction_amores
@@ -158,7 +158,7 @@ def compute_flux_at_earth(flux_lambda_diluted, distance_pc, announce_user: bool 
 def apply_unred(wavelengths, flux_at_earth, ebv, announce_user: bool = False):
     announce("Starting to apply UNRED extinction correction", announce_user)
     ebv = -1.0 * ebv
-    flux_unred = unred(wavelengths, flux_at_earth, ebv=ebv, R_V=3.1)
+    flux_unred = unred(wavelengths, flux_at_earth, ebv=ebv, R_V=R_V)
     logging.info("UNRED extinction correction applied")
     return flux_unred
 

@@ -3,6 +3,12 @@ import types
 from dataclasses import fields
 from typing import Any, get_args, get_origin, Union
 
+
+def is_missing(v: Any) -> bool:
+    """Return True if value is considered missing (None or empty/whitespace-only string)."""
+    return v is None or (isinstance(v, str) and v.strip() == "")
+
+
 def get_missing_properties(parameters: dict, required_keys: list[str], log_output: bool = True) -> list[str]:
     """
     Return list of required keys that are missing in parameters.
@@ -12,13 +18,6 @@ def get_missing_properties(parameters: dict, required_keys: list[str], log_outpu
       • value is None, or
       • value is an empty/whitespace-only string
     """
-    def is_missing(v: Any) -> bool:
-        if v is None:
-            return True
-        if isinstance(v, str) and v.strip() == "":
-            return True
-        return False
-
     if log_output:
         logging.info("Checking missing properties...")
         logging.info("Required keys: %s", required_keys)

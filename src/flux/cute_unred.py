@@ -2,7 +2,10 @@ import numpy as np
 import scipy.interpolate as interpolate
 import logging
 
-def unred(wave, flux, ebv, R_V=3.1, LMC2=False, AVGLMC=False):
+from utils.constants import R_V as DEFAULT_R_V
+
+
+def unred(wave, flux, ebv, R_V=None, LMC2=False, AVGLMC=False):
     """
      Deredden a flux vector using the Fitzpatrick (1999) parameterization
      
@@ -92,7 +95,9 @@ def unred(wave, flux, ebv, R_V=3.1, LMC2=False, AVGLMC=False):
          c1 - Intercept of the linear UV extinction component 
               (default = 2.030 - 3.007*c2
     """
-  
+    if R_V is None:
+        R_V = DEFAULT_R_V
+
     logging.info("Starting unred: ebv=%s R_V=%s LMC2=%s AVGLMC=%s", ebv, R_V, LMC2, AVGLMC)
 
     x = 10000./ wave # Convert to inverse microns 

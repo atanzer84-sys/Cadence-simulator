@@ -94,7 +94,7 @@ def save_background_stars_csv(table: Table, output_dir, star_name: str) -> None:
     print(msg)
 
 
-def _passes_magnitude_cutoff(star_params: dict, max_mag: float = 20.0) -> bool:
+def _passes_magnitude_cutoff(star_params: dict, max_mag: float) -> bool:
     """True if star has gaia_magnitude and it is <= max_mag."""
     mag = star_params.get("gaia_magnitude")
     if mag is None:

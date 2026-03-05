@@ -74,7 +74,7 @@ def _write_fits_for_all(frame_lists, ctx: RunContext, *, phase: str = "") -> Non
 def _write_png_for_all(frame_lists, ctx: RunContext, star: Star, *, phase: str = "") -> None:
     phase_str = f" for {phase} frames" if phase else ""
     logging.info("Creating PNG files%s", phase_str)
-    print(f"Creating PNG files{phase_str} ...")
+    print(f"Creating PNG files{phase_str}")
     for frames in frame_lists:
         if not frames:
             continue

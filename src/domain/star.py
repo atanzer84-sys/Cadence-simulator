@@ -3,6 +3,8 @@ from utils.constants import R_SUN_cm, M_SUN_kg
 from typing import Any, Dict
 import logging
 
+from loaders.parameter_preprocessing import is_missing
+
 @dataclass(frozen=True)
 class Star:
     name: str
@@ -28,9 +30,6 @@ class Star:
         required_keys: list[str],
         log_output: bool = True,
     ) -> "Star":
-        def is_missing(v: Any) -> bool:
-            return v is None or (isinstance(v, str) and v.strip() == "")
-
         missing = [k for k in required_keys if k not in star_params or is_missing(star_params.get(k))]
         if missing:
             raise ValueError(f"Star missing required keys at construction: {missing}")

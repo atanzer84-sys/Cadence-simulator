@@ -53,6 +53,9 @@ FeIIw      = 2599.39515
 FeII_loggf = 0.378
 FeII_stark = -6.53
 
+# Extinction curve: R_V = A(V) / E(B-V), ratio of total to selective extinction.
+R_V = 3.1
+
 #ISM fixed parameters
 ISM_b_Mg2=2.0        #b-parameter for the Ca2 ISM lines in km/s
 vr_ISM=0.            #radial velocity of the ISM absorption lines in km/s

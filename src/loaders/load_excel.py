@@ -3,6 +3,9 @@ from openpyxl import load_workbook
 from typing import Any
 from configparser import ConfigParser
 from pathlib import Path
+
+from loaders.parameter_preprocessing import is_missing
+
 PlanetStarDict = dict[str, Any]
 
 def load_matching_excel_row_from_excel(excel_path, target_name_user_input):
@@ -138,14 +141,6 @@ def map_to_planet_or_star_dictionary(planet_star_dictionary: PlanetStarDict, map
     # normalize if excel columns have leading or trailing spaces or upper lower case chars
     def norm(s: str) -> str:
         return str(s).strip().casefold()
-
-    # mandatory checks for required params
-    def is_missing(v: Any) -> bool:
-        if v is None:
-            return True
-        if isinstance(v, str) and v.strip() == "":
-            return True
-        return False
 
     # Build reverse lookup: excel_header -> canonical_key
     reverse_planets = {norm(excel_header): canonical for canonical, excel_header in mapping["planet"].items()}

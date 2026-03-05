@@ -2,6 +2,7 @@ following data artifacts are needed in this folder:
 - background.txt
 - nuv__cross_dispersion_spread.txt
 - stellar_param_mamjeck.txt
+- waltzer_nir_eff_area.txt
 - waltzer_nuv_eff_area.txt
 - waltzer_vis_eff_area.txt
 - zod_dist.txt
