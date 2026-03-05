@@ -6,6 +6,7 @@ from configs.global_config import GlobalConfig
 BASE_GLOBAL_CFG = {
     "line_core_emission": False,
     "interstellar_absorption": False,
+    "orbit_duration_min": 100.0,
     "mg2_col": None,
     "mg1_col": None,
     "fe2_col": None,

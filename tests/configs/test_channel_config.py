@@ -3,8 +3,12 @@ import pytest
 from dataclasses import FrozenInstanceError
 
 from configs.channel_config import SpectroscopyChannel, PhotometryChannel
+from tests.loaders._load_channel_test_helpers import _SHARED_CFG
+
 
 def test_spectroscopy_channel_init():
+    slit_w = _SHARED_CFG["slit_width_arcsec"]
+    slit_l = _SHARED_CFG["slit_length_arcsec"]
     ch = SpectroscopyChannel(
         channel_name="NUV",
         x_pixels=2048,
@@ -20,8 +24,8 @@ def test_spectroscopy_channel_init():
         mode=1,
         spread_profile_file="",
         spread_half_height_pix=3,
-        effective_area_wavelength=[],
-        effective_area=[],
+        effective_area_wavelength=np.array([]),
+        effective_area=np.array([]),
         pixel_scale=1.0,
         spread_y_positions=None,
         spread_y_weights=None,
@@ -29,6 +33,10 @@ def test_spectroscopy_channel_init():
         source_file="cfg",
         slit_position_x_arcsec=0.0,
         slit_position_y_arcsec=0.0,
+        slit_width_arcsec=slit_w,
+        slit_length_arcsec=slit_l,
+        slit_half_width_arcsec=0.5 * slit_w,
+        slit_half_length_arcsec=0.5 * slit_l,
         slope=0.0,
         intercept_pixels=0.0,
     )

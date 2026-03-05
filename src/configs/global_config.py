@@ -2,21 +2,14 @@ from dataclasses import dataclass
 from pathlib import Path
 import logging
 
-from configs.config_parsing import (
-    parse_simple_kv,
-    as_int,
-    as_float,
-    as_bool,
-    as_optional_float,
-    as_optional_str,
-    as_optional_lower_str,
-)
+from configs.config_parsing import (parse_simple_kv, as_bool, as_optional_float, as_float, as_int, as_optional_lower_str, as_optional_str)
 
 
 @dataclass(frozen=True, slots=True)
 class GlobalConfig:
     line_core_emission: bool
     interstellar_absorption: bool
+    orbit_duration_min: float
 
     mg2_col: float | None
     mg1_col: float | None
@@ -89,6 +82,7 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
     cfg = GlobalConfig(
         line_core_emission=as_bool(raw.get("line_core_emission", 0), key="line_core_emission"),
         interstellar_absorption=as_bool(raw.get("interstellar_absorption", 0), key="interstellar_absorption"),
+        orbit_duration_min=as_float(raw.get("orbit_duration_min", 100.0), key="orbit_duration_min"),
         
         mg2_col=as_optional_float(raw.get("mg2_col", None)),
         mg1_col=as_optional_float(raw.get("mg1_col", None)),
@@ -124,6 +118,7 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
         produce_plots=as_bool(raw.get("produce_plots", raw.get("produce_Plots", 0)), key="produce_plots"),    
     )
 
+    _ensure_non_negative(cfg.orbit_duration_min, key="orbit_duration_min")
     _ensure_non_negative(cfg.log_r_teff_threshold, key="log_r_teff_threshold")
     _ensure_non_negative(cfg.n_non_science_frames, key="n_non_science_frames")
     _ensure_non_negative(cfg.n_science_frames_per_channel, key="n_science_frames_per_channel")

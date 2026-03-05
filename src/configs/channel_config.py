@@ -49,7 +49,11 @@ class SpectroscopyChannel(Channel):
     spread_y_positions: np.ndarray | None = None
     spread_y_weights: np.ndarray | None = None
     spread_y_wavelengths: np.ndarray | None = None
-
+    slit_width_arcsec: float
+    slit_length_arcsec: float
+    slit_half_width_arcsec: float
+    slit_half_length_arcsec: float
+    
 @dataclass(frozen=True, slots=True, kw_only=True)
 class PhotometryChannel(Channel):
     psf_file: str

@@ -50,6 +50,9 @@ _SHARED_CFG = {
     "psf_file": "nir_psf.txt",
     "source_position_x_arcsec": 0.0,
     "source_position_y_arcsec": 0.0,
+    # Spectroscopy slit geometry (arcseconds)
+    "slit_width_arcsec": 20.0,
+    "slit_length_arcsec": 60.0,
 }
 _CTX = SimpleNamespace(output_dir=Path("."), target_name="TEST")
 

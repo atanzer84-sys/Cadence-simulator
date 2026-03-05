@@ -91,6 +91,9 @@ def load_channel_config(path: Path, exposure_s: float, ctx, background: dict):
     slope = as_float(raw.get("slope", 0.0), key="slope")
     intercept_pixels = as_float(raw.get("intercept_pixels", 0.0), key="intercept_pixels")
 
+    slit_width_arcsec = _ensure_positive(as_float(raw["slit_width_arcsec"], key="slit_width_arcsec"), "slit_width_arcsec", channel_name)
+    slit_length_arcsec = _ensure_positive(as_float(raw["slit_length_arcsec"], key="slit_length_arcsec"), "slit_length_arcsec", channel_name)
+
     return SpectroscopyChannel(
         channel_name=channel_name,
         x_pixels=x_pixels,
@@ -115,6 +118,10 @@ def load_channel_config(path: Path, exposure_s: float, ctx, background: dict):
         spread_y_wavelengths=spread_wl_header,
         slit_position_x_arcsec=slit_position_x_arcsec,
         slit_position_y_arcsec=slit_position_y_arcsec,
+        slit_width_arcsec=slit_width_arcsec,
+        slit_length_arcsec=slit_length_arcsec,
+        slit_half_width_arcsec=0.5 * slit_width_arcsec,
+        slit_half_length_arcsec=0.5 * slit_length_arcsec,
         slope=slope,
         intercept_pixels=intercept_pixels,
         background_type=background["background_type"],
@@ -188,3 +195,7 @@ def _ensure_effective_area_matches_x_pixels(channel_name: str, effective_area_fi
         logging.error("%s: effective_area_file=%s len(wavelength)=%d != x_pixels=%d source_file=%s", channel_name, effective_area_file, len(effective_area_wavelength), x_pixels, source_file)
         raise ValueError(f"{channel_name}: effective_area_file={effective_area_file} len(wavelength)={len(effective_area_wavelength)} != x_pixels={x_pixels} source_file={source_file}")
 
+def _ensure_positive(value: float, name: str, channel_name: str) -> float:
+    if value <= 0.0:
+        raise ValueError(f"{channel_name}: {name} must be > 0, got {value}")
+    return float(value)
