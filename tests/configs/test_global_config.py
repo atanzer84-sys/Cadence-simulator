@@ -205,11 +205,10 @@ def test_invalid_sigmaMg21_reports_property_name(caplog, tmp_path):
 
 
 def test_int_fields_parse_numeric():
-    """Int fields (n_non_science_frames, n_science_frames_per_channel) parse numeric values correctly."""
+    """Int fields (n_non_science_frames) parse numeric values correctly."""
     cfg = gc.load_global_config(_full_cfg_path())
 
     assert cfg.n_non_science_frames == 3
-    assert cfg.n_science_frames_per_channel == 7
 
 
 def test_invalid_int_reports_property_name(caplog, tmp_path):
@@ -282,7 +281,6 @@ def test_optional_bool_and_int_fields_omitted_use_defaults(tmp_path):
         "write_non_science_frames_png",
         "write_science_frames_png",
         "n_non_science_frames",
-        "n_science_frames_per_channel",
         "produce_plots",
     ):
         content = _cfg_drop_key(content, key)
@@ -293,7 +291,6 @@ def test_optional_bool_and_int_fields_omitted_use_defaults(tmp_path):
     assert cfg.write_science_frames_png is False
     assert cfg.produce_plots is False
     assert cfg.n_non_science_frames == 0
-    assert cfg.n_science_frames_per_channel == 0
 
 
 def test_optional_bool_and_int_fields_set_parsed_correctly():
@@ -304,7 +301,6 @@ def test_optional_bool_and_int_fields_set_parsed_correctly():
     assert cfg.write_non_science_frames_png is True
     assert cfg.write_science_frames_png is True
     assert cfg.n_non_science_frames == 3
-    assert cfg.n_science_frames_per_channel == 7
 
 
 def test_background_fields_parse_explicit_values():

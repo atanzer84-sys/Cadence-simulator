@@ -1,46 +1,32 @@
 import numpy as np
-from types import SimpleNamespace
+import pytest
 from astropy.io import fits
 
-from frame.science_frame import generate_science_frames
+from frame.science_frame import generate_science_frame
 from frame.frame_class import Frame
 
 
-def _channel_gaussian():
-    """Channel for Gaussian spread: spread_y_* are None (used by generate_science_frames mocks)."""
-    c = SimpleNamespace()
-    c.channel_name = "NUV"
-    c.x_pixels = 5
-    c.y_pixels = 7
-    c.mode = 1
-    c.spread_half_height_pix = 2
-    c.ccd_gain = 2.0
-    c.bias_offset = 10.0
-    c.read_noise = 3.0
-    c.dark_current_sigma = 0.5
-    c.dark_noise = 1.0
-    c.exposure_s = 3.0
-    c.spread_profile_file = "dummy_profile.fits"
-    c.wavelength = np.linspace(100, 200, 5)
-    c.spread_y_positions = None
-    c.spread_y_weights = None
-    c.spread_y_wavelengths = None
-    return c
+@pytest.fixture
+def base_header():
+    return fits.Header()
 
 
-def test_generate_science_frames_basic():
-    """generate_science_frames wraps a prepared detector image into Frame objects."""
-    channel = _channel_gaussian()
-    base_header = fits.Header()
+def test_generate_science_frame_returns_list_of_one(channel_cfg, base_header):
+    """generate_science_frame returns list of 1 frame for pipeline consistency."""
+    image = np.ones((channel_cfg.y_pixels, channel_cfg.x_pixels)) * 42.0
 
-    # Pretend this 2D image already contains all detector effects
-    fake_image = np.ones((channel.y_pixels, channel.x_pixels)) * 42.0
+    frames = generate_science_frame(image, channel_cfg, base_header)
 
-    frames = generate_science_frames(fake_image, channel, 2, base_header)
-
-    assert len(frames) == 2
+    assert len(frames) == 1
     assert isinstance(frames[0], Frame)
-    assert frames[0].data.shape == (channel.y_pixels, channel.x_pixels)
+    assert frames[0].data.shape == (channel_cfg.y_pixels, channel_cfg.x_pixels)
+
+
+def test_generate_science_frame_header_fields(channel_cfg, base_header):
+    """generate_science_frame adds expected FITS header keys."""
+    image = np.ones((channel_cfg.y_pixels, channel_cfg.x_pixels))
+
+    frames = generate_science_frame(image, channel_cfg, base_header)
 
     hdr_keys = list(frames[0].header.keys())
     assert "FILETYPE" in hdr_keys
@@ -49,16 +35,11 @@ def test_generate_science_frames_basic():
     assert "OBS_ID" in hdr_keys
     assert "EXPTIME" in hdr_keys
 
-    # science_frame should not modify the image data it receives
-    assert np.allclose(frames[0].data, fake_image)
 
+def test_generate_science_frame_does_not_modify_image(channel_cfg, base_header):
+    """generate_science_frame passes through image data unchanged."""
+    image = np.ones((channel_cfg.y_pixels, channel_cfg.x_pixels)) * 42.0
 
-def test_generate_science_frames_n_frames_zero():
-    """generate_science_frames with n_frames=0 returns empty list."""
-    channel = _channel_gaussian()
-    base_header = fits.Header()
-    fake_image = np.ones((channel.y_pixels, channel.x_pixels))
+    frames = generate_science_frame(image, channel_cfg, base_header)
 
-    frames = generate_science_frames(fake_image, channel, 0, base_header)
-
-    assert frames == []
+    assert np.allclose(frames[0].data, image)

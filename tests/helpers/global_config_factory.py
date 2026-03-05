@@ -21,7 +21,6 @@ BASE_GLOBAL_CFG = {
     "log_r_cool_value": 0.0,
     "n_non_science_frames": 0,
     "write_non_science_frames_png": False,
-    "n_science_frames_per_channel": 1,
     "write_science_frames_png": False,
     "cosmic_rays_min": 0,
     "cosmic_rays_max": 0,

@@ -42,7 +42,6 @@ def test_generate_frames_minimal_uses_fits_and_respects_png_flags(tmp_path):
 
     mock_global_cfg = MagicMock()
     mock_global_cfg.n_non_science_frames = 2
-    mock_global_cfg.n_science_frames_per_channel = 1
     mock_global_cfg.write_non_science_frames_png = True
     mock_global_cfg.write_science_frames_png = False
 
@@ -50,7 +49,7 @@ def test_generate_frames_minimal_uses_fits_and_respects_png_flags(tmp_path):
          patch("frame.frame_pipeline.initialize_fits_header", return_value=[]) as mock_init_header, \
          patch("frame.frame_pipeline.generate_bias_frames", side_effect=[["bias_nuv"], ["bias_vis"], ["bias_nir"]]) as mock_bias, \
          patch("frame.frame_pipeline.generate_dark_frames", side_effect=[["dark_nuv"], ["dark_vis"], ["dark_nir"]]) as mock_dark, \
-         patch("frame.frame_pipeline.generate_science_frames", side_effect=[["sci_nuv"], ["sci_vis"], ["sci_nir"]]) as mock_science, \
+         patch("frame.frame_pipeline.generate_science_frame", side_effect=[["sci_nuv"], ["sci_vis"], ["sci_nir"]]) as mock_science, \
          patch("frame.frame_pipeline._write_fits_for_all") as mock_write_fits_all, \
          patch("frame.frame_pipeline._write_png_for_all") as mock_write_png_all:
 
@@ -74,7 +73,6 @@ def test_generate_frames_skips_bias_dark_when_n_non_science_frames_zero(tmp_path
 
     mock_global_cfg = MagicMock()
     mock_global_cfg.n_non_science_frames = 0
-    mock_global_cfg.n_science_frames_per_channel = 1
     mock_global_cfg.write_non_science_frames_png = True
     mock_global_cfg.write_science_frames_png = False
 
@@ -82,7 +80,7 @@ def test_generate_frames_skips_bias_dark_when_n_non_science_frames_zero(tmp_path
          patch("frame.frame_pipeline.initialize_fits_header", return_value=[]), \
          patch("frame.frame_pipeline.generate_bias_frames") as mock_bias, \
          patch("frame.frame_pipeline.generate_dark_frames") as mock_dark, \
-         patch("frame.frame_pipeline.generate_science_frames", side_effect=[["sci_nuv"], ["sci_vis"], ["sci_nir"]]) as mock_science, \
+         patch("frame.frame_pipeline.generate_science_frame", side_effect=[["sci_nuv"], ["sci_vis"], ["sci_nir"]]) as mock_science, \
          patch("frame.frame_pipeline._write_fits_for_all") as mock_write_fits_all, \
          patch("frame.frame_pipeline._write_png_for_all") as mock_write_png_all:
 
@@ -99,33 +97,4 @@ def test_generate_frames_skips_bias_dark_when_n_non_science_frames_zero(tmp_path
     mock_write_png_all.assert_not_called()
 
 
-def test_generate_frames_skips_science_when_n_science_frames_zero(tmp_path):
-    """When n_science_frames_per_channel=0, science generation and FITS/PNG for science are skipped; bias/dark still run."""
-    counts_nuv, counts_vis, counts_nir, nuv_cfg, vis_cfg, nir_cfg, ctx, star = _common_setup(tmp_path)
-
-    mock_global_cfg = MagicMock()
-    mock_global_cfg.n_non_science_frames = 2
-    mock_global_cfg.n_science_frames_per_channel = 0
-    mock_global_cfg.write_non_science_frames_png = True
-    mock_global_cfg.write_science_frames_png = True
-
-    with patch("frame.frame_pipeline.get_global_config", return_value=mock_global_cfg), \
-         patch("frame.frame_pipeline.initialize_fits_header", return_value=[]), \
-         patch("frame.frame_pipeline.generate_bias_frames", side_effect=[["bias_nuv"], ["bias_vis"], ["bias_nir"]]) as mock_bias, \
-         patch("frame.frame_pipeline.generate_dark_frames", side_effect=[["dark_nuv"], ["dark_vis"], ["dark_nir"]]) as mock_dark, \
-         patch("frame.frame_pipeline.generate_science_frames") as mock_science, \
-         patch("frame.frame_pipeline._write_fits_for_all") as mock_write_fits_all, \
-         patch("frame.frame_pipeline._write_png_for_all") as mock_write_png_all:
-
-        generate_frames(counts_nuv, counts_vis, counts_nir, nuv_cfg, vis_cfg, nir_cfg, ctx, star)
-
-    assert mock_bias.call_count == 3
-    assert mock_dark.call_count == 3
-    mock_science.assert_not_called()
-
-    # Only bias/dark FITS are written
-    mock_write_fits_all.assert_called_once()
-
-    # PNGs are produced only for bias/dark in this configuration; no science PNGs since n_science_frames_per_channel == 0
-    mock_write_png_all.assert_called_once()
 

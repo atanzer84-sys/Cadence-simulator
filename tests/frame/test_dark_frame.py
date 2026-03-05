@@ -1,35 +1,8 @@
-import pytest
 import numpy as np
 from astropy.io import fits
 from frame.bias_frame import generate_bias_frame
 from frame.dark_frame import generate_dark_frame, generate_dark_frames
 from frame.frame_class import Frame
-
-
-@pytest.fixture
-def channel_cfg():
-    """
-    Minimal fake channel config with only the attributes used by dark.py.
-    Refactor-safe: add new attributes here when dark.py starts using them.
-    """
-    class Cfg:
-        channel_name = "NUV"
-        x_pixels = 10
-        y_pixels = 8
-        bias_offset = 100.0
-        read_noise = 5.0
-        dark_current_sigma = 2.0
-        dark_noise = 0.5
-        ccd_gain = 2.0
-        exposure_s = 10.0  # used by generate_dark_frame (no longer passed as arg)
-
-    return Cfg()
-
-
-@pytest.fixture
-def base_header():
-    """Base FITS header used as input to generate_dark_frames (matches real pipeline usage)."""
-    return fits.Header()
 
 
 def test_generate_dark_frame_properties(channel_cfg):

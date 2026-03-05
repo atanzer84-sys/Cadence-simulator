@@ -1,30 +1,8 @@
-import pytest
 import numpy as np
 from astropy.io import fits
 from frame.bias_frame import generate_bias_frame, generate_bias_frames
 from frame.frame_class import Frame
 
-
-@pytest.fixture
-def channel_cfg():
-    """
-    Minimal, stable fake channel config object.
-    Only includes attributes used by bias.py.
-    """
-    class Cfg:
-        channel_name = "NUV"
-        x_pixels = 10
-        y_pixels = 8
-        bias_offset = 100.0
-        read_noise = 5.0
-        ccd_gain = 2.0
-
-    return Cfg()
-
-@pytest.fixture
-def base_header():
-    """Base FITS header used by generate_bias_frames (matches real pipeline usage)."""
-    return fits.Header()
 
 def test_generate_bias_frame_basic_properties(channel_cfg):
     # This test checks that generate_bias_frame returns a Frame with correct shape
