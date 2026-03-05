@@ -33,5 +33,12 @@ class StarCatalog:
         self.flux_earth_by_id[star_id] = flux_earth
         return flux_earth
 
+    def set_offset_arcsec(self, star_id: str, dx_arcsec: float, dy_arcsec: float) -> None:
+        self.offsets_arcsec_by_id[star_id] = (float(dx_arcsec), float(dy_arcsec))
+
+    def get_offset_arcsec(self, star_id: str) -> Tuple[float, float]:
+        return self.offsets_arcsec_by_id[star_id]
+
+
 def compute_flux_earth(star: Star) -> FluxEarth:
     raise NotImplementedError
