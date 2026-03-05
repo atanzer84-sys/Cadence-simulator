@@ -138,14 +138,16 @@ def test_gaussian_spread_column_sum_mismatch_raises():
             _spread_1d_to_2d_gaussian(counts, channel)
 
 
-def test_gaussian_spread_rejects_nonzero_slope_or_intercept():
-    """_spread_1d_to_2d_gaussian raises when slope or intercept_pixels is non-zero."""
+def test_gaussian_spread_with_nonzero_slope():
+    """_spread_1d_to_2d_gaussian supports slope/intercept via slow path; column sums match."""
     channel = _channel_gaussian()
-    channel.slope = 1.0
-    counts = np.ones(channel.x_pixels)
+    channel.slope = 0.5
+    counts = np.array([1, 2, 3, 4, 5], dtype=float)
 
-    with pytest.raises(ValueError, match="slope and intercept_pixels not supported yet"):
-        _spread_1d_to_2d_gaussian(counts, channel)
+    image = _spread_1d_to_2d_gaussian(counts, channel)
+
+    assert image.shape == (channel.y_pixels, channel.x_pixels)
+    assert np.allclose(image.sum(axis=0), counts)
 
 
 # ----------------------------------------------------------------------

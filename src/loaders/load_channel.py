@@ -12,16 +12,15 @@ from configs.global_config import get_global_config
 
 def load_channels_config(user_cfg: UserConfig, ctx):
     repo_root = get_repo_root()
-
-    # load channel config, not cached, pass it through
-    nuv_channel = load_channel_config(repo_root / "configs" / "waltzer_nuv.cfg", user_cfg.exposure_NUV_s, ctx)
-    vis_channel = load_channel_config(repo_root / "configs" / "waltzer_vis.cfg", user_cfg.exposure_VIS_s, ctx)
-    nir_channel  = load_channel_config(repo_root / "configs" / "waltzer_nir.cfg", user_cfg.exposure_IR_s, ctx)
-
+    background = _load_background_from_global_cfg()
+    nuv_channel = load_channel_config(repo_root / "configs" / "waltzer_nuv.cfg", user_cfg.exposure_NUV_s, ctx, background)
+    vis_channel = load_channel_config(repo_root / "configs" / "waltzer_vis.cfg", user_cfg.exposure_VIS_s, ctx, background)
+    nir_channel = load_channel_config(repo_root / "configs" / "waltzer_nir.cfg", user_cfg.exposure_IR_s, ctx, background)
+    
     return nuv_channel, vis_channel, nir_channel
 
 
-def load_channel_config(path: Path, exposure_s: float, ctx):
+def load_channel_config(path: Path, exposure_s: float, ctx, background: dict):
 
     logging.info("Reading channel config from %s", path)
 
@@ -39,8 +38,6 @@ def load_channel_config(path: Path, exposure_s: float, ctx):
 
     effective_area_file=str(raw.get("effective_area_file", "")).strip()
     effective_area_wavelength, effective_area, pixel_scale = load_effective_area_file(effective_area_file)
-    
-    background_type, background_wavelength, background_flux, sky_pixel_area_arcsec2, zod_dist, zod_spec_wl, zod_spec_flux = _load_background_from_global_cfg()
 
     if channel_name == "NIR":
         psf_file = str(raw.get("psf_file", "")).strip()
@@ -70,13 +67,13 @@ def load_channel_config(path: Path, exposure_s: float, ctx):
             psf_center_y=psf_center_y,
             source_position_x_arcsec=source_position_x_arcsec,
             source_position_y_arcsec=source_position_y_arcsec,
-            background_type=background_type,
-            background_wavelength=background_wavelength,
-            background_flux=background_flux,
-            sky_pixel_area_arcsec2=sky_pixel_area_arcsec2,
-            zod_dist=zod_dist,
-            zod_spectrum_wavelength=zod_spec_wl,
-            zod_spectrum_flux=zod_spec_flux,
+            background_type=background["background_type"],
+            background_wavelength=background["background_wavelength"],
+            background_flux=background["background_flux"],
+            sky_pixel_area_arcsec2=background["sky_pixel_area_arcsec2"],
+            zod_dist=background["zod_dist"],
+            zod_spectrum_wavelength=background["zod_spectrum_wavelength"],
+            zod_spectrum_flux=background["zod_spectrum_flux"],
 
         )
 
@@ -120,13 +117,13 @@ def load_channel_config(path: Path, exposure_s: float, ctx):
         slit_position_y_arcsec=slit_position_y_arcsec,
         slope=slope,
         intercept_pixels=intercept_pixels,
-        background_type=background_type,
-        background_wavelength=background_wavelength,
-        background_flux=background_flux,
-        sky_pixel_area_arcsec2=sky_pixel_area_arcsec2,
-        zod_dist=zod_dist,
-        zod_spectrum_wavelength=zod_spec_wl,
-        zod_spectrum_flux=zod_spec_flux,
+        background_type=background["background_type"],
+        background_wavelength=background["background_wavelength"],
+        background_flux=background["background_flux"],
+        sky_pixel_area_arcsec2=background["sky_pixel_area_arcsec2"],
+        zod_dist=background["zod_dist"],
+        zod_spectrum_wavelength=background["zod_spectrum_wavelength"],
+        zod_spectrum_flux=background["zod_spectrum_flux"],
     )  
 
 
@@ -145,7 +142,15 @@ def _load_background_from_global_cfg():
     zod_spec_flux = None
 
     if background_type is None:
-        return (background_type, background_wavelength, background_flux, sky_pixel_area_arcsec2, zod_dist, zod_spec_wl, zod_spec_flux)
+        return {
+            "background_type": background_type,
+            "background_wavelength": background_wavelength,
+            "background_flux": background_flux,
+            "sky_pixel_area_arcsec2": sky_pixel_area_arcsec2,
+            "zod_dist": zod_dist,
+            "zod_spectrum_wavelength": zod_spec_wl,
+            "zod_spectrum_flux": zod_spec_flux,
+        }
 
     if background_type == "default":
         if cfg.background_file is None:
@@ -167,7 +172,15 @@ def _load_background_from_global_cfg():
             f"global.cfg: invalid background_type={background_type!r} (expected: default, calc, or empty)"
         )
 
-    return background_type, background_wavelength, background_flux, sky_pixel_area_arcsec2, zod_dist, zod_spec_wl, zod_spec_flux
+    return {
+        "background_type": background_type,
+        "background_wavelength": background_wavelength,
+        "background_flux": background_flux,
+        "sky_pixel_area_arcsec2": sky_pixel_area_arcsec2,
+        "zod_dist": zod_dist,
+        "zod_spectrum_wavelength": zod_spec_wl,
+        "zod_spectrum_flux": zod_spec_flux,
+    }
 
 def _ensure_effective_area_matches_x_pixels(channel_name: str, effective_area_file: str, effective_area_wavelength, x_pixels: int, source_file: str) -> None:
 

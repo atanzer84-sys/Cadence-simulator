@@ -13,6 +13,7 @@ from tests.helpers.global_config_factory import make_global_cfg
 from loaders.load_channel import (
     load_channel_config as _load_channel_config,
     load_channels_config as _load_channels_config,
+    _load_background_from_global_cfg,
 )
 
 # Monkeypatch targets (avoids repeating long strings)
@@ -60,7 +61,8 @@ def set_test_global_cfg(**overrides) -> None:
 
 def load_channel_config(path: Path, exposure_s: float):
     """Compatibility wrapper for tests after ctx-aware loader refactor."""
-    return _load_channel_config(path, exposure_s, _CTX)
+    background = _load_background_from_global_cfg()
+    return _load_channel_config(path, exposure_s, _CTX, background)
 
 
 def load_channels_config(user_cfg):
