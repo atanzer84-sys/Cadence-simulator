@@ -37,10 +37,8 @@ def spread_1d_spectrum_to_2d(counts_s_pixel_convolved, channel: SpectroscopyChan
     raise NotImplementedError(msg)
 
 
+
 def _spread_1d_to_2d_gaussian(counts_s_pixel_convolved, channel: SpectroscopyChannel):
-    if channel.slope != 0.0 or channel.intercept_pixels != 0.0:
-        logging.error("PROFILE SPREAD ERROR: channel=%s slope=%g intercept=%g not supported", channel.channel_name, channel.slope, channel.intercept_pixels)
-        raise ValueError("slope and intercept_pixels not supported yet")
     nx = channel.x_pixels
     ny = channel.y_pixels
     spread_half_height = channel.spread_half_height_pix
@@ -49,33 +47,22 @@ def _spread_1d_to_2d_gaussian(counts_s_pixel_convolved, channel: SpectroscopyCha
         logging.error("SPREAD CONFIG ERROR: channel=%s no spread profile and spread_half_height_pix=%d", channel.channel_name, channel.spread_half_height_pix)
         raise ValueError("No cross-dispersion spreading configured")
 
-    # choosing configured starting positions
     x0, y0 = _get_spread_starting_position(channel)
     spatial_sigma_pix = float(channel.spread_half_height_pix)
 
-    # fill the 2D image: for each x-column, distribute counts[x] over y using w[y]
-    image = np.zeros((ny, nx), dtype=np.float64)
+    # case if slope and intercept are 0, then this doesn't have to be calculated in a for loop - performance increase!
+    if channel.slope == 0.0 and channel.intercept_pixels == 0.0:
+        w = _gaussian_vertical_profile(ny, y0, spatial_sigma_pix)
+        image = np.outer(w, counts_s_pixel_convolved)
+    else:
+        image = np.zeros((ny, nx), dtype=np.float64)
+        for i in range(nx):
+            x = x0 + i
+            if 0 <= x < nx:
+                y_center = y0 + channel.intercept_pixels + channel.slope * (x - x0)
+                w = _gaussian_vertical_profile(ny, y_center, spatial_sigma_pix)
+                image[:, x] = counts_s_pixel_convolved[i] * w
 
-    for i in range(nx):
-        x = x0 + i
-        if 0 <= x < nx:
-            y_center = y0 + channel.intercept_pixels + channel.slope * (x - x0)
-
-            w = np.zeros(ny, dtype=np.float64)
-            for y in range(ny):
-                dy = y - y_center
-                w[y] = np.exp(-0.5 * (dy / spatial_sigma_pix) * (dy / spatial_sigma_pix))
-
-            w_sum = w.sum()
-            if w_sum <= 0.0:
-                raise ValueError("vertical profile sum <= 0")
-            for y in range(ny):
-                w[y] = w[y] / w_sum
-
-            for y in range(ny):
-                image[y, x] = counts_s_pixel_convolved[i] * w[y]
-
-                
     logging.info("GAUSSIAN SPREAD RESULT: channel=%s shape=(%d,%d) sum=%g", channel.channel_name, image.shape[0], image.shape[1], float(image.sum()))
     col_sums = image.sum(axis=0)
     logging.info("GAUSSIAN SPREAD CHECK: channel=%s input_sum=%g image_sum=%g max_abs_diff=%g", channel.channel_name, float(np.sum(counts_s_pixel_convolved)), float(np.sum(image)), float(np.max(np.abs(col_sums - counts_s_pixel_convolved))))
@@ -85,6 +72,15 @@ def _spread_1d_to_2d_gaussian(counts_s_pixel_convolved, channel: SpectroscopyCha
         raise ValueError("Gaussian spread column sum mismatch")
 
     return image
+
+def _gaussian_vertical_profile(ny: int, y_center: float, sigma: float) -> np.ndarray:
+    """Normalized 1D Gaussian profile along y. Returns shape (ny,)."""
+    y_coords = np.arange(ny, dtype=np.float64) - y_center
+    w = np.exp(-0.5 * (y_coords / sigma) ** 2)
+    w_sum = w.sum()
+    if w_sum <= 0.0:
+        raise ValueError("vertical profile sum <= 0")
+    return w / w_sum
 
 
 def _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel: SpectroscopyChannel):
