@@ -36,6 +36,8 @@ def load_channel_config(path: Path, exposure_s: float, ctx, background: dict):
     ccd_gain=as_float(raw.get("ccd_gain", 1.0), key="ccd_gain")
     source_file=str(path)
 
+    n_science_frames = _compute_n_science_frames(channel_name, exposure_s)
+
     effective_area_file=str(raw.get("effective_area_file", "")).strip()
     effective_area_wavelength, effective_area, pixel_scale = load_effective_area_file(effective_area_file)
 
@@ -56,6 +58,7 @@ def load_channel_config(path: Path, exposure_s: float, ctx, background: dict):
             bias_offset=bias_offset,
             ccd_gain=ccd_gain,
             exposure_s=exposure_s,
+            n_science_frames=n_science_frames,
             source_file=source_file,
             effective_area_file=effective_area_file,
             effective_area_wavelength=effective_area_wavelength,
@@ -105,6 +108,7 @@ def load_channel_config(path: Path, exposure_s: float, ctx, background: dict):
         bias_offset=bias_offset,
         ccd_gain=ccd_gain,
         exposure_s=exposure_s,
+        n_science_frames=n_science_frames,
         source_file=source_file,
         effective_area_file=effective_area_file,
         effective_area_wavelength=effective_area_wavelength,
@@ -196,6 +200,14 @@ def _ensure_effective_area_matches_x_pixels(channel_name: str, effective_area_fi
         raise ValueError(f"{channel_name}: effective_area_file={effective_area_file} len(wavelength)={len(effective_area_wavelength)} != x_pixels={x_pixels} source_file={source_file}")
 
 def _ensure_positive(value: float, name: str, channel_name: str) -> float:
+
     if value <= 0.0:
         raise ValueError(f"{channel_name}: {name} must be > 0, got {value}")
     return float(value)
+
+def _compute_n_science_frames(channel_name: str, exposure_s: float) -> int:
+    cfg = get_global_config()
+    frame_time_s = exposure_s + cfg.readout_gap_s
+    n_science_frames = int(cfg.orbit_total_duration_s / frame_time_s)
+    logging.info("Channel %s science frame calculation: orbit_total_duration_s=%g exposure_s=%g readout_gap_s=%g frame_time=%g n_science_frames=%d", channel_name, cfg.orbit_total_duration_s, exposure_s, cfg.readout_gap_s, frame_time_s, n_science_frames)
+    return n_science_frames

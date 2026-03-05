@@ -14,6 +14,7 @@ class Channel:
     bias_offset: float
     ccd_gain: float
     exposure_s: float
+    n_science_frames: int
     source_file: str
     effective_area_file: str
     effective_area_wavelength: np.ndarray

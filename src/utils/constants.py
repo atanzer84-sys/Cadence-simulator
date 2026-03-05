@@ -24,6 +24,11 @@ sigma = ac.sigma_sb.to("erg / (cm2 s K4)").value # erg/cm**2/s/K**4 (stefan-bolt
 # Planck constant in erg*s
 H_PLANCK = ac.h.to("erg s").value
 
+
+SEC_PER_MIN = 60.0
+DEG_PER_CIRCLE = 360.0
+
+
 # 1 / (h * c) with wavelength expected in Angstrom
 # Derivation:
 # photons = flux_erg * lambda_cm / (h * c)
