@@ -25,8 +25,8 @@ class GlobalConfig:
     log_r_hot_value: float
     log_r_cool_value: float
     
-    n_non_science_frames: int
-    write_non_science_frames_png: bool
+    n_calibration_frames: int
+    write_calibration_frames_png: bool
     write_science_frames_png: bool
 
     cosmic_rays_min: int
@@ -99,8 +99,8 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
     log_r_hot_value = as_float(raw["log_r_hot_value"], key="log_r_hot_value")
     log_r_cool_value = as_float(raw["log_r_cool_value"], key="log_r_cool_value")
 
-    n_non_science_frames = as_int(raw.get("n_non_science_frames", 0), key="n_non_science_frames")
-    write_non_science_frames_png = as_bool(raw.get("write_non_science_frames_png", 0), key="write_non_science_frames_png")
+    n_calibration_frames = as_int(raw.get("n_calibration_frames", 0), key="n_calibration_frames")
+    write_calibration_frames_png = as_bool(raw.get("write_calibration_frames_png", 0), key="write_calibration_frames_png")
     write_science_frames_png = as_bool(raw.get("write_science_frames_png", 0), key="write_science_frames_png")
 
     cosmic_rays_min = as_int(raw.get("cosmic_rays_min", 5), key="cosmic_rays_min")
@@ -125,7 +125,7 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
     _ensure_non_negative(orbit_revolutions, key="orbit_revolutions")
     _ensure_non_negative(readout_gap_s, key="readout_gap_s")
     _ensure_non_negative(log_r_teff_threshold, key="log_r_teff_threshold")
-    _ensure_non_negative(n_non_science_frames, key="n_non_science_frames")
+    _ensure_non_negative(n_calibration_frames, key="n_calibration_frames")
     _ensure_non_negative(cosmic_rays_min, key="cosmic_rays_min")
     _ensure_non_negative(cosmic_rays_max, key="cosmic_rays_max")
     _ensure_non_negative(cosmic_ray_length_min_px, key="cosmic_ray_length_min_px")
@@ -150,8 +150,8 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
         log_r_teff_threshold=log_r_teff_threshold,
         log_r_hot_value=log_r_hot_value,
         log_r_cool_value=log_r_cool_value,
-        n_non_science_frames=n_non_science_frames,
-        write_non_science_frames_png=write_non_science_frames_png,
+        n_calibration_frames=n_calibration_frames,
+        write_calibration_frames_png=write_calibration_frames_png,
         write_science_frames_png=write_science_frames_png,
         cosmic_rays_min=cosmic_rays_min,
         cosmic_rays_max=cosmic_rays_max,

@@ -41,8 +41,8 @@ def test_generate_frames_minimal_uses_fits_and_respects_png_flags(tmp_path):
     counts_nuv, counts_vis, counts_nir, nuv_cfg, vis_cfg, nir_cfg, ctx, star = _common_setup(tmp_path)
 
     mock_global_cfg = MagicMock()
-    mock_global_cfg.n_non_science_frames = 2
-    mock_global_cfg.write_non_science_frames_png = True
+    mock_global_cfg.n_calibration_frames = 2
+    mock_global_cfg.write_calibration_frames_png = True
     mock_global_cfg.write_science_frames_png = False
 
     with patch("frame.frame_pipeline.get_global_config", return_value=mock_global_cfg), \
@@ -67,13 +67,13 @@ def test_generate_frames_minimal_uses_fits_and_respects_png_flags(tmp_path):
     mock_write_png_all.assert_called_once()
 
 
-def test_generate_frames_skips_bias_dark_when_n_non_science_frames_zero(tmp_path):
-    """When n_non_science_frames=0, bias/dark generation and FITS/PNG for them are skipped; science still runs."""
+def test_generate_frames_skips_bias_dark_when_n_calibration_frames_zero(tmp_path):
+    """When n_calibration_frames=0, bias/dark generation and FITS/PNG for them are skipped; science still runs."""
     counts_nuv, counts_vis, counts_nir, nuv_cfg, vis_cfg, nir_cfg, ctx, star = _common_setup(tmp_path)
 
     mock_global_cfg = MagicMock()
-    mock_global_cfg.n_non_science_frames = 0
-    mock_global_cfg.write_non_science_frames_png = True
+    mock_global_cfg.n_calibration_frames = 0
+    mock_global_cfg.write_calibration_frames_png = True
     mock_global_cfg.write_science_frames_png = False
 
     with patch("frame.frame_pipeline.get_global_config", return_value=mock_global_cfg), \

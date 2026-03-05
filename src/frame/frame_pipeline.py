@@ -12,30 +12,30 @@ from domain.star import Star
 
 def generate_frames(nuv_image, vis_image, nir_image, nuv: SpectroscopyChannel, vis: SpectroscopyChannel, nir: PhotometryChannel, ctx: RunContext, star: Star):
     global_cfg = get_global_config()
-    n_non_science_frames = global_cfg.n_non_science_frames
-    logging.info("FITS generation starting (n_non_science_frames=%d)", n_non_science_frames)
+    n_calibration_frames = global_cfg.n_calibration_frames
+    logging.info("FITS generation starting (n_calibration_frames=%d)", n_calibration_frames)
     print("\n==== STARTING FITS GENERATION (NUV & VIS & NIR) =====")
 
     header = initialize_fits_header(star, ctx.timestamp)
 
-    if n_non_science_frames > 0:
-        bias_nuv_frames = generate_bias_frames(nuv, n_non_science_frames, header)
-        bias_vis_frames = generate_bias_frames(vis, n_non_science_frames, header)
-        bias_nir_frames = generate_bias_frames(nir, n_non_science_frames, header)
+    if n_calibration_frames > 0:
+        bias_nuv_frames = generate_bias_frames(nuv, n_calibration_frames, header)
+        bias_vis_frames = generate_bias_frames(vis, n_calibration_frames, header)
+        bias_nir_frames = generate_bias_frames(nir, n_calibration_frames, header)
         #bias + dark = dark
-        dark_nuv_frames = generate_dark_frames(nuv, n_non_science_frames, header)
-        dark_vis_frames = generate_dark_frames(vis, n_non_science_frames, header)
-        dark_nir_frames = generate_dark_frames(nir, n_non_science_frames, header)
+        dark_nuv_frames = generate_dark_frames(nuv, n_calibration_frames, header)
+        dark_vis_frames = generate_dark_frames(vis, n_calibration_frames, header)
+        dark_nir_frames = generate_dark_frames(nir, n_calibration_frames, header)
         # dark + spectra = spectra
 
         non_science_list = [bias_nuv_frames, bias_vis_frames, dark_nuv_frames, dark_vis_frames, bias_nir_frames, dark_nir_frames]
 
         _write_fits_for_all(non_science_list, ctx, phase="non-science")
 
-        if global_cfg.write_non_science_frames_png:
+        if global_cfg.write_calibration_frames_png:
             _write_png_for_all(non_science_list, ctx, star, phase="non-science")
     else:
-        logging.info("Non Science Frames: n_non_science_frames=%d \u2192 skipped.", n_non_science_frames)
+        logging.info("Non Science Frames: n_calibration_frames=%d \u2192 skipped.", n_calibration_frames)
 
     # generate science frames
     science_nuv_frames = generate_science_frame(nuv_image, nuv, header)

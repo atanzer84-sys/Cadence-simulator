@@ -74,7 +74,7 @@ def _create_write_image_png():
     class _RealWriteImagePng:
         write_image = staticmethod(images.write_image_png)
 
-    return _RealWriteImagePng() if get_global_config().write_non_science_frames_png else _NOOP_WRITE_IMAGE_PNG
+    return _RealWriteImagePng() if get_global_config().write_calibration_frames_png else _NOOP_WRITE_IMAGE_PNG
 
 
 

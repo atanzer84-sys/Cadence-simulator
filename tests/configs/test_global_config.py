@@ -205,26 +205,26 @@ def test_invalid_sigmaMg21_reports_property_name(caplog, tmp_path):
 
 
 def test_int_fields_parse_numeric():
-    """Int fields (n_non_science_frames) parse numeric values correctly."""
+    """Int fields (n_calibration_frames) parse numeric values correctly."""
     cfg = gc.load_global_config(_full_cfg_path())
 
-    assert cfg.n_non_science_frames == 3
+    assert cfg.n_calibration_frames == 3
 
 
 def test_invalid_int_reports_property_name(caplog, tmp_path):
-    """Invalid value for an int field (e.g. n_non_science_frames) raises ValueError and logs ERROR with the key name."""
-    content = _cfg_replace(_base_cfg(), "n_non_science_frames = 3", "n_non_science_frames = not_an_int")
+    """Invalid value for an int field (e.g. n_calibration_frames) raises ValueError and logs ERROR with the key name."""
+    content = _cfg_replace(_base_cfg(), "n_calibration_frames = 3", "n_calibration_frames = not_an_int")
     cfg_path = _cfg_write(tmp_path, "global_invalid_int.cfg", content)
 
     with pytest.raises(ValueError) as exc:
         gc.load_global_config(cfg_path)
 
     msg = str(exc.value)
-    assert "n_non_science_frames" in msg
+    assert "n_calibration_frames" in msg
     assert "Invalid int" in msg
 
     assert any(
-        "n_non_science_frames" in rec.message and rec.levelname == "ERROR"
+        "n_calibration_frames" in rec.message and rec.levelname == "ERROR"
         for rec in caplog.records
     )
 
@@ -275,32 +275,32 @@ def test_required_log_r_fields_parse_numeric():
 
 
 def test_optional_bool_and_int_fields_omitted_use_defaults(tmp_path):
-    """When write_non_science_frames_png, write_science_frames_png, produce_plots and int frame fields are omitted, they use default False/0."""
+    """When write_calibration_frames_png, write_science_frames_png, produce_plots and int frame fields are omitted, they use default False/0."""
     content = _base_cfg()
     for key in (
-        "write_non_science_frames_png",
+        "write_calibration_frames_png",
         "write_science_frames_png",
-        "n_non_science_frames",
+        "n_calibration_frames",
         "produce_plots",
     ):
         content = _cfg_drop_key(content, key)
     cfg_path = _cfg_write(tmp_path, "global_omitted_optional_bool_int.cfg", content)
     cfg = gc.load_global_config(cfg_path)
 
-    assert cfg.write_non_science_frames_png is False
+    assert cfg.write_calibration_frames_png is False
     assert cfg.write_science_frames_png is False
     assert cfg.produce_plots is False
-    assert cfg.n_non_science_frames == 0
+    assert cfg.n_calibration_frames == 0
 
 
 def test_optional_bool_and_int_fields_set_parsed_correctly():
-    """When write_non_science_frames_png, write_science_frames_png, produce_plots and int frame fields are set, they are parsed correctly."""
+    """When write_calibration_frames_png, write_science_frames_png, produce_plots and int frame fields are set, they are parsed correctly."""
     cfg = gc.load_global_config(_full_cfg_path())
 
     assert cfg.produce_plots is True
-    assert cfg.write_non_science_frames_png is True
+    assert cfg.write_calibration_frames_png is True
     assert cfg.write_science_frames_png is True
-    assert cfg.n_non_science_frames == 3
+    assert cfg.n_calibration_frames == 3
 
 
 def test_background_fields_parse_explicit_values():
