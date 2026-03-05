@@ -28,6 +28,7 @@ def lookup_background_stars(ctx: RunContext, cfg: GlobalConfig, star: Star):
         return StarCatalog()
 
     catalog = create_background_star_catalog(table, cfg)
+    add_background_star_offsets_arcsec(catalog, star)
 
     total = len(catalog.stars_by_id)
     logging.info("Starting flux calculation for %d background stars", total)
@@ -80,6 +81,22 @@ def create_background_star_catalog(table, cfg:GlobalConfig):
         catalog.add_star(bg_star.name, bg_star)
 
     return catalog
+
+def add_background_star_offsets_arcsec(catalog: StarCatalog, target_star: Star) -> None:
+    ra0 = float(target_star.right_ascension)
+    dec0 = float(target_star.declination)
+    cos_dec0 = np.cos(np.deg2rad(dec0))
+    
+    for star_id, bg_star in catalog.stars_by_id.items():
+        ra = float(bg_star.right_ascension)
+        dec = float(bg_star.declination)
+        dra_deg = (ra - ra0)
+        ddec_deg = (dec - dec0)
+        dx_arcsec = dra_deg * cos_dec0 * 3600.0
+        dy_arcsec = ddec_deg * 3600.0
+        catalog.set_offset_arcsec(star_id, dx_arcsec, dy_arcsec)
+
+
 
 def load_required_stellar_parameters():
     mapping = load_excel_mapping()
