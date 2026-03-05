@@ -5,7 +5,7 @@ from loaders.run_waltzer_context import RunContext
 from configs.global_config import GlobalConfig
 
 
-def generate_cosmic_rays(ctx: RunContext, channel: SpectroscopyChannel, cfg: GlobalConfig):
+def generate_cosmic_rays(ctx: RunContext, channel: SpectroscopyChannel, cfg: GlobalConfig, star=None):
 
     logging.info( "COSMIC RAYS %s: starting calculation for detector (%d x %d)", channel.channel_name, channel.x_pixels, channel.y_pixels)
     
@@ -52,7 +52,7 @@ def generate_cosmic_rays(ctx: RunContext, channel: SpectroscopyChannel, cfg: Glo
             image[y_n, x_n] = cosmic_ray_charge_e
 
 
-    ctx.write_image_png.write_image(image, "COSMIC_ONLY", ctx, channel)
+    ctx.write_image_png.write_image(image, "COSMIC_ONLY", ctx, channel, star=star)
 
     return image
 

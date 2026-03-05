@@ -106,7 +106,7 @@ def test_generate_frames_skips_science_when_n_science_frames_zero(tmp_path):
     mock_global_cfg = MagicMock()
     mock_global_cfg.n_non_science_frames = 2
     mock_global_cfg.n_science_frames_per_channel = 0
-    mock_global_cfg.write_non_science_frames_png = False
+    mock_global_cfg.write_non_science_frames_png = True
     mock_global_cfg.write_science_frames_png = True
 
     with patch("frame.frame_pipeline.get_global_config", return_value=mock_global_cfg), \

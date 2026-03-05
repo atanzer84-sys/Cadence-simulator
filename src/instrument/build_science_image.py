@@ -46,20 +46,20 @@ def build_science_image(spectra_2d, channel: Channel, ctx: RunContext, cfg: Glob
 
     bias = generate_bias_image(channel)
     image += bias
-    ctx.write_image_png.write_image(image, "SCIENCE_BIAS", ctx, channel)
+    ctx.write_image_png.write_image(image, "SCIENCE_BIAS", ctx, channel, star=star)
 
     dark = generate_dark_image(channel)
     image += dark
-    ctx.write_image_png.write_image(image, "SCIENCE_DARK", ctx, channel)
+    ctx.write_image_png.write_image(image, "SCIENCE_DARK", ctx, channel, star=star)
 
     spectra = spectra_2d * exposure
-    ctx.write_image_png.write_image(spectra, "SIGNAL_ONLY", ctx, channel)
+    ctx.write_image_png.write_image(spectra, "SIGNAL_ONLY", ctx, channel, star=star)
     image += spectra
-    ctx.write_image_png.write_image(image, "SCIENCE_SPECTRA", ctx, channel)
+    ctx.write_image_png.write_image(image, "SCIENCE_SPECTRA", ctx, channel, star=star)
 
-    photon_noise = apply_photon_noise_gauss_from_spectra2d(spectra_2d*exposure, channel, ctx)
+    photon_noise = apply_photon_noise_gauss_from_spectra2d(spectra_2d*exposure, channel, ctx, star)
     image += photon_noise
-    ctx.write_image_png.write_image(image, "SCIENCE_PHOTON_NOISE", ctx, channel)
+    ctx.write_image_png.write_image(image, "SCIENCE_PHOTON_NOISE", ctx, channel, star=star)
 
     background = generate_background_image(channel, ctx, star)
     image += background
@@ -68,22 +68,21 @@ def build_science_image(spectra_2d, channel: Channel, ctx: RunContext, cfg: Glob
     # generate_background_stars_image(channel, ctx, star, background_stars_catalog)
 
 
-    cosmic = generate_cosmic_rays(ctx, channel, cfg)
+    cosmic = generate_cosmic_rays(ctx, channel, cfg, star)
     image += cosmic
-    ctx.write_image_png.write_image(image, "SCIENCE_COSMIC", ctx, channel)
+    ctx.write_image_png.write_image(image, "SCIENCE_COSMIC", ctx, channel, star=star)
     
 
     image = image * ccd_gain
-    ctx.write_image_png.write_image(image, "SCIENCE_COMPLETELY_MERGED", ctx, channel)
+    ctx.write_image_png.write_image(image, "SCIENCE_COMPLETELY_MERGED", ctx, channel, star=star)
 
     return image
     
 
-def apply_photon_noise_gauss_from_spectra2d(spectra_2d_exposure, channel: SpectroscopyChannel, ctx: RunContext):
-    
+def apply_photon_noise_gauss_from_spectra2d(spectra_2d_exposure, channel: SpectroscopyChannel, ctx: RunContext, star: Star):
     distr = np.random.normal(loc=0.0, scale=1.0, size=spectra_2d_exposure.shape)
     sigma = np.sqrt(np.clip(spectra_2d_exposure, 0, None))
     noise = distr * sigma
-    ctx.write_image_png.write_image(noise, "NOISE_ONLY", ctx, channel)
+    ctx.write_image_png.write_image(noise, "NOISE_ONLY", ctx, channel, star=star)
 
     return noise

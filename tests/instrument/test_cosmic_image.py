@@ -18,7 +18,7 @@ class _StubWriteImagePng:
     def __init__(self) -> None:
         self.calls: list[tuple[np.ndarray, str, object]] = []
 
-    def write_image(self, array, frame_type: str, ctx, channel, show_stats: bool = True):
+    def write_image(self, array, frame_type: str, ctx, channel, show_stats: bool = True, star=None, **kwargs):
         self.calls.append((array, frame_type, channel))
 
 

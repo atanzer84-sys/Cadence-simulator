@@ -33,8 +33,9 @@ def generate_frames(nuv_image, vis_image, nir_image, nuv: SpectroscopyChannel, v
         non_science_list = [bias_nuv_frames, bias_vis_frames, dark_nuv_frames, dark_vis_frames, bias_nir_frames, dark_nir_frames]
 
         _write_fits_for_all(non_science_list, ctx, phase="non-science")
-        _write_png_for_all(non_science_list, ctx, star, phase="non-science")
 
+        if global_cfg.write_non_science_frames_png:
+            _write_png_for_all(non_science_list, ctx, star, phase="non-science")
     else:
         logging.info("Non Science Frames: n_non_science_frames=%d \u2192 skipped.", n_non_science_frames)
 

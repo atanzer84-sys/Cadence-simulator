@@ -36,7 +36,7 @@ def test_write_image_png_creates_file_with_expected_name(tmp_path):
 
     write_image_png(array, "BIAS", ctx, ch, show_stats=True)
 
-    expected_name = f"{ctx.target_name.replace(' ', '_')}_{ch.channel_name}_BIAS_image.png"
+    expected_name = "HD_2685_NUV_BIAS_image.png"
     expected_path = tmp_path / expected_name
 
     assert expected_path.exists()
@@ -51,7 +51,7 @@ def test_write_image_png_without_stats(tmp_path):
 
     write_image_png(array, "DARK", ctx, ch, show_stats=False)
 
-    expected_name = f"{ctx.target_name.replace(' ', '_')}_{ch.channel_name}_DARK_image.png"
+    expected_name = "HD_2685_NUV_DARK_image.png"
     expected_path = tmp_path / expected_name
 
     assert expected_path.exists()
