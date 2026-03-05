@@ -9,6 +9,7 @@ from tests.loaders._load_channel_test_helpers import _SHARED_CFG
 def test_spectroscopy_channel_init():
     slit_w = _SHARED_CFG["slit_width_arcsec"]
     slit_l = _SHARED_CFG["slit_length_arcsec"]
+    n_science_frames = _SHARED_CFG["n_science_frames"]
     ch = SpectroscopyChannel(
         channel_name="NUV",
         x_pixels=2048,
@@ -39,6 +40,7 @@ def test_spectroscopy_channel_init():
         slit_half_length_arcsec=0.5 * slit_l,
         slope=0.0,
         intercept_pixels=0.0,
+        n_science_frames=n_science_frames,
     )
 
     assert ch.channel_name == "NUV"
@@ -47,6 +49,7 @@ def test_spectroscopy_channel_init():
 
 
 def test_photometry_channel_init():
+    n_science_frames = _SHARED_CFG["n_science_frames"]
     ch = PhotometryChannel(
         channel_name="NIR",
         x_pixels=100,
@@ -64,6 +67,7 @@ def test_photometry_channel_init():
         effective_area=np.array([0.1, 0.2]),
         pixel_scale=1.0,
         psf_file="nir_psf.txt",
+        n_science_frames=n_science_frames,
     )
 
     assert ch.channel_name == "NIR"
@@ -77,6 +81,7 @@ def test_photometry_channel_init():
 
 
 def test_photometry_channel_is_frozen():
+    n_science_frames = _SHARED_CFG["n_science_frames"]
     ch = PhotometryChannel(
         channel_name="NIR",
         x_pixels=10,
@@ -94,6 +99,7 @@ def test_photometry_channel_is_frozen():
         effective_area=np.array([0.1]),
         pixel_scale=1.0,
         psf_file="nir_psf.txt",
+        n_science_frames=n_science_frames,
     )
 
     with pytest.raises(FrozenInstanceError):

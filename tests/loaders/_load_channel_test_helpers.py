@@ -53,6 +53,7 @@ _SHARED_CFG = {
     # Spectroscopy slit geometry (arcseconds)
     "slit_width_arcsec": 20.0,
     "slit_length_arcsec": 60.0,
+    "n_science_frames": 1,
 }
 _CTX = SimpleNamespace(output_dir=Path("."), target_name="TEST")
 
