@@ -9,6 +9,7 @@ BASE_GLOBAL_CFG = {
     "orbit_duration_min": 100.0,
     "orbit_revolutions": 1.0,
     "orbit_total_duration_s": 6000.0,  # 100 min * 60 s/min * 1 rev
+    "readout_gap_s": 0.0,
     "mg2_col": None,
     "mg1_col": None,
     "fe2_col": None,
