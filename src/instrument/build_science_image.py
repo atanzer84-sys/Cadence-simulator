@@ -23,7 +23,7 @@ def build_science_images (spectra_2d_nuv, spectra_2d_vis, rate_nir, nuv: Spectro
     vis_img = build_science_image(spectra_2d_vis, vis, ctx, cfg, star, background_stars_catalog)
 
     print("\n==== STARTING SCIENCE IMAGE GENERATION (NIR) =====")
-    nir_img = build_science_image(rate_nir, vis, ctx, cfg, star, background_stars_catalog)
+    nir_img = build_science_image(rate_nir, nir, ctx, cfg, star, background_stars_catalog)
 
     return nuv_img, vis_img, nir_img
 
