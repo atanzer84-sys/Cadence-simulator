@@ -15,6 +15,8 @@ from loaders.load_gaia import gaia_lookup_for_background_stars
 def lookup_background_stars(ctx: RunContext, cfg: GlobalConfig, star: Star):
     print("\n==== STARTING BACKGROUND STAR LOOKUP VIA GAIA OR CSV =====")
 
+    # TODO: IF YOU WANT TO LOAD A CATALOG OF ALL BACKGROUND STARS AND LOOK THEM UP, THIS WOULD BE THE PLACE.
+    # lookup star_name.csv and load it, so we do not have to query gaia
     table = load_background_csv_if_exists(star)
     if table is None:
         table = gaia_lookup_for_background_stars(star, g_mag_limit=cfg.magnitude_cutoff, GAIA_USE_ASYNC_JOBS=cfg.GAIA_USE_ASYNC_JOBS)
