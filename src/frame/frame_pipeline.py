@@ -32,8 +32,8 @@ def generate_frames(nuv_image, vis_image, nir_image, nuv: SpectroscopyChannel, v
 
         non_science_list = [bias_nuv_frames, bias_vis_frames, dark_nuv_frames, dark_vis_frames, bias_nir_frames, dark_nir_frames]
 
-        _write_fits_for_all(non_science_list, ctx)
-        _write_png_for_all(non_science_list, ctx, star)
+        _write_fits_for_all(non_science_list, ctx, phase="non-science")
+        _write_png_for_all(non_science_list, ctx, star, phase="non-science")
 
     else:
         logging.info("Non Science Frames: n_non_science_frames=%d \u2192 skipped.", n_non_science_frames)
@@ -45,16 +45,19 @@ def generate_frames(nuv_image, vis_image, nir_image, nuv: SpectroscopyChannel, v
         science_lists = [science_nuv_frames, science_vis_frames, science_nir_frames]
 
         # Write science FITS
-        _write_fits_for_all(science_lists, ctx)
+        _write_fits_for_all(science_lists, ctx, phase="science")
 
         # Write PNGs
         if global_cfg.write_science_frames_png:
-            _write_png_for_all(science_lists, ctx, star)
+            _write_png_for_all(science_lists, ctx, star, phase="science")
     else:
         logging.info("SCIENCE: n_science_frames=%d \u2192 skipped.", n_science_frames)
 
 
-def _write_fits_for_all(frame_lists, ctx: RunContext) -> None:
+def _write_fits_for_all(frame_lists, ctx: RunContext, *, phase: str = "") -> None:
+    phase_str = f" for {phase} frames" if phase else ""
+    logging.info("Creating FITS files%s", phase_str)
+    print(f"Creating FITS files{phase_str}")
     for frames in frame_lists:
         if not frames:
             continue
@@ -65,31 +68,23 @@ def _write_fits_for_all(frame_lists, ctx: RunContext) -> None:
         data_list = [frame.data for frame in frames]
         header_list = [frame.header for frame in frames]
 
-        write_fits_frames(
-            frames=data_list,
-            headers=header_list,
-            frame_type=frame_type,
-            channel_tag=channel_tag,
-            ctx=ctx,
-        )
+        write_fits_frames(frames=data_list, headers=header_list, frame_type=frame_type, channel_tag=channel_tag, ctx=ctx)
 
 
-def _write_png_for_all(frame_lists, ctx: RunContext, star: Star) -> None:
+def _write_png_for_all(frame_lists, ctx: RunContext, star: Star, *, phase: str = "") -> None:
+    phase_str = f" for {phase} frames" if phase else ""
+    logging.info("Creating PNG files%s", phase_str)
+    print(f"Creating PNG files{phase_str} ...")
     for frames in frame_lists:
         if not frames:
             continue
+        
         frame_type = frames[0].frame_type
         channel_tag = frames[0].channel_tag
+
         data_list = [f.data for f in frames]
         header_list = [f.header for f in frames]
-        write_frames_png(
-            frames=data_list,
-            headers=header_list,
-            frame_type=frame_type,
-            channel_tag=channel_tag,
-            ctx=ctx,
-            star=star,
-            show_stats=True,
-        )
+
+        write_frames_png(frames=data_list, headers=header_list, frame_type=frame_type, channel_tag=channel_tag, ctx=ctx, star=star, show_stats=True)
 
 
