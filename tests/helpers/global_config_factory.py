@@ -7,6 +7,8 @@ BASE_GLOBAL_CFG = {
     "line_core_emission": False,
     "interstellar_absorption": False,
     "orbit_duration_min": 100.0,
+    "orbit_revolutions": 1.0,
+    "orbit_total_duration_s": 6000.0,  # 100 min * 60 s/min * 1 rev
     "mg2_col": None,
     "mg1_col": None,
     "fe2_col": None,
