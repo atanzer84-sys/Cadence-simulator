@@ -226,6 +226,7 @@ def test_profile_spread_respects_vertical_slit_offset():
     assert peak_y != channel.y_pixels // 2
 
 
+
 # ----------------------------------------------------------------------
 # TESTS FOR _get_spread_starting_position (anchor logic)
 # ----------------------------------------------------------------------

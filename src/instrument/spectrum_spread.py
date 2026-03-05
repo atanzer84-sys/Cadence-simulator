@@ -25,7 +25,6 @@ def spread_1d_spectrum_to_2d(counts_s_pixel_convolved, channel: SpectroscopyChan
             and channel.spread_y_weights is not None
             and channel.spread_y_wavelengths is not None
         ):
-            # wavelength dependent spreading will be used
             return _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel)
 
         else:
@@ -84,17 +83,18 @@ def _gaussian_vertical_profile(ny: int, y_center: float, sigma: float) -> np.nda
 
 
 def _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel: SpectroscopyChannel):
-    logging.info("WAVELENGTH DEPENDENT SPREAD: channel=%s spread_file=%s mode=1 profile detected but not yet implemented", channel.channel_name, channel.spread_profile_file)
-        
+    """Vectorized wavelength-dependent profile spread."""
+    logging.info("WAVELENGTH DEPENDENT SPREAD: channel=%s spread_file=%s", channel.channel_name, channel.spread_profile_file)
+
     nx = channel.x_pixels
     ny = channel.y_pixels
-    
+
     if channel.slope != 0.0 or channel.intercept_pixels != 0.0:
         logging.error("PROFILE SPREAD ERROR: channel=%s slope=%g intercept=%g not supported", channel.channel_name, channel.slope, channel.intercept_pixels)
         raise ValueError("slope and intercept_pixels not supported yet")
 
     spread_y_pos = channel.spread_y_positions
-    spread_weigths = channel.spread_y_weights
+    spread_weights = channel.spread_y_weights
     spread_wavelengths = channel.spread_y_wavelengths
     detector_wavelengths = channel.effective_area_wavelength
 
@@ -109,20 +109,16 @@ def _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel: SpectroscopyChan
 
     image = np.zeros((ny, nx), dtype=np.float64)
 
-    for i in range(nx):
-        x = x0 + i
-        if 0 <= x < nx:
-            y_center = y0 + channel.intercept_pixels + channel.slope * (x - x0)
+    x_indices = np.arange(nx, dtype=np.int64)
+    y_centers = y0 + channel.intercept_pixels + channel.slope * (x_indices - x0)
+    j_indices = np.argmin(np.abs(spread_wavelengths[:, None] - detector_wavelengths[None, :]), axis=0)
 
-            lam = float(detector_wavelengths[i])
-            j = int(np.argmin(np.abs(spread_wavelengths - lam)))
-
-            c = float(counts_s_pixel_convolved[i])
-            for k in range(dy.shape[0]):
-                y = int(round(y_center + dy[k]))
-                if 0 <= y < ny:
-                    image[y, x] += c * float(spread_weigths[k, j])
-
+    for k in range(dy.shape[0]):
+        y_all = np.round(y_centers + dy[k]).astype(np.int64)
+        weights = spread_weights[k, j_indices]
+        values = counts_s_pixel_convolved * weights
+        mask = (y_all >= 0) & (y_all < ny)
+        np.add.at(image, (y_all[mask], x_indices[mask]), values[mask])
 
     col_sums = image.sum(axis=0)
     logging.info("PROFILE SPREAD CHECK: channel=%s input_sum=%g image_sum=%g max_abs_diff=%g", channel.channel_name, float(np.sum(counts_s_pixel_convolved)), float(np.sum(image)), float(np.max(np.abs(col_sums - counts_s_pixel_convolved))))
