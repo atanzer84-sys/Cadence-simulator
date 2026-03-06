@@ -123,6 +123,7 @@ def _create_spectroscopy_per_roll_angle(channel: SpectroscopyChannel, ctx: RunCo
         counts_s_px = background_stars_catalog.counts_by_id_and_band[key]
         # TODO: REMOVE
         logging.info("BG STAR accepted: frame=%d channel=%s star_id=%s sum=%g max=%g", frame_index, channel.channel_name, formatted, float(np.sum(counts_s_px * float(exposure_s))), float(np.max(counts_s_px * float(exposure_s))))
+        ctx.produce_plots.plot_1d_for_channel(channel.effective_area_wavelength, counts_s_px, ctx.output_dir, star, filename_tag=f"Backgroundstars_convolved_{star_id}_{frame_index}", title_text="Convolved Counts", y_label="Counts s⁻¹ pixel⁻¹", channel_name=channel.channel_name, full=True)
 
         # _add_background_star_row_placement(image, y0, v, counts_s_px, channel)
         y_background_star = _get_background_star_detector_row(y_target_star, vertical_relative_position, channel)
@@ -130,7 +131,8 @@ def _create_spectroscopy_per_roll_angle(channel: SpectroscopyChannel, ctx: RunCo
 
         inside += 1
 
-    ctx.write_image_png.write_image(image, "SCIENCE_BACKGROUND_STARS_ONLY", ctx, channel, star=star, index=frame_index)
+    if inside > 0:
+        ctx.write_image_png.write_image(image, "SCIENCE_BACKGROUND_STARS_ONLY", ctx, channel, star=star, index=frame_index)
 
     logging.info("BG STARS roll_angle: channel=%s roll_angle_deg=%g inside=%d/%d sum=%g", channel.channel_name, float(roll_angle_deg), int(inside), int(total), float(np.sum(image)))
     return image

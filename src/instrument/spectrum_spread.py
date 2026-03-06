@@ -1,12 +1,30 @@
 """Spread 1D spectrum to 2D detector image (Gaussian or wavelength-dependent profile)."""
 import numpy as np
 import logging
+
 from configs.channel_config import SpectroscopyChannel
 from utils.helpers import announce
 
 
-def spread_1d_spectrum_to_2d(counts_s_pixel_convolved, channel: SpectroscopyChannel):
+def get_spectrum_placement(channel: SpectroscopyChannel, y_center: float | None = None) -> tuple[int, float, float, float]:
+    """Return (x0, y0, slope, intercept_pixels). If y_center is None, use target star position."""
+    x0, y0 = get_target_star_detector_position(channel)
+    if y_center is not None:
+        y0 = y_center
+        slope, intercept = 0.0, 0.0
+    else:
+        slope, intercept = channel.slope, channel.intercept_pixels
+    return x0, float(y0), slope, intercept
 
+
+def spread_target_star_spectrum_to_2d(counts_s_pixel_convolved, channel: SpectroscopyChannel):
+    """Entry point for target star: derive spatial info and spread 1D spectrum to 2D."""
+    x0, y0, slope, intercept = get_spectrum_placement(channel)
+    return spread_1d_spectrum_to_2d(counts_s_pixel_convolved, channel, x0, y0, slope, intercept)
+
+
+def spread_1d_spectrum_to_2d(counts_s_pixel_convolved, channel: SpectroscopyChannel, x0: int, y0: float, slope: float, intercept: float):
+    """Spread 1D spectrum to 2D. Caller provides placement (x0, y0, slope, intercept). For background stars: get_spectrum_placement(channel, y_center=y_bg)."""
     announce(f"Spreading 1D counts to 2D detector image for channel {channel.channel_name}.", to_user=True)
 
     nx = channel.x_pixels
@@ -18,26 +36,23 @@ def spread_1d_spectrum_to_2d(counts_s_pixel_convolved, channel: SpectroscopyChan
         raise ValueError(f"Counts length {len(counts_s_pixel_convolved)} does not match nx {nx}")
 
     # no lookup or high resolution spectrograph spreading as of now.
-    if mode == 1:
+    if mode != 1:
+        msg = f"mode={mode} not implemented yet (only mode=1 is supported)"
+        logging.error(msg)
+        raise NotImplementedError(msg)
 
-        if (
-            channel.spread_y_positions is not None
-            and channel.spread_y_weights is not None
-            and channel.spread_y_wavelengths is not None
-        ):
-            return _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel)
-
-        else:
-            # Gaussian dependent spreading
-            return _spread_1d_to_2d_gaussian(counts_s_pixel_convolved, channel)
-
-    msg = f"mode={mode} not implemented yet (only mode=1 is supported)"
-    logging.error(msg)
-    raise NotImplementedError(msg)
+    if (
+        channel.spread_y_positions is not None
+        and channel.spread_y_weights is not None
+        and channel.spread_y_wavelengths is not None
+    ):
+        return _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel, x0, y0, slope, intercept)
+    else:
+        return _spread_1d_to_2d_gaussian(counts_s_pixel_convolved, channel, x0, y0, slope, intercept)
 
 
 
-def _spread_1d_to_2d_gaussian(counts_s_pixel_convolved, channel: SpectroscopyChannel):
+def _spread_1d_to_2d_gaussian(counts_s_pixel_convolved, channel: SpectroscopyChannel, x0: int, y0: float, slope: float, intercept: float):
     nx = channel.x_pixels
     ny = channel.y_pixels
     spread_half_height = channel.spread_half_height_pix
@@ -46,11 +61,10 @@ def _spread_1d_to_2d_gaussian(counts_s_pixel_convolved, channel: SpectroscopyCha
         logging.error("SPREAD CONFIG ERROR: channel=%s no spread profile and spread_half_height_pix=%d", channel.channel_name, channel.spread_half_height_pix)
         raise ValueError("No cross-dispersion spreading configured")
 
-    x0, y0 = get_target_star_detector_position(channel)
     spatial_sigma_pix = float(channel.spread_half_height_pix)
 
     # case if slope and intercept are 0, then this doesn't have to be calculated in a for loop - performance increase!
-    if channel.slope == 0.0 and channel.intercept_pixels == 0.0:
+    if slope == 0.0 and intercept == 0.0:
         w = _gaussian_vertical_profile(ny, y0, spatial_sigma_pix)
         image = np.outer(w, counts_s_pixel_convolved)
     else:
@@ -58,7 +72,7 @@ def _spread_1d_to_2d_gaussian(counts_s_pixel_convolved, channel: SpectroscopyCha
         for i in range(nx):
             x = x0 + i
             if 0 <= x < nx:
-                y_center = y0 + channel.intercept_pixels + channel.slope * (x - x0)
+                y_center = y0 + intercept + slope * (x - x0)
                 w = _gaussian_vertical_profile(ny, y_center, spatial_sigma_pix)
                 image[:, x] = counts_s_pixel_convolved[i] * w
 
@@ -82,15 +96,15 @@ def _gaussian_vertical_profile(ny: int, y_center: float, sigma: float) -> np.nda
     return w / w_sum
 
 
-def _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel: SpectroscopyChannel):
+def _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel: SpectroscopyChannel, x0: int, y0: float, slope: float, intercept: float):
     """Vectorized wavelength-dependent profile spread."""
     logging.info("WAVELENGTH DEPENDENT SPREAD: channel=%s spread_file=%s", channel.channel_name, channel.spread_profile_file)
 
     nx = channel.x_pixels
     ny = channel.y_pixels
 
-    if channel.slope != 0.0 or channel.intercept_pixels != 0.0:
-        logging.error("PROFILE SPREAD ERROR: channel=%s slope=%g intercept=%g not supported", channel.channel_name, channel.slope, channel.intercept_pixels)
+    if slope != 0.0 or intercept != 0.0:
+        logging.error("PROFILE SPREAD ERROR: channel=%s slope=%g intercept=%g not supported", channel.channel_name, slope, intercept)
         raise ValueError("slope and intercept_pixels not supported yet")
 
     spread_y_pos = channel.spread_y_positions
@@ -103,14 +117,13 @@ def _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel: SpectroscopyChan
         raise ValueError("Detector wavelength grid length mismatch")
 
     dy = np.round(spread_y_pos).astype(np.int64)
-    x0, y0 = get_target_star_detector_position(channel)
 
-    logging.info("PROFILE SPREAD START: channel=%s spread_file=%s nx=%d ny=%d n_bins=%d y0=%d", channel.channel_name, channel.spread_profile_file, int(nx), int(ny), int(spread_wavelengths.shape[0]), int(y0))
+    logging.info("PROFILE SPREAD START: channel=%s spread_file=%s nx=%d ny=%d n_bins=%d y0=%g", channel.channel_name, channel.spread_profile_file, int(nx), int(ny), int(spread_wavelengths.shape[0]), y0)
 
     image = np.zeros((ny, nx), dtype=np.float64)
 
     x_indices = np.arange(nx, dtype=np.int64)
-    y_centers = y0 + channel.intercept_pixels + channel.slope * (x_indices - x0)
+    y_centers = y0 + intercept + slope * (x_indices - x0)
     j_indices = np.argmin(np.abs(spread_wavelengths[:, None] - detector_wavelengths[None, :]), axis=0)
 
     for k in range(dy.shape[0]):

@@ -4,7 +4,7 @@ from domain.star import Star
 from flux.flux_calc import calculateFluxOnEarth
 from loaders.run_waltzer_context import RunContext
 from configs.channel_config import PhotometryChannel, SpectroscopyChannel, Channel
-from instrument.spectrum_spread import spread_1d_spectrum_to_2d
+from instrument.spectrum_spread import spread_target_star_spectrum_to_2d
 from instrument.spectral_convolution import counts_per_s_px_conv_per_channel, compute_broadened_channel_flux
 from configs.global_config import get_global_config
 from utils.constants import PHOTON_ENERGY_CONVERSION_A
@@ -28,7 +28,7 @@ def prepare_all_detector_images_all_channels(star: Star, ctx: RunContext, nuv: S
 
 def prepare_all_detector_images_spectroscopy(flux: np.ndarray, wavelengths: np.ndarray, channel: SpectroscopyChannel, ctx: RunContext, star: Star):
     counts_s_px_convolved = compute_counts_per_s_px_one_channel(flux, wavelengths, channel, ctx, star)
-    spectra_2d = spread_1d_spectrum_to_2d(counts_s_px_convolved, channel)
+    spectra_2d = spread_target_star_spectrum_to_2d(counts_s_px_convolved, channel)
     return spectra_2d
 
 def prepare_detector_image_photometry(flux: np.ndarray, wavelengths: np. ndarray, channel: PhotometryChannel, ctx: RunContext, star: Star):
