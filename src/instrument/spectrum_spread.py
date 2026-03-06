@@ -6,14 +6,13 @@ from configs.channel_config import SpectroscopyChannel
 from utils.helpers import announce
 
 
-def get_spectrum_placement(channel: SpectroscopyChannel, y_center: float | None = None) -> tuple[int, float, float, float]:
-    """Return (x0, y0, slope, intercept_pixels). If y_center is None, use target star position."""
+def get_spectrum_placement(channel: SpectroscopyChannel) -> tuple[int, float, float, float]:
+    """Return (x0, y0, slope, intercept_pixels) for target star. For background stars: use x0, slope, intercept; supply y0 per star."""
     x0, y0 = get_target_star_detector_position(channel)
-    if y_center is not None:
-        y0 = y_center
-        slope, intercept = 0.0, 0.0
-    else:
-        slope, intercept = channel.slope, channel.intercept_pixels
+    slope, intercept = channel.slope, channel.intercept_pixels
+    if slope != 0.0 or intercept != 0.0:
+        logging.error("SPREAD PLACEMENT ERROR: channel=%s slope=%g intercept=%g not supported", channel.channel_name, slope, intercept)
+        raise ValueError("slope and intercept_pixels must be 0 (not yet supported)")
     return x0, float(y0), slope, intercept
 
 
@@ -23,9 +22,9 @@ def spread_target_star_spectrum_to_2d(counts_s_pixel_convolved, channel: Spectro
     return spread_1d_spectrum_to_2d(counts_s_pixel_convolved, channel, x0, y0, slope, intercept)
 
 
-def spread_1d_spectrum_to_2d(counts_s_pixel_convolved, channel: SpectroscopyChannel, x0: int, y0: float, slope: float, intercept: float):
-    """Spread 1D spectrum to 2D. Caller provides placement (x0, y0, slope, intercept). For background stars: get_spectrum_placement(channel, y_center=y_bg)."""
-    announce(f"Spreading 1D counts to 2D detector image for channel {channel.channel_name}.", to_user=True)
+def spread_1d_spectrum_to_2d(counts_s_pixel_convolved, channel: SpectroscopyChannel, x0: int, y0: float, slope: float, intercept: float, announce_user: bool = True):
+    """Spread 1D spectrum to 2D. Caller provides placement (x0, y0, slope, intercept). For background stars: x0, _, slope, intercept = get_spectrum_placement(channel); y0 = y_background_star."""
+    announce(f"Spreading 1D counts to 2D detector image for channel {channel.channel_name}.", to_user=announce_user)
 
     nx = channel.x_pixels
     mode = channel.mode
@@ -102,10 +101,6 @@ def _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel: SpectroscopyChan
 
     nx = channel.x_pixels
     ny = channel.y_pixels
-
-    if slope != 0.0 or intercept != 0.0:
-        logging.error("PROFILE SPREAD ERROR: channel=%s slope=%g intercept=%g not supported", channel.channel_name, slope, intercept)
-        raise ValueError("slope and intercept_pixels not supported yet")
 
     spread_y_pos = channel.spread_y_positions
     spread_weights = channel.spread_y_weights

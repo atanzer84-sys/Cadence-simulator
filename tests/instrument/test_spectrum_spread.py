@@ -148,7 +148,8 @@ def test_gaussian_spread_with_nonzero_slope():
     channel = _channel_gaussian()
     channel.slope = 0.5
     counts = np.array([1, 2, 3, 4, 5], dtype=float)
-    x0, y0, slope, intercept = get_spectrum_placement(channel)
+    x0, y0 = get_target_star_detector_position(channel)
+    slope, intercept = channel.slope, channel.intercept_pixels
 
     image = _spread_1d_to_2d_gaussian(counts, channel, x0, y0, slope, intercept)
 
@@ -207,14 +208,12 @@ def test_profile_spread_weight_shape_mismatch():
 
 
 def test_profile_spread_rejects_nonzero_slope_or_intercept():
-    """_spread_1d_to_2d_profile raises when slope or intercept_pixels is non-zero."""
+    """get_spectrum_placement raises when slope or intercept_pixels is non-zero."""
     channel = _channel_profile()
     channel.slope = 1.0
-    counts = np.ones(channel.x_pixels)
-    x0, y0, slope, intercept = get_spectrum_placement(channel)
 
-    with pytest.raises(ValueError, match="slope and intercept_pixels not supported yet"):
-        _spread_1d_to_2d_profile(counts, channel, x0, y0, slope, intercept)
+    with pytest.raises(ValueError, match="slope and intercept_pixels must be 0"):
+        get_spectrum_placement(channel)
 
 
 def test_profile_spread_respects_vertical_slit_offset():

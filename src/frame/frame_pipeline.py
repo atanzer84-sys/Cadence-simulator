@@ -10,7 +10,7 @@ from configs.channel_config import SpectroscopyChannel, PhotometryChannel
 from loaders.run_waltzer_context import RunContext
 from domain.star import Star
 
-def generate_frames(nuv_image, vis_image, nir_image, nuv: SpectroscopyChannel, vis: SpectroscopyChannel, nir: PhotometryChannel, ctx: RunContext, star: Star):
+def generate_frames(nuv_images, vis_images, nir_image, nuv: SpectroscopyChannel, vis: SpectroscopyChannel, nir: PhotometryChannel, ctx: RunContext, star: Star):
     global_cfg = get_global_config()
     n_calibration_frames = global_cfg.n_calibration_frames
     logging.info("FITS generation starting (n_calibration_frames=%d)", n_calibration_frames)
@@ -38,8 +38,8 @@ def generate_frames(nuv_image, vis_image, nir_image, nuv: SpectroscopyChannel, v
         logging.info("Non Science Frames: n_calibration_frames=%d \u2192 skipped.", n_calibration_frames)
 
     # generate science frames
-    science_nuv_frames = generate_science_frame(nuv_image, nuv, header)
-    science_vis_frames = generate_science_frame(vis_image, vis, header)
+    science_nuv_frames = generate_science_frame(nuv_images, nuv, header)
+    science_vis_frames = generate_science_frame(vis_images, vis, header)
     science_nir_frames = generate_science_frame(nir_image, nir, header)
     science_lists = [science_nuv_frames, science_vis_frames, science_nir_frames]
 

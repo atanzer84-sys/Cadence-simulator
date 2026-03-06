@@ -10,20 +10,21 @@ from instrument.background_image import generate_background_image
 from domain.star import Star
 from domain.star_catalog import StarCatalog
 from instrument.background_star_preparation import populate_background_star_catalog
-from instrument.spectrum_spread import get_target_star_detector_position
+from instrument.spectrum_spread import get_target_star_detector_position, get_spectrum_placement, spread_1d_spectrum_to_2d
+
+
 
 def build_science_images(spectra_2d_nuv, spectra_2d_vis, rate_nir, nuv: SpectroscopyChannel, vis: SpectroscopyChannel, nir: PhotometryChannel, ctx: RunContext, star: Star):
     cfg = get_global_config()
     background_stars_catalog = populate_background_star_catalog(nuv, vis, nir, ctx, cfg, star)
 
     nuv_imgs = _create_spectroscopy_channel_images(spectra_2d_nuv, nuv, ctx, cfg, star, background_stars_catalog)
-    # vis_imgs = _create_spectroscopy_channel_images(spectra_2d_vis, vis, ctx, cfg, star, background_stars_catalog)
+    vis_imgs = _create_spectroscopy_channel_images(spectra_2d_vis, vis, ctx, cfg, star, background_stars_catalog)
 
-    # print("\n==== STARTING SCIENCE IMAGE GENERATION (NIR) =====")
-    # nir_img = build_science_image_photometry(rate_nir, nir, ctx, cfg, star, background_stars_catalog)
+    print("\n==== STARTING SCIENCE IMAGE GENERATION (NIR) =====")
+    nir_img = build_science_image_photometry(rate_nir, nir, ctx, cfg, star, background_stars_catalog)
 
-    # return nuv_imgs, vis_imgs, nir_img
-    return nuv_imgs
+    return nuv_imgs, vis_imgs, nir_img
 
 def _create_spectroscopy_channel_images(spectra_2d, channel: SpectroscopyChannel, ctx: RunContext, cfg: GlobalConfig, star: Star, background_stars_catalog: StarCatalog) -> list:
     print(f"\n==== STARTING SCIENCE IMAGE GENERATION ({channel.channel_name}) =====")
@@ -43,7 +44,6 @@ def _create_spectroscopy_channel_images(spectra_2d, channel: SpectroscopyChannel
         print(f"science exposure image {frame_index + 1}/{channel.n_science_frames} (roll_angle={roll_angle_deg:.2f}°)")
         logging.info("science exposure image: frame_index=%d n_science_frames=%d time_s=%g roll_angle_deg=%g", frame_index, channel.n_science_frames, time_s, roll_angle_deg)
 
-        # TODO: THIS IS A MESS. too many params and i need an index for the images
         img = _create_spectroscopy_per_exposure(spectra_component, background_component, channel, ctx, cfg, star, background_stars_catalog, frame_index, roll_angle_deg)
         images.append(img)
 
@@ -60,30 +60,37 @@ def _create_spectroscopy_per_exposure(spectra_component, background_component, c
 
     bias = generate_bias_image(channel)
     image += bias
-    ctx.write_image_png.write_image(image, "SCIENCE_BIAS", ctx, channel, star=star, index=frame_index)
+    if frame_index < 2:
+        ctx.write_image_png.write_image(image, "SCIENCE_BIAS", ctx, channel, star=star, index=frame_index)
 
     dark = generate_dark_image(channel)
     image += dark
-    ctx.write_image_png.write_image(image, "SCIENCE_DARK", ctx, channel, star=star, index=frame_index)
+    if frame_index < 2:
+        ctx.write_image_png.write_image(image, "SCIENCE_DARK", ctx, channel, star=star, index=frame_index)
 
     image += spectra_component
-    ctx.write_image_png.write_image(spectra_component, "SIGNAL_ONLY", ctx, channel, star=star, index=frame_index)
-    ctx.write_image_png.write_image(image, "SCIENCE_SPECTRA", ctx, channel, star=star, index=frame_index)
+    if frame_index < 2:
+        ctx.write_image_png.write_image(spectra_component, "SIGNAL_ONLY", ctx, channel, star=star, index=frame_index)
+        ctx.write_image_png.write_image(image, "SCIENCE_SPECTRA", ctx, channel, star=star, index=frame_index)
 
     photon_noise = apply_photon_noise_gauss_from_spectra2d(spectra_component, channel, ctx, star)
     image += photon_noise
-    ctx.write_image_png.write_image(image, "SCIENCE_PHOTON_NOISE", ctx, channel, star=star, index=frame_index)
+    if frame_index < 2:
+        ctx.write_image_png.write_image(image, "SCIENCE_PHOTON_NOISE", ctx, channel, star=star, index=frame_index)
 
     image += background_component
-    ctx.write_image_png.write_image(image, "SCIENCE_BACKGROUND", ctx, channel, index=frame_index)
+    if frame_index < 2:
+        ctx.write_image_png.write_image(image, "SCIENCE_BACKGROUND", ctx, channel, index=frame_index)
 
     bg_stars = _create_spectroscopy_per_roll_angle(channel, ctx, star, background_stars_catalog, roll_angle_deg, frame_index)
     image += bg_stars
-    ctx.write_image_png.write_image(image, "SCIENCE_BACKGROUND_STARS", ctx, channel, star=star, index=frame_index)
+    if frame_index < 2:
+        ctx.write_image_png.write_image(image, "SCIENCE_BACKGROUND_STARS", ctx, channel, star=star, index=frame_index)
 
     cosmic = generate_cosmic_rays(ctx, channel, cfg, star)
     image += cosmic
-    ctx.write_image_png.write_image(image, "SCIENCE_COSMIC", ctx, channel, star=star, index=frame_index)
+    if frame_index < 2:
+        ctx.write_image_png.write_image(image, "SCIENCE_COSMIC", ctx, channel, star=star, index=frame_index)
 
     image = image * ccd_gain
     ctx.write_image_png.write_image(image, "SCIENCE_COMPLETELY_MERGED", ctx, channel, star=star, index=frame_index)
@@ -93,12 +100,9 @@ def _create_spectroscopy_per_exposure(spectra_component, background_component, c
 
 def _create_spectroscopy_per_roll_angle(channel: SpectroscopyChannel, ctx: RunContext, star: Star, background_stars_catalog: StarCatalog, roll_angle_deg: float, frame_index: int) -> np.ndarray:
     
-    nx = channel.x_pixels
-    ny = channel.y_pixels
-    exposure_s = channel.exposure_s
-    image = np.zeros((ny, nx))
+    image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float64)
+    x_target_star, y_target_star, slope, intercept = get_spectrum_placement(channel)
 
-    x_target_star, y_target_star = get_target_star_detector_position(channel)
     cos_roll_angle, sine_roll_angle, half_width_slit, half_length_slit = _prepare_slit_geometry(channel, roll_angle_deg)
 
     
@@ -122,13 +126,15 @@ def _create_spectroscopy_per_roll_angle(channel: SpectroscopyChannel, ctx: RunCo
 
         counts_s_px = background_stars_catalog.counts_by_id_and_band[key]
         # TODO: REMOVE
-        logging.info("BG STAR accepted: frame=%d channel=%s star_id=%s sum=%g max=%g", frame_index, channel.channel_name, formatted, float(np.sum(counts_s_px * float(exposure_s))), float(np.max(counts_s_px * float(exposure_s))))
+        logging.info("BG STAR accepted: frame=%d channel=%s star_id=%s", frame_index, channel.channel_name, formatted)
         ctx.produce_plots.plot_1d_for_channel(channel.effective_area_wavelength, counts_s_px, ctx.output_dir, star, filename_tag=f"Backgroundstars_convolved_{star_id}_{frame_index}", title_text="Convolved Counts", y_label="Counts s⁻¹ pixel⁻¹", channel_name=channel.channel_name, full=True)
 
         # _add_background_star_row_placement(image, y0, v, counts_s_px, channel)
         y_background_star = _get_background_star_detector_row(y_target_star, vertical_relative_position, channel)
-        _add_background_star_smear_only(image, y_background_star, counts_s_px, channel)
+        counts_smeared_px = _smear_background_star_1d(counts_s_px, channel)
+        background_star_2d = spread_1d_spectrum_to_2d(counts_smeared_px, channel, x_target_star, float(y_background_star), slope, intercept, announce_user=False)
 
+        image += background_star_2d
         inside += 1
 
     if inside > 0:
@@ -159,18 +165,27 @@ def _get_background_star_detector_row(y0: int, vertical_relative_position: float
     logging.info("BG star row placement: target star (y0) y position: %d, background star y position: %d", y0, y_background_star)
     return y_background_star
 
-def _add_background_star_smear_only(image: np.ndarray, y_background_star: int, counts_s_px: np.ndarray, channel: SpectroscopyChannel):
-    n_smear_steps = int(round(channel.smear_shift_pixels))
-    counts_smear_step_px = counts_s_px * (channel.crossing_time_s / n_smear_steps)
-    half_smear = n_smear_steps // 2
 
-    for x_shift in range(-half_smear, n_smear_steps - half_smear):
+def _smear_background_star_1d(counts_s_px: np.ndarray, channel: SpectroscopyChannel) -> np.ndarray:
+    n_smear_steps = int(round(channel.smear_shift_pixels))
+
+    if n_smear_steps <= 0:
+        return counts_s_px * channel.crossing_time_s
+
+    counts_smeared_px = np.zeros_like(counts_s_px)
+    counts_smear_step_px = counts_s_px * (channel.crossing_time_s / n_smear_steps)
+    half = n_smear_steps // 2
+
+    for x_shift in range(-half, -half + n_smear_steps):
         if x_shift == 0:
-            image[y_background_star, :] += counts_smear_step_px
+            counts_smeared_px += counts_smear_step_px
         elif x_shift > 0:
-            image[y_background_star, x_shift:] += counts_smear_step_px[:-x_shift]
+            counts_smeared_px[x_shift:] += counts_smear_step_px[:-x_shift]
         else:
-            image[y_background_star, :x_shift] += counts_smear_step_px[-x_shift:]
+            counts_smeared_px[:x_shift] += counts_smear_step_px[-x_shift:]
+
+    return counts_smeared_px
+
 
 def build_science_image_photometry(nir_rate, channel: PhotometryChannel, ctx: RunContext, cfg: GlobalConfig, star: Star, background_stars_catalog: StarCatalog):
     logging.info("Science Image generation starting for channel %s", channel.channel_name)
