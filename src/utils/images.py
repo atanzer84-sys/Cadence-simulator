@@ -17,13 +17,13 @@ STATS_KEYS = {
 STATS_KEY_FORMAT = {
     "RNOISE": "",
     "B_OFFSET": "",
-    "MEAN": ".3f",
-    "MEDIAN": ".3f",
+    "MEAN": ".8f",
+    "MEDIAN": ".8f",
     "DARKVAL": ".3f",
     "DARKSIG": ".3f",
-    "STDDEV": ".2f",
-    "MIN": ".2f",
-    "MAX": ".2f",
+    "STDDEV": ".8f",
+    "MIN": ".5f",
+    "MAX": ".5f",
     "EXPTIME": ".2f",
 }
 
