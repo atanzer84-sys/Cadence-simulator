@@ -52,11 +52,10 @@ def _create_spectroscopy_channel_images(spectra_2d, channel: SpectroscopyChannel
 
 def _create_spectroscopy_per_exposure(spectra_component, background_component, channel: SpectroscopyChannel, ctx: RunContext, cfg: GlobalConfig, star: Star, background_stars_catalog: StarCatalog, frame_index: int, roll_angle_deg: float) -> np.ndarray:
     """Build one science frame. Constant debug images written once (frame 0); background stars use index (vary with roll)."""
-    nx = channel.x_pixels
-    ny = channel.y_pixels
     ccd_gain = channel.ccd_gain
 
-    image = np.zeros((ny, nx))
+    image = np.zeros((channel.y_pixels, channel.x_pixels))
+    img_spectra_bgstars = np.zeros((channel.y_pixels, channel.x_pixels))
 
     bias = generate_bias_image(channel)
     image += bias
@@ -69,6 +68,7 @@ def _create_spectroscopy_per_exposure(spectra_component, background_component, c
         ctx.write_image_png.write_image(image, "SCIENCE_DARK", ctx, channel, star=star, index=frame_index)
 
     image += spectra_component
+    img_spectra_bgstars += spectra_component
     if frame_index < 2:
         ctx.write_image_png.write_image(spectra_component, "SIGNAL_ONLY", ctx, channel, star=star, index=frame_index)
         ctx.write_image_png.write_image(image, "SCIENCE_SPECTRA", ctx, channel, star=star, index=frame_index)
@@ -84,6 +84,7 @@ def _create_spectroscopy_per_exposure(spectra_component, background_component, c
 
     bg_stars = _create_spectroscopy_per_roll_angle(channel, ctx, star, background_stars_catalog, roll_angle_deg, frame_index)
     image += bg_stars
+    img_spectra_bgstars += bg_stars
     if frame_index < 2:
         ctx.write_image_png.write_image(image, "SCIENCE_BACKGROUND_STARS", ctx, channel, star=star, index=frame_index)
 
@@ -93,7 +94,11 @@ def _create_spectroscopy_per_exposure(spectra_component, background_component, c
         ctx.write_image_png.write_image(image, "SCIENCE_COSMIC", ctx, channel, star=star, index=frame_index)
 
     image = image * ccd_gain
+    img_spectra_bgstars = img_spectra_bgstars * ccd_gain
     ctx.write_image_png.write_image(image, "SCIENCE_COMPLETELY_MERGED", ctx, channel, star=star, index=frame_index)
+    ctx.write_image_png.write_image(img_spectra_bgstars, "SCIENCE_SPECTRA_BG_MERGED", ctx, channel, star=star, index=frame_index)
+    img_bg_only = img_spectra_bgstars - spectra_component * ccd_gain
+    ctx.write_image_png.write_image(img_bg_only, "SCIENCE_SPECTRA_BG_ONLY", ctx, channel, star=star, index=frame_index)
 
     return image
 
