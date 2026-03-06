@@ -46,7 +46,7 @@ def _spread_1d_to_2d_gaussian(counts_s_pixel_convolved, channel: SpectroscopyCha
         logging.error("SPREAD CONFIG ERROR: channel=%s no spread profile and spread_half_height_pix=%d", channel.channel_name, channel.spread_half_height_pix)
         raise ValueError("No cross-dispersion spreading configured")
 
-    x0, y0 = _get_spread_starting_position(channel)
+    x0, y0 = get_target_star_detector_position(channel)
     spatial_sigma_pix = float(channel.spread_half_height_pix)
 
     # case if slope and intercept are 0, then this doesn't have to be calculated in a for loop - performance increase!
@@ -103,7 +103,7 @@ def _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel: SpectroscopyChan
         raise ValueError("Detector wavelength grid length mismatch")
 
     dy = np.round(spread_y_pos).astype(np.int64)
-    x0, y0 = _get_spread_starting_position(channel)
+    x0, y0 = get_target_star_detector_position(channel)
 
     logging.info("PROFILE SPREAD START: channel=%s spread_file=%s nx=%d ny=%d n_bins=%d y0=%d", channel.channel_name, channel.spread_profile_file, int(nx), int(ny), int(spread_wavelengths.shape[0]), int(y0))
 
@@ -126,7 +126,7 @@ def _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel: SpectroscopyChan
     return image
 
 
-def _get_spread_starting_position(channel: SpectroscopyChannel):
+def get_target_star_detector_position(channel: SpectroscopyChannel):
     nx = channel.x_pixels
     ny = channel.y_pixels
     x0 = int(round(channel.slit_position_x_arcsec / channel.pixel_scale))
