@@ -9,11 +9,11 @@ from configs.config_parsing import (parse_simple_kv, as_bool, as_optional_float,
 class GlobalConfig:
     line_core_emission: bool
     interstellar_absorption: bool
-    orbit_duration_min: float
+    orbit_duration_minutes: float
     orbit_revolutions: float
     orbit_total_duration_s: float
     readout_gap_s: float
-
+    sky_sweep_arcsec_per_s: float
     mg2_col: float | None
     mg1_col: float | None
     fe2_col: float | None
@@ -83,9 +83,10 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
 
     line_core_emission = as_bool(raw.get("line_core_emission", 0), key="line_core_emission")
     interstellar_absorption = as_bool(raw.get("interstellar_absorption", 0), key="interstellar_absorption")
-    orbit_duration_min = as_float(raw.get("orbit_duration_min", 100.0), key="orbit_duration_min")
+    orbit_duration_minutes = as_float(raw.get("orbit_duration_minutes", 100.0), key="orbit_duration_minutes")
     orbit_revolutions = as_float(raw.get("orbit_revolutions", 1.0), key="orbit_revolutions")
-    orbit_total_duration_s = _compute_total_simulation_time_s(orbit_duration_min, orbit_revolutions)
+    orbit_total_duration_s = _compute_total_simulation_time_s(orbit_duration_minutes, orbit_revolutions)
+    sky_sweep_arcsec_per_s = _compute_sky_sweep_arcsec_per_s(orbit_duration_minutes)
     readout_gap_s = as_float(raw.get("readout_gap_s", 0.0), key="readout_gap_s")
 
     mg2_col = as_optional_float(raw.get("mg2_col", None))
@@ -121,7 +122,7 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
     test_mode = as_bool(raw.get("test_mode", 0), key="test_mode")
     produce_plots = as_bool(raw.get("produce_plots", raw.get("produce_Plots", 0)), key="produce_plots")
 
-    _ensure_non_negative(orbit_duration_min, key="orbit_duration_min")
+    _ensure_non_negative(orbit_duration_minutes, key="orbit_duration_minutes")
     _ensure_non_negative(orbit_revolutions, key="orbit_revolutions")
     _ensure_non_negative(readout_gap_s, key="readout_gap_s")
     _ensure_non_negative(log_r_teff_threshold, key="log_r_teff_threshold")
@@ -137,9 +138,10 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
     cfg = GlobalConfig(
         line_core_emission=line_core_emission,
         interstellar_absorption=interstellar_absorption,
-        orbit_duration_min=orbit_duration_min,
+        orbit_duration_minutes=orbit_duration_minutes,
         orbit_revolutions=orbit_revolutions,
         orbit_total_duration_s=orbit_total_duration_s,
+        sky_sweep_arcsec_per_s=sky_sweep_arcsec_per_s,
         readout_gap_s=readout_gap_s,
         mg2_col=mg2_col,
         mg1_col=mg1_col,
@@ -172,6 +174,12 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
     logging.info("Global config loaded: %s", cfg)
     return cfg
 
+def _compute_sky_sweep_arcsec_per_s(orbit_duration_minutes):
+    orbit_duration_s = orbit_duration_minutes * 60.0
+    degree_per_second = 360.0 / orbit_duration_s
+    arcsecond_per_second = degree_per_second * 3600.0
+    return arcsecond_per_second
+
 def _warn_default_used(raw: dict, key: str, default, *, path: Path) -> None:
     if key not in raw:
         logging.warning(
@@ -191,5 +199,5 @@ def _ensure_min_le_max(min_val: int, max_val: int, *, key_min: str, key_max: str
     if min_val > max_val:
         raise ValueError(f"{key_min} must be <= {key_max}")
 
-def _compute_total_simulation_time_s(orbit_duration_min: float, orbit_revolutions: float) -> float:
-    return float(orbit_duration_min) * 60.0 * float(orbit_revolutions)
+def _compute_total_simulation_time_s(orbit_duration_minutes: float, orbit_revolutions: float) -> float:
+    return float(orbit_duration_minutes) * 60.0 * float(orbit_revolutions)

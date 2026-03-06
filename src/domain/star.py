@@ -24,12 +24,7 @@ class Star:
     mass_sun_kg: float | None
 
     @classmethod
-    def from_params(
-        cls,
-        star_params: Dict[str, Any],
-        required_keys: list[str],
-        log_output: bool = True,
-    ) -> "Star":
+    def from_params(cls, star_params: Dict[str, Any], required_keys: list[str], log_output: bool = True) -> "Star":
         missing = [k for k in required_keys if k not in star_params or is_missing(star_params.get(k))]
         if missing:
             raise ValueError(f"Star missing required keys at construction: {missing}")
