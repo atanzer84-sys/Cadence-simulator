@@ -68,7 +68,7 @@ def _cfg_single_ray_small_detector():
     )
 
 
-# No cosmic rays configured should yield an all-zero image but still trigger one COSMIC_ONLY write.
+# No cosmic rays configured should yield an all-zero image.
 def test_generate_cosmic_rays_zero_rays(tmp_path):
     ch = _channel()
     ctx = _ctx(tmp_path)
@@ -78,9 +78,7 @@ def test_generate_cosmic_rays_zero_rays(tmp_path):
 
     assert image.shape == (ch.y_pixels, ch.x_pixels)
     assert np.all(image == 0.0)
-    assert len(ctx.write_image_png.calls) == 1
-    _, frame_type, _ = ctx.write_image_png.calls[0]
-    assert frame_type == "COSMIC_ONLY"
+    # Note: generate_cosmic_rays does not call write_image; caller (build_science_image) handles PNG output
 
 
 # With a fixed number of rays and length range, the total signal should scale with the configured charge.

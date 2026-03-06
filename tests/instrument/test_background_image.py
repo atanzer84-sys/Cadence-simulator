@@ -133,9 +133,7 @@ def test_generate_background_image_default_shape_and_scaling(tmp_path):
     assert np.allclose(image[0], image[1]) and np.allclose(image[1], image[2])
     # Image should be positive where effective area and flux are positive
     assert np.all(image >= 0.0)
-    # Exactly one write for "BACKGROUND_only"
-    assert len(ctx.write_image_png.calls) == 1
-    assert ctx.write_image_png.calls[0][1] == "BACKGROUND_only"
+    # Note: generate_background_image does not call write_image; caller (build_science_image) handles PNG output
 
 
 def test_generate_background_image_calc_shape_and_write(tmp_path):
@@ -170,8 +168,7 @@ def test_generate_background_image_calc_shape_and_write(tmp_path):
 
     assert image.shape == (ch.y_pixels, ch.x_pixels)
     assert np.all(image >= 0.0)
-    assert len(ctx.write_image_png.calls) == 1
-    assert ctx.write_image_png.calls[0][1] == "BACKGROUND_only"
+    # Note: generate_background_image does not call write_image; caller handles PNG output
 
 
 # --- generate_background_default_image ---
