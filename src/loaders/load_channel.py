@@ -13,6 +13,7 @@ from configs.global_config import get_global_config
 def load_channels_config(user_cfg: UserConfig, ctx):
     repo_root = get_repo_root()
     background = _load_background_from_global_cfg()
+
     nuv_channel = load_channel_config(repo_root / "configs" / "waltzer_nuv.cfg", user_cfg.exposure_NUV_s, ctx, background)
     vis_channel = load_channel_config(repo_root / "configs" / "waltzer_vis.cfg", user_cfg.exposure_VIS_s, ctx, background)
     nir_channel = load_channel_config(repo_root / "configs" / "waltzer_nir.cfg", user_cfg.exposure_IR_s, ctx, background)
@@ -82,6 +83,8 @@ def load_channel_config(path: Path, exposure_s: float, ctx, background: dict):
 
     # Spectroscopy only:
     # effective area only matches x pixels in spectroscopy
+
+
     _ensure_effective_area_matches_x_pixels(channel_name, effective_area_file, effective_area_wavelength, x_pixels, source_file)
     
     mode=as_int(raw["mode"], key="mode")
@@ -97,35 +100,49 @@ def load_channel_config(path: Path, exposure_s: float, ctx, background: dict):
     slit_width_arcsec = _ensure_positive(as_float(raw["slit_width_arcsec"], key="slit_width_arcsec"), "slit_width_arcsec", channel_name)
     slit_length_arcsec = _ensure_positive(as_float(raw["slit_length_arcsec"], key="slit_length_arcsec"), "slit_length_arcsec", channel_name)
 
+    crossing_time_s, smear_shift_pixels = _compute_slit_crossing(slit_width_arcsec, pixel_scale)
+
     return SpectroscopyChannel(
         channel_name=channel_name,
         x_pixels=x_pixels,
         y_pixels=y_pixels,
         resolution_factor=resolution_factor,
+
         dark_noise=dark_noise,
         dark_current_sigma=dark_current_sigma,
         read_noise=read_noise,
         bias_offset=bias_offset,
         ccd_gain=ccd_gain,
+        
         exposure_s=exposure_s,
+        
         n_science_frames=n_science_frames,
         source_file=source_file,
+        
         effective_area_file=effective_area_file,
         effective_area_wavelength=effective_area_wavelength,
         effective_area=effective_area,
         pixel_scale=pixel_scale,
+        
         mode=mode,
+        
         spread_profile_file=spread_profile_file,
         spread_half_height_pix=spread_half_height_pix,
+
         spread_y_positions=spread_pos,
         spread_y_weights=spread_w,
         spread_y_wavelengths=spread_wl_header,
+
         slit_position_x_arcsec=slit_position_x_arcsec,
         slit_position_y_arcsec=slit_position_y_arcsec,
+
         slit_width_arcsec=slit_width_arcsec,
         slit_length_arcsec=slit_length_arcsec,
         slit_half_width_arcsec=0.5 * slit_width_arcsec,
         slit_half_length_arcsec=0.5 * slit_length_arcsec,
+        crossing_time_s=crossing_time_s,
+        smear_shift_pixels=smear_shift_pixels,
+        
         slope=slope,
         intercept_pixels=intercept_pixels,
         background_type=background["background_type"],
@@ -211,3 +228,11 @@ def _compute_n_science_frames(channel_name: str, exposure_s: float) -> int:
     n_science_frames = int(cfg.orbit_total_duration_s / frame_time_s)
     logging.info("Channel %s science frame calculation: orbit_total_duration_s=%g exposure_s=%g readout_gap_s=%g frame_time=%g n_science_frames=%d", channel_name, cfg.orbit_total_duration_s, exposure_s, cfg.readout_gap_s, frame_time_s, n_science_frames)
     return n_science_frames
+
+def _compute_slit_crossing(slit_width_arcsec: float, pixel_scale: float):
+    cfg = get_global_config()
+
+    crossing_time_s = slit_width_arcsec / cfg.sky_sweep_arcsec_per_s
+    smear_shift_pixels = slit_width_arcsec / pixel_scale
+    return crossing_time_s, smear_shift_pixels
+
