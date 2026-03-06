@@ -41,8 +41,6 @@ def generate_background_image(channel: SpectroscopyChannel, ctx: RunContext, sta
     image*=channel.exposure_s
 
     logging.debug("Background 2D image created: %s", image.shape)
-    ctx.write_image_png.write_image(image, "BACKGROUND_only", ctx, channel, star=star)
-
     return image
 
 

@@ -52,8 +52,6 @@ def generate_cosmic_rays(ctx: RunContext, channel: SpectroscopyChannel, cfg: Glo
             image[y_n, x_n] = cosmic_ray_charge_e
 
 
-    ctx.write_image_png.write_image(image, "COSMIC_ONLY", ctx, channel, star=star)
-
     return image
 
 

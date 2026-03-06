@@ -10,7 +10,7 @@ from instrument.background_image import generate_background_image
 from domain.star import Star
 from domain.star_catalog import StarCatalog
 from instrument.background_star_preparation import populate_background_star_catalog
-from instrument.spectrum_spread import get_target_star_detector_position, get_spectrum_placement, spread_1d_spectrum_to_2d
+from instrument.spectrum_spread import get_spectrum_placement, spread_1d_spectrum_to_2d
 
 
 
@@ -59,46 +59,42 @@ def _create_spectroscopy_per_exposure(spectra_component, background_component, c
 
     bias = generate_bias_image(channel)
     image += bias
-    if frame_index < 2:
-        ctx.write_image_png.write_image(image, "SCIENCE_BIAS", ctx, channel, star=star, index=frame_index)
+    if frame_index < 1:
+        ctx.write_image_png.write_image(image, "SCIENCE_BIAS_ONLY", ctx, channel, star=star, index=frame_index)
 
     dark = generate_dark_image(channel)
     image += dark
-    if frame_index < 2:
-        ctx.write_image_png.write_image(image, "SCIENCE_DARK", ctx, channel, star=star, index=frame_index)
+    if frame_index < 1:
+        ctx.write_image_png.write_image(image, "SCIENCE_DARK_ONLY", ctx, channel, star=star, index=frame_index)
 
     image += spectra_component
     img_spectra_bgstars += spectra_component
-    if frame_index < 2:
-        ctx.write_image_png.write_image(spectra_component, "SIGNAL_ONLY", ctx, channel, star=star, index=frame_index)
+    if frame_index < 1:
+        ctx.write_image_png.write_image(spectra_component, "SCIENCE_SIGNAL_ONLY", ctx, channel, star=star, index=frame_index)
         ctx.write_image_png.write_image(image, "SCIENCE_SPECTRA", ctx, channel, star=star, index=frame_index)
 
     photon_noise = apply_photon_noise_gauss_from_spectra2d(spectra_component, channel, ctx, star)
     image += photon_noise
-    if frame_index < 2:
-        ctx.write_image_png.write_image(image, "SCIENCE_PHOTON_NOISE", ctx, channel, star=star, index=frame_index)
+    if frame_index < 1:
+        ctx.write_image_png.write_image(photon_noise, "SCIENCE_PHOTON_NOISE_ONLY", ctx, channel, star=star, index=frame_index)
 
     image += background_component
-    if frame_index < 2:
-        ctx.write_image_png.write_image(image, "SCIENCE_BACKGROUND", ctx, channel, index=frame_index)
+    if frame_index < 1:
+        ctx.write_image_png.write_image(image, "SCIENCE_BACKGROUND_ONLY", ctx, channel, index=frame_index)
 
     bg_stars = _create_spectroscopy_per_roll_angle(channel, ctx, star, background_stars_catalog, roll_angle_deg, frame_index)
     image += bg_stars
     img_spectra_bgstars += bg_stars
-    if frame_index < 2:
-        ctx.write_image_png.write_image(image, "SCIENCE_BACKGROUND_STARS", ctx, channel, star=star, index=frame_index)
 
     cosmic = generate_cosmic_rays(ctx, channel, cfg, star)
     image += cosmic
-    if frame_index < 2:
-        ctx.write_image_png.write_image(image, "SCIENCE_COSMIC", ctx, channel, star=star, index=frame_index)
+    if frame_index < 1:
+        ctx.write_image_png.write_image(cosmic, "SCIENCE_COSMIC_ONLY", ctx, channel, star=star, index=frame_index)
 
     image = image * ccd_gain
     img_spectra_bgstars = img_spectra_bgstars * ccd_gain
     ctx.write_image_png.write_image(image, "SCIENCE_COMPLETELY_MERGED", ctx, channel, star=star, index=frame_index)
     ctx.write_image_png.write_image(img_spectra_bgstars, "SCIENCE_SPECTRA_BG_MERGED", ctx, channel, star=star, index=frame_index)
-    img_bg_only = img_spectra_bgstars - spectra_component * ccd_gain
-    ctx.write_image_png.write_image(img_bg_only, "SCIENCE_SPECTRA_BG_ONLY", ctx, channel, star=star, index=frame_index)
 
     return image
 
@@ -237,6 +233,4 @@ def apply_photon_noise_gauss_from_spectra2d(spectra_2d_exposure, channel: Spectr
     distr = np.random.normal(loc=0.0, scale=1.0, size=spectra_2d_exposure.shape)
     sigma = np.sqrt(np.clip(spectra_2d_exposure, 0, None))
     noise = distr * sigma
-    ctx.write_image_png.write_image(noise, "NOISE_ONLY", ctx, channel, star=star, index=0)
-
     return noise
