@@ -38,9 +38,9 @@ STATS_KEY_UNIT = {
 
 
 
-def write_image_png(array, frame_type: str, ctx: RunContext, channel: Channel, show_stats: bool = True, star: Star | None = None) -> None:
-    """Write 2D array as PNG. Uses percentile scaling (1–99.9) like write_frames_png."""
-    logging.info("WRITE_IMAGE_PNG called | frame_type=%s | channel=%s | shape=%s", frame_type, channel.channel_name, array.shape)
+def write_image_png(array, frame_type: str, ctx: RunContext, channel: Channel, show_stats: bool = True, star: Star | None = None, index: int | None = None) -> None:
+    """Write 2D array as PNG. Uses percentile scaling (1–99.9) like write_frames_png. Optional index for multi-frame output (e.g. frame_00042.png)."""
+    logging.info("WRITE_IMAGE_PNG called | frame_type=%s | channel=%s | shape=%s | index=%s", frame_type, channel.channel_name, array.shape, index)
 
     title = _format_frame_title(ctx.target_name, channel.channel_name, frame_type, star)
     stats_values = None
@@ -50,7 +50,7 @@ def write_image_png(array, frame_type: str, ctx: RunContext, channel: Channel, s
         stats_keys = STATS_KEYS.get(filetype, STATS_KEYS["SCIENCE"])
         stats_values = _stats_from_array_channel(array, channel)
 
-    _write_one_frame_png(array, ctx.output_dir, ctx.target_name, channel.channel_name, frame_type, title, stats_values, stats_keys, waltzer_prefix=False)
+    _write_one_frame_png(array, ctx.output_dir, ctx.target_name, channel.channel_name, frame_type, title, stats_values, stats_keys, index=index, waltzer_prefix=False)
 
 
 def write_frames_png(frames, headers, frame_type, channel_tag, ctx: RunContext, star: Star, show_stats=False):
@@ -154,12 +154,13 @@ def _normalize_target_name(name: str) -> str:
 
 
 def _build_png_filename(output_dir: Path, target_name: str, channel_tag: str, frame_type: str, index: int | None = None, *, waltzer_prefix: bool = True) -> Path:
-    """Build PNG filename. waltzer_prefix=True: FITS→PNG (WALTzER_...). waltzer_prefix=False: debug PNGs ({target}_{channel}_{frame_type}_image.png)."""
+    """Build PNG filename. waltzer_prefix=True: FITS→PNG (WALTzER_...). waltzer_prefix=False: debug PNGs ({target}_{channel}_{frame_type}.png, no WALTzER)."""
     safe = _normalize_target_name(target_name)
+    prefix = "WALTzER_" if waltzer_prefix else ""
     if index is not None:
-        return output_dir / f"WALTzER_{safe}_{channel_tag}_{frame_type}_{index:05d}.png"
+        return output_dir / f"{prefix}{safe}_{channel_tag}_{frame_type}_{index:05d}.png"
     if waltzer_prefix:
-        return output_dir / f"WALTzER_{safe}_{channel_tag}_{frame_type}.png"
+        return output_dir / f"{prefix}{safe}_{channel_tag}_{frame_type}.png"
     return output_dir / f"{safe}_{channel_tag}_{frame_type}_image.png"
 
 
