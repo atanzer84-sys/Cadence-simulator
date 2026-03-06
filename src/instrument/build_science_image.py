@@ -98,7 +98,7 @@ def _create_spectroscopy_per_roll_angle(channel: SpectroscopyChannel, ctx: RunCo
     exposure_s = channel.exposure_s
     image = np.zeros((ny, nx))
 
-    x0, y0 = get_target_star_detector_position(channel)
+    x_target_star, y_target_star = get_target_star_detector_position(channel)
     cos_roll_angle, sine_roll_angle, half_width_slit, half_length_slit = _prepare_slit_geometry(channel, roll_angle_deg)
 
     
@@ -106,11 +106,11 @@ def _create_spectroscopy_per_roll_angle(channel: SpectroscopyChannel, ctx: RunCo
     inside = 0
     for star_id in background_stars_catalog.stars_by_id:
         dx, dy = background_stars_catalog.get_offset_arcsec(star_id)
-        u, v, inside_slit = _is_background_star_inside_slit(dx, dy, cos_roll_angle, sine_roll_angle, half_width_slit, half_length_slit)
+        horizontal_relative_position, vertical_relative_position, inside_slit = _is_background_star_inside_slit(dx, dy, cos_roll_angle, sine_roll_angle, half_width_slit, half_length_slit)
         
         #TODO: REMOVE
         formatted = f"{int(star_id.split('_')[1]):,}".replace(",", " ")
-        logging.info("BG STAR slit check: frame=%d channel=%s star_id=%s dx=%g dy=%g u=%g v=%g half_w=%g half_l=%g inside=%s", frame_index, channel.channel_name, formatted, dx, dy, u, v, half_width_slit, half_length_slit, inside_slit)
+        logging.info("BG STAR slit check: frame=%d channel=%s star_id=%s dx=%g dy=%g u=%g v=%g half_w=%g half_l=%g inside=%s", frame_index, channel.channel_name, formatted, dx, dy, horizontal_relative_position, vertical_relative_position, half_width_slit, half_length_slit, inside_slit)
 
         if not inside_slit:
             continue
@@ -124,7 +124,10 @@ def _create_spectroscopy_per_roll_angle(channel: SpectroscopyChannel, ctx: RunCo
         # TODO: REMOVE
         logging.info("BG STAR accepted: frame=%d channel=%s star_id=%s sum=%g max=%g", frame_index, channel.channel_name, formatted, float(np.sum(counts_s_px * float(exposure_s))), float(np.max(counts_s_px * float(exposure_s))))
 
-        _add_background_star_row_placement_only(image, y0, v, counts_s_px, channel)
+        # _add_background_star_row_placement(image, y0, v, counts_s_px, channel)
+        y_background_star = _get_background_star_detector_row(y_target_star, vertical_relative_position, channel)
+        _add_background_star_smear_only(image, y_background_star, counts_s_px, channel)
+
         inside += 1
 
     ctx.write_image_png.write_image(image, "SCIENCE_BACKGROUND_STARS_ONLY", ctx, channel, star=star, index=frame_index)
@@ -148,14 +151,24 @@ def _is_background_star_inside_slit(dx: float, dy: float, cos_roll_angle: float,
     
     return u, v, inside_slit
 
-
-def _add_background_star_row_placement_only(image: np.ndarray, y0: int, vertical_relative_position: float, counts_s_px: np.ndarray, channel: SpectroscopyChannel):
+def _get_background_star_detector_row(y0: int, vertical_relative_position: float, channel: SpectroscopyChannel) -> int:
     y_offset_pix = vertical_relative_position / channel.pixel_scale
     y_background_star = int(round(y0 + y_offset_pix))
     logging.info("BG star row placement: target star (y0) y position: %d, background star y position: %d", y0, y_background_star)
-    image[y_background_star, :] += counts_s_px * channel.crossing_time_s
+    return y_background_star
 
+def _add_background_star_smear_only(image: np.ndarray, y_background_star: int, counts_s_px: np.ndarray, channel: SpectroscopyChannel):
+    n_smear_steps = int(round(channel.smear_shift_pixels))
+    counts_smear_step_px = counts_s_px * (channel.crossing_time_s / n_smear_steps)
+    half_smear = n_smear_steps // 2
 
+    for x_shift in range(-half_smear, n_smear_steps - half_smear):
+        if x_shift == 0:
+            image[y_background_star, :] += counts_smear_step_px
+        elif x_shift > 0:
+            image[y_background_star, x_shift:] += counts_smear_step_px[:-x_shift]
+        else:
+            image[y_background_star, :x_shift] += counts_smear_step_px[-x_shift:]
 
 def build_science_image_photometry(nir_rate, channel: PhotometryChannel, ctx: RunContext, cfg: GlobalConfig, star: Star, background_stars_catalog: StarCatalog):
     logging.info("Science Image generation starting for channel %s", channel.channel_name)
@@ -198,7 +211,6 @@ def build_science_image_photometry(nir_rate, channel: PhotometryChannel, ctx: Ru
 
     return image
     
-
 def apply_photon_noise_gauss_from_spectra2d(spectra_2d_exposure, channel: SpectroscopyChannel, ctx: RunContext, star: Star):
     distr = np.random.normal(loc=0.0, scale=1.0, size=spectra_2d_exposure.shape)
     sigma = np.sqrt(np.clip(spectra_2d_exposure, 0, None))
