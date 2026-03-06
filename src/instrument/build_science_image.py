@@ -100,7 +100,6 @@ def _create_spectroscopy_per_roll_angle(channel: SpectroscopyChannel, ctx: RunCo
 
     cos_roll_angle, sine_roll_angle, half_width_slit, half_length_slit = _prepare_slit_geometry(channel, roll_angle_deg)
 
-
     y0 = int(np.clip(int(round(float(channel.intercept_pixels))), 0, ny - 1))
     
     total = len(background_stars_catalog.stars_by_id)
@@ -125,7 +124,8 @@ def _create_spectroscopy_per_roll_angle(channel: SpectroscopyChannel, ctx: RunCo
         # TODO: REMOVE
         logging.info("BG STAR accepted: frame=%d channel=%s star_id=%s sum=%g max=%g", frame_index, channel.channel_name, formatted, float(np.sum(counts_s_px * float(exposure_s))), float(np.max(counts_s_px * float(exposure_s))))
 
-        _add_background_star_placeholder_contamination(image, y0, counts_s_px, exposure_s)
+        _add_background_star_placeholder_contamination(image, y0, counts_s_px, channel.crossing_time_s)
+
         inside += 1
 
     ctx.write_image_png.write_image(image, "SCIENCE_BACKGROUND_STARS_ONLY", ctx, channel, star=star, index=frame_index)
@@ -148,8 +148,9 @@ def _is_background_star_inside_slit(dx: float, dy: float, cos_roll_angle: float,
     
     return u, v, inside_slit
 
-def _add_background_star_placeholder_contamination(image: np.ndarray, y0: int, counts_s_px: np.ndarray, exposure_s: float):
-    image[y0, :] += counts_s_px * float(exposure_s)
+def _add_background_star_placeholder_contamination(image: np.ndarray, y0: int, counts_s_px: np.ndarray, crossing_time_s: float):
+    """Mutate image in place: add counts to row y0."""
+    image[y0, :] += counts_s_px * crossing_time_s
 
 def build_science_image_photometry(nir_rate, channel: PhotometryChannel, ctx: RunContext, cfg: GlobalConfig, star: Star, background_stars_catalog: StarCatalog):
     logging.info("Science Image generation starting for channel %s", channel.channel_name)
