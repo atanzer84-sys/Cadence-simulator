@@ -61,7 +61,7 @@ def _create_produce_plots():
 
 class _NoOpWriteImagePng:
     @staticmethod
-    def write_image(array, frame_type: str, ctx, channel, show_stats: bool = True, star=None):
+    def write_image(array, frame_type: str, ctx, channel, show_stats: bool = True, star=None, index=None):
         pass
 
 
