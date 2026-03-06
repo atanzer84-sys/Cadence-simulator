@@ -94,7 +94,7 @@ def _create_spectroscopy_per_exposure(spectra_component, background_component, c
     image = image * ccd_gain
     img_spectra_bgstars = img_spectra_bgstars * ccd_gain
     ctx.write_image_png.write_image(image, "SCIENCE_COMPLETELY_MERGED", ctx, channel, star=star, index=frame_index)
-    ctx.write_image_png.write_image(img_spectra_bgstars, "SCIENCE_SPECTRA_BG_MERGED", ctx, channel, star=star, index=frame_index)
+    ctx.write_image_png.write_image_asinh(img_spectra_bgstars, "SCIENCE_SPECTRA_BG_MERGED", ctx, channel, star=star, index=frame_index)
 
     return image
 
@@ -112,10 +112,13 @@ def _create_spectroscopy_per_roll_angle(channel: SpectroscopyChannel, ctx: RunCo
     for star_id in background_stars_catalog.stars_by_id:
         dx, dy = background_stars_catalog.get_offset_arcsec(star_id)
         horizontal_relative_position, vertical_relative_position, inside_slit = _is_background_star_inside_slit(dx, dy, cos_roll_angle, sine_roll_angle, half_width_slit, half_length_slit)
-        
-        #TODO: REMOVE
         formatted = f"{int(star_id.split('_')[1]):,}".replace(",", " ")
-        logging.info("BG STAR slit check: frame=%d channel=%s star_id=%s dx=%g dy=%g u=%g v=%g half_w=%g half_l=%g inside=%s", frame_index, channel.channel_name, formatted, dx, dy, horizontal_relative_position, vertical_relative_position, half_width_slit, half_length_slit, inside_slit)
+        bg_star = background_stars_catalog.stars_by_id[star_id]
+        mag = bg_star.gaia_magnitude if bg_star.gaia_magnitude is not None else float("nan")
+        ra = bg_star.right_ascension if bg_star.right_ascension is not None else float("nan")
+        dec = bg_star.declination if bg_star.declination is not None else float("nan")
+
+        logging.info("BG STAR slit check: frame=%d channel=%s star_id_formatted=%s star_id=%s mag=%.3f dx=%g dy=%g u=%g v=%g half_w=%g half_l=%g ra=%.6f dec=%.6f inside=%s", frame_index, channel.channel_name, formatted, star_id, mag, dx, dy, horizontal_relative_position, vertical_relative_position, half_width_slit, half_length_slit, ra, dec, inside_slit)
 
         if not inside_slit:
             continue
@@ -126,8 +129,7 @@ def _create_spectroscopy_per_roll_angle(channel: SpectroscopyChannel, ctx: RunCo
             continue
 
         counts_s_px = background_stars_catalog.counts_by_id_and_band[key]
-        # TODO: REMOVE
-        logging.info("BG STAR accepted: frame=%d channel=%s star_id=%s", frame_index, channel.channel_name, formatted)
+        logging.info("BG STAR in slit: frame=%d channel=%s star_id_formatted=%s star_id=%s mag=%.3f dx=%g dy=%g u=%g v=%g half_w=%g half_l=%g ra=%.6f dec=%.6f", frame_index, channel.channel_name, formatted, star_id, mag, dx, dy, horizontal_relative_position, vertical_relative_position, half_width_slit, half_length_slit, ra, dec)
         ctx.produce_plots.plot_1d_for_channel(channel.effective_area_wavelength, counts_s_px, ctx.output_dir, star, filename_tag=f"Backgroundstars_convolved_{star_id}_{frame_index}", title_text="Convolved Counts", y_label="Counts s⁻¹ pixel⁻¹", channel_name=channel.channel_name, full=True)
 
         # _add_background_star_row_placement(image, y0, v, counts_s_px, channel)

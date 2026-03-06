@@ -64,6 +64,10 @@ class _NoOpWriteImagePng:
     def write_image(array, frame_type: str, ctx, channel, show_stats: bool = True, star=None, index=None):
         pass
 
+    @staticmethod
+    def write_image_asinh(array, frame_type: str, ctx, channel, show_stats: bool = True, star=None, index=None):
+        pass
+
 
 _NOOP_WRITE_IMAGE_PNG = _NoOpWriteImagePng()
 
@@ -73,6 +77,7 @@ def _create_write_image_png():
 
     class _RealWriteImagePng:
         write_image = staticmethod(images.write_image_png)
+        write_image_asinh = staticmethod(images.write_image_png_asinh)
 
     return _RealWriteImagePng() if get_global_config().write_calibration_frames_png else _NOOP_WRITE_IMAGE_PNG
 

@@ -81,7 +81,7 @@ def create_background_star_catalog(table, cfg:GlobalConfig):
         catalog.add_star(bg_star.name, bg_star)
         formatted_id = f"{int(bg_star.name.split('_')[1]):,}".replace(",", " ")
         mass_str = f"{bg_star.mass:.3f}" if bg_star.mass is not None else "n/a"
-        logging.info("Background star added: star_id=%s mag=%.3f teff=%.0f radius=%.3f mass=%s ra=%.6f dec=%.6f dist=%.2f", formatted_id, bg_star.gaia_magnitude, bg_star.effective_temperature, bg_star.radius, mass_str, bg_star.right_ascension, bg_star.declination, bg_star.distance_pc)
+        logging.info("Background star added: star_id_formatted=%s star_id=%s mag=%.3f teff=%.0f radius=%.3f mass=%s ra=%.6f dec=%.6f dist=%.2f", formatted_id, bg_star.name, bg_star.gaia_magnitude, bg_star.effective_temperature, bg_star.radius, mass_str, bg_star.right_ascension, bg_star.declination, bg_star.distance_pc)
     
     return catalog
 

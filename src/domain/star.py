@@ -64,6 +64,7 @@ class Star:
             mass_sun_kg=mass_sun_kg,
         )
 
-        logging.info("Created Star object: %s", star)
+        if log_output:
+            logging.info("Created Star object: %s", star)
 
         return star

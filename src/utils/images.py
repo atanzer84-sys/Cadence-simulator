@@ -53,6 +53,21 @@ def write_image_png(array, frame_type: str, ctx: RunContext, channel: Channel, s
     _write_one_frame_png(array, ctx.output_dir, ctx.target_name, channel.channel_name, frame_type, title, stats_values, stats_keys, index=index, waltzer_prefix=False)
 
 
+def write_image_png_asinh(array, frame_type: str, ctx: RunContext, channel: Channel, show_stats: bool = True, star: Star | None = None, index: int | None = None) -> None:
+    """Same as write_image_png but with asinh scaling. Linear for faint signals, log-like for bright; often better than log for very low flux."""
+    logging.info("WRITE_IMAGE_PNG_ASINH called | frame_type=%s | channel=%s | shape=%s | index=%s", frame_type, channel.channel_name, array.shape, index)
+
+    title = _format_frame_title(ctx.target_name, channel.channel_name, frame_type, star)
+    stats_values = None
+    stats_keys = []
+    if show_stats:
+        filetype = _infer_stats_filetype(frame_type)
+        stats_keys = STATS_KEYS.get(filetype, STATS_KEYS["SCIENCE"])
+        stats_values = _stats_from_array_channel(array, channel)
+
+    _write_one_frame_png(array, ctx.output_dir, ctx.target_name, channel.channel_name, frame_type, title, stats_values, stats_keys, index=index, waltzer_prefix=False, use_asinh_scale=True)
+
+
 def write_frames_png(frames, headers, frame_type, channel_tag, ctx: RunContext, star: Star, show_stats=False):
 
     n_frames = len(frames)
@@ -164,11 +179,11 @@ def _build_png_filename(output_dir: Path, target_name: str, channel_tag: str, fr
     return output_dir / f"{safe}_{channel_tag}_{frame_type}_image.png"
 
 
-def _write_one_frame_png(array: np.ndarray, output_dir: Path, target_name: str, channel_tag: str, frame_type: str, title: str, stats_values: dict | None, stats_keys: list[str], index: int | None = None, *, waltzer_prefix: bool = True) -> None:
+def _write_one_frame_png(array: np.ndarray, output_dir: Path, target_name: str, channel_tag: str, frame_type: str, title: str, stats_values: dict | None, stats_keys: list[str], index: int | None = None, *, waltzer_prefix: bool = True, use_asinh_scale: bool = False) -> None:
     """Write one PNG with unified filename, title, and stats. Used by write_image_png and write_frames_png."""
     filename = _build_png_filename(output_dir, target_name, channel_tag, frame_type, index, waltzer_prefix=waltzer_prefix)
     stats_text = _format_stats_text(stats_values, stats_keys) if (stats_values and stats_keys) else None
-    _save_single_frame_png(array, filename, title, stats_text)
+    _save_single_frame_png(array, filename, title, stats_text, use_asinh_scale=use_asinh_scale)
 
 def _format_stats_text(values: dict, keys: list[str]) -> str:
     """Format key=value pairs. Filter out keys where value is None. Add units for second-line items."""
@@ -216,7 +231,7 @@ _TEXT_H_IN = 0.7
 _GAP_IN = 0.8
 
 
-def _save_single_frame_png(array: np.ndarray, filename: Path, title: str, stats_text: str | None = None) -> None:
+def _save_single_frame_png(array: np.ndarray, filename: Path, title: str, stats_text: str | None = None, use_asinh_scale: bool = False) -> None:
     """Draw one 2D image with optional stats line; save to filename. Shared by write_image_png and write_frames_png."""
     ny, nx = array.shape
     img_h_in = max(2.0, _WIDTH_IN * (ny / nx))
@@ -233,7 +248,18 @@ def _save_single_frame_png(array: np.ndarray, filename: Path, title: str, stats_
         vmax = float(np.max(array))
         if vmax <= vmin:
             vmax = vmin + 1.0
-    ax.imshow(array, origin="lower", aspect="equal", cmap="gray", vmin=vmin, vmax=vmax)
+    if use_asinh_scale:
+        arr_display = np.arcsinh(array)  # arcsinh(0)=0, no masking; linear for faint, log-like for bright
+        vmin = np.percentile(arr_display, 1)
+        vmax = np.percentile(arr_display, 93)
+        if (not np.isfinite(vmin)) or (not np.isfinite(vmax)) or (vmax <= vmin):
+            vmin = float(np.min(arr_display))
+            vmax = float(np.max(arr_display))
+            if vmax <= vmin:
+                vmax = vmin + 1.0
+        ax.imshow(arr_display, origin="lower", aspect="equal", cmap="gray", vmin=vmin, vmax=vmax)
+    else:
+        ax.imshow(array, origin="lower", aspect="equal", cmap="gray", vmin=vmin, vmax=vmax)
     ax.set_xlim(-0.5, nx - 0.5)
     ax.set_ylim(-0.5, ny - 0.5)
     ax.set_xlabel("pixels", labelpad=8)

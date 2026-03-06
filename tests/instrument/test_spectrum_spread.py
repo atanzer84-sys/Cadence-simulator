@@ -4,7 +4,6 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from instrument.spectrum_spread import (
-    spread_1d_spectrum_to_2d,
     spread_target_star_spectrum_to_2d,
     _spread_1d_to_2d_gaussian,
     _spread_1d_to_2d_profile,
