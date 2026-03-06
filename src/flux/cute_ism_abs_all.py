@@ -5,12 +5,7 @@ import numpy as np
 import logging
 
 def cute_ism_abs_all(flux,n_mg2,n_mg1,n_fe2):
-    logging.info(
-        "Applying ISM absorption: n_mg2=%s n_mg1=%s n_fe2=%s",
-        n_mg2,
-        n_mg1,
-        n_fe2,
-    )
+    logging.info("Applying ISM absorption: n_mg2=%s n_mg1=%s n_fe2=%s", n_mg2, n_mg1, n_fe2)
     #Construct the ISM absorption
     n_flux=flux[:,1]/flux[:,2]
     
