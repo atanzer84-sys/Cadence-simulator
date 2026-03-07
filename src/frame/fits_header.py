@@ -69,18 +69,18 @@ def append_channel_frame_header(header, channel: SpectroscopyChannel, exptime_s:
     if header is None:
         return
 
-    header.append(("EXPTIME", float(exptime_s),             "Exposure time of observation"))
+    header.append(("EXPTIME", float(exptime_s),             "Exposure time (seconds) of observation"))
     header.append(("YCUT1",   int(0),                       "Bottom of science box extraction"))
     header.append(("YCUT2",   int(channel.y_pixels - 1),    "Top of science box extraction"))
     header.append(("CCDGAIN", float(channel.ccd_gain),      "CCD gain"))
 
     if include_bias:
-        header.append(("B_OFFSET", float(channel.bias_offset), "Bias offset used to generate frame"))
-        header.append(("RNOISE",   float(channel.read_noise),  "Bias Read noise used to generate frame"))
+        header.append(("B_OFFSET", float(channel.bias_offset), "Bias offset (e-) used to generate frame"))
+        header.append(("RNOISE",   float(channel.read_noise),  "Bias Read noise used (e-) to generate frame"))
 
     if include_dark:
-        header.append(("DARKSIG", float(channel.dark_current_sigma), "Dark noise sigma used to generate frame"))
-        header.append(("DARKVAL", float(channel.dark_noise),         "Input dark value used to generate frame"))
+        header.append(("DARKSIG", float(channel.dark_current_sigma), "Dark noise sigma (e-/s) used to generate frame"))
+        header.append(("DARKVAL", float(channel.dark_noise),         "Input dark value (e-/s) used to generate frame"))
 
 
 def append_base_frame_header(base_header, filetype: str, channel: SpectroscopyChannel, index0: int):

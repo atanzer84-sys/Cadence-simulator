@@ -82,6 +82,14 @@ def _create_write_image_png():
     return _RealWriteImagePng() if get_global_config().write_calibration_frames_png else _NOOP_WRITE_IMAGE_PNG
 
 
+def _create_write_background_star_png():
+    from utils import images
+
+    class _RealWriteBackgroundStarPng:
+        write_image = staticmethod(images.write_image_png)
+
+    return _RealWriteBackgroundStarPng() if get_global_config().write_background_star_png else _NOOP_WRITE_IMAGE_PNG
+
 
 @dataclass(frozen=True)
 class RunContext:
@@ -92,6 +100,7 @@ class RunContext:
     test_mode: _NoOpTestMode | _RealTestMode
     produce_plots: _NoOpProducePlots
     write_image_png: _NoOpWriteImagePng
+    write_background_star_png: _NoOpWriteImagePng
 
 def initialize_waltzer_runtime_context():
     print("\n==== LOADING AND INITIALIZING WALTzER SIMULATOR =====")
@@ -101,8 +110,8 @@ def initialize_waltzer_runtime_context():
     test_mode = _RealTestMode() if get_global_config().test_mode else _NOOP
     produce_plots = _create_produce_plots()
     write_image_png = _create_write_image_png()
+    write_background_star_png = _create_write_background_star_png()
 
-    
     run_ctx = RunContext(
         target_name=user_cfg.target_name,
         output_dir=output_dir,
@@ -111,8 +120,9 @@ def initialize_waltzer_runtime_context():
         test_mode=test_mode,
         produce_plots=produce_plots,
         write_image_png=write_image_png,
+        write_background_star_png=write_background_star_png,
     )
-    logging.info("RunContext initialized: target=%s output_dir=%s test_mode=%s produce_plots=%s write_image_png=%s", run_ctx.target_name, run_ctx.output_dir, run_ctx.test_mode, run_ctx.produce_plots, run_ctx.write_image_png is not None)
+    logging.info("RunContext initialized: target=%s output_dir=%s test_mode=%s produce_plots=%s write_image_png=%s write_background_star_png=%s", run_ctx.target_name, run_ctx.output_dir, run_ctx.test_mode, run_ctx.produce_plots, run_ctx.write_image_png is not None, run_ctx.write_background_star_png is not None)
     return run_ctx, user_cfg
 
 def load_cfg_and_user_config():

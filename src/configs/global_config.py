@@ -28,6 +28,7 @@ class GlobalConfig:
     n_calibration_frames: int
     write_calibration_frames_png: bool
     write_science_frames_png: bool
+    write_background_star_png: bool
 
     cosmic_rays_min: int
     cosmic_rays_max: int
@@ -103,6 +104,7 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
     n_calibration_frames = as_int(raw.get("n_calibration_frames", 0), key="n_calibration_frames")
     write_calibration_frames_png = as_bool(raw.get("write_calibration_frames_png", 0), key="write_calibration_frames_png")
     write_science_frames_png = as_bool(raw.get("write_science_frames_png", 0), key="write_science_frames_png")
+    write_background_star_png = as_bool(raw.get("write_background_star_png", 0), key="write_background_star_png")
 
     cosmic_rays_min = as_int(raw.get("cosmic_rays_min", 5), key="cosmic_rays_min")
     cosmic_rays_max = as_int(raw.get("cosmic_rays_max", 10), key="cosmic_rays_max")
@@ -155,6 +157,7 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
         n_calibration_frames=n_calibration_frames,
         write_calibration_frames_png=write_calibration_frames_png,
         write_science_frames_png=write_science_frames_png,
+        write_background_star_png=write_background_star_png,
         cosmic_rays_min=cosmic_rays_min,
         cosmic_rays_max=cosmic_rays_max,
         cosmic_ray_signal_electrons=cosmic_ray_signal_electrons,

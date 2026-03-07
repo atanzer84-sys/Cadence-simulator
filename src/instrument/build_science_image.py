@@ -141,7 +141,7 @@ def _create_spectroscopy_per_roll_angle(channel: SpectroscopyChannel, ctx: RunCo
         inside += 1
 
     if inside > 0:
-        ctx.write_image_png.write_image(image, "SCIENCE_BACKGROUND_STARS_ONLY", ctx, channel, star=star, index=frame_index)
+        ctx.write_background_star_png.write_image(image, "SCIENCE_BACKGROUND_STARS_ONLY", ctx, channel, star=star, index=frame_index)
 
     logging.info("BG STARS roll_angle: channel=%s roll_angle_deg=%g inside=%d/%d sum=%g", channel.channel_name, float(roll_angle_deg), int(inside), int(total), float(np.sum(image)))
     return image

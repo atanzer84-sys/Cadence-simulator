@@ -28,14 +28,14 @@ def generate_frames(nuv_images, vis_images, nir_image, nuv: SpectroscopyChannel,
         dark_nir_frames = generate_dark_frames(nir, n_calibration_frames, header)
         # dark + spectra = spectra
 
-        non_science_list = [bias_nuv_frames, bias_vis_frames, dark_nuv_frames, dark_vis_frames, bias_nir_frames, dark_nir_frames]
+        calibration_frame_list = [bias_nuv_frames, bias_vis_frames, dark_nuv_frames, dark_vis_frames, bias_nir_frames, dark_nir_frames]
 
-        _write_fits_for_all(non_science_list, ctx, phase="non-science")
+        _write_fits_for_all(calibration_frame_list, ctx, phase="calibration frames")
 
         if global_cfg.write_calibration_frames_png:
-            _write_png_for_all(non_science_list, ctx, star, phase="non-science")
+            _write_png_for_all(calibration_frame_list, ctx, star, phase="calibration-frames")
     else:
-        logging.info("Non Science Frames: n_calibration_frames=%d \u2192 skipped.", n_calibration_frames)
+        logging.info("Calibration Frames: n_calibration_frames=%d \u2192 skipped.", n_calibration_frames)
 
     # generate science frames
     science_nuv_frames = generate_science_frame(nuv_images, nuv, header)

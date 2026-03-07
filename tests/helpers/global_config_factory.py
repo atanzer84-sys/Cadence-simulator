@@ -23,6 +23,7 @@ BASE_GLOBAL_CFG = {
     "n_calibration_frames": 0,
     "write_calibration_frames_png": False,
     "write_science_frames_png": False,
+    "write_background_star_png": False,
     "cosmic_rays_min": 0,
     "cosmic_rays_max": 0,
     "cosmic_ray_signal_electrons": 72000,
