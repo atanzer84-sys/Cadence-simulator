@@ -54,12 +54,12 @@ def _channel(**overrides):
 
 
 class _StubWriteImagePng:
-    """Records write_image calls so tests can assert they were invoked with expected args."""
+    """Records write_image_png calls so tests can assert they were invoked with expected args."""
 
     def __init__(self):
         self.calls = []
 
-    def write_image(self, array, frame_type: str, ctx, channel, show_stats: bool = True, star=None, **kwargs):
+    def write_image_png(self, array, frame_type: str, ctx, channel, show_stats: bool = True, star=None, **kwargs):
         self.calls.append((array, frame_type, channel))
 
 

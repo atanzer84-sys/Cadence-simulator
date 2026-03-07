@@ -1,5 +1,3 @@
-import functools
-import inspect
 import sys
 import logging
 from pathlib import Path
@@ -13,18 +11,14 @@ from utils import debug_dumps
 from dataclasses import dataclass
 
 
-def _noop(f):
-    @functools.wraps(f)
-    def noop(*args, **kwargs):
-        pass
-    noop.__signature__ = inspect.signature(f)
-    return noop
+class _NoOpProxy:
+    def __getattr__(self, name):
+        def noop(*args, **kwargs):
+            pass
+        return noop
 
 
-class _NoOpTestMode:
-    dump_3d_array = staticmethod(_noop(debug_dumps.dump_3d_array))
-    dump_1d_array = staticmethod(_noop(debug_dumps.dump_1d_array))
-    dump_1d_for_channel = staticmethod(_noop(debug_dumps.dump_1d_for_channel))
+_NOOP = _NoOpProxy()
 
 
 class _RealTestMode:
@@ -33,24 +27,7 @@ class _RealTestMode:
     dump_1d_for_channel = staticmethod(debug_dumps.dump_1d_for_channel)
 
 
-_NOOP = _NoOpTestMode()
-
-
-class _NoOpProducePlots:
-    @staticmethod
-    def plot_1d_for_channel(*args, **kwargs):
-        pass
-
-    @staticmethod
-    def plot_flux_and_photons_windows(*args, **kwargs):
-        pass
-
-    @staticmethod
-    def plot_background_star_counts(*args, **kwargs):
-        pass
-
-
-_NOOP_PLOTS = _NoOpProducePlots()
+_NOOP_PLOTS = _NoOpProxy()
 
 
 def _create_produce_plots():
@@ -65,23 +42,14 @@ def _create_produce_plots():
     return _RealProducePlots() if get_global_config().produce_plots else _NOOP_PLOTS
 
 
-class _NoOpWriteImagePng:
-    @staticmethod
-    def write_image(array, frame_type: str, ctx, channel, show_stats: bool = True, star=None, index=None):
-        pass
-
-    @staticmethod
-    def write_background_star_visibility_tests(merged_image, spectra_bgstars_image, frame_type: str, ctx, channel, show_stats: bool = True, star=None, index=None):
-        pass
-
-_NOOP_WRITE_IMAGE_PNG = _NoOpWriteImagePng()
+_NOOP_WRITE_IMAGE_PNG = _NoOpProxy()
 
 
 def _create_write_image_png():
     from utils import images
 
     class _RealWriteImagePng:
-        write_image = staticmethod(images.write_image_png)
+        write_image_png = staticmethod(images.write_image_png)
 
         @staticmethod
         def write_background_star_visibility_tests(*args, **kwargs):
@@ -94,7 +62,7 @@ def _create_write_background_star_png():
     from utils import images
 
     class _RealWriteBackgroundStarPng:
-        write_image = staticmethod(images.write_image_png)
+        write_image_png = staticmethod(images.write_image_png)
         write_background_star_visibility_tests = staticmethod(images.write_background_star_visibility_tests)
 
     return _RealWriteBackgroundStarPng() if get_global_config().write_background_star_png else _NOOP_WRITE_IMAGE_PNG
@@ -106,10 +74,10 @@ class RunContext:
     output_dir: Path
     timestamp: datetime
     timestamp_str: str
-    test_mode: _NoOpTestMode | _RealTestMode
-    produce_plots: _NoOpProducePlots
-    write_image_png: _NoOpWriteImagePng
-    write_background_star_png: _NoOpWriteImagePng
+    test_mode: _NoOpProxy | _RealTestMode
+    produce_plots: _NoOpProxy
+    write_image_png: _NoOpProxy
+    write_background_star_png: _NoOpProxy
 
 def initialize_waltzer_runtime_context():
     print("\n==== LOADING AND INITIALIZING WALTzER SIMULATOR =====")
