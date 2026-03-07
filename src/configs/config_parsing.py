@@ -47,11 +47,7 @@ def as_bool(v: object, *, key: str) -> bool:
     if s in {"0", "false", "no", "n", "off", ""}:
         return False
 
-    logging.error(
-        "Invalid boolean value for config key '%s': %r",
-        key,
-        v,
-    )
+    logging.error("Invalid boolean value for config key '%s': %r", key, v)
     raise ValueError(
         f"Invalid boolean value for config key '{key}': {v!r}. "
         "Expected one of: 0, 1, true, false, yes, no."

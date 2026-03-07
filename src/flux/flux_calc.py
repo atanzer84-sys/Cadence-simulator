@@ -44,12 +44,10 @@ def calculateFluxOnEarth(star: Star, ctx: RunContext, announce_user: bool = Fals
     ebv, _ = compute_ebv_av(star.right_ascension, star.declination, star.distance_pc)
 
     if cfg.interstellar_absorption:
-
         # ACTUAL ISM_ABS CALL
         flux_lambda_diluted = apply_ism_absorption(flux_lambda_diluted, ebv, cfg, announce_user=announce_user)
 
         ctx.test_mode.dump_3d_array(flux_lambda_diluted, ctx.output_dir, star.name, "FluxCalc_4_after_ISM", perChannel=True, zoom=True)
-
     else:
         logging.info("Interstellar Medium absorption not applied!")
 
@@ -66,7 +64,7 @@ def calculateFluxOnEarth(star: Star, ctx: RunContext, announce_user: bool = Fals
     flux_unred = apply_unred(wavelengths, flux_at_earth, ebv, announce_user=announce_user)
 
     ctx.test_mode.dump_1d_array(wavelengths, flux_unred, ctx.output_dir, star.name, "FluxCalc_7_after_unred", perChannel=True, zoom=True)
-    ctx.produce_plots.plot_flux_and_photons_windows(wavelengths, flux_unred, ctx.output_dir, star, "FluxCalc_1_Flux", "Flux", "Flux [erg s⁻¹ cm⁻² Å⁻¹]")
+    # ctx.produce_plots.plot_flux_and_photons_windows(wavelengths, flux_unred, ctx.output_dir, star, "FluxCalc_1_Flux", "Flux", "Flux [erg s⁻¹ cm⁻² Å⁻¹]")
   
     return flux_unred, wavelengths
 

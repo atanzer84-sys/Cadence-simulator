@@ -27,10 +27,7 @@ def load_user_config(path: Path) -> UserConfig:
 
 def get_user_config() -> UserConfig:
     if _USER is None:
-        logging.error(
-            "User config not loaded. "
-            "Call load_user_config() once during startup before using it."
-        )
+        logging.error("User config not loaded. Call load_user_config() once during startup before using it.")
         raise RuntimeError(
             "User config not loaded. Call load_user_config() once in main()."
         )
@@ -52,11 +49,7 @@ def _read_user_cfg(path: Path) -> UserConfig:
     except KeyError as e:
         missing = e.args[0]
         full_path = path.resolve()
-        logging.error(
-            "Required parameter '%s' is missing in %s",
-            missing,
-            full_path,
-        )
+        logging.error("Required parameter '%s' is missing in %s", missing, full_path)
         raise ValueError(
             f"The parameter '{missing}' is missing in the parameter file at {full_path}"
         )

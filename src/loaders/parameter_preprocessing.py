@@ -69,11 +69,7 @@ def clean_and_cast_parameters(parameters: dict[str, Any], domain_class: type) ->
                 try:
                     value = float(value)
                 except (TypeError, ValueError) as e:
-                    logging.error(
-                        "Invalid numeric value for parameter '%s': %r (expected float)",
-                        key,
-                        value,
-                    )
+                    logging.error("Invalid numeric value for parameter '%s': %r (expected float)", key, value)
                     raise ValueError(
                         f"Parameter '{key}' must be a float, got {value!r}"
                     ) from e

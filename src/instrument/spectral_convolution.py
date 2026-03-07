@@ -13,7 +13,7 @@ def compute_broadened_channel_flux(photon_flux_at_earth: np.ndarray, wavelengths
     # Gaussian Broadening of flux over wavelengths
     photon_flux_smoothed =  gaussbroad(wavelength, cut_photon_flux, channel.pixel_scale)
 
-    ctx.produce_plots.plot_1d_for_channel(wavelength, photon_flux_smoothed, output_dir, star, filename_tag="Detector_2_gaussbroad", title_text="Photon Flux after Gaussian Broadening", y_label="Photon flux [photons s⁻¹ cm⁻² Å⁻¹]", channel_name=channel.channel_name, full=True)
+    # ctx.produce_plots.plot_1d_for_channel(wavelength, photon_flux_smoothed, output_dir, star, filename_tag="Detector_2_gaussbroad", title_text="Photon Flux after Gaussian Broadening", y_label="Photon flux [photons s⁻¹ cm⁻² Å⁻¹]", channel_name=channel.channel_name, full=True)
 
     logging.info("Channel %s photon_flux_smoothed sum=%g mean=%g min=%g max=%g", channel.channel_name, photon_flux_smoothed.sum(), photon_flux_smoothed.mean(), photon_flux_smoothed.min(), photon_flux_smoothed.max())
 
@@ -28,8 +28,6 @@ def cut_wavelength_window_with_margin(photon_flux_at_earth: np.ndarray, waveleng
 
     wl_min_ext = wl_min - margin_A
     wl_max_ext = wl_max + margin_A
-
-    logging.info("Cutting wavelength window: Detector wl_min_ext=%g wl_max_ext=%g", wl_min_ext, wl_max_ext)
 
     i0_raw = np.searchsorted(wavelengths_total, wl_min_ext)
     i1_raw = np.searchsorted(wavelengths_total, wl_max_ext)
@@ -46,12 +44,10 @@ def cut_wavelength_window_with_margin(photon_flux_at_earth: np.ndarray, waveleng
             f"does not overlap wavelengths_total [{wavelengths_total[0]}, {wavelengths_total[-1]}]"
         )
 
-    logging.info("indices after clamping: i0=%d i1=%d", i0, i1)
-    logging.info("wavelengths_total[i0]=%g wavelengths_total[i1-1]=%g", wavelengths_total[i0], wavelengths_total[i1 - 1])
-    logging.info("cut size=%d first_wl=%g last_wl=%g cut size flux=%d first_flux=%g last_flux=%g", len(wavelength_cut), wavelength_cut[0], wavelength_cut[-1], len(flux_cut), flux_cut[0], flux_cut[-1])
+    logging.info("Cut window: indices [%d:%d] → wl=%g-%g Å (n=%d), flux n=%d [%g, %g]", i0, i1, wavelength_cut[0], wavelength_cut[-1], len(wavelength_cut), len(flux_cut), flux_cut[0], flux_cut[-1])
 
-    ctx.test_mode.dump_1d_for_channel(wavelength_cut, flux_cut, output_dir, star.name, "Detector_1_cut_wavelength_window", channel_name=channel.channel_name, full=True, zoom=True)
-    ctx.produce_plots.plot_1d_for_channel(wavelength_cut, flux_cut, output_dir, star, filename_tag="Detector_1_cut_wavelength_window", title_text="Photon Flux before Gaussian Broadening", y_label="Photon flux [photons s⁻¹ cm⁻² Å⁻¹]", channel_name=channel.channel_name, full=True)
+    # ctx.test_mode.dump_1d_for_channel(wavelength_cut, flux_cut, output_dir, star.name, "Detector_1_cut_wavelength_window", channel_name=channel.channel_name, full=True, zoom=True)
+    # ctx.produce_plots.plot_1d_for_channel(wavelength_cut, flux_cut, output_dir, star, filename_tag="Detector_1_cut_wavelength_window", title_text="Photon Flux before Gaussian Broadening", y_label="Photon flux [photons s⁻¹ cm⁻² Å⁻¹]", channel_name=channel.channel_name, full=True)
 
     return flux_cut, wavelength_cut
 

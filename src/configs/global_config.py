@@ -65,10 +65,7 @@ def load_global_config(path: Path) -> GlobalConfig:
 
 def get_global_config() -> GlobalConfig:
     if _GLOBAL is None:
-        logging.error(
-            "Global config not loaded. "
-            "Call load_global_config() once during startup before using it."
-        )
+        logging.error("Global config not loaded. Call load_global_config() once during startup before using it.")
 
         raise RuntimeError(
             "Global config not loaded. Call load_global_config() once in main()."
@@ -185,12 +182,7 @@ def _compute_sky_sweep_arcsec_per_s(orbit_duration_minutes):
 
 def _warn_default_used(raw: dict, key: str, default, *, path: Path) -> None:
     if key not in raw:
-        logging.warning(
-            "%s not provided in %s, using default value %s",
-            key,
-            path,
-            default,
-        )
+        logging.warning("%s not provided in %s, using default value %s", key, path, default)
 
 def _ensure_non_negative(value: int, *, key: str) -> int:
     if value < 0:

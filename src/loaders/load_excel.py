@@ -66,11 +66,7 @@ def load_matching_excel_row_from_excel(excel_path, target_name_user_input):
 
         return matching_row_dict, target_name_user_input
     except Exception:
-        logging.exception(
-            "Failed to read matching Excel row for target_name_user_input=%r from excel_path=%s",
-            target_name_user_input,
-            excel_path,
-        )
+        logging.exception("Failed to read matching Excel row for target_name_user_input=%r from excel_path=%s", target_name_user_input, excel_path)
         raise
 
 def load_excel_cfg(mapping_path: Path):
@@ -112,13 +108,7 @@ def load_excel_cfg(mapping_path: Path):
             "required_stellar_parameters": parse_required("required_stellar_parameters"),
         }
 
-        logging.info(
-            "Excel mapping: %d planet keys, %d star keys, %d required planet, %d required star",
-            len(mapping["planet"]),
-            len(mapping["star"]),
-            len(mapping["required_planetary_parameters"]),
-            len(mapping["required_stellar_parameters"]),
-        )
+        logging.info("Excel mapping: %d planet keys, %d star keys, %d required planet, %d required star", len(mapping["planet"]), len(mapping["star"]), len(mapping["required_planetary_parameters"]), len(mapping["required_stellar_parameters"]))
         logging.info("Planet mapping keys: %s", mapping["planet"].keys())
         logging.info("Star mapping keys: %s", mapping["star"].keys())
 
@@ -176,10 +166,7 @@ def map_to_planet_or_star_dictionary(planet_star_dictionary: PlanetStarDict, map
 
     # i don't care about not mapped columns. I just write it to the log and carry on.
     if unknown_headers:
-        logging.warning(
-            "Ignoring unmapped Excel columns:\n%s",
-            "\n".join(f"  {h!r}" for h in unknown_headers),
-        )
+        logging.warning("Ignoring unmapped Excel columns:\n%s", "\n".join(f"  {h!r}" for h in unknown_headers))
     
     # no star's name in excel, so we insert the matched star name from the row 
     star_params["name"] = target_name
