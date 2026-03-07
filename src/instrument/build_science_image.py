@@ -20,7 +20,7 @@ def build_science_images(spectra_2d_nuv, spectra_2d_vis, rate_nir, nuv: Spectros
     background_stars_catalog = populate_background_star_catalog(nuv, vis, nir, ctx, cfg, star)
 
     for channel in (nuv, vis, nir):
-        ctx.produce_plots.plot_background_star_counts(background_stars_catalog, channel, ctx)
+        ctx.produce_plots.plot_background_star_counts(background_stars_catalog, channel, ctx, star)
 
     nuv_imgs = _create_spectroscopy_channel_images(spectra_2d_nuv, nuv, ctx, cfg, star, background_stars_catalog)
     # vis_imgs = _create_spectroscopy_channel_images(spectra_2d_vis, vis, ctx, cfg, star, background_stars_catalog)
@@ -86,7 +86,7 @@ def _create_spectroscopy_per_exposure(spectra_component, background_component, c
 
     image += background_component
     if frame_index < 1:
-        ctx.write_image_png.write_image_png(image, "SCIENCE_BACKGROUND_ONLY", ctx, channel, index=frame_index)
+        ctx.write_image_png.write_image_png(background_component, "SCIENCE_BACKGROUND_ONLY", ctx, channel, index=frame_index)
 
     bg_stars = _create_spectroscopy_per_roll_angle(channel, ctx, star, background_stars_catalog, roll_angle_deg, frame_index)
     image += bg_stars
@@ -100,7 +100,7 @@ def _create_spectroscopy_per_exposure(spectra_component, background_component, c
     image = image * ccd_gain
     img_spectra_bgstars = img_spectra_bgstars * ccd_gain
     ctx.write_image_png.write_image_png(image, "SCIENCE_COMPLETELY_MERGED", ctx, channel, star=star, index=frame_index)
-    ctx.write_background_star_png.write_background_star_visibility_tests(image, bg_stars, "SCIENCE_BG_VISIBILITY", ctx, channel, star=star, index=frame_index)
+    ctx.write_background_star_png.write_background_star_visibility_tests(image, bg_stars, "SCIENCE PANEL", ctx, channel, star=star, index=frame_index)
 
     return image
 
