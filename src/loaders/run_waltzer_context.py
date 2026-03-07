@@ -45,6 +45,10 @@ class _NoOpProducePlots:
     def plot_flux_and_photons_windows(*args, **kwargs):
         pass
 
+    @staticmethod
+    def plot_background_star_counts(*args, **kwargs):
+        pass
+
 
 _NOOP_PLOTS = _NoOpProducePlots()
 
@@ -56,8 +60,10 @@ def _create_produce_plots():
     class _RealProducePlots:
         plot_1d_for_channel = staticmethod(images.plot_1d_for_channel)
         plot_flux_and_photons_windows = staticmethod(images.plot_flux_and_photons_windows)
+        plot_background_star_counts = staticmethod(images.plot_background_star_counts)
 
     return _RealProducePlots() if get_global_config().produce_plots else _NOOP_PLOTS
+
 
 class _NoOpWriteImagePng:
     @staticmethod
@@ -65,9 +71,8 @@ class _NoOpWriteImagePng:
         pass
 
     @staticmethod
-    def write_image_asinh(array, frame_type: str, ctx, channel, show_stats: bool = True, star=None, index=None):
+    def write_background_star_visibility_tests(merged_image, spectra_bgstars_image, frame_type: str, ctx, channel, show_stats: bool = True, star=None, index=None):
         pass
-
 
 _NOOP_WRITE_IMAGE_PNG = _NoOpWriteImagePng()
 
@@ -77,7 +82,10 @@ def _create_write_image_png():
 
     class _RealWriteImagePng:
         write_image = staticmethod(images.write_image_png)
-        write_image_asinh = staticmethod(images.write_image_png_asinh)
+
+        @staticmethod
+        def write_background_star_visibility_tests(*args, **kwargs):
+            pass  # Only runs via write_background_star_png when write_background_star_png is enabled
 
     return _RealWriteImagePng() if get_global_config().write_calibration_frames_png else _NOOP_WRITE_IMAGE_PNG
 
@@ -87,6 +95,7 @@ def _create_write_background_star_png():
 
     class _RealWriteBackgroundStarPng:
         write_image = staticmethod(images.write_image_png)
+        write_background_star_visibility_tests = staticmethod(images.write_background_star_visibility_tests)
 
     return _RealWriteBackgroundStarPng() if get_global_config().write_background_star_png else _NOOP_WRITE_IMAGE_PNG
 

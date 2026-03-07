@@ -18,11 +18,16 @@ def build_science_images(spectra_2d_nuv, spectra_2d_vis, rate_nir, nuv: Spectros
     cfg = get_global_config()
     background_stars_catalog = populate_background_star_catalog(nuv, vis, nir, ctx, cfg, star)
 
+    for channel in (nuv, vis, nir):
+        ctx.produce_plots.plot_background_star_counts(background_stars_catalog, channel, ctx)
+
     nuv_imgs = _create_spectroscopy_channel_images(spectra_2d_nuv, nuv, ctx, cfg, star, background_stars_catalog)
-    vis_imgs = _create_spectroscopy_channel_images(spectra_2d_vis, vis, ctx, cfg, star, background_stars_catalog)
+    # vis_imgs = _create_spectroscopy_channel_images(spectra_2d_vis, vis, ctx, cfg, star, background_stars_catalog)
+    vis_imgs = []  # TODO: re-enable 
 
     print("\n==== STARTING SCIENCE IMAGE GENERATION (NIR) =====")
-    nir_img = build_science_image_photometry(rate_nir, nir, ctx, cfg, star, background_stars_catalog)
+    # nir_img = build_science_image_photometry(rate_nir, nir, ctx, cfg, star, background_stars_catalog)
+    nir_img = []  # TODO: re-enable
 
     return nuv_imgs, vis_imgs, nir_img
 
@@ -94,7 +99,7 @@ def _create_spectroscopy_per_exposure(spectra_component, background_component, c
     image = image * ccd_gain
     img_spectra_bgstars = img_spectra_bgstars * ccd_gain
     ctx.write_image_png.write_image(image, "SCIENCE_COMPLETELY_MERGED", ctx, channel, star=star, index=frame_index)
-    ctx.write_image_png.write_image_asinh(img_spectra_bgstars, "SCIENCE_SPECTRA_BG_MERGED", ctx, channel, star=star, index=frame_index)
+    ctx.write_background_star_png.write_background_star_visibility_tests(image, bg_stars, "SCIENCE_BG_VISIBILITY", ctx, channel, star=star, index=frame_index)
 
     return image
 
@@ -140,8 +145,8 @@ def _create_spectroscopy_per_roll_angle(channel: SpectroscopyChannel, ctx: RunCo
         image += background_star_2d
         inside += 1
 
-    if inside > 0:
-        ctx.write_background_star_png.write_image(image, "SCIENCE_BACKGROUND_STARS_ONLY", ctx, channel, star=star, index=frame_index)
+    # if inside > 0:
+        # ctx.write_background_star_png.write_image(image, "SCIENCE_BACKGROUND_STARS_ONLY", ctx, channel, star=star, index=frame_index)
 
     logging.info("BG STARS roll_angle: channel=%s roll_angle_deg=%g inside=%d/%d sum=%g", channel.channel_name, float(roll_angle_deg), int(inside), int(total), float(np.sum(image)))
     return image
