@@ -46,7 +46,7 @@ def compute_counts_per_s_px_one_channel(flux: np.ndarray, wavelengths: np.ndarra
     cfg = get_global_config()
 
     photons_star = convert_flux_to_photons(flux, wavelengths)
-    ctx.plot_flux_and_photons_windows(wavelengths, photons_star, ctx.output_dir, star, "FluxCalc_2_photons", "Photon Flux", "Photon flux [photons s⁻¹ cm⁻² Å⁻¹]")
+    ctx.plot_flux_and_photons_windows(wavelengths, photons_star, ctx.output_dir, star, "FluxCalc_photons", "Photon Flux", "Photon flux [photons s⁻¹ cm⁻² Å⁻¹]")
     ctx.dump_1d_array(wavelengths, photons_star, ctx.output_dir, star.name, "FluxCalc_8_photons_star", perChannel=True, zoom=True)
     
     # 2) photons -> broadened -> counts/s/pixel (single channel path, reusing existing pieces)
