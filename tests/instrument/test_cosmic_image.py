@@ -36,7 +36,7 @@ def _cfg_zero_rays():
         cosmic_ray_signal_electrons=72000,
         cosmic_ray_length_min_px=1,
         cosmic_ray_length_max_px=3,
-        dump_intermediate_arrays=True,
+        write_intermediate_arrays=True,
         produce_plots=False,
         GAIA_USE_ASYNC_JOBS=1,
     )
@@ -49,7 +49,7 @@ def _cfg_three_rays():
         cosmic_ray_signal_electrons=50,
         cosmic_ray_length_min_px=2,
         cosmic_ray_length_max_px=4,
-        dump_intermediate_arrays=True,
+        write_intermediate_arrays=True,
         produce_plots=False,
         GAIA_USE_ASYNC_JOBS=1,
     )
@@ -62,7 +62,7 @@ def _cfg_single_ray_small_detector():
         cosmic_ray_signal_electrons=123,
         cosmic_ray_length_min_px=5,
         cosmic_ray_length_max_px=5,
-        dump_intermediate_arrays=True,
+        write_intermediate_arrays=True,
         produce_plots=False,
         GAIA_USE_ASYNC_JOBS=1,
     )

@@ -13,8 +13,6 @@ def compute_broadened_channel_flux(photon_flux_at_earth: np.ndarray, wavelengths
     # Gaussian Broadening of flux over wavelengths
     photon_flux_smoothed =  gaussbroad(wavelength, cut_photon_flux, channel.pixel_scale)
 
-    # ctx.produce_plots.plot_1d_for_channel(wavelength, photon_flux_smoothed, output_dir, star, filename_tag="Detector_2_gaussbroad", title_text="Photon Flux after Gaussian Broadening", y_label="Photon flux [photons s⁻¹ cm⁻² Å⁻¹]", channel_name=channel.channel_name, full=True)
-
     logging.info("Channel %s photon_flux_smoothed sum=%g mean=%g min=%g max=%g", channel.channel_name, photon_flux_smoothed.sum(), photon_flux_smoothed.mean(), photon_flux_smoothed.min(), photon_flux_smoothed.max())
 
     return photon_flux_smoothed, wavelength
@@ -45,9 +43,6 @@ def cut_wavelength_window_with_margin(photon_flux_at_earth: np.ndarray, waveleng
         )
 
     logging.info("Cut window: indices [%d:%d] → wl=%g-%g Å (n=%d), flux n=%d [%g, %g]", i0, i1, wavelength_cut[0], wavelength_cut[-1], len(wavelength_cut), len(flux_cut), flux_cut[0], flux_cut[-1])
-
-    # ctx.dump_intermediate_arrays.dump_1d_for_channel(wavelength_cut, flux_cut, output_dir, star.name, "Detector_1_cut_wavelength_window", channel_name=channel.channel_name, full=True, zoom=True)
-    # ctx.produce_plots.plot_1d_for_channel(wavelength_cut, flux_cut, output_dir, star, filename_tag="Detector_1_cut_wavelength_window", title_text="Photon Flux before Gaussian Broadening", y_label="Photon flux [photons s⁻¹ cm⁻² Å⁻¹]", channel_name=channel.channel_name, full=True)
 
     return flux_cut, wavelength_cut
 
@@ -119,7 +114,7 @@ def counts_per_s_px_conv_per_channel(broadened_photon_flux: np.ndarray, waveleng
     counts_s_px_convolved = photons_per_pixel_cm2_s * channel.effective_area
     logging.info("Channel %s counts_per_s_per_pixel sum=%g mean=%g min=%g max=%g", channel.channel_name, counts_s_px_convolved.sum(), counts_s_px_convolved.mean(), counts_s_px_convolved.min(), counts_s_px_convolved.max())
 
-    ctx.dump_1d_for_channel(channel.effective_area_wavelength, counts_s_px_convolved, ctx.output_dir, star.name, "Detector_2_counts_s_px_convolved", channel_name=channel.channel_name, full=True, zoom=True)
+    ctx.dump_1d_for_channel(channel.effective_area_wavelength, counts_s_px_convolved, ctx.output_dir, star.name, "Detector_1_counts_s_px_convolved", channel_name=channel.channel_name, full=True, zoom=True)
 
     ctx.plot_1d_for_channel(channel.effective_area_wavelength, counts_s_px_convolved, ctx.output_dir, star, filename_tag=f"Detector_3_counts_s_px_convolved{'' if filename_suffix is None else '_' + filename_suffix}", title_text="Convolved Counts", y_label="Counts s⁻¹ pixel⁻¹", channel_name=channel.channel_name, full=True)
 

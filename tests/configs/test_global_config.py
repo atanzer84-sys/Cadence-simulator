@@ -89,13 +89,13 @@ def test_boolean_fields_accept_common_spellings(tmp_path):
     content = _base_cfg()
     content = _cfg_replace(content, "line_core_emission = 0", "line_core_emission = 0")
     content = _cfg_replace(content, "interstellar_absorption = 0", "interstellar_absorption = yes")
-    content = _cfg_replace(content, "dump_intermediate_arrays = 0", "dump_intermediate_arrays = off")
+    content = _cfg_replace(content, "write_intermediate_arrays = 0", "write_intermediate_arrays = off")
     cfg_path = _cfg_write(tmp_path, "global_boolean_spellings.cfg", content)
     cfg = gc.load_global_config(cfg_path)
 
     assert cfg.line_core_emission is False
     assert cfg.interstellar_absorption is True
-    assert cfg.dump_intermediate_arrays is False
+    assert cfg.write_intermediate_arrays is False
 
 
 def test_missing_config_file_logs_and_raises(caplog, tmp_path):

@@ -92,7 +92,7 @@ def test_calculateFluxOnEarth_no_optional_steps_called(monkeypatch, tmp_path):
     cfg = SimpleNamespace(
         line_core_emission=False,
         interstellar_absorption=False,
-        dump_intermediate_arrays=False,
+        write_intermediate_arrays=False,
         produce_plots=False,
     )
 
@@ -146,7 +146,7 @@ def test_calculateFluxOnEarth_optional_steps_called(monkeypatch, tmp_path):
     cfg = SimpleNamespace(
         line_core_emission=True,
         interstellar_absorption=True,
-        dump_intermediate_arrays=False,
+        write_intermediate_arrays=False,
         produce_plots=False,
         sigmaMg22=1.0,
         sigmaMg21=1.0,
@@ -195,7 +195,7 @@ def test_calculateFluxOnEarth_returns_photons_and_wavelengths_same_length(monkey
     cfg = SimpleNamespace(
         line_core_emission=False,
         interstellar_absorption=False,
-        dump_intermediate_arrays=False,
+        write_intermediate_arrays=False,
         produce_plots=False,
     )
 
@@ -226,8 +226,8 @@ def test_calculateFluxOnEarth_returns_photons_and_wavelengths_same_length(monkey
     assert np.all(np.isfinite(wavelengths))
 
 
-def test_calculateFluxOnEarth_executes_dump_intermediate_arrays_instrumentation(monkeypatch, tmp_path):
-    """ctx.dump_intermediate_arrays with real dumps triggers debug dump instrumentation (dump_3d_array called)."""
+def test_calculateFluxOnEarth_executes_write_intermediate_arrays_instrumentation(monkeypatch, tmp_path):
+    """ctx.write_intermediate_arrays with real dumps triggers debug dump instrumentation (dump_3d_array called)."""
     called = {"dumped": False}
 
     def fake_dump_3d_array(*args, **kwargs):
