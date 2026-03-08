@@ -1,7 +1,7 @@
 import logging
 import numpy as np
 from loaders.run_waltzer_context import RunContext
-from configs.channel_config import SpectroscopyChannel, PhotometryChannel
+from configs.channel_config import SpectroscopyChannel, PhotometryChannel, Channel
 from instrument.bias_image import generate_bias_image
 from instrument.dark_image import generate_dark_image
 from instrument.cosmic_image import generate_cosmic_rays
@@ -61,9 +61,27 @@ def _create_spectroscopy_per_exposure(spectra_component, background_component, c
     """Build one science frame. Constant debug images written once (frame 0); background stars use index (vary with roll)."""
     ccd_gain = channel.ccd_gain
 
+
+    image, _ = _build_science_image_without_bg_stars(spectra_component, background_component, channel, ctx, cfg, star, frame_index)
+
+    bg_stars, background_star_bands = generate_background_star_spectroscopy_image(channel, ctx, star, background_stars_catalog, roll_angle_deg, frame_index)
+    image += bg_stars
+
+    image *= ccd_gain
+    
+    if frame_index < 1:
+        ctx.write_calibration_frame_png(image, "SCIENCE_COMPLETELY_MERGED", ctx, channel, star=star, index=frame_index)
+    
+    ctx.generate_background_star_visibility_on_science_frame(image, bg_stars, "SCIENCE PANEL", ctx, channel, star=star, index=frame_index, background_star_bands=background_star_bands)
+
+    return image
+
+
+
+def _build_science_image_without_bg_stars(spectra_component, background_component, channel: Channel, ctx: RunContext, cfg: GlobalConfig, star: Star, frame_index: int):
     image = np.zeros((channel.y_pixels, channel.x_pixels))
     img_spectra_bgstars = np.zeros((channel.y_pixels, channel.x_pixels))
-
+    
     bias = generate_bias_image(channel)
     image += bias
     if frame_index < 1:
@@ -89,23 +107,12 @@ def _create_spectroscopy_per_exposure(spectra_component, background_component, c
     if frame_index < 1:
         ctx.write_calibration_frame_png(background_component, "SCIENCE_BACKGROUND_ONLY", ctx, channel, index=frame_index)
 
-    bg_stars, background_star_bands = generate_background_star_spectroscopy_image(channel, ctx, star, background_stars_catalog, roll_angle_deg, frame_index)
-    image += bg_stars
-    img_spectra_bgstars += bg_stars
-
     cosmic = generate_cosmic_rays(ctx, channel, cfg, star)
     image += cosmic
     if frame_index < 1:
         ctx.write_calibration_frame_png(cosmic, "SCIENCE_COSMIC_ONLY", ctx, channel, star=star, index=frame_index)
 
-    image = image * ccd_gain
-    img_spectra_bgstars = img_spectra_bgstars * ccd_gain
-    if frame_index < 1:
-        ctx.write_calibration_frame_png(image, "SCIENCE_COMPLETELY_MERGED", ctx, channel, star=star, index=frame_index)
-    
-    ctx.generate_background_star_visibility_on_science_frame(image, bg_stars, "SCIENCE PANEL", ctx, channel, star=star, index=frame_index, background_star_bands=background_star_bands)
-
-    return image
+    return image, img_spectra_bgstars
 
 
 def build_science_image_photometry(nir_rate, channel: PhotometryChannel, ctx: RunContext, cfg: GlobalConfig, star: Star, background_stars_catalog: StarCatalog):
