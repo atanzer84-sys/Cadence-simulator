@@ -46,7 +46,7 @@ def cut_wavelength_window_with_margin(photon_flux_at_earth: np.ndarray, waveleng
 
     logging.info("Cut window: indices [%d:%d] → wl=%g-%g Å (n=%d), flux n=%d [%g, %g]", i0, i1, wavelength_cut[0], wavelength_cut[-1], len(wavelength_cut), len(flux_cut), flux_cut[0], flux_cut[-1])
 
-    # ctx.test_mode.dump_1d_for_channel(wavelength_cut, flux_cut, output_dir, star.name, "Detector_1_cut_wavelength_window", channel_name=channel.channel_name, full=True, zoom=True)
+    # ctx.dump_intermediate_arrays.dump_1d_for_channel(wavelength_cut, flux_cut, output_dir, star.name, "Detector_1_cut_wavelength_window", channel_name=channel.channel_name, full=True, zoom=True)
     # ctx.produce_plots.plot_1d_for_channel(wavelength_cut, flux_cut, output_dir, star, filename_tag="Detector_1_cut_wavelength_window", title_text="Photon Flux before Gaussian Broadening", y_label="Photon flux [photons s⁻¹ cm⁻² Å⁻¹]", channel_name=channel.channel_name, full=True)
 
     return flux_cut, wavelength_cut

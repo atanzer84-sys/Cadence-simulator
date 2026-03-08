@@ -36,8 +36,9 @@ BASE_GLOBAL_CFG = {
     "sky_pixel_area_arcsec2": None,
     "zod_dist_file": None,
     "zod_spectrum_file": None,
-    "test_mode": False,
+    "dump_intermediate_arrays": False,
     "produce_plots": False,
+    "produce_background_star_counts_plot": False,
 }
 
 

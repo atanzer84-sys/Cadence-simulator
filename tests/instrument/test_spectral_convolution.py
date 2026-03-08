@@ -8,15 +8,13 @@ from instrument.spectral_convolution import (
 )
 
 
-def _cfg(test_mode=False, produce_plots=False):
-    return SimpleNamespace(test_mode=test_mode, produce_plots=produce_plots)
+def _cfg(dump_intermediate_arrays=False, produce_plots=False):
+    return SimpleNamespace(dump_intermediate_arrays=dump_intermediate_arrays, produce_plots=produce_plots)
 
 
 def _ctx(output_dir="OUT"):
-    """Minimal ctx with no-op test_mode and produce_plots to satisfy spectral_convolution hooks."""
-    from loaders.run_waltzer_context import _NOOP, _NOOP_PLOTS
-
-    return SimpleNamespace(output_dir=output_dir, test_mode=_NOOP, produce_plots=_NOOP_PLOTS)
+    """Minimal ctx with no-op dump_intermediate_arrays and produce_plots to satisfy spectral_convolution hooks."""
+    return SimpleNamespace(output_dir=output_dir, dump_1d_for_channel=lambda *args, **kwargs: None, plot_1d_for_channel=lambda *args, **kwargs: None)
 
 
 def _dummy_star(name="TESTSTAR"):

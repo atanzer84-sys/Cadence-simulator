@@ -45,7 +45,7 @@ class GlobalConfig:
     zod_dist_file: str | None
     zod_spectrum_file: str | None   
 
-    test_mode: bool
+    dump_intermediate_arrays: bool
     produce_plots: bool
     produce_background_star_counts_plot: bool
 
@@ -118,7 +118,7 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
     zod_dist_file = as_optional_str(raw.get("zod_dist_file", ""))
     zod_spectrum_file = as_optional_str(raw.get("zod_spectrum_file", ""))
 
-    test_mode = as_bool(raw.get("test_mode", 0), key="test_mode")
+    dump_intermediate_arrays = as_bool(raw.get("dump_intermediate_arrays", 0), key="dump_intermediate_arrays")
     produce_plots = as_bool(raw.get("produce_plots", raw.get("produce_Plots", 0)), key="produce_plots")
     produce_background_star_counts_plot = as_bool(raw.get("produce_background_star_counts_plot", 0), key="produce_background_star_counts_plot")
 
@@ -168,7 +168,7 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
         sky_pixel_area_arcsec2=sky_pixel_area_arcsec2,
         zod_dist_file=zod_dist_file,
         zod_spectrum_file=zod_spectrum_file,
-        test_mode=test_mode,
+        dump_intermediate_arrays=dump_intermediate_arrays,
         produce_plots=produce_plots,
         produce_background_star_counts_plot=produce_background_star_counts_plot,
     )

@@ -4,7 +4,10 @@ from types import SimpleNamespace
 import pytest
 
 import waltzer_simulator
-from loaders.run_waltzer_context import _NOOP, _NOOP_PLOTS
+
+
+def _noop(*args, **kwargs):
+    pass
 
 
 def test_main_catches_exception_exits_with_message(monkeypatch, tmp_path, capsys):
@@ -14,8 +17,14 @@ def test_main_catches_exception_exits_with_message(monkeypatch, tmp_path, capsys
         output_dir=tmp_path,
         timestamp=datetime.now(),
         timestamp_str="20250101_120000",
-        test_mode=_NOOP,
-        produce_plots=_NOOP_PLOTS,
+        dump_3d_array=_noop,
+        dump_1d_array=_noop,
+        dump_1d_for_channel=_noop,
+        plot_1d_for_channel=_noop,
+        plot_flux_and_photons_windows=_noop,
+        plot_background_star_counts=_noop,
+        write_image_png=_noop,
+        generate_background_star_visibility_on_science_frame=_noop,
     )
     user_cfg = SimpleNamespace(
         target_name="HD 202772 A",

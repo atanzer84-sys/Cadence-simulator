@@ -25,9 +25,9 @@ def initialize_waltzer_runtime_context():
     user_cfg = load_cfg_and_user_config()
     cfg = get_global_config()
     from utils import images
-    dump_3d_array = _select(cfg.test_mode, debug_dumps.dump_3d_array)
-    dump_1d_array = _select(cfg.test_mode, debug_dumps.dump_1d_array)
-    dump_1d_for_channel = _select(cfg.test_mode, debug_dumps.dump_1d_for_channel)
+    dump_3d_array = _select(cfg.dump_intermediate_arrays, debug_dumps.dump_3d_array)
+    dump_1d_array = _select(cfg.dump_intermediate_arrays, debug_dumps.dump_1d_array)
+    dump_1d_for_channel = _select(cfg.dump_intermediate_arrays, debug_dumps.dump_1d_for_channel)
     plot_1d_for_channel = _select(cfg.produce_plots, images.plot_1d_for_channel)
     plot_flux_and_photons_windows = _select(cfg.produce_plots, images.plot_flux_and_photons_windows)
     plot_background_star_counts = _select(cfg.produce_background_star_counts_plot, images.plot_background_star_counts)
@@ -48,7 +48,7 @@ def initialize_waltzer_runtime_context():
         write_image_png=write_image_png,
         generate_background_star_visibility_on_science_frame=generate_background_star_visibility_on_science_frame,
     )
-    logging.info("RunContext initialized: target=%s output_dir=%s test_mode=%s produce_plots=%s write_image_png=%s write_background_star_png=%s", run_ctx.target_name, run_ctx.output_dir, cfg.test_mode, cfg.produce_plots, cfg.write_calibration_frames_png, cfg.write_background_star_png)
+    logging.info("RunContext initialized: target=%s output_dir=%s dump_intermediate_arrays=%s produce_plots=%s write_image_png=%s write_background_star_png=%s", run_ctx.target_name, run_ctx.output_dir, cfg.dump_intermediate_arrays, cfg.produce_plots, cfg.write_calibration_frames_png, cfg.write_background_star_png)
     return run_ctx, user_cfg
 
 def load_cfg_and_user_config():
