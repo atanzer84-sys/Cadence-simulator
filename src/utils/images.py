@@ -6,7 +6,7 @@ from utils.constants import debug_wavelength_range_ir, debug_wavelength_range_nu
 from loaders.run_waltzer_context import RunContext
 from domain.star import Star
 import numpy as np
-from configs.channel_config import Channel
+from configs.channel_config import Channel, PhotometryChannel
 from domain.star_catalog import StarCatalog
 from matplotlib.lines import Line2D
 
@@ -48,7 +48,7 @@ _GAP_IN = 0.8
 
 
 
-def generate_background_star_visibility_on_science_frame(merged_image: np.ndarray, spectra_bgstars_image: np.ndarray, frame_type: str, ctx: RunContext, channel: Channel, show_stats: bool = True, star: Star | None = None, index: int | None = None, background_star_bands: dict[str, dict[str, float]] | None = None) -> None:
+def generate_background_star_visibility_on_science_frame(merged_image: np.ndarray, spectra_bgstars_image: np.ndarray, frame_type: str, ctx: RunContext, channel: Channel, show_stats: bool = True, star: Star | None = None, index: int | None = None, background_star_bands: dict[str, dict[str, float]] | None = None, background_star_arcs: dict[str, list[tuple[int, int]]] | None = None) -> None:
 
     title, per_panel_stats, layout = _build_background_visibility_context(merged_image, spectra_bgstars_image, frame_type, ctx, channel, show_stats, star)
     filename = _build_png_filename(ctx.output_dir, ctx.target_name, channel.channel_name, f"{frame_type}_PANEL", index=index, waltzer_prefix=True)
@@ -60,8 +60,8 @@ def generate_background_star_visibility_on_science_frame(merged_image: np.ndarra
     merged_vmin, merged_vmax = _compute_display_range(merged_image)
     bg_arr_display, bg_vmin, bg_vmax = _compute_bg_display_range(spectra_bgstars_image)
 
-    mask_dilated, overlay, has_bg, use_band_overlay = _compute_bg_mask_overlay(spectra_bgstars_image, background_star_bands)
-
+    # mask_dilated, overlay, has_bg, use_band_overlay = _compute_bg_mask_overlay(spectra_bgstars_image, background_star_bands)
+    mask_dilated, overlay, has_bg, use_band_overlay = _compute_bg_mask_overlay(spectra_bgstars_image, channel, background_star_bands, background_star_arcs)
     # Panel 1 : Science
 
     ax1 = fig.add_subplot(gs[0, 0])
@@ -74,8 +74,8 @@ def generate_background_star_visibility_on_science_frame(merged_image: np.ndarra
     _background_star_axis(ax2, bg_arr_display, has_bg, bg_vmin, bg_vmax, nx, ny)
 
     # Panel 3 : Science + Background Stars
-    _science_frame_overlay_background_star_axis(fig, gs, merged_image, merged_vmin, merged_vmax, use_band_overlay, background_star_bands, ny, nx, mask_dilated, overlay)
-
+    # _science_frame_overlay_background_star_axis(fig, gs, merged_image, merged_vmin, merged_vmax, use_band_overlay, background_star_bands, ny, nx, mask_dilated, overlay)
+    _science_frame_overlay_background_star_axis(fig, gs, merged_image, merged_vmin, merged_vmax, use_band_overlay, background_star_bands, background_star_arcs, ny, nx, mask_dilated, overlay)
     _render_panel_stats_rows(fig, gs, per_panel_stats, stats_fontsize)
 
     fig.suptitle(title, fontsize=12, y=0.90)
@@ -404,7 +404,7 @@ def _plot_photon_flux(wavelengths, values, output_dir, star : Star, filename_tag
 
 def _build_background_visibility_context(merged_image: np.ndarray, spectra_bgstars_image: np.ndarray, frame_type: str, ctx: RunContext, channel: Channel, show_stats: bool, star: Star | None) -> tuple[str, list[tuple[dict | None, list[str]]], dict[str, float | list[float]]]:
     title = _format_frame_title(ctx.target_name, channel.channel_name, frame_type, star)
-    per_panel_stats = _prepare_background_star_panel_stats(merged_image, spectra_bgstars_image, frame_type, channel, show_stats)
+    per_panel_stats = _prepare_background_star_panel_stats(merged_image, spectra_bgstars_image, channel, show_stats)
     panel_shapes = [merged_image.shape, spectra_bgstars_image.shape, merged_image.shape]
     layout = _compute_panel_layout(panel_shapes)
     return title, per_panel_stats, layout
@@ -439,7 +439,7 @@ def _background_star_axis(ax: Any, bg_arr_display: np.ndarray, has_bg: bool, bg_
         ax.text(0.5, 0.5, "No background stars in this frame", ha="center", va="center", fontsize=12, color="black", transform=ax.transAxes)
     _style_detector_panel_axis(ax, nx, ny, "Background Stars")
 
-def _science_frame_overlay_background_star_axis(fig: Any, gs: Any, merged_image: np.ndarray, merged_vmin: float, merged_vmax: float, use_band_overlay: bool, background_star_bands: dict[str, dict[str, float]] | None, ny: int, nx: int, mask_dilated: np.ndarray, overlay: np.ndarray) -> None:
+def _science_frame_overlay_background_star_axis(fig: Any, gs: Any, merged_image: np.ndarray, merged_vmin: float, merged_vmax: float, use_band_overlay: bool, background_star_bands: dict[str, dict[str, float]] | None, background_star_arcs: dict[str, list[tuple[int, int]]] | None, ny: int, nx: int, mask_dilated: np.ndarray, overlay: np.ndarray) -> None:
     ax3 = fig.add_subplot(gs[8, 0])
     ax3.imshow(merged_image, origin="lower", aspect="equal", cmap="gray", vmin=merged_vmin, vmax=merged_vmax)
     if use_band_overlay:
@@ -460,6 +460,12 @@ def _science_frame_overlay_background_star_axis(fig: Any, gs: Any, merged_image:
                 ax3.axhline(y_p3, color="#00FF66", linewidth=0.3, alpha=0.95)
         # legend_lines = [Line2D([0], [0], color="#00FF66", lw=1.2, label="Background spectra ±2σ (cross-dispersion)"), Line2D([0], [0], color="red", lw=1.2, label="Background spectra ±3σ (cross-dispersion)")]
         legend_lines = [Line2D([0], [0], color="#00FF66", lw=1.2, label="Background spectra ±3σ (cross-dispersion)")]
+        ax3.legend(handles=legend_lines, loc="upper right", fontsize=8, frameon=True)
+    elif background_star_arcs is not None and len(background_star_arcs) > 0:
+        if np.any(mask_dilated):
+            ax3.imshow(overlay, origin="lower", aspect="equal", cmap="Reds", alpha=0.2, interpolation="nearest")
+            ax3.contour(mask_dilated.astype(float), levels=[0.5], colors="#00FF66", linewidths=0.6, alpha=0.95)
+        legend_lines = [Line2D([0], [0], color="#00FF66", lw=1.2, label="Background star arc footprint (R90)")]
         ax3.legend(handles=legend_lines, loc="upper right", fontsize=8, frameon=True)
     else:
         if np.any(mask_dilated):
@@ -488,10 +494,17 @@ def _compute_bg_display_range(spectra_bgstars_image: np.ndarray) -> tuple[np.nda
         bg_vmax = 1.0
     return bg_arr_display, bg_vmin, bg_vmax
 
-def _compute_bg_mask_overlay(spectra_bgstars_image: np.ndarray, background_star_bands: dict[str, dict[str, float]] | None) -> tuple[np.ndarray, np.ndarray, bool, bool]:
+def _compute_bg_mask_overlay(spectra_bgstars_image: np.ndarray, channel: Channel, background_star_bands: dict[str, dict[str, float]] | None, background_star_arcs: dict[str, list[tuple[int, int]]] | None) -> tuple[np.ndarray, np.ndarray, bool, bool]:
     mask = spectra_bgstars_image > 0.0
     has_bg = bool(np.any(mask))
     use_band_overlay = background_star_bands is not None and len(background_star_bands) > 0
+    if background_star_arcs is not None and len(background_star_arcs) > 0:
+        r_eff_px = _compute_psf_r90_px(channel)
+        ny, nx = spectra_bgstars_image.shape
+        mask_dilated = _build_arc_overlay_mask(ny, nx, background_star_arcs, r_eff_px)
+        overlay = np.where(mask_dilated, 1.0, np.nan)
+        return mask_dilated, overlay, has_bg, use_band_overlay
+
     mask_dilated = mask.copy()
     mask_dilated[1:, :] |= mask[:-1, :]
     mask_dilated[:-1, :] |= mask[1:, :]
@@ -499,6 +512,24 @@ def _compute_bg_mask_overlay(spectra_bgstars_image: np.ndarray, background_star_
     mask_dilated[:, :-1] |= mask[:, 1:]
     overlay = np.where(mask_dilated, 1.0, np.nan)
     return mask_dilated, overlay, has_bg, use_band_overlay
+
+def _build_arc_overlay_mask(ny: int, nx: int, background_star_arcs: dict[str, list[tuple[int, int]]], r_eff_px: float) -> np.ndarray:
+    mask = np.zeros((ny, nx), dtype=bool)
+    r_int = int(np.ceil(r_eff_px))
+    r_sq = float(r_eff_px) * float(r_eff_px)
+
+    for positions in background_star_arcs.values():
+        for x0, y0 in positions:
+            x_min = max(0, x0 - r_int)
+            x_max = min(nx - 1, x0 + r_int)
+            y_min = max(0, y0 - r_int)
+            y_max = min(ny - 1, y0 + r_int)
+
+            yy, xx = np.ogrid[y_min:y_max + 1, x_min:x_max + 1]
+            local_mask = (xx - x0) ** 2 + (yy - y0) ** 2 <= r_sq
+            mask[y_min:y_max + 1, x_min:x_max + 1] |= local_mask
+
+    return mask
 
 def _compute_panel_layout(panel_shapes: list[tuple[int, int]]) -> dict[str, float | list[float]]:
     max_nx = max(nx for _, nx in panel_shapes)
@@ -527,14 +558,14 @@ def _compute_panel_layout(panel_shapes: list[tuple[int, int]]) -> dict[str, floa
         "height_ratios": height_ratios,
     }
 
-def _prepare_background_star_panel_stats(merged_image: np.ndarray, spectra_bgstars_image: np.ndarray, frame_type: str, channel: Channel, show_stats: bool) -> list[tuple[dict | None, list[str]]]:
+def _prepare_background_star_panel_stats(merged_image: np.ndarray, spectra_bgstars_image: np.ndarray, channel: Channel, show_stats: bool) -> list[tuple[dict | None, list[str]]]:
 
     per_panel_stats: list[tuple[dict | None, list[str]]] = [(None, []), (None, []), (None, [])]
     if not show_stats:
         return per_panel_stats
 
     per_panel_stats[0] = _build_channel_panel_stats_row(merged_image, channel)
-    per_panel_stats[1] = _build_bg_star_panel_stats_row(spectra_bgstars_image)
+    per_panel_stats[1] = _build_bg_star_panel_stats_row(spectra_bgstars_image, channel)
     per_panel_stats[2] = _build_channel_panel_stats_row(merged_image, channel)
     return per_panel_stats
 
@@ -542,9 +573,33 @@ def _build_channel_panel_stats_row(array: np.ndarray, channel: Channel) -> tuple
     science_keys = _stats_keys_for_filetype("SCIENCE")
     return _stats_from_array_channel(array, channel), science_keys
 
-def _build_bg_star_panel_stats_row(spectra_bgstars_image: np.ndarray) -> tuple[dict, list[str]]:
+def _build_bg_star_panel_stats_row(spectra_bgstars_image: np.ndarray, channel: Channel) -> tuple[dict, list[str]]:
     bg_keys = _stats_keys_for_filetype("BG_STARS")
     has_bg = np.any(spectra_bgstars_image > 0.0)
     if has_bg:
-        return _stats_from_array_only(spectra_bgstars_image), bg_keys
+        values = _stats_from_array_only(spectra_bgstars_image)
+        values["EXPTIME"] = getattr(channel, "exposure_s", None)
+        return values, bg_keys
     return {k: None for k in bg_keys}, bg_keys
+
+
+def _compute_psf_r90_px(channel: PhotometryChannel) -> float:
+    psf = channel.psf_image
+    cx = int(channel.psf_center_x)
+    cy = int(channel.psf_center_y)
+
+    yy, xx = np.indices(psf.shape, dtype=float)
+    rr = np.sqrt((xx - cx) ** 2 + (yy - cy) ** 2)
+
+    flat_psf = psf.ravel()
+    flat_r = rr.ravel()
+
+    order = np.argsort(flat_psf)[::-1]
+    psf_sorted = flat_psf[order]
+    r_sorted = flat_r[order]
+
+    cumulative = np.cumsum(psf_sorted)
+
+    idx = int(np.searchsorted(cumulative, 0.90, side="left"))
+
+    return float(np.max(r_sorted[:idx + 1]))

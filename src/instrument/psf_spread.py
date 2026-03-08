@@ -28,19 +28,7 @@ def spread_1d_photometry_to_2d(counts_s_px_nir: np.ndarray, channel: PhotometryC
 
     detector_image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=float)
 
-    detector_center_x = channel.x_pixels // 2
-    detector_center_y = channel.y_pixels // 2
-
-    source_offset_x_arcsec = float(channel.source_position_x_arcsec or 0.0)
-    source_offset_y_arcsec = float(channel.source_position_y_arcsec or 0.0)
-
-    pixel_scale_arcsec_per_pixel = float(channel.pixel_scale)
-
-    source_offset_x_pixels = source_offset_x_arcsec / pixel_scale_arcsec_per_pixel
-    source_offset_y_pixels = source_offset_y_arcsec / pixel_scale_arcsec_per_pixel
-
-    source_pixel_x = int(round(detector_center_x + source_offset_x_pixels))
-    source_pixel_y = int(round(detector_center_y + source_offset_y_pixels))
+    source_pixel_x, source_pixel_y = get_photometry_placement(channel)
 
     psf_center_x = int(channel.psf_center_x)
     psf_center_y = int(channel.psf_center_y)
@@ -94,3 +82,21 @@ def paste_psf_stamp(frame: np.ndarray, psf_stamp: np.ndarray, detector_center_x:
     frame_after_sum = float(np.sum(frame))
 
     logging.info("paste_psf_stamp frame_sum_after=%0.18e delta=%0.18e", frame_after_sum, frame_after_sum - frame_before_sum)
+
+
+def get_photometry_placement(channel: PhotometryChannel):
+    detector_center_x = channel.x_pixels // 2
+    detector_center_y = channel.y_pixels // 2
+
+    source_offset_x_arcsec = float(channel.source_position_x_arcsec or 0.0)
+    source_offset_y_arcsec = float(channel.source_position_y_arcsec or 0.0)
+
+    pixel_scale_arcsec_per_pixel = float(channel.pixel_scale)
+
+    source_offset_x_pixels = source_offset_x_arcsec / pixel_scale_arcsec_per_pixel
+    source_offset_y_pixels = source_offset_y_arcsec / pixel_scale_arcsec_per_pixel
+
+    source_pixel_x = int(round(detector_center_x + source_offset_x_pixels))
+    source_pixel_y = int(round(detector_center_y + source_offset_y_pixels))
+
+    return source_pixel_x, source_pixel_y

@@ -25,11 +25,10 @@ def main():
         spectra_2d_nuv, spectra_2d_vis, rate_nir = prepare_all_detector_images_all_channels(star, run_ctx, nuv_channel, vis_channel, nir_channel)
 
         # generating single science images that are then stacked
-        # nuv_image, vis_image, nir_image = build_science_images(spectra_2d_nuv, spectra_2d_vis, rate_nir, nuv_channel, vis_channel, nir_channel, run_ctx, star)
-        nuv_images, vis_images, nir_image = build_science_images(spectra_2d_nuv, spectra_2d_vis, rate_nir, nuv_channel, vis_channel, nir_channel, run_ctx, star)
+        nuv_images, vis_images, nir_images = build_science_images(spectra_2d_nuv, spectra_2d_vis, rate_nir, nuv_channel, vis_channel, nir_channel, run_ctx, star)
         
         # generating bias, dark and science frames (fits) for NUV, VIS
-        generate_frames(nuv_images, vis_images, nir_image, nuv_channel, vis_channel, nir_channel, run_ctx, star)
+        generate_frames(nuv_images, vis_images, nir_images, nuv_channel, vis_channel, nir_channel, run_ctx, star)
 
 
     except Exception as e:
