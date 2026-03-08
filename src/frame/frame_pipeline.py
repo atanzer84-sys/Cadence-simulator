@@ -5,7 +5,7 @@ from frame.dark_frame import generate_dark_frames
 from frame.fits_header import initialize_fits_header
 from frame.science_frame import generate_science_frame
 from frame.write_fits import write_fits_frames
-from utils.images import write_frames_png
+from utils.images import write_science_frames_png
 from configs.channel_config import SpectroscopyChannel, PhotometryChannel
 from loaders.run_waltzer_context import RunContext
 from domain.star import Star
@@ -82,6 +82,6 @@ def _write_png_for_all(frame_lists, ctx: RunContext, star: Star, *, phase: str =
         data_list = [f.data for f in frames]
         header_list = [f.header for f in frames]
 
-        write_frames_png(frames=data_list, headers=header_list, frame_type=frame_type, channel_tag=channel_tag, ctx=ctx, star=star, show_stats=True)
+        write_science_frames_png(frames=data_list, headers=header_list, frame_type=frame_type, channel_tag=channel_tag, ctx=ctx, star=star, show_stats=True)
 
 

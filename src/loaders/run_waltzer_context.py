@@ -31,7 +31,7 @@ def initialize_waltzer_runtime_context():
     plot_1d_for_channel = _select(cfg.produce_flux_convolution_plots, images.plot_1d_for_channel)
     plot_flux_and_photons_windows = _select(cfg.produce_flux_convolution_plots, images.plot_flux_and_photons_windows)
     plot_background_star_counts = _select(cfg.produce_background_star_counts_plot, images.plot_background_star_counts)
-    write_image_png = _select(cfg.write_calibration_frames_png, images.write_image_png)
+    write_calibration_frame_png = _select(cfg.write_calibration_frames_png, images.write_calibration_frame_png)
     generate_background_star_visibility_on_science_frame = _select(cfg.write_background_star_png, images.generate_background_star_visibility_on_science_frame)
 
     run_ctx = RunContext(
@@ -45,10 +45,10 @@ def initialize_waltzer_runtime_context():
         plot_1d_for_channel=plot_1d_for_channel,
         plot_flux_and_photons_windows=plot_flux_and_photons_windows,
         plot_background_star_counts=plot_background_star_counts,
-        write_image_png=write_image_png,
+        write_calibration_frame_png=write_calibration_frame_png,
         generate_background_star_visibility_on_science_frame=generate_background_star_visibility_on_science_frame,
     )
-    logging.info("RunContext initialized: target=%s output_dir=%s write_intermediate_arrays=%s produce_flux_convolution_plots=%s write_image_png=%s write_background_star_png=%s", run_ctx.target_name, run_ctx.output_dir, cfg.write_intermediate_arrays, cfg.produce_flux_convolution_plots, cfg.write_calibration_frames_png, cfg.write_background_star_png)
+    logging.info("RunContext initialized: target=%s output_dir=%s write_intermediate_arrays=%s produce_flux_convolution_plots=%s write_calibration_frame_png=%s write_background_star_png=%s", run_ctx.target_name, run_ctx.output_dir, cfg.write_intermediate_arrays, cfg.produce_flux_convolution_plots, cfg.write_calibration_frames_png, cfg.write_background_star_png)
     return run_ctx, user_cfg
 
 def load_cfg_and_user_config():

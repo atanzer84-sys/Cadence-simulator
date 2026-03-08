@@ -18,14 +18,14 @@ class _StubWriteImagePng:
     def __init__(self) -> None:
         self.calls: list[tuple[np.ndarray, str, object]] = []
 
-    def write_image_png(self, array, frame_type: str, ctx, channel, show_stats: bool = True, star=None, **kwargs):
+    def write_calibration_frame_png(self, array, frame_type: str, ctx, channel, show_stats: bool = True, star=None, **kwargs):
         self.calls.append((array, frame_type, channel))
 
 
 def _ctx(tmp_path):
     return SimpleNamespace(
         output_dir=tmp_path,
-        write_image_png=_StubWriteImagePng(),
+        write_calibration_frame_png=_StubWriteImagePng(),
     )
 
 

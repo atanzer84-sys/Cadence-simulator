@@ -54,7 +54,7 @@ def _channel(**overrides):
 
 
 class _StubWriteImagePng:
-    """Records write_image_png calls so tests can assert they were invoked with expected args."""
+    """Records write_calibration_frame_png calls so tests can assert they were invoked with expected args."""
 
     def __init__(self):
         self.calls = []
@@ -64,10 +64,10 @@ class _StubWriteImagePng:
 
 
 def _ctx(tmp_path):
-    """Minimal RunContext-like object with a stub write_image_png."""
+    """Minimal RunContext-like object with a stub write_calibration_frame_png."""
     return SimpleNamespace(
         output_dir=tmp_path,
-        write_image_png=_StubWriteImagePng(),
+        write_calibration_frame_png=_StubWriteImagePng(),
     )
 
 
@@ -97,8 +97,8 @@ def test_generate_background_image_disabled_returns_zero_image(tmp_path):
 
     assert image.shape == (ch.y_pixels, ch.x_pixels)
     assert np.all(image == 0.0)
-    # Early return: write_image_png is never used when background is disabled
-    assert len(ctx.write_image_png.calls) == 0
+    # Early return: write_calibration_frame_png is never used when background is disabled
+    assert len(ctx.write_calibration_frame_png.calls) == 0
 
 
 def test_generate_background_image_default_shape_and_scaling(tmp_path):

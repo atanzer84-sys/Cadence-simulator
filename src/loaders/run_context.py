@@ -16,5 +16,5 @@ class RunContext:
     plot_1d_for_channel: Callable[..., Any]
     plot_flux_and_photons_windows: Callable[..., Any]
     plot_background_star_counts: Callable[..., Any]
-    write_image_png: Callable[..., Any]
+    write_calibration_frame_png: Callable[..., Any]
     generate_background_star_visibility_on_science_frame: Callable[..., Any]

@@ -23,7 +23,7 @@ def test_main_catches_exception_exits_with_message(monkeypatch, tmp_path, capsys
         plot_1d_for_channel=_noop,
         plot_flux_and_photons_windows=_noop,
         plot_background_star_counts=_noop,
-        write_image_png=_noop,
+        write_calibration_frame_png=_noop,
         generate_background_star_visibility_on_science_frame=_noop,
     )
     user_cfg = SimpleNamespace(

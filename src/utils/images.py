@@ -78,16 +78,16 @@ def generate_background_star_visibility_on_science_frame(merged_image: np.ndarra
     plt.close(fig)
     logging.debug("Wrote %s", filename)
 
-    
-def write_image_png(array, frame_type: str, ctx: RunContext, channel: Channel, show_stats: bool = True, star: Star | None = None, index: int | None = None) -> None:
-    """Write 2D array as PNG. Uses percentile scaling (1–99.9) like write_frames_png. Optional index for multi-frame output (e.g. frame_00042.png)."""
-    logging.info("WRITE_IMAGE_PNG called | frame_type=%s | channel=%s | shape=%s | index=%s", frame_type, channel.channel_name, array.shape, index)
+
+def write_calibration_frame_png(array, frame_type: str, ctx: RunContext, channel: Channel, show_stats: bool = True, star: Star | None = None, index: int | None = None) -> None:
+    """Write 2D array as PNG. Uses percentile scaling (1–99.9) like write_science_frames_png. Optional index for multi-frame output (e.g. frame_00042.png)."""
+    logging.info("write_calibration_frame_png called | frame_type=%s | channel=%s | shape=%s | index=%s", frame_type, channel.channel_name, array.shape, index)
 
     title, stats_values, stats_keys = _build_image_write_context(array, frame_type, ctx, channel, show_stats, star)
     _write_one_frame_png(array, ctx.output_dir, ctx.target_name, channel.channel_name, frame_type, title, stats_values, stats_keys, index=index, waltzer_prefix=False)
 
 
-def write_frames_png(frames, headers, frame_type, channel_tag, ctx: RunContext, star: Star, show_stats=False):
+def write_science_frames_png(frames, headers, frame_type, channel_tag, ctx: RunContext, star: Star, show_stats=False):
 
     n_frames = len(frames)
     if n_frames == 0:
@@ -192,7 +192,7 @@ def _build_png_filename(output_dir: Path, target_name: str, channel_tag: str, fr
 
 
 def _write_one_frame_png(array: np.ndarray, output_dir: Path, target_name: str, channel_tag: str, frame_type: str, title: str, stats_values: dict | None, stats_keys: list[str], index: int | None = None, *, waltzer_prefix: bool = True, use_asinh_scale: bool = False) -> None:
-    """Write one PNG with unified filename, title, and stats. Used by write_image_png and write_frames_png."""
+    """Write one PNG with unified filename, title, and stats. Used by write_calibration_frame_png and write_science_frames_png."""
     filename = _build_png_filename(output_dir, target_name, channel_tag, frame_type, index, waltzer_prefix=waltzer_prefix)
     stats_text = _format_stats_text(stats_values, stats_keys) if (stats_values and stats_keys) else None
     _save_single_frame_png(array, filename, title, stats_text, use_asinh_scale=use_asinh_scale)
@@ -225,7 +225,7 @@ def _format_stats_text(values: dict, keys: list[str], *, use_scientific_for_smal
 
 
 def _stats_from_array_channel(array: np.ndarray, channel: Channel) -> dict:
-    """Build stats dict from array and channel (for write_image_png)."""
+    """Build stats dict from array and channel (for write_calibration_frame_png)."""
     return {
         "MEAN": float(np.mean(array)),
         "MEDIAN": float(np.median(array)),
@@ -257,7 +257,7 @@ def _stats_from_header(header, keys: list[str]) -> dict:
 
 
 def _save_single_frame_png(array: np.ndarray, filename: Path, title: str, stats_text: str | None = None, use_asinh_scale: bool = False) -> None:
-    """Draw one 2D image with optional stats line; save to filename. Shared by write_image_png and write_frames_png."""
+    """Draw one 2D image with optional stats line; save to filename. Shared by write_calibration_frame_png and write_science_frames_png."""
     ny, nx = array.shape
     img_h_in = max(2.0, _WIDTH_IN * (ny / nx))
 
