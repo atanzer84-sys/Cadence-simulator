@@ -59,7 +59,7 @@ class _StubWriteImagePng:
     def __init__(self):
         self.calls = []
 
-    def write_image_png(self, array, frame_type: str, ctx, channel, show_stats: bool = True, star=None, **kwargs):
+    def __call__(self, array, frame_type: str, ctx, channel, show_stats: bool = True, star=None, **kwargs):
         self.calls.append((array, frame_type, channel))
 
 
