@@ -16,6 +16,8 @@ STATS_KEYS = {
     "SCIENCE":  ["MEAN", "MEDIAN", "STDDEV", "MIN", "MAX", "RNOISE", "B_OFFSET", "DARKVAL", "DARKSIG", "EXPTIME"],
     "BG_STARS": ["MEAN", "MEDIAN", "STDDEV", "MIN", "MAX", "EXPTIME"],
 }
+_FRAME_TYPE_TO_STATS_FILETYPE = (("BIAS", "BIAS"), ("DARK", "DARK"))
+_DEFAULT_FRAME_STATS_FILETYPE = "SCIENCE"
 
 STATS_KEY_FORMAT = {
     "RNOISE": "",
@@ -30,7 +32,6 @@ STATS_KEY_FORMAT = {
     "EXPTIME": ".2f",
 }
 
-# Units for second-line stats (first line MEAN/MEDIAN/STDDEV/MIN/MAX are ADU)
 STATS_KEY_UNIT = {
     "RNOISE": "e⁻",
     "B_OFFSET": "e⁻",
@@ -44,18 +45,45 @@ _WIDTH_IN = 10.0
 _TEXT_H_IN = 0.7
 _GAP_IN = 0.8
 
+
+
+
+def generate_background_star_visibility_on_science_frame(merged_image: np.ndarray, spectra_bgstars_image: np.ndarray, frame_type: str, ctx: RunContext, channel: Channel, show_stats: bool = True, star: Star | None = None, index: int | None = None, background_star_bands: dict[str, dict[str, float]] | None = None) -> None:
+
+    title, per_panel_stats, layout = _build_background_visibility_context(merged_image, spectra_bgstars_image, frame_type, ctx, channel, show_stats, star)
+    filename = _build_png_filename(ctx.output_dir, ctx.target_name, channel.channel_name, f"{frame_type}_PANEL", index=index, waltzer_prefix=True)
+    ny, nx = merged_image.shape
+    fig = plt.figure(figsize=(layout["fig_w"], layout["fig_h"]))
+    gs = fig.add_gridspec(nrows=11, ncols=1, height_ratios=layout["height_ratios"], hspace=0.0)
+    stats_fontsize = 9
+
+    merged_vmin, merged_vmax = _compute_display_range(merged_image)
+    bg_arr_display, bg_vmin, bg_vmax = _compute_bg_display_range(spectra_bgstars_image)
+
+    mask_dilated, overlay, has_bg, use_band_overlay = _compute_bg_mask_overlay(spectra_bgstars_image, background_star_bands)
+
+    ax1 = fig.add_subplot(gs[0, 0])
+    ax1.imshow(merged_image, origin="lower", aspect="equal", cmap="gray", vmin=merged_vmin, vmax=merged_vmax)
+    _style_detector_panel_axis(ax1, nx, ny, "Science Frame")
+
+    ax2 = fig.add_subplot(gs[4, 0])
+    _background_star_axis(ax2, bg_arr_display, has_bg, bg_vmin, bg_vmax, nx, ny)
+
+    _science_frame_overlay_background_star_axis(fig, gs, merged_image, merged_vmin, merged_vmax, use_band_overlay, background_star_bands, ny, nx, mask_dilated, overlay)
+
+    _render_panel_stats_rows(fig, gs, per_panel_stats, stats_fontsize)
+
+    fig.suptitle(title, fontsize=12, y=0.90)
+    fig.savefig(filename, dpi=150, bbox_inches="tight", pad_inches=0.05)
+    plt.close(fig)
+    logging.debug("Wrote %s", filename)
+
+    
 def write_image_png(array, frame_type: str, ctx: RunContext, channel: Channel, show_stats: bool = True, star: Star | None = None, index: int | None = None) -> None:
     """Write 2D array as PNG. Uses percentile scaling (1–99.9) like write_frames_png. Optional index for multi-frame output (e.g. frame_00042.png)."""
     logging.info("WRITE_IMAGE_PNG called | frame_type=%s | channel=%s | shape=%s | index=%s", frame_type, channel.channel_name, array.shape, index)
 
-    title = _format_frame_title(ctx.target_name, channel.channel_name, frame_type, star)
-    stats_values = None
-    stats_keys = []
-    if show_stats:
-        filetype = _infer_stats_filetype(frame_type)
-        stats_keys = STATS_KEYS.get(filetype, STATS_KEYS["SCIENCE"])
-        stats_values = _stats_from_array_channel(array, channel)
-
+    title, stats_values, stats_keys = _build_image_write_context(array, frame_type, ctx, channel, show_stats, star)
     _write_one_frame_png(array, ctx.output_dir, ctx.target_name, channel.channel_name, frame_type, title, stats_values, stats_keys, index=index, waltzer_prefix=False)
 
 
@@ -71,12 +99,7 @@ def write_frames_png(frames, headers, frame_type, channel_tag, ctx: RunContext, 
     title_base = _format_frame_title(star.name, channel_tag, frame_type, star)
 
     for k, (frame, header) in enumerate(zip(frames, headers)):
-        stats_values = None
-        stats_keys = []
-        if show_stats:
-            stats_keys = _stats_keys_for_header(header)
-            stats_values = _stats_from_header(header, stats_keys)
-
+        stats_values, stats_keys = _build_frame_write_context(header, show_stats)
         _write_one_frame_png(frame, ctx.output_dir, star.name, channel_tag, frame_type, title_base, stats_values, stats_keys, index=k)
 
     logging.info("Finished writing %d PNG file(s)", n_frames)
@@ -86,17 +109,17 @@ def plot_flux_and_photons_windows(wavelengths, values, output_dir, star: Star, f
     logging.info("Producing plots for %s", star.name)
 
     if perChannel:
-        plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, "NUV", debug_wavelength_range_nuv[0], debug_wavelength_range_nuv[1])
-        plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, "VIS", debug_wavelength_range_vis[0], debug_wavelength_range_vis[1])
-        plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, "NIR",  debug_wavelength_range_ir[0],  debug_wavelength_range_ir[1])
+        _plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, "NUV", debug_wavelength_range_nuv[0], debug_wavelength_range_nuv[1])
+        _plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, "VIS", debug_wavelength_range_vis[0], debug_wavelength_range_vis[1])
+        _plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, "NIR",  debug_wavelength_range_ir[0],  debug_wavelength_range_ir[1])
 
     if full:
-        plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, "full", float(wavelengths.min()), float(wavelengths.max()))
+        _plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, "full", float(wavelengths.min()), float(wavelengths.max()))
 
     if zoom:
-        plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, "NUV_zoom", *DEBUG_WL_A_NUV)
-        plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, "VIS_zoom", *DEBUG_WL_A_VIS)
-        plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, "IR_zoom",  *DEBUG_WL_A_NIR)
+        _plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, "NUV_zoom", *DEBUG_WL_A_NUV)
+        _plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, "VIS_zoom", *DEBUG_WL_A_VIS)
+        _plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, "NIR_zoom",  *DEBUG_WL_A_NIR)
 
 
 def plot_1d_for_channel(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, channel_name: str, full: bool = False, zoom: bool = False):
@@ -110,17 +133,48 @@ def plot_1d_for_channel(wavelengths, values, output_dir, star, filename_tag, tit
         full_range = debug_wavelength_range_ir
         zoom_range = DEBUG_WL_A_NIR
     else:
-        raise ValueError("channel_name must be 'NUV', 'VIS', or 'IR'")
+        raise ValueError("channel_name must be 'NUV', 'VIS', or 'NIR'")
 
     if full:
-        plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, channel_name, full_range[0], full_range[1])
+        _plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, channel_name, full_range[0], full_range[1])
 
     if zoom:
-        plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, f"{channel_name}_zoom", zoom_range[0], zoom_range[1])
+        _plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, f"{channel_name}_zoom", zoom_range[0], zoom_range[1])
 
+def plot_background_star_counts(background_stars_catalog: StarCatalog, channel: Channel, ctx: RunContext):
 
+    wavelength = channel.effective_area_wavelength
+    stars_sorted = sorted(background_stars_catalog.stars_by_id.items(), key=lambda item: item[1].gaia_magnitude)
+    total = len(stars_sorted)
+    safe_target = _normalize_target_name(ctx.target_name)
 
+    for start in range(0, total, 5):
 
+        subset = stars_sorted[start:start + 5]
+
+        plt.figure()
+
+        for star_id, bg_star in subset:
+            counts_s_px = background_stars_catalog.counts_by_id_and_band[(star_id, channel.channel_name)]
+            counts_exp = counts_s_px * channel.exposure_s
+
+            label = f"G={bg_star.gaia_magnitude:.2f}"
+            plt.plot(wavelength, counts_exp, label=label, linewidth=0.4, alpha=0.6)
+
+        plt.axhline(channel.read_noise, linestyle="--", color="black", label=f"Read noise={channel.read_noise:g} e⁻")
+        plt.axhline(channel.dark_noise * channel.exposure_s, linestyle=":", color="black", label=f"Dark={channel.dark_noise:g} e⁻/s ({channel.dark_noise * channel.exposure_s:g} e⁻)")
+        plt.xlabel("Wavelength [A]")
+        plt.ylabel("Counts exposure^-1 pixel^-1")
+        plt.legend()
+
+        title = f"{ctx.target_name}: Background stars vs noise ({channel.channel_name}, {channel.exposure_s}s)"
+        plt.title(title)
+
+        filename = ctx.output_dir / f"{safe_target}_background_stars_{channel.channel_name}_{start}.png"
+
+        plt.savefig(filename)
+        plt.close()
+        
 def _normalize_target_name(name: str) -> str:
     """Normalize target/star name for filenames (spaces → underscores). Used by PNG writes and plots."""
     return str(name).replace(" ", "_")
@@ -263,14 +317,37 @@ def _format_frame_title(target_name: str, channel_tag: str, frame_type: str, sta
     return f"{base} | {meta}" if meta else base
 
 
-def _infer_stats_filetype(frame_type: str) -> str:
-    """Infer BIAS/DARK/SCIENCE from frame_type for stats key selection."""
+def _stats_filetype_for_frame_type(frame_type: str) -> str:
     u = frame_type.upper()
-    if "BIAS" in u:
-        return "BIAS"
-    if "DARK" in u:
-        return "DARK"
-    return "SCIENCE"
+    for token, filetype in _FRAME_TYPE_TO_STATS_FILETYPE:
+        if token in u:
+            return filetype
+    return _DEFAULT_FRAME_STATS_FILETYPE
+
+def _stats_keys_for_filetype(filetype: str, default_filetype: str = _DEFAULT_FRAME_STATS_FILETYPE) -> list[str]:
+    return STATS_KEYS.get(filetype, STATS_KEYS[default_filetype])
+
+def _build_image_stats_payload(array: np.ndarray, channel: Channel, frame_type: str) -> tuple[dict, list[str]]:
+    filetype = _stats_filetype_for_frame_type(frame_type)
+    stats_keys = _stats_keys_for_filetype(filetype)
+    return _stats_from_array_channel(array, channel), stats_keys
+
+def _build_header_stats_payload(header) -> tuple[dict, list[str]]:
+    stats_keys = _stats_keys_for_header(header)
+    return _stats_from_header(header, stats_keys), stats_keys
+
+def _build_image_write_context(array: np.ndarray, frame_type: str, ctx: RunContext, channel: Channel, show_stats: bool, star: Star | None) -> tuple[str, dict | None, list[str]]:
+    title = _format_frame_title(ctx.target_name, channel.channel_name, frame_type, star)
+    if not show_stats:
+        return title, None, []
+    stats_values, stats_keys = _build_image_stats_payload(array, channel, frame_type)
+    return title, stats_values, stats_keys
+
+def _build_frame_write_context(header, show_stats: bool) -> tuple[dict | None, list[str]]:
+    if not show_stats:
+        return None, []
+    stats_values, stats_keys = _build_header_stats_payload(header)
+    return stats_values, stats_keys
 
 
 def _header_val(header, key):
@@ -285,7 +362,7 @@ def _header_val(header, key):
 def _stats_keys_for_header(header):
     ft = _header_val(header, "FILETYPE")
     filetype = str(ft).upper() if ft else "BIAS"
-    return STATS_KEYS.get(filetype, STATS_KEYS["BIAS"])
+    return _stats_keys_for_filetype(filetype, default_filetype="BIAS")
 
 
 def format_header(header, key, fmt_str=".2f"):
@@ -295,7 +372,7 @@ def format_header(header, key, fmt_str=".2f"):
     return f"{key}={format(val, fmt_str)}" if fmt_str else f"{key}={val}"
 
 
-def plot_photon_flux(wavelengths, values, output_dir, star : Star, filename_tag, title_text, y_label, key, wmin, wmax):
+def _plot_photon_flux(wavelengths, values, output_dir, star : Star, filename_tag, title_text, y_label, key, wmin, wmax):
 
     mask = (wavelengths >= wmin) & (wavelengths <= wmax)
     logging.info("Plotting %s for star %s in window '%s' (%.1f–%.1f Å); %d wavelength bins", filename_tag, star.name, key, wmin, wmax, int(mask.sum()))
@@ -320,80 +397,12 @@ def plot_photon_flux(wavelengths, values, output_dir, star : Star, filename_tag,
 
 
 
-def plot_background_star_counts(background_stars_catalog: StarCatalog, channel: Channel, ctx: RunContext):
-
-    wavelength = channel.effective_area_wavelength
-    stars_sorted = sorted(background_stars_catalog.stars_by_id.items(), key=lambda item: item[1].gaia_magnitude)
-    total = len(stars_sorted)
-    safe_target = _normalize_target_name(ctx.target_name)
-
-    for start in range(0, total, 5):
-
-        subset = stars_sorted[start:start + 5]
-
-        plt.figure()
-
-        for star_id, bg_star in subset:
-            counts_s_px = background_stars_catalog.counts_by_id_and_band[(star_id, channel.channel_name)]
-            counts_exp = counts_s_px * channel.exposure_s
-
-            label = f"G={bg_star.gaia_magnitude:.2f}"
-            plt.plot(wavelength, counts_exp, label=label, linewidth=0.4, alpha=0.6)
-
-        plt.axhline(channel.read_noise, linestyle="--", color="black", label=f"Read noise={channel.read_noise:g} e⁻")
-        plt.axhline(channel.dark_noise * channel.exposure_s, linestyle=":", color="black", label=f"Dark={channel.dark_noise:g} e⁻/s ({channel.dark_noise * channel.exposure_s:g} e⁻)")
-        plt.xlabel("Wavelength [A]")
-        plt.ylabel("Counts exposure^-1 pixel^-1")
-        plt.legend()
-
-        title = f"{ctx.target_name}: Background stars vs noise ({channel.channel_name}, {channel.exposure_s}s)"
-        plt.title(title)
-
-        filename = ctx.output_dir / f"{safe_target}_background_stars_{channel.channel_name}_{start}.png"
-
-        plt.savefig(filename)
-        plt.close()
-
-def generate_background_star_visibility_on_science_frame(merged_image: np.ndarray, spectra_bgstars_image: np.ndarray, frame_type: str, ctx: RunContext, channel: Channel, show_stats: bool = True, star: Star | None = None, index: int | None = None, background_star_bands: dict[str, dict[str, float]] | None = None) -> None:
-
+def _build_background_visibility_context(merged_image: np.ndarray, spectra_bgstars_image: np.ndarray, frame_type: str, ctx: RunContext, channel: Channel, show_stats: bool, star: Star | None) -> tuple[str, list[tuple[dict | None, list[str]]], dict[str, float | list[float]]]:
     title = _format_frame_title(ctx.target_name, channel.channel_name, frame_type, star)
-   
     per_panel_stats = _prepare_background_star_panel_stats(merged_image, spectra_bgstars_image, frame_type, channel, show_stats)
-
-    panel_shapes = [ merged_image.shape, spectra_bgstars_image.shape, merged_image.shape] 
-
+    panel_shapes = [merged_image.shape, spectra_bgstars_image.shape, merged_image.shape]
     layout = _compute_panel_layout(panel_shapes)
-    
-    _render_background_star_visibility_panel(merged_image, spectra_bgstars_image, frame_type, ctx, channel, title, per_panel_stats, layout, index=index, background_star_bands=background_star_bands)
-
-
-def _render_background_star_visibility_panel(merged_image: np.ndarray, spectra_bgstars_image: np.ndarray, frame_type: str, ctx: RunContext, channel: Channel, title: str, per_panel_stats: list[tuple[dict | None, list[str]]], layout: dict[str, float | list[float]], index: int | None = None, background_star_bands: dict[str, dict[str, float]] | None = None) -> None:
-    filename = _build_png_filename(ctx.output_dir, ctx.target_name, channel.channel_name, f"{frame_type}_PANEL", index=index, waltzer_prefix=True)
-    ny, nx = merged_image.shape
-    fig = plt.figure(figsize=(layout["fig_w"], layout["fig_h"]))
-    gs = fig.add_gridspec(nrows=11, ncols=1, height_ratios=layout["height_ratios"], hspace=0.0)
-    stats_fontsize = 9
-
-    merged_vmin, merged_vmax = _compute_display_range(merged_image)
-    bg_arr_display, bg_vmin, bg_vmax = _compute_bg_display_range(spectra_bgstars_image)
-
-    mask_dilated, overlay, has_bg, use_band_overlay = _compute_bg_mask_overlay(spectra_bgstars_image, background_star_bands)
-
-    ax1 = fig.add_subplot(gs[0, 0])
-    ax1.imshow(merged_image, origin="lower", aspect="equal", cmap="gray", vmin=merged_vmin, vmax=merged_vmax)
-    _style_detector_panel_axis(ax1, nx, ny, "Science Frame")
-
-    ax2 = fig.add_subplot(gs[4, 0])
-    _background_star_axis(ax2, bg_arr_display, has_bg, bg_vmin, bg_vmax, nx, ny)
-
-    _science_frame_overlay_background_star_axis(fig, gs, merged_image, merged_vmin, merged_vmax, use_band_overlay, background_star_bands, ny, nx, mask_dilated, overlay)
-
-    _render_panel_stats_rows(fig, gs, per_panel_stats, stats_fontsize)
-
-    fig.suptitle(title, fontsize=12, y=0.90)
-    fig.savefig(filename, dpi=150, bbox_inches="tight", pad_inches=0.05)
-    plt.close(fig)
-    logging.debug("Wrote %s", filename)
+    return title, per_panel_stats, layout
 
 def _style_detector_panel_axis(ax: Any, nx: int, ny: int, title: str) -> None:
     ax.set_xlim(-0.5, nx - 0.5)
@@ -518,10 +527,18 @@ def _prepare_background_star_panel_stats(merged_image: np.ndarray, spectra_bgsta
     if not show_stats:
         return per_panel_stats
 
-    science_keys = STATS_KEYS["SCIENCE"]
-    bg_keys = STATS_KEYS["BG_STARS"]
-    has_bg = np.any(spectra_bgstars_image > 0.0)
-    per_panel_stats[0] = (_stats_from_array_channel(merged_image, channel), science_keys)
-    per_panel_stats[1] = (_stats_from_array_only(spectra_bgstars_image), bg_keys) if has_bg else ({k: None for k in bg_keys}, bg_keys)
-    per_panel_stats[2] = (_stats_from_array_channel(merged_image, channel), science_keys)
+    per_panel_stats[0] = _build_channel_panel_stats_row(merged_image, channel)
+    per_panel_stats[1] = _build_bg_star_panel_stats_row(spectra_bgstars_image)
+    per_panel_stats[2] = _build_channel_panel_stats_row(merged_image, channel)
     return per_panel_stats
+
+def _build_channel_panel_stats_row(array: np.ndarray, channel: Channel) -> tuple[dict, list[str]]:
+    science_keys = _stats_keys_for_filetype("SCIENCE")
+    return _stats_from_array_channel(array, channel), science_keys
+
+def _build_bg_star_panel_stats_row(spectra_bgstars_image: np.ndarray) -> tuple[dict, list[str]]:
+    bg_keys = _stats_keys_for_filetype("BG_STARS")
+    has_bg = np.any(spectra_bgstars_image > 0.0)
+    if has_bg:
+        return _stats_from_array_only(spectra_bgstars_image), bg_keys
+    return {k: None for k in bg_keys}, bg_keys
