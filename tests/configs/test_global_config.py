@@ -280,7 +280,7 @@ def test_optional_bool_and_int_fields_omitted_use_defaults(tmp_path):
     for key in (
         "write_calibration_frames_png",
         "write_science_frames_png",
-        "write_background_star_png",
+        "write_background_star_science_frames_png",
         "n_calibration_frames",
         "produce_flux_convolution_plots",
     ):
@@ -290,7 +290,7 @@ def test_optional_bool_and_int_fields_omitted_use_defaults(tmp_path):
 
     assert cfg.write_calibration_frames_png is False
     assert cfg.write_science_frames_png is False
-    assert cfg.write_background_star_png is False
+    assert cfg.write_background_star_science_frames_png is False
     assert cfg.produce_flux_convolution_plots is False
     assert cfg.n_calibration_frames == 0
 
@@ -302,7 +302,7 @@ def test_optional_bool_and_int_fields_set_parsed_correctly():
     assert cfg.produce_flux_convolution_plots is True
     assert cfg.write_calibration_frames_png is True
     assert cfg.write_science_frames_png is True
-    assert cfg.write_background_star_png is False
+    assert cfg.write_background_star_science_frames_png is False
     assert cfg.n_calibration_frames == 3
 
 

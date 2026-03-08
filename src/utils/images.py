@@ -62,13 +62,18 @@ def generate_background_star_visibility_on_science_frame(merged_image: np.ndarra
 
     mask_dilated, overlay, has_bg, use_band_overlay = _compute_bg_mask_overlay(spectra_bgstars_image, background_star_bands)
 
+    # Panel 1 : Science
+
     ax1 = fig.add_subplot(gs[0, 0])
     ax1.imshow(merged_image, origin="lower", aspect="equal", cmap="gray", vmin=merged_vmin, vmax=merged_vmax)
     _style_detector_panel_axis(ax1, nx, ny, "Science Frame")
 
+    # Panel 2 : Background Stars
+
     ax2 = fig.add_subplot(gs[4, 0])
     _background_star_axis(ax2, bg_arr_display, has_bg, bg_vmin, bg_vmax, nx, ny)
 
+    # Panel 3 : Science + Background Stars
     _science_frame_overlay_background_star_axis(fig, gs, merged_image, merged_vmin, merged_vmax, use_band_overlay, background_star_bands, ny, nx, mask_dilated, overlay)
 
     _render_panel_stats_rows(fig, gs, per_panel_stats, stats_fontsize)
@@ -441,19 +446,20 @@ def _science_frame_overlay_background_star_axis(fig: Any, gs: Any, merged_image:
         for band in background_star_bands.values():
             y0 = float(band["y0"])
             sigma = float(band["sigma"])
-            y_m2 = y0 - 2.0 * sigma
-            y_p2 = y0 + 2.0 * sigma
+            # y_m2 = y0 - 2.0 * sigma
+            # y_p2 = y0 + 2.0 * sigma
             y_m3 = y0 - 3.0 * sigma
             y_p3 = y0 + 3.0 * sigma
-            if 0.0 <= y_m2 <= ny - 1:
-                ax3.axhline(y_m2, color="#00FF66", linewidth=0.6, alpha=0.95)
-            if 0.0 <= y_p2 <= ny - 1:
-                ax3.axhline(y_p2, color="#00FF66", linewidth=0.6, alpha=0.95)
+            # if 0.0 <= y_m2 <= ny - 1:
+            #     ax3.axhline(y_m2, color="red", linewidth=0.6, alpha=0.95)
+            # if 0.0 <= y_p2 <= ny - 1:
+            #     ax3.axhline(y_p2, color="red", linewidth=0.6, alpha=0.95)
             if 0.0 <= y_m3 <= ny - 1:
-                ax3.axhline(y_m3, color="red", linewidth=0.6, alpha=0.95)
+                ax3.axhline(y_m3, color="#00FF66", linewidth=0.3, alpha=0.95)
             if 0.0 <= y_p3 <= ny - 1:
-                ax3.axhline(y_p3, color="red", linewidth=0.6, alpha=0.95)
-        legend_lines = [Line2D([0], [0], color="#00FF66", lw=1.2, label="Background spectra ±2σ (cross-dispersion)"), Line2D([0], [0], color="red", lw=1.2, label="Background spectra ±3σ (cross-dispersion)")]
+                ax3.axhline(y_p3, color="#00FF66", linewidth=0.3, alpha=0.95)
+        # legend_lines = [Line2D([0], [0], color="#00FF66", lw=1.2, label="Background spectra ±2σ (cross-dispersion)"), Line2D([0], [0], color="red", lw=1.2, label="Background spectra ±3σ (cross-dispersion)")]
+        legend_lines = [Line2D([0], [0], color="#00FF66", lw=1.2, label="Background spectra ±3σ (cross-dispersion)")]
         ax3.legend(handles=legend_lines, loc="upper right", fontsize=8, frameon=True)
     else:
         if np.any(mask_dilated):
