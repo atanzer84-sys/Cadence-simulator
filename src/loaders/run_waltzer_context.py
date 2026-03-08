@@ -63,7 +63,7 @@ def _create_write_background_star_png():
 
     class _RealWriteBackgroundStarPng:
         write_image_png = staticmethod(images.write_image_png)
-        write_background_star_visibility_tests = staticmethod(images.write_background_star_visibility_tests)
+        write_background_star_visibility_tests = staticmethod(images.generate_background_star_visibility_on_science_frame)
 
     return _RealWriteBackgroundStarPng() if get_global_config().write_background_star_png else _NOOP_WRITE_IMAGE_PNG
 

@@ -1,6 +1,7 @@
 import logging
 import matplotlib.pyplot as plt
 from pathlib import Path
+from typing import Any
 from utils.constants import debug_wavelength_range_ir, debug_wavelength_range_nuv, debug_wavelength_range_vis, DEBUG_WL_A_NUV, DEBUG_WL_A_VIS, DEBUG_WL_A_NIR
 from loaders.run_waltzer_context import RunContext
 from domain.star import Star
@@ -246,7 +247,7 @@ def _save_single_frame_png(array: np.ndarray, filename: Path, title: str, stats_
     logging.debug("Wrote %s", filename)
 
 
-def _format_star_meta(star: Star | None) -> str:
+def _format_star_metadata(star: Star | None) -> str:
     """Format Teff and distance for titles. Returns empty string if star is None."""
     if star is None:
         return ""
@@ -258,7 +259,7 @@ def _format_star_meta(star: Star | None) -> str:
 def _format_frame_title(target_name: str, channel_tag: str, frame_type: str, star: Star | None) -> str:
     """Build title with optional Teff and distance when star is provided."""
     base = f"{target_name} | {channel_tag} {frame_type}"
-    meta = _format_star_meta(star)
+    meta = _format_star_metadata(star)
     return f"{base} | {meta}" if meta else base
 
 
@@ -311,7 +312,7 @@ def plot_photon_flux(wavelengths, values, output_dir, star : Star, filename_tag,
     ax.plot(wl, flux, color=color, linewidth=0.4, alpha=0.6)
     ax.set_xlabel("Wavelength (Å)")
     ax.set_ylabel(y_label)
-    meta = _format_star_meta(star)
+    meta = _format_star_metadata(star)
     ax.set_title(f"{star.name}: {title_text} | {wmin:.2f}–{wmax:.2f} Å, {meta}", fontsize=11)
     safe_name = _normalize_target_name(star.name)
     fig.savefig(Path(output_dir) / f"{safe_name}_{filename_tag}_{key}.png", dpi=200, bbox_inches="tight")
@@ -353,72 +354,128 @@ def plot_background_star_counts(background_stars_catalog: StarCatalog, channel: 
         plt.savefig(filename)
         plt.close()
 
-
-
-def write_background_star_visibility_tests(merged_image: np.ndarray, spectra_bgstars_image: np.ndarray, frame_type: str, ctx: RunContext, channel: Channel, show_stats: bool = True, star: Star | None = None, index: int | None = None, background_star_bands: dict[str, dict[str, float]] | None = None) -> None:
-    """Write one 3-panel diagnostic PNG: merged percentile, background-stars-only, merged plus bg-star footprint."""
+def generate_background_star_visibility_on_science_frame(merged_image: np.ndarray, spectra_bgstars_image: np.ndarray, frame_type: str, ctx: RunContext, channel: Channel, show_stats: bool = True, star: Star | None = None, index: int | None = None, background_star_bands: dict[str, dict[str, float]] | None = None) -> None:
 
     title = _format_frame_title(ctx.target_name, channel.channel_name, frame_type, star)
+   
+    per_panel_stats = _prepare_background_star_panel_stats(merged_image, spectra_bgstars_image, frame_type, channel, show_stats)
 
-    per_panel_stats: list[tuple[dict | None, list[str]]] = [(None, []), (None, []), (None, [])]
+    panel_shapes = [ merged_image.shape, spectra_bgstars_image.shape, merged_image.shape] 
 
-    if show_stats:
-        filetype = _infer_stats_filetype(frame_type)
-        science_keys = STATS_KEYS.get(filetype, STATS_KEYS["SCIENCE"])
-        bg_keys = STATS_KEYS["BG_STARS"]
-        has_bg = np.any(spectra_bgstars_image > 0.0)
-
-        per_panel_stats[0] = (_stats_from_array_channel(merged_image, channel), science_keys)
-        per_panel_stats[1] = (_stats_from_array_only(spectra_bgstars_image), bg_keys) if has_bg else ({k: None for k in bg_keys}, bg_keys)
-        per_panel_stats[2] = (_stats_from_array_channel(merged_image, channel), science_keys)
-
-    _write_background_star_visibility_panel_png(merged_image, spectra_bgstars_image, ctx.output_dir, ctx.target_name, channel.channel_name, f"{frame_type}_PANEL", title, per_panel_stats, index=index, background_star_bands=background_star_bands)
+    layout = _compute_panel_layout(panel_shapes)
+    
+    _render_background_star_visibility_panel(merged_image, spectra_bgstars_image, frame_type, ctx, channel, title, per_panel_stats, layout, index=index, background_star_bands=background_star_bands)
 
 
-def _write_background_star_visibility_panel_png(merged_image: np.ndarray, spectra_bgstars_image: np.ndarray, output_dir: Path, target_name: str, channel_tag: str, frame_type: str, title: str, per_panel_stats: list[tuple[dict | None, list[str]]], index: int | None = None, background_star_bands: dict[str, dict[str, float]] | None = None) -> None:
-
-    filename = _build_png_filename(output_dir, target_name, channel_tag, frame_type, index=index, waltzer_prefix=False)
-
+def _render_background_star_visibility_panel(merged_image: np.ndarray, spectra_bgstars_image: np.ndarray, frame_type: str, ctx: RunContext, channel: Channel, title: str, per_panel_stats: list[tuple[dict | None, list[str]]], layout: dict[str, float | list[float]], index: int | None = None, background_star_bands: dict[str, dict[str, float]] | None = None) -> None:
+    filename = _build_png_filename(ctx.output_dir, ctx.target_name, channel.channel_name, f"{frame_type}_PANEL", index=index, waltzer_prefix=True)
     ny, nx = merged_image.shape
+    fig = plt.figure(figsize=(layout["fig_w"], layout["fig_h"]))
+    gs = fig.add_gridspec(nrows=11, ncols=1, height_ratios=layout["height_ratios"], hspace=0.0)
+    stats_fontsize = 9
 
-    panel_w_in = max(6.0, min(10.0, 0.005 * nx))
-    panel_h_in = panel_w_in * (ny / nx)
-    panel_h_in = max(1.5, panel_h_in)
+    merged_vmin, merged_vmax = _compute_display_range(merged_image)
+    bg_arr_display, bg_vmin, bg_vmax = _compute_bg_display_range(spectra_bgstars_image)
 
-    stats_h = 0.35 * panel_h_in
-    stats_fontsize = max(7, min(10, int(6 + panel_h_in)))
+    mask_dilated, overlay, has_bg, use_band_overlay = _compute_bg_mask_overlay(spectra_bgstars_image, background_star_bands)
 
-    fig_w = panel_w_in
-    fig_h = 3.0 * panel_h_in + 3.0 * stats_h + 0.2 * panel_h_in
+    ax1 = fig.add_subplot(gs[0, 0])
+    ax1.imshow(merged_image, origin="lower", aspect="equal", cmap="gray", vmin=merged_vmin, vmax=merged_vmax)
+    _style_detector_panel_axis(ax1, nx, ny, "Science Frame")
 
-    fig = plt.figure(figsize=(fig_w, fig_h))
+    ax2 = fig.add_subplot(gs[4, 0])
+    _background_star_axis(ax2, bg_arr_display, has_bg, bg_vmin, bg_vmax, nx, ny)
 
-    hspace_base = 0.35
-    hspace = max(0.12, hspace_base * 2.5 / panel_h_in)
+    _science_frame_overlay_background_star_axis(fig, gs, merged_image, merged_vmin, merged_vmax, use_band_overlay, background_star_bands, ny, nx, mask_dilated, overlay)
 
-    gs = fig.add_gridspec(nrows=6, ncols=1, height_ratios=[1.0, stats_h / panel_h_in, 1.0, stats_h / panel_h_in, 1.0, stats_h / panel_h_in], hspace=hspace)
+    _render_panel_stats_rows(fig, gs, per_panel_stats, stats_fontsize)
 
-    merged_vmin = np.percentile(merged_image, 1)
-    merged_vmax = np.percentile(merged_image, 99.9)
+    fig.suptitle(title, fontsize=12, y=0.90)
+    fig.savefig(filename, dpi=150, bbox_inches="tight", pad_inches=0.05)
+    plt.close(fig)
+    logging.debug("Wrote %s", filename)
 
-    if (not np.isfinite(merged_vmin)) or (not np.isfinite(merged_vmax)) or (merged_vmax <= merged_vmin):
-        merged_vmin = float(np.min(merged_image))
-        merged_vmax = float(np.max(merged_image))
-        if merged_vmax <= merged_vmin:
-            merged_vmax = merged_vmin + 1.0
+def _style_detector_panel_axis(ax: Any, nx: int, ny: int, title: str) -> None:
+    ax.set_xlim(-0.5, nx - 0.5)
+    ax.set_ylim(-0.5, ny - 0.5)
+    ax.set_xlabel("pixels", labelpad=10)
+    ax.set_ylabel("pixels", labelpad=10)
+    ax.set_title(title, fontsize=11)
 
+def _render_panel_stats_rows(fig: Any, gs: Any, per_panel_stats: list[tuple[dict | None, list[str]]], stats_fontsize: int) -> None:
+    for i, (vals, keys) in enumerate(per_panel_stats):
+        if not keys:
+            continue
+        if vals is None:
+            vals = {k: None for k in keys}
+        use_sci = keys == STATS_KEYS["BG_STARS"]
+        stats_text = _format_stats_text(vals, keys, use_scientific_for_small=use_sci)
+        stat_row = 2 + 4 * i
+        ax_stat = fig.add_subplot(gs[stat_row, 0])
+        ax_stat.axis("off")
+        ax_stat.set_facecolor("white")
+        ax_stat.text(0.5, 0.5, stats_text, ha="center", va="center", fontsize=stats_fontsize, transform=ax_stat.transAxes)
+
+def _background_star_axis(ax: Any, bg_arr_display: np.ndarray, has_bg: bool, bg_vmin: float, bg_vmax: float, nx: int, ny: int) -> None:
+    if has_bg:
+        ax.imshow(bg_arr_display, origin="lower", aspect="equal", cmap="gray", vmin=bg_vmin, vmax=bg_vmax)
+    else:
+        blank = np.ones((ny, nx))
+        ax.imshow(blank, origin="lower", aspect="equal", cmap="gray", vmin=0.0, vmax=1.0)
+        ax.text(0.5, 0.5, "No background stars in this frame", ha="center", va="center", fontsize=12, color="black", transform=ax.transAxes)
+    _style_detector_panel_axis(ax, nx, ny, "Background Stars")
+
+def _science_frame_overlay_background_star_axis(fig: Any, gs: Any, merged_image: np.ndarray, merged_vmin: float, merged_vmax: float, use_band_overlay: bool, background_star_bands: dict[str, dict[str, float]] | None, ny: int, nx: int, mask_dilated: np.ndarray, overlay: np.ndarray) -> None:
+    ax3 = fig.add_subplot(gs[8, 0])
+    ax3.imshow(merged_image, origin="lower", aspect="equal", cmap="gray", vmin=merged_vmin, vmax=merged_vmax)
+    if use_band_overlay:
+        for band in background_star_bands.values():
+            y0 = float(band["y0"])
+            sigma = float(band["sigma"])
+            y_m2 = y0 - 2.0 * sigma
+            y_p2 = y0 + 2.0 * sigma
+            y_m3 = y0 - 3.0 * sigma
+            y_p3 = y0 + 3.0 * sigma
+            if 0.0 <= y_m2 <= ny - 1:
+                ax3.axhline(y_m2, color="#00FF66", linewidth=0.6, alpha=0.95)
+            if 0.0 <= y_p2 <= ny - 1:
+                ax3.axhline(y_p2, color="#00FF66", linewidth=0.6, alpha=0.95)
+            if 0.0 <= y_m3 <= ny - 1:
+                ax3.axhline(y_m3, color="red", linewidth=0.6, alpha=0.95)
+            if 0.0 <= y_p3 <= ny - 1:
+                ax3.axhline(y_p3, color="red", linewidth=0.6, alpha=0.95)
+        legend_lines = [Line2D([0], [0], color="#00FF66", lw=1.2, label="Background spectra ±2σ (cross-dispersion)"), Line2D([0], [0], color="red", lw=1.2, label="Background spectra ±3σ (cross-dispersion)")]
+        ax3.legend(handles=legend_lines, loc="upper right", fontsize=8, frameon=True)
+    else:
+        if np.any(mask_dilated):
+            ax3.imshow(overlay, origin="lower", aspect="equal", cmap="Reds", alpha=0.2, interpolation="nearest")
+            ax3.contour(mask_dilated.astype(float), levels=[0.5], colors="#00FF66", linewidths=0.6, alpha=0.95)
+    _style_detector_panel_axis(ax3, nx, ny, "Science Frame with Background Stars Footprint")
+
+def _compute_display_range(image: np.ndarray) -> tuple[float, float]:
+    vmin = np.percentile(image, 1.0)
+    vmax = np.percentile(image, 99.9)
+    if (not np.isfinite(vmin)) or (not np.isfinite(vmax)) or (vmax <= vmin):
+        vmin = float(np.min(image))
+        vmax = float(np.max(image))
+        if vmax <= vmin:
+            vmax = vmin + 1.0
+    return float(vmin), float(vmax)
+
+def _compute_bg_display_range(spectra_bgstars_image: np.ndarray) -> tuple[np.ndarray, float, float]:
     bg_arr_display = np.arcsinh(spectra_bgstars_image)
-    bg_positive = bg_arr_display[spectra_bgstars_image > 0]
-
+    bg_positive = bg_arr_display[spectra_bgstars_image > 0.0]
     if bg_positive.size > 0:
-        bg_vmin = np.percentile(bg_positive, 1.0)
-        bg_vmax = np.percentile(bg_positive, 99.0)
+        bg_vmin = float(np.percentile(bg_positive, 1.0))
+        bg_vmax = float(np.percentile(bg_positive, 99.0))
     else:
         bg_vmin = 0.0
         bg_vmax = 1.0
+    return bg_arr_display, bg_vmin, bg_vmax
 
+def _compute_bg_mask_overlay(spectra_bgstars_image: np.ndarray, background_star_bands: dict[str, dict[str, float]] | None) -> tuple[np.ndarray, np.ndarray, bool, bool]:
     mask = spectra_bgstars_image > 0.0
-    has_bg = np.any(mask)
+    has_bg = bool(np.any(mask))
     use_band_overlay = background_star_bands is not None and len(background_star_bands) > 0
     mask_dilated = mask.copy()
     mask_dilated[1:, :] |= mask[:-1, :]
@@ -426,82 +483,45 @@ def _write_background_star_visibility_panel_png(merged_image: np.ndarray, spectr
     mask_dilated[:, 1:] |= mask[:, :-1]
     mask_dilated[:, :-1] |= mask[:, 1:]
     overlay = np.where(mask_dilated, 1.0, np.nan)
+    return mask_dilated, overlay, has_bg, use_band_overlay
 
-    # PANEL 1
-    ax1 = fig.add_subplot(gs[0, 0])
-    ax1.imshow(merged_image, origin="lower", aspect="equal", cmap="gray", vmin=merged_vmin, vmax=merged_vmax)
-    ax1.set_xlim(-0.5, nx - 0.5)
-    ax1.set_ylim(-0.5, ny - 0.5)
-    ax1.set_xlabel("pixels", labelpad=8)
-    ax1.set_ylabel("pixels", labelpad=8)
-    ax1.set_title("Science Frame", fontsize=11)
+def _compute_panel_layout(panel_shapes: list[tuple[int, int]]) -> dict[str, float | list[float]]:
+    max_nx = max(nx for _, nx in panel_shapes)
+    panel_w_in = max(8.0, min(10.0, 0.1 * max_nx))
+    panel_heights = [panel_w_in * (ny / nx) for ny, nx in panel_shapes]
+    gap_panel_to_stats_h = 0.3
+    stats_h = 0.3
+    gap_between_panels_h = 0.3
+    title_h = 3.5
+    fig_w = panel_w_in
+    fig_h = sum(panel_heights) + 3.0 * stats_h + 3.0 * gap_panel_to_stats_h + 2.0 * gap_between_panels_h + title_h
+    height_ratios = [
+        panel_heights[0], gap_panel_to_stats_h, stats_h, gap_between_panels_h,
+        panel_heights[1], gap_panel_to_stats_h, stats_h, gap_between_panels_h,
+        panel_heights[2], gap_panel_to_stats_h, stats_h,
+    ]
+    return {
+        "panel_w_in": panel_w_in,
+        "panel_heights_in": panel_heights,
+        "stats_h": stats_h,
+        "gap_panel_to_stats_h": gap_panel_to_stats_h,
+        "gap_between_panels_h": gap_between_panels_h,
+        "title_h": title_h,
+        "fig_w": fig_w,
+        "fig_h": fig_h,
+        "height_ratios": height_ratios,
+    }
 
-    # PANEL 2
-    ax2 = fig.add_subplot(gs[2, 0])
+def _prepare_background_star_panel_stats(merged_image: np.ndarray, spectra_bgstars_image: np.ndarray, frame_type: str, channel: Channel, show_stats: bool) -> list[tuple[dict | None, list[str]]]:
 
-    if has_bg:
-        ax2.imshow(bg_arr_display, origin="lower", aspect="equal", cmap="gray", vmin=bg_vmin, vmax=bg_vmax)
-    else:
-        blank = np.ones((ny, nx))
-        ax2.imshow(blank, origin="lower", aspect="equal", cmap="gray", vmin=0.0, vmax=1.0)
-        ax2.text(0.5, 0.5, "No background stars in this frame", ha="center", va="center", fontsize=12, color="black", transform=ax2.transAxes)
+    per_panel_stats: list[tuple[dict | None, list[str]]] = [(None, []), (None, []), (None, [])]
+    if not show_stats:
+        return per_panel_stats
 
-    ax2.set_xlim(-0.5, nx - 0.5)
-    ax2.set_ylim(-0.5, ny - 0.5)
-    ax2.set_xlabel("pixels", labelpad=8)
-    ax2.set_ylabel("pixels", labelpad=8)
-    ax2.set_title("Background Stars", fontsize=11)
-
-    # PANEL 3
-    ax3 = fig.add_subplot(gs[4, 0])
-    ax3.imshow(merged_image, origin="lower", aspect="equal", cmap="gray", vmin=merged_vmin, vmax=merged_vmax)
-
-    # PANEL 3
-    if use_band_overlay:
-        for band in background_star_bands.values():
-            y0 = band["y0"]
-            sigma = band["sigma"]
-
-            y_m2 = y0 - 2.0 * sigma
-            y_p2 = y0 + 2.0 * sigma
-
-            if 0 <= y_m2 <= ny - 1:
-                ax3.axhline(y_m2, color="#00FF66", linewidth=0.6, alpha=0.95)
-            if 0 <= y_p2 <= ny - 1:
-                ax3.axhline(y_p2, color="#00FF66", linewidth=0.6, alpha=0.95)
-    
-        legend_lines = [Line2D([0], [0], color="#00FF66", lw=1.2, label="±2σ cross-dispersion spread")]
-        ax3.legend(handles=legend_lines, loc="upper right", fontsize=8, frameon=True)
-
-    else:
-        if np.any(mask_dilated):
-            ax3.imshow(overlay, origin="lower", aspect="equal", cmap="Reds", alpha=0.2, interpolation="nearest")
-            ax3.contour(mask_dilated.astype(float), levels=[0.5], colors="#00FF66", linewidths=0.6, alpha=0.95)
-
-    ax3.set_xlim(-0.5, nx - 0.5)
-    ax3.set_ylim(-0.5, ny - 0.5)
-    ax3.set_xlabel("pixels", labelpad=8)
-    ax3.set_ylabel("pixels", labelpad=8)
-    ax3.set_title("Science Frame with Background Stars Footprint", fontsize=11)
-
-    for i, (vals, keys) in enumerate(per_panel_stats):
-        if not keys:
-            continue
-        if vals is None:
-            vals = {k: None for k in keys}
-
-        use_sci = keys == STATS_KEYS["BG_STARS"]
-        stats_text = _format_stats_text(vals, keys, use_scientific_for_small=use_sci)
-
-        ax_stat = fig.add_subplot(gs[1 + 2 * i, 0])
-        ax_stat.axis("off")
-        ax_stat.set_facecolor("white")
-        ax_stat.text(0.5, 0.5, stats_text, ha="center", va="center", fontsize=stats_fontsize, transform=ax_stat.transAxes)
-
-    fig.subplots_adjust(top=0.92)
-    fig.suptitle(title, fontsize=12, y=0.98)
-    fig.savefig(filename, dpi=150, bbox_inches="tight", pad_inches=0.05)
-    plt.close(fig)
-
-    logging.debug("Wrote %s", filename)
-
+    science_keys = STATS_KEYS["SCIENCE"]
+    bg_keys = STATS_KEYS["BG_STARS"]
+    has_bg = np.any(spectra_bgstars_image > 0.0)
+    per_panel_stats[0] = (_stats_from_array_channel(merged_image, channel), science_keys)
+    per_panel_stats[1] = (_stats_from_array_only(spectra_bgstars_image), bg_keys) if has_bg else ({k: None for k in bg_keys}, bg_keys)
+    per_panel_stats[2] = (_stats_from_array_channel(merged_image, channel), science_keys)
+    return per_panel_stats
