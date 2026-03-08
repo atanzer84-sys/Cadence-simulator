@@ -92,23 +92,32 @@ def _create_photometry_channel_images(nir_rate, channel: PhotometryChannel, ctx:
 
     for frame_index in range(channel.n_science_frames):
         time_s = frame_index * (channel.exposure_s + cfg.readout_gap_s)
-        roll_angle_deg = 360.0 * (time_s / orbit_duration_s)
+        # roll_angle_deg = 360.0 * (time_s / orbit_duration_s)
 
-        print(f"science exposure image {frame_index + 1}/{channel.n_science_frames} (roll_angle={roll_angle_deg:.2f}°)")
-        logging.info("science exposure image: frame_index=%d n_science_frames=%d time_s=%g roll_angle_deg=%g", frame_index, channel.n_science_frames, time_s, roll_angle_deg)
+        theta_start_deg = 360.0 * (time_s / orbit_duration_s)
+        theta_end_deg = 360.0 * ((time_s + channel.exposure_s) / orbit_duration_s)
 
-        img = _create_photometry_per_exposure(nir_component, background_component, channel, ctx, cfg, star, background_stars_catalog, frame_index, roll_angle_deg)
+        # print(f"science exposure image {frame_index + 1}/{channel.n_science_frames} (roll_angle={roll_angle_deg:.2f}°)")
+        # logging.info("science exposure image: frame_index=%d n_science_frames=%d time_s=%g roll_angle_deg=%g", frame_index, channel.n_science_frames, time_s, roll_angle_deg)
+
+        print(f"science exposure image {frame_index + 1}/{channel.n_science_frames} (theta_start={theta_start_deg:.2f}°, theta_end={theta_end_deg:.2f}°)")
+        logging.info("science exposure image: frame_index=%d n_science_frames=%d time_s=%g theta_start_deg=%g theta_end_deg=%g", frame_index, channel.n_science_frames, time_s, theta_start_deg, theta_end_deg)
+
+        # img = _create_photometry_per_exposure(nir_component, background_component, channel, ctx, cfg, star, background_stars_catalog, frame_index, roll_angle_deg)
+        img = _create_photometry_per_exposure(nir_component, background_component, channel, ctx, cfg, star, background_stars_catalog, frame_index, theta_start_deg, theta_end_deg)
+
         images.append(img)
 
     return images
 
-def _create_photometry_per_exposure(nir_component, background_component, channel: PhotometryChannel, ctx: RunContext, cfg: GlobalConfig, star: Star, background_stars_catalog: StarCatalog, frame_index: int, roll_angle_deg: float) -> np.ndarray:
+def _create_photometry_per_exposure(nir_component, background_component, channel: PhotometryChannel, ctx: RunContext, cfg: GlobalConfig, star: Star, background_stars_catalog: StarCatalog, frame_index: int, theta_start_deg: float, theta_end_deg: float) -> np.ndarray:
 
     ccd_gain = channel.ccd_gain
 
     image, image_background_stars = _build_science_image_without_bg_stars(nir_component, background_component, channel, ctx, cfg, star, frame_index)
 
-    bg_stars, background_star_bands = generate_background_star_photometry_image(channel, ctx, star, background_stars_catalog, roll_angle_deg, frame_index)
+    bg_stars, background_star_bands = generate_background_star_photometry_image(channel, ctx, star, background_stars_catalog, theta_start_deg, theta_end_deg, frame_index)
+
     image += bg_stars
     image_background_stars += bg_stars
 
