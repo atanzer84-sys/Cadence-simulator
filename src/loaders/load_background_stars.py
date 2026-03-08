@@ -11,6 +11,8 @@ from loaders.load_stellar_and_planetary_properties import load_excel_mapping , i
 from loaders.load_gaia import get_gaia_stellar_properties
 from flux.flux_calc import calculateFluxOnEarth
 from loaders.load_gaia import gaia_lookup_for_background_stars
+import astropy.units as u
+from astropy.coordinates import SkyCoord
 
 def lookup_background_stars(ctx: RunContext, cfg: GlobalConfig, star: Star):
     print("\n==== STARTING BACKGROUND STAR LOOKUP VIA GAIA OR CSV =====")
@@ -86,18 +88,29 @@ def create_background_star_catalog(table, cfg:GlobalConfig):
     return catalog
 
 def add_background_star_offsets_arcsec(catalog: StarCatalog, target_star: Star) -> None:
+
     ra0 = float(target_star.right_ascension)
     dec0 = float(target_star.declination)
-    cos_dec0 = np.cos(np.deg2rad(dec0))
+    target = SkyCoord(ra=ra0 * u.deg, dec=dec0 * u.deg, frame="icrs")
     
     for star_id, bg_star in catalog.stars_by_id.items():
         ra = float(bg_star.right_ascension)
         dec = float(bg_star.declination)
-        dra_deg = (ra - ra0)
-        ddec_deg = (dec - dec0)
-        dx_arcsec = dra_deg * cos_dec0 * 3600.0
-        dy_arcsec = ddec_deg * 3600.0
-        catalog.set_offset_arcsec(star_id, dx_arcsec, dy_arcsec)
+
+        #astropy
+        bg = SkyCoord(ra=ra * u.deg, dec=dec * u.deg, frame="icrs")
+        dlon, dlat = target.spherical_offsets_to(bg)
+
+        dx = dlon.to(u.arcsec).value
+        dy = dlat.to(u.arcsec).value
+        sep_arcsec = target.separation(bg).to(u.arcsec).value
+        logging.info(
+            "Background star offset: target_ra=%.6f deg target_dec=%.6f deg bg_ra=%.6f deg bg_dec=%.6f deg "
+            "relative_dx=%.6f arcsec relative_dy=%.6f arcsec separation=%.6f arcsec",
+            ra0, dec0, ra, dec, dx, dy, sep_arcsec,
+        )
+
+        catalog.set_offset_arcsec(star_id, dx, dy)
 
 
 
