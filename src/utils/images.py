@@ -8,22 +8,24 @@ import numpy as np
 from configs.channel_config import Channel
 from domain.star_catalog import StarCatalog
 
+
 STATS_KEYS = {
     "BIAS":     ["MEAN", "MEDIAN", "STDDEV", "MIN", "MAX", "RNOISE", "B_OFFSET"],
     "DARK":     ["MEAN", "MEDIAN", "STDDEV", "MIN", "MAX", "RNOISE", "B_OFFSET", "DARKVAL", "DARKSIG", "EXPTIME"],
     "SCIENCE":  ["MEAN", "MEDIAN", "STDDEV", "MIN", "MAX", "RNOISE", "B_OFFSET", "DARKVAL", "DARKSIG", "EXPTIME"],
+    "BG_STARS": ["MEAN", "MEDIAN", "STDDEV", "MIN", "MAX", "EXPTIME"],
 }
 
 STATS_KEY_FORMAT = {
     "RNOISE": "",
     "B_OFFSET": "",
-    "MEAN": ".8f",
-    "MEDIAN": ".8f",
-    "DARKVAL": ".3f",
-    "DARKSIG": ".3f",
-    "STDDEV": ".8f",
-    "MIN": ".5f",
-    "MAX": ".5f",
+    "MEAN": ".2f",
+    "MEDIAN": ".2f",
+    "DARKVAL": ".2f",
+    "DARKSIG": ".2f",
+    "STDDEV": ".2f",
+    "MIN": ".2f",
+    "MAX": ".2f",
     "EXPTIME": ".2f",
 }
 
@@ -140,8 +142,9 @@ def _write_one_frame_png(array: np.ndarray, output_dir: Path, target_name: str, 
     stats_text = _format_stats_text(stats_values, stats_keys) if (stats_values and stats_keys) else None
     _save_single_frame_png(array, filename, title, stats_text, use_asinh_scale=use_asinh_scale)
 
-def _format_stats_text(values: dict, keys: list[str]) -> str:
-    """Format key=value pairs. Use N/A for missing/None values. Add units for second-line items."""
+def _format_stats_text(values: dict, keys: list[str], *, use_scientific_for_small: bool = False) -> str:
+    """Format key=value pairs. Use N/A for missing/None values. Add units for second-line items.
+    If use_scientific_for_small, use scientific notation (e.g. 1.23e-08) for |val| in (0, 1e-4) or |val| >= 1e6."""
     pairs = [(k, values.get(k)) for k in keys]
     if not pairs:
         return ""
@@ -151,6 +154,9 @@ def _format_stats_text(values: dict, keys: list[str]) -> str:
             s = f"{key}=N/A"
         else:
             fmt = STATS_KEY_FORMAT.get(key, ".2f")
+            if use_scientific_for_small and isinstance(val, (int, float)) and val != 0:
+                if abs(val) < 1e-4 or abs(val) >= 1e6:
+                    fmt = ".2e"
             s = f"{key}={format(val, fmt)}" if fmt else f"{key}={val}"
             unit = STATS_KEY_UNIT.get(key, "")
             if unit:
@@ -176,6 +182,17 @@ def _stats_from_array_channel(array: np.ndarray, channel: Channel) -> dict:
         "DARKVAL": getattr(channel, "dark_noise", None),
         "DARKSIG": getattr(channel, "dark_current_sigma", None),
         "EXPTIME": getattr(channel, "exposure_s", None),
+    }
+
+
+def _stats_from_array_only(array: np.ndarray) -> dict:
+    """Build stats dict from array only (no instrument params). For spectra/bg-star-only images."""
+    return {
+        "MEAN": float(np.mean(array)),
+        "MEDIAN": float(np.median(array)),
+        "STDDEV": float(np.std(array, ddof=0)),
+        "MIN": float(np.min(array)),
+        "MAX": float(np.max(array)),
     }
 
 
@@ -240,7 +257,7 @@ def _format_star_meta(star: Star | None) -> str:
 
 def _format_frame_title(target_name: str, channel_tag: str, frame_type: str, star: Star | None) -> str:
     """Build title with optional Teff and distance when star is provided."""
-    base = f"{target_name}: {channel_tag} {frame_type}"
+    base = f"{target_name} | {channel_tag} {frame_type}"
     meta = _format_star_meta(star)
     return f"{base} | {meta}" if meta else base
 
@@ -302,119 +319,6 @@ def plot_photon_flux(wavelengths, values, output_dir, star : Star, filename_tag,
 
 
 
-def write_background_star_visibility_tests(merged_image: np.ndarray, spectra_bgstars_image: np.ndarray, frame_type: str, ctx: RunContext, channel: Channel, show_stats: bool = True, star: Star | None = None, index: int | None = None) -> None:
-    """Write one 4-panel diagnostic PNG: merged percentile, background-stars-only, merged plus bg-star footprint, merged asinh."""
-    logging.info("WRITE_BACKGROUND_STAR_VISIBILITY_TESTS called | frame_type=%s | channel=%s | merged_shape=%s | spectra_bgstars_shape=%s | index=%s", frame_type, channel.channel_name, merged_image.shape, spectra_bgstars_image.shape, index)
-    title = _format_frame_title(ctx.target_name, channel.channel_name, frame_type, star)
-    stats_values = None
-    stats_keys = []
-    if show_stats:
-        filetype = _infer_stats_filetype(frame_type)
-        stats_keys = STATS_KEYS.get(filetype, STATS_KEYS["SCIENCE"])
-        stats_values = _stats_from_array_channel(merged_image, channel)
-    _write_background_star_visibility_panel_png(merged_image, spectra_bgstars_image, ctx.output_dir, ctx.target_name, channel.channel_name, f"{frame_type}_PANEL", title, stats_values, stats_keys, index=index)
-
-def _write_background_star_visibility_panel_png(merged_image: np.ndarray, spectra_bgstars_image: np.ndarray, output_dir: Path, target_name: str, channel_tag: str, frame_type: str, title: str, stats_values: dict | None, stats_keys: list[str], index: int | None = None) -> None:
-    filename = _build_png_filename(output_dir, target_name, channel_tag, frame_type, index=index, waltzer_prefix=False)
-    ny, nx = merged_image.shape
-    img_h_in_single = max(2.0, _WIDTH_IN * (ny / nx))
-    panel_h_in = max(6.5, img_h_in_single * 1.9)
-    stats_text = _format_stats_text(stats_values, stats_keys) if (stats_values and stats_keys) else None
-    fig = plt.figure(figsize=(2.0 * _WIDTH_IN, panel_h_in + _GAP_IN + _TEXT_H_IN))
-    gs = fig.add_gridspec(nrows=3, ncols=2, height_ratios=[1.0, 1.0, _TEXT_H_IN / panel_h_in], hspace=0.22, wspace=0.12)
-    merged_vmin = np.percentile(merged_image, 1)
-    merged_vmax = np.percentile(merged_image, 99.9)
-    if (not np.isfinite(merged_vmin)) or (not np.isfinite(merged_vmax)) or (merged_vmax <= merged_vmin):
-        merged_vmin = float(np.min(merged_image))
-        merged_vmax = float(np.max(merged_image))
-        if merged_vmax <= merged_vmin:
-            merged_vmax = merged_vmin + 1.0
-    bg_arr_display = np.arcsinh(spectra_bgstars_image)
-    bg_positive = bg_arr_display[spectra_bgstars_image > 0]
-    if bg_positive.size > 0:
-        bg_vmin = np.percentile(bg_positive, 1.0)
-        bg_vmax = np.percentile(bg_positive, 99.0)
-    else:
-        bg_vmin = 0.0
-        bg_vmax = 1.0
-    display_floor = np.median(merged_image)
-    merged_asinh_input = np.clip(merged_image - display_floor, 0.0, None)
-    merged_asinh = np.arcsinh(merged_asinh_input)
-    merged_asinh_positive = merged_asinh[merged_asinh_input > 0]
-    if merged_asinh_positive.size > 0:
-        merged_asinh_vmin = np.percentile(merged_asinh_positive, 1.0)
-        merged_asinh_vmax = np.percentile(merged_asinh_positive, 99.5)
-    else:
-        merged_asinh_vmin = 0.0
-        merged_asinh_vmax = 1.0
-    mask = spectra_bgstars_image > 0.0
-    has_bg = np.any(mask)
-    mask_dilated = mask.copy()
-    mask_dilated[1:, :] |= mask[:-1, :]
-    mask_dilated[:-1, :] |= mask[1:, :]
-    mask_dilated[:, 1:] |= mask[:, :-1]
-    mask_dilated[:, :-1] |= mask[:, 1:]
-    overlay = np.where(mask_dilated, 1.0, np.nan)
-    ax1 = fig.add_subplot(gs[0, 0])
-    ax1.imshow(merged_image, origin="lower", aspect="equal", cmap="gray", vmin=merged_vmin, vmax=merged_vmax)
-    ax1.set_xlim(-0.5, nx - 0.5)
-    ax1.set_ylim(-0.5, ny - 0.5)
-    ax1.set_xlabel("pixels", labelpad=8)
-    ax1.set_ylabel("pixels", labelpad=8)
-    ax1.set_title("Merged percentile", fontsize=11)
-    ax2 = fig.add_subplot(gs[0, 1])
-
-    if has_bg:
-        ax2.imshow(bg_arr_display, origin="lower", aspect="equal", cmap="gray", vmin=bg_vmin, vmax=bg_vmax)
-    else:
-        ax2.text(0.5, 0.5, "No background stars in this frame", ha="center", va="center", fontsize=12, transform=ax2.transAxes)
-
-    ax2.set_xlim(-0.5, nx - 0.5)
-    ax2.set_ylim(-0.5, ny - 0.5)
-    ax2.set_xlabel("pixels", labelpad=8)
-    ax2.set_ylabel("pixels", labelpad=8)
-    ax2.set_title("Background stars only", fontsize=11)
-    ax3 = fig.add_subplot(gs[1, 0])
-    ax3.imshow(merged_image, origin="lower", aspect="equal", cmap="gray", vmin=merged_vmin, vmax=merged_vmax)
-    
-    
-    if np.any(mask_dilated):
-        ax3.imshow(overlay, origin="lower", aspect="equal", cmap="Reds", alpha=0.08, interpolation="nearest")
-        ax3.contour(mask_dilated.astype(float), levels=[0.5], colors="red", linewidths=0.45, alpha=0.5)
-    
-    ax3.set_xlim(-0.5, nx - 0.5)
-    ax3.set_ylim(-0.5, ny - 0.5)
-    ax3.set_xlabel("pixels", labelpad=8)
-    ax3.set_ylabel("pixels", labelpad=8)
-    ax3.set_title("Merged + bg star footprint", fontsize=11)
-
-    ax4 = fig.add_subplot(gs[1, 1])
-    ax4.imshow(merged_asinh, origin="lower", aspect="equal", cmap="gray", vmin=merged_asinh_vmin, vmax=merged_asinh_vmax)
-    if np.any(mask_dilated):
-        ax4.imshow(overlay, origin="lower", aspect="equal", cmap="Reds", alpha=0.15, interpolation="nearest")
-        ax4.contour(mask_dilated.astype(float), levels=[0.5], colors="red", linewidths=0.5, alpha=0.6)
-    ax4.set_xlim(-0.5, nx - 0.5)
-    ax4.set_ylim(-0.5, ny - 0.5)
-    ax4.set_xlabel("pixels", labelpad=8)
-    ax4.set_ylabel("pixels", labelpad=8)
-    ax4.set_title("Merged asinh", fontsize=11)
-
-
-    fig.suptitle(title, fontsize=13)
-    ax_txt = fig.add_subplot(gs[2, :])
-    ax_txt.axis("off")
-    if stats_text:
-        ax_txt.text(0.5, 0.5, stats_text, ha="center", va="center", fontsize=10, transform=ax_txt.transAxes)
-    fig.savefig(filename, dpi=200, bbox_inches="tight")
-    plt.close(fig)
-    logging.debug("Wrote %s", filename)
-
-
-
-
-
-
-
 def plot_background_star_counts(background_stars_catalog: StarCatalog, channel: Channel, ctx: RunContext):
 
     wavelength = channel.effective_area_wavelength
@@ -448,3 +352,158 @@ def plot_background_star_counts(background_stars_catalog: StarCatalog, channel: 
 
         plt.savefig(filename)
         plt.close()
+
+
+
+def write_background_star_visibility_tests(merged_image: np.ndarray, spectra_bgstars_image: np.ndarray, frame_type: str, ctx: RunContext, channel: Channel, show_stats: bool = True, star: Star | None = None, index: int | None = None) -> None:
+    """Write one 3-panel diagnostic PNG: merged percentile, background-stars-only, merged plus bg-star footprint."""
+    logging.info("WRITE_BACKGROUND_STAR_VISIBILITY_TESTS called | frame_type=%s | channel=%s | merged_shape=%s | spectra_bgstars_shape=%s | index=%s", frame_type, channel.channel_name, merged_image.shape, spectra_bgstars_image.shape, index)
+    title = _format_frame_title(ctx.target_name, channel.channel_name, frame_type, star)
+
+    per_panel_stats: list[tuple[dict | None, list[str]]] = [(None, []), (None, []), (None, [])]
+
+    if show_stats:
+        filetype = _infer_stats_filetype(frame_type)
+        science_keys = STATS_KEYS.get(filetype, STATS_KEYS["SCIENCE"])
+        bg_keys = STATS_KEYS["BG_STARS"]
+        has_bg = np.any(spectra_bgstars_image > 0.0)
+
+        per_panel_stats[0] = (_stats_from_array_channel(merged_image, channel), science_keys)
+        per_panel_stats[1] = (_stats_from_array_only(spectra_bgstars_image), bg_keys) if has_bg else ({k: None for k in bg_keys}, bg_keys)
+        per_panel_stats[2] = (_stats_from_array_channel(merged_image, channel), science_keys)
+
+    _write_background_star_visibility_panel_png(
+        merged_image,
+        spectra_bgstars_image,
+        ctx.output_dir,
+        ctx.target_name,
+        channel.channel_name,
+        f"{frame_type}_PANEL",
+        title,
+        per_panel_stats,
+        index=index,
+    )
+
+
+def _write_background_star_visibility_panel_png(merged_image: np.ndarray, spectra_bgstars_image: np.ndarray, output_dir: Path, target_name: str, channel_tag: str, frame_type: str, title: str, per_panel_stats: list[tuple[dict | None, list[str]]], index: int | None = None) -> None:
+
+    filename = _build_png_filename(output_dir, target_name, channel_tag, frame_type, index=index, waltzer_prefix=False)
+
+    ny, nx = merged_image.shape
+
+    panel_w_in = max(6.0, min(10.0, 0.005 * nx))
+    panel_h_in = panel_w_in * (ny / nx)
+    panel_h_in = max(1.5, panel_h_in)
+
+    stats_h = 0.35 * panel_h_in
+    stats_fontsize = max(7, min(10, int(6 + panel_h_in)))
+
+    fig_w = panel_w_in
+    fig_h = 3.0 * panel_h_in + 3.0 * stats_h + 0.2 * panel_h_in
+
+    fig = plt.figure(figsize=(fig_w, fig_h))
+
+    hspace_base = 0.35
+    hspace = max(0.12, hspace_base * 2.5 / panel_h_in)
+
+    gs = fig.add_gridspec(
+        nrows=6,
+        ncols=1,
+        height_ratios=[1.0, stats_h / panel_h_in, 1.0, stats_h / panel_h_in, 1.0, stats_h / panel_h_in],
+        hspace=hspace,
+    )
+
+    merged_vmin = np.percentile(merged_image, 1)
+    merged_vmax = np.percentile(merged_image, 99.9)
+
+    if (not np.isfinite(merged_vmin)) or (not np.isfinite(merged_vmax)) or (merged_vmax <= merged_vmin):
+        merged_vmin = float(np.min(merged_image))
+        merged_vmax = float(np.max(merged_image))
+        if merged_vmax <= merged_vmin:
+            merged_vmax = merged_vmin + 1.0
+
+    bg_arr_display = np.arcsinh(spectra_bgstars_image)
+    bg_positive = bg_arr_display[spectra_bgstars_image > 0]
+
+    if bg_positive.size > 0:
+        bg_vmin = np.percentile(bg_positive, 1.0)
+        bg_vmax = np.percentile(bg_positive, 99.0)
+    else:
+        bg_vmin = 0.0
+        bg_vmax = 1.0
+
+    # mask = spectra_bgstars_image > 0.0
+    threshold_fraction = 0.135   # about 2 sigma for a Gaussian
+    mask = spectra_bgstars_image > (threshold_fraction * np.max(spectra_bgstars_image))
+    has_bg = np.any(mask)
+
+    mask_dilated = mask.copy()
+    mask_dilated[1:, :] |= mask[:-1, :]
+    mask_dilated[:-1, :] |= mask[1:, :]
+    mask_dilated[:, 1:] |= mask[:, :-1]
+    mask_dilated[:, :-1] |= mask[:, 1:]
+
+    overlay = np.where(mask_dilated, 1.0, np.nan)
+
+    # PANEL 1
+    ax1 = fig.add_subplot(gs[0, 0])
+    ax1.imshow(merged_image, origin="lower", aspect="equal", cmap="gray", vmin=merged_vmin, vmax=merged_vmax)
+    ax1.set_xlim(-0.5, nx - 0.5)
+    ax1.set_ylim(-0.5, ny - 0.5)
+    ax1.set_xlabel("pixels", labelpad=8)
+    ax1.set_ylabel("pixels", labelpad=8)
+    ax1.set_title("Science Frame", fontsize=11)
+
+    # PANEL 2
+    ax2 = fig.add_subplot(gs[2, 0])
+
+    if has_bg:
+        ax2.imshow(bg_arr_display, origin="lower", aspect="equal", cmap="gray", vmin=bg_vmin, vmax=bg_vmax)
+    else:
+        blank = np.ones((ny, nx))
+        ax2.imshow(blank, origin="lower", aspect="equal", cmap="gray", vmin=0.0, vmax=1.0)
+        ax2.text(0.5, 0.5, "No background stars in this frame", ha="center", va="center", fontsize=12, color="black", transform=ax2.transAxes)
+
+    ax2.set_xlim(-0.5, nx - 0.5)
+    ax2.set_ylim(-0.5, ny - 0.5)
+    ax2.set_xlabel("pixels", labelpad=8)
+    ax2.set_ylabel("pixels", labelpad=8)
+    ax2.set_title("Background Stars", fontsize=11)
+
+    # PANEL 3
+    ax3 = fig.add_subplot(gs[4, 0])
+    ax3.imshow(merged_image, origin="lower", aspect="equal", cmap="gray", vmin=merged_vmin, vmax=merged_vmax)
+
+    if np.any(mask_dilated):
+        # ax3.imshow(overlay, origin="lower", aspect="equal", cmap="Reds", alpha=0.08, interpolation="nearest")
+        # ax3.contour(mask_dilated.astype(float), levels=[0.5], colors="red", linewidths=0.45, alpha=0.5)
+
+        ax3.imshow(overlay, origin="lower", aspect="equal", cmap="Reds", alpha=0.2, interpolation="nearest")
+        ax3.contour(mask_dilated.astype(float), levels=[0.5], colors="#00FF66", linewidths=0.6, alpha=0.95)
+    ax3.set_xlim(-0.5, nx - 0.5)
+    ax3.set_ylim(-0.5, ny - 0.5)
+    ax3.set_xlabel("pixels", labelpad=8)
+    ax3.set_ylabel("pixels", labelpad=8)
+    ax3.set_title("Science Frame with Background Stars Footprint", fontsize=11)
+
+    for i, (vals, keys) in enumerate(per_panel_stats):
+        if not keys:
+            continue
+        if vals is None:
+            vals = {k: None for k in keys}
+
+        use_sci = keys == STATS_KEYS["BG_STARS"]
+        stats_text = _format_stats_text(vals, keys, use_scientific_for_small=use_sci)
+
+        ax_stat = fig.add_subplot(gs[1 + 2 * i, 0])
+        ax_stat.axis("off")
+        ax_stat.set_facecolor("white")
+        ax_stat.text(0.5, 0.5, stats_text, ha="center", va="center", fontsize=stats_fontsize, transform=ax_stat.transAxes)
+
+    fig.subplots_adjust(top=0.92)
+    fig.suptitle(title, fontsize=12, y=0.98)
+    fig.savefig(filename, dpi=150, bbox_inches="tight", pad_inches=0.05)
+    plt.close(fig)
+
+    logging.debug("Wrote %s", filename)
+
