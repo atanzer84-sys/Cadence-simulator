@@ -37,7 +37,7 @@ BASE_GLOBAL_CFG = {
     "zod_dist_file": None,
     "zod_spectrum_file": None,
     "write_intermediate_arrays": False,
-    "produce_plots": False,
+    "produce_flux_convolution_plots": False,
     "produce_background_star_counts_plot": False,
 }
 

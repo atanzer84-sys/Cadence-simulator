@@ -8,12 +8,12 @@ from instrument.spectral_convolution import (
 )
 
 
-def _cfg(write_intermediate_arrays=False, produce_plots=False):
-    return SimpleNamespace(write_intermediate_arrays=write_intermediate_arrays, produce_plots=produce_plots)
+def _cfg(write_intermediate_arrays=False, produce_flux_convolution_plots=False):
+    return SimpleNamespace(write_intermediate_arrays=write_intermediate_arrays, produce_flux_convolution_plots=produce_flux_convolution_plots)
 
 
 def _ctx(output_dir="OUT"):
-    """Minimal ctx with no-op write_intermediate_arrays and produce_plots to satisfy spectral_convolution hooks."""
+    """Minimal ctx with no-op write_intermediate_arrays and produce_flux_convolution_plots to satisfy spectral_convolution hooks."""
     return SimpleNamespace(output_dir=output_dir, dump_1d_for_channel=lambda *args, **kwargs: None, plot_1d_for_channel=lambda *args, **kwargs: None)
 
 

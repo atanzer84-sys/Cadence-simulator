@@ -46,7 +46,7 @@ class GlobalConfig:
     zod_spectrum_file: str | None   
 
     write_intermediate_arrays: bool
-    produce_plots: bool
+    produce_flux_convolution_plots: bool
     produce_background_star_counts_plot: bool
 
 _GLOBAL: GlobalConfig | None = None
@@ -119,7 +119,7 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
     zod_spectrum_file = as_optional_str(raw.get("zod_spectrum_file", ""))
 
     write_intermediate_arrays = as_bool(raw.get("write_intermediate_arrays", 0), key="write_intermediate_arrays")
-    produce_plots = as_bool(raw.get("produce_plots", raw.get("produce_Plots", 0)), key="produce_plots")
+    produce_flux_convolution_plots = as_bool(raw.get("produce_flux_convolution_plots", raw.get("produce_flux_convolution_plots", 0)), key="produce_flux_convolution_plots")
     produce_background_star_counts_plot = as_bool(raw.get("produce_background_star_counts_plot", 0), key="produce_background_star_counts_plot")
 
     _ensure_non_negative(orbit_duration_minutes, key="orbit_duration_minutes")
@@ -169,7 +169,7 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
         zod_dist_file=zod_dist_file,
         zod_spectrum_file=zod_spectrum_file,
         write_intermediate_arrays=write_intermediate_arrays,
-        produce_plots=produce_plots,
+        produce_flux_convolution_plots=produce_flux_convolution_plots,
         produce_background_star_counts_plot=produce_background_star_counts_plot,
     )
 

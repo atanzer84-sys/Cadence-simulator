@@ -64,7 +64,7 @@ def calculateFluxOnEarth(star: Star, ctx: RunContext, announce_user: bool = Fals
     flux_unred = apply_unred(wavelengths, flux_at_earth, ebv, announce_user=announce_user)
 
     ctx.dump_1d_array(wavelengths, flux_unred, ctx.output_dir, star.name, "FluxCalc_7_after_unred", perChannel=True, zoom=True)
-    # ctx.produce_plots.plot_flux_and_photons_windows(wavelengths, flux_unred, ctx.output_dir, star, "FluxCalc_1_Flux", "Flux", "Flux [erg s⁻¹ cm⁻² Å⁻¹]")
+    # ctx.produce_flux_convolution_plots.plot_flux_and_photons_windows(wavelengths, flux_unred, ctx.output_dir, star, "FluxCalc_1_Flux", "Flux", "Flux [erg s⁻¹ cm⁻² Å⁻¹]")
   
     return flux_unred, wavelengths
 
