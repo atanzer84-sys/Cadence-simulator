@@ -104,11 +104,7 @@ def add_background_star_offsets_arcsec(catalog: StarCatalog, target_star: Star) 
         dx = dlon.to(u.arcsec).value
         dy = dlat.to(u.arcsec).value
         sep_arcsec = target.separation(bg).to(u.arcsec).value
-        logging.info(
-            "Background star offset: target_ra=%.6f deg target_dec=%.6f deg bg_ra=%.6f deg bg_dec=%.6f deg "
-            "relative_dx=%.6f arcsec relative_dy=%.6f arcsec separation=%.6f arcsec",
-            ra0, dec0, ra, dec, dx, dy, sep_arcsec,
-        )
+        logging.info("Background star offset: target_ra=%.6f deg target_dec=%.6f deg bg_ra=%.6f deg bg_dec=%.6f deg relative_dx=%.6f arcsec relative_dy=%.6f arcsec separation=%.6f arcsec", ra0, dec0, ra, dec, dx, dy, sep_arcsec)
 
         catalog.set_offset_arcsec(star_id, dx, dy)
 

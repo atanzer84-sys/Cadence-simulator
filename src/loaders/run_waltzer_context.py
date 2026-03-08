@@ -1,105 +1,54 @@
 import sys
 import logging
 from pathlib import Path
-
+from typing import Callable, Any
 from utils.helpers import ensure_path_under, resolve_path_under
 from datetime import datetime
 from configs.user_config import load_user_config, get_user_config
 from configs.global_config import load_global_config, get_global_config
 from utils import debug_dumps
-
-from dataclasses import dataclass
-
-
-class _NoOpProxy:
-    def __getattr__(self, name):
-        def noop(*args, **kwargs):
-            pass
-        return noop
+from loaders.run_context import RunContext
 
 
-_NOOP = _NoOpProxy()
+def _noop(*args, **kwargs):
+    pass
 
 
-class _RealTestMode:
-    dump_3d_array = staticmethod(debug_dumps.dump_3d_array)
-    dump_1d_array = staticmethod(debug_dumps.dump_1d_array)
-    dump_1d_for_channel = staticmethod(debug_dumps.dump_1d_for_channel)
+def _select(enabled: bool, fn: Callable[..., Any]) -> Callable[..., Any]:
+    return fn if enabled else _noop
 
-
-_NOOP_PLOTS = _NoOpProxy()
-
-
-def _create_produce_plots():
-    """Import images lazily to avoid circular import (images imports RunContext)."""
-    from utils import images
-
-    class _RealProducePlots:
-        plot_1d_for_channel = staticmethod(images.plot_1d_for_channel)
-        plot_flux_and_photons_windows = staticmethod(images.plot_flux_and_photons_windows)
-        plot_background_star_counts = staticmethod(images.plot_background_star_counts)
-
-    return _RealProducePlots() if get_global_config().produce_plots else _NOOP_PLOTS
-
-
-_NOOP_WRITE_IMAGE_PNG = _NoOpProxy()
-
-
-def _create_write_image_png():
-    from utils import images
-
-    class _RealWriteImagePng:
-        write_image_png = staticmethod(images.write_image_png)
-
-        @staticmethod
-        def write_background_star_visibility_tests(*args, **kwargs):
-            pass  # Only runs via write_background_star_png when write_background_star_png is enabled
-
-    return _RealWriteImagePng() if get_global_config().write_calibration_frames_png else _NOOP_WRITE_IMAGE_PNG
-
-
-def _create_write_background_star_png():
-    from utils import images
-
-    class _RealWriteBackgroundStarPng:
-        write_image_png = staticmethod(images.write_image_png)
-        write_background_star_visibility_tests = staticmethod(images.generate_background_star_visibility_on_science_frame)
-
-    return _RealWriteBackgroundStarPng() if get_global_config().write_background_star_png else _NOOP_WRITE_IMAGE_PNG
-
-
-@dataclass(frozen=True)
-class RunContext:
-    target_name: str
-    output_dir: Path
-    timestamp: datetime
-    timestamp_str: str
-    test_mode: _NoOpProxy | _RealTestMode
-    produce_plots: _NoOpProxy
-    write_image_png: _NoOpProxy
-    write_background_star_png: _NoOpProxy
 
 def initialize_waltzer_runtime_context():
     print("\n==== LOADING AND INITIALIZING WALTzER SIMULATOR =====")
     output_dir, timestamp_str, timestamp = setup_output_directory()
     setup_logger(output_dir, timestamp_str)
     user_cfg = load_cfg_and_user_config()
-    test_mode = _RealTestMode() if get_global_config().test_mode else _NOOP
-    produce_plots = _create_produce_plots()
-    write_image_png = _create_write_image_png()
-    write_background_star_png = _create_write_background_star_png()
+    cfg = get_global_config()
+    from utils import images
+    dump_3d_array = _select(cfg.test_mode, debug_dumps.dump_3d_array)
+    dump_1d_array = _select(cfg.test_mode, debug_dumps.dump_1d_array)
+    dump_1d_for_channel = _select(cfg.test_mode, debug_dumps.dump_1d_for_channel)
+    plot_1d_for_channel = _select(cfg.produce_plots, images.plot_1d_for_channel)
+    plot_flux_and_photons_windows = _select(cfg.produce_plots, images.plot_flux_and_photons_windows)
+    plot_background_star_counts = _select(cfg.produce_background_star_counts_plot, images.plot_background_star_counts)
+    write_image_png = _select(cfg.write_calibration_frames_png, images.write_image_png)
+    generate_background_star_visibility_on_science_frame = _select(cfg.write_background_star_png, images.generate_background_star_visibility_on_science_frame)
 
     run_ctx = RunContext(
         target_name=user_cfg.target_name,
         output_dir=output_dir,
         timestamp=timestamp,
         timestamp_str=timestamp_str,
-        test_mode=test_mode,
-        produce_plots=produce_plots,
+        dump_3d_array=dump_3d_array,
+        dump_1d_array=dump_1d_array,
+        dump_1d_for_channel=dump_1d_for_channel,
+        plot_1d_for_channel=plot_1d_for_channel,
+        plot_flux_and_photons_windows=plot_flux_and_photons_windows,
+        plot_background_star_counts=plot_background_star_counts,
         write_image_png=write_image_png,
-        write_background_star_png=write_background_star_png,
+        generate_background_star_visibility_on_science_frame=generate_background_star_visibility_on_science_frame,
     )
-    logging.info("RunContext initialized: target=%s output_dir=%s test_mode=%s produce_plots=%s write_image_png=%s write_background_star_png=%s", run_ctx.target_name, run_ctx.output_dir, run_ctx.test_mode, run_ctx.produce_plots, run_ctx.write_image_png is not None, run_ctx.write_background_star_png is not None)
+    logging.info("RunContext initialized: target=%s output_dir=%s test_mode=%s produce_plots=%s write_image_png=%s write_background_star_png=%s", run_ctx.target_name, run_ctx.output_dir, cfg.test_mode, cfg.produce_plots, cfg.write_calibration_frames_png, cfg.write_background_star_png)
     return run_ctx, user_cfg
 
 def load_cfg_and_user_config():

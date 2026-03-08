@@ -119,8 +119,8 @@ def counts_per_s_px_conv_per_channel(broadened_photon_flux: np.ndarray, waveleng
     counts_s_px_convolved = photons_per_pixel_cm2_s * channel.effective_area
     logging.info("Channel %s counts_per_s_per_pixel sum=%g mean=%g min=%g max=%g", channel.channel_name, counts_s_px_convolved.sum(), counts_s_px_convolved.mean(), counts_s_px_convolved.min(), counts_s_px_convolved.max())
 
-    ctx.test_mode.dump_1d_for_channel(channel.effective_area_wavelength, counts_s_px_convolved, ctx.output_dir, star.name, "Detector_2_counts_s_px_convolved", channel_name=channel.channel_name, full=True, zoom=True)
+    ctx.dump_1d_for_channel(channel.effective_area_wavelength, counts_s_px_convolved, ctx.output_dir, star.name, "Detector_2_counts_s_px_convolved", channel_name=channel.channel_name, full=True, zoom=True)
 
-    ctx.produce_plots.plot_1d_for_channel(channel.effective_area_wavelength, counts_s_px_convolved, ctx.output_dir, star, filename_tag=f"Detector_3_counts_s_px_convolved{'' if filename_suffix is None else '_' + filename_suffix}", title_text="Convolved Counts", y_label="Counts s⁻¹ pixel⁻¹", channel_name=channel.channel_name, full=True)
+    ctx.plot_1d_for_channel(channel.effective_area_wavelength, counts_s_px_convolved, ctx.output_dir, star, filename_tag=f"Detector_3_counts_s_px_convolved{'' if filename_suffix is None else '_' + filename_suffix}", title_text="Convolved Counts", y_label="Counts s⁻¹ pixel⁻¹", channel_name=channel.channel_name, full=True)
 
     return counts_s_px_convolved

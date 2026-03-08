@@ -1,4 +1,3 @@
-"""Background stars in spectroscopy mode: slit containment and spectrum rendering."""
 import logging
 import numpy as np
 from loaders.run_waltzer_context import RunContext
