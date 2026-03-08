@@ -88,7 +88,7 @@ def _create_spectroscopy_per_exposure(spectra_component, background_component, c
     if frame_index < 1:
         ctx.write_image_png.write_image_png(background_component, "SCIENCE_BACKGROUND_ONLY", ctx, channel, index=frame_index)
 
-    bg_stars = generate_background_star_spectroscopy_image(channel, ctx, star, background_stars_catalog, roll_angle_deg, frame_index)
+    bg_stars, background_star_bands = generate_background_star_spectroscopy_image(channel, ctx, star, background_stars_catalog, roll_angle_deg, frame_index)
     image += bg_stars
     img_spectra_bgstars += bg_stars
 
@@ -100,7 +100,7 @@ def _create_spectroscopy_per_exposure(spectra_component, background_component, c
     image = image * ccd_gain
     img_spectra_bgstars = img_spectra_bgstars * ccd_gain
     ctx.write_image_png.write_image_png(image, "SCIENCE_COMPLETELY_MERGED", ctx, channel, star=star, index=frame_index)
-    ctx.write_background_star_png.write_background_star_visibility_tests(image, bg_stars, "SCIENCE PANEL", ctx, channel, star=star, index=frame_index)
+    ctx.write_background_star_png.write_background_star_visibility_tests(image, bg_stars, "SCIENCE PANEL", ctx, channel, star=star, index=frame_index, background_star_bands=background_star_bands)
 
     return image
 

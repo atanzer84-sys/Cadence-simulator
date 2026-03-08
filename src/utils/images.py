@@ -7,7 +7,7 @@ from domain.star import Star
 import numpy as np
 from configs.channel_config import Channel
 from domain.star_catalog import StarCatalog
-
+from matplotlib.lines import Line2D
 
 STATS_KEYS = {
     "BIAS":     ["MEAN", "MEDIAN", "STDDEV", "MIN", "MAX", "RNOISE", "B_OFFSET"],
@@ -355,9 +355,9 @@ def plot_background_star_counts(background_stars_catalog: StarCatalog, channel: 
 
 
 
-def write_background_star_visibility_tests(merged_image: np.ndarray, spectra_bgstars_image: np.ndarray, frame_type: str, ctx: RunContext, channel: Channel, show_stats: bool = True, star: Star | None = None, index: int | None = None) -> None:
+def write_background_star_visibility_tests(merged_image: np.ndarray, spectra_bgstars_image: np.ndarray, frame_type: str, ctx: RunContext, channel: Channel, show_stats: bool = True, star: Star | None = None, index: int | None = None, background_star_bands: dict[str, dict[str, float]] | None = None) -> None:
     """Write one 3-panel diagnostic PNG: merged percentile, background-stars-only, merged plus bg-star footprint."""
-    logging.info("WRITE_BACKGROUND_STAR_VISIBILITY_TESTS called | frame_type=%s | channel=%s | merged_shape=%s | spectra_bgstars_shape=%s | index=%s", frame_type, channel.channel_name, merged_image.shape, spectra_bgstars_image.shape, index)
+
     title = _format_frame_title(ctx.target_name, channel.channel_name, frame_type, star)
 
     per_panel_stats: list[tuple[dict | None, list[str]]] = [(None, []), (None, []), (None, [])]
@@ -372,20 +372,10 @@ def write_background_star_visibility_tests(merged_image: np.ndarray, spectra_bgs
         per_panel_stats[1] = (_stats_from_array_only(spectra_bgstars_image), bg_keys) if has_bg else ({k: None for k in bg_keys}, bg_keys)
         per_panel_stats[2] = (_stats_from_array_channel(merged_image, channel), science_keys)
 
-    _write_background_star_visibility_panel_png(
-        merged_image,
-        spectra_bgstars_image,
-        ctx.output_dir,
-        ctx.target_name,
-        channel.channel_name,
-        f"{frame_type}_PANEL",
-        title,
-        per_panel_stats,
-        index=index,
-    )
+    _write_background_star_visibility_panel_png(merged_image, spectra_bgstars_image, ctx.output_dir, ctx.target_name, channel.channel_name, f"{frame_type}_PANEL", title, per_panel_stats, index=index, background_star_bands=background_star_bands)
 
 
-def _write_background_star_visibility_panel_png(merged_image: np.ndarray, spectra_bgstars_image: np.ndarray, output_dir: Path, target_name: str, channel_tag: str, frame_type: str, title: str, per_panel_stats: list[tuple[dict | None, list[str]]], index: int | None = None) -> None:
+def _write_background_star_visibility_panel_png(merged_image: np.ndarray, spectra_bgstars_image: np.ndarray, output_dir: Path, target_name: str, channel_tag: str, frame_type: str, title: str, per_panel_stats: list[tuple[dict | None, list[str]]], index: int | None = None, background_star_bands: dict[str, dict[str, float]] | None = None) -> None:
 
     filename = _build_png_filename(output_dir, target_name, channel_tag, frame_type, index=index, waltzer_prefix=False)
 
@@ -406,12 +396,7 @@ def _write_background_star_visibility_panel_png(merged_image: np.ndarray, spectr
     hspace_base = 0.35
     hspace = max(0.12, hspace_base * 2.5 / panel_h_in)
 
-    gs = fig.add_gridspec(
-        nrows=6,
-        ncols=1,
-        height_ratios=[1.0, stats_h / panel_h_in, 1.0, stats_h / panel_h_in, 1.0, stats_h / panel_h_in],
-        hspace=hspace,
-    )
+    gs = fig.add_gridspec(nrows=6, ncols=1, height_ratios=[1.0, stats_h / panel_h_in, 1.0, stats_h / panel_h_in, 1.0, stats_h / panel_h_in], hspace=hspace)
 
     merged_vmin = np.percentile(merged_image, 1)
     merged_vmax = np.percentile(merged_image, 99.9)
@@ -432,17 +417,14 @@ def _write_background_star_visibility_panel_png(merged_image: np.ndarray, spectr
         bg_vmin = 0.0
         bg_vmax = 1.0
 
-    # mask = spectra_bgstars_image > 0.0
-    threshold_fraction = 0.135   # about 2 sigma for a Gaussian
-    mask = spectra_bgstars_image > (threshold_fraction * np.max(spectra_bgstars_image))
+    mask = spectra_bgstars_image > 0.0
     has_bg = np.any(mask)
-
+    use_band_overlay = background_star_bands is not None and len(background_star_bands) > 0
     mask_dilated = mask.copy()
     mask_dilated[1:, :] |= mask[:-1, :]
     mask_dilated[:-1, :] |= mask[1:, :]
     mask_dilated[:, 1:] |= mask[:, :-1]
     mask_dilated[:, :-1] |= mask[:, 1:]
-
     overlay = np.where(mask_dilated, 1.0, np.nan)
 
     # PANEL 1
@@ -474,12 +456,28 @@ def _write_background_star_visibility_panel_png(merged_image: np.ndarray, spectr
     ax3 = fig.add_subplot(gs[4, 0])
     ax3.imshow(merged_image, origin="lower", aspect="equal", cmap="gray", vmin=merged_vmin, vmax=merged_vmax)
 
-    if np.any(mask_dilated):
-        # ax3.imshow(overlay, origin="lower", aspect="equal", cmap="Reds", alpha=0.08, interpolation="nearest")
-        # ax3.contour(mask_dilated.astype(float), levels=[0.5], colors="red", linewidths=0.45, alpha=0.5)
+    # PANEL 3
+    if use_band_overlay:
+        for band in background_star_bands.values():
+            y0 = band["y0"]
+            sigma = band["sigma"]
 
-        ax3.imshow(overlay, origin="lower", aspect="equal", cmap="Reds", alpha=0.2, interpolation="nearest")
-        ax3.contour(mask_dilated.astype(float), levels=[0.5], colors="#00FF66", linewidths=0.6, alpha=0.95)
+            y_m2 = y0 - 2.0 * sigma
+            y_p2 = y0 + 2.0 * sigma
+
+            if 0 <= y_m2 <= ny - 1:
+                ax3.axhline(y_m2, color="#00FF66", linewidth=0.6, alpha=0.95)
+            if 0 <= y_p2 <= ny - 1:
+                ax3.axhline(y_p2, color="#00FF66", linewidth=0.6, alpha=0.95)
+    
+        legend_lines = [Line2D([0], [0], color="#00FF66", lw=1.2, label="±2σ cross-dispersion spread")]
+        ax3.legend(handles=legend_lines, loc="upper right", fontsize=8, frameon=True)
+
+    else:
+        if np.any(mask_dilated):
+            ax3.imshow(overlay, origin="lower", aspect="equal", cmap="Reds", alpha=0.2, interpolation="nearest")
+            ax3.contour(mask_dilated.astype(float), levels=[0.5], colors="#00FF66", linewidths=0.6, alpha=0.95)
+
     ax3.set_xlim(-0.5, nx - 0.5)
     ax3.set_ylim(-0.5, ny - 0.5)
     ax3.set_xlabel("pixels", labelpad=8)
