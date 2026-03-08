@@ -36,7 +36,6 @@ class GlobalConfig:
     cosmic_ray_length_min_px: int
     cosmic_ray_length_max_px: int
 
-    # Magnitude cutoff for background star calculation and Gaia fetching (G mag limit).
     magnitude_cutoff: float
     GAIA_USE_ASYNC_JOBS: bool
 
@@ -48,6 +47,7 @@ class GlobalConfig:
 
     test_mode: bool
     produce_plots: bool
+    produce_background_star_counts_plot: bool
 
 _GLOBAL: GlobalConfig | None = None
 
@@ -120,6 +120,7 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
 
     test_mode = as_bool(raw.get("test_mode", 0), key="test_mode")
     produce_plots = as_bool(raw.get("produce_plots", raw.get("produce_Plots", 0)), key="produce_plots")
+    produce_background_star_counts_plot = as_bool(raw.get("produce_background_star_counts_plot", 0), key="produce_background_star_counts_plot")
 
     _ensure_non_negative(orbit_duration_minutes, key="orbit_duration_minutes")
     _ensure_non_negative(orbit_revolutions, key="orbit_revolutions")
@@ -169,6 +170,7 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
         zod_spectrum_file=zod_spectrum_file,
         test_mode=test_mode,
         produce_plots=produce_plots,
+        produce_background_star_counts_plot=produce_background_star_counts_plot,
     )
 
     logging.info("Global config loaded: %s", cfg)
