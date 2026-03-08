@@ -196,11 +196,11 @@ def _build_png_filename(output_dir: Path, target_name: str, channel_tag: str, fr
     return output_dir / f"{safe}_{channel_tag}_{frame_type}_image.png"
 
 
-def _write_one_frame_png(array: np.ndarray, output_dir: Path, target_name: str, channel_tag: str, frame_type: str, title: str, stats_values: dict | None, stats_keys: list[str], index: int | None = None, *, waltzer_prefix: bool = True, use_asinh_scale: bool = False) -> None:
+def _write_one_frame_png(array: np.ndarray, output_dir: Path, target_name: str, channel_tag: str, frame_type: str, title: str, stats_values: dict | None, stats_keys: list[str], index: int | None = None, *, waltzer_prefix: bool = True) -> None:
     """Write one PNG with unified filename, title, and stats. Used by write_calibration_frame_png and write_science_frames_png."""
     filename = _build_png_filename(output_dir, target_name, channel_tag, frame_type, index, waltzer_prefix=waltzer_prefix)
     stats_text = _format_stats_text(stats_values, stats_keys) if (stats_values and stats_keys) else None
-    _save_single_frame_png(array, filename, title, stats_text, use_asinh_scale=use_asinh_scale)
+    _save_single_frame_png(array, filename, title, stats_text)
 
 def _format_stats_text(values: dict, keys: list[str], *, use_scientific_for_small: bool = False) -> str:
     """Format key=value pairs. Use N/A for missing/None values. Add units for second-line items.
@@ -261,7 +261,7 @@ def _stats_from_header(header, keys: list[str]) -> dict:
     return {k: _header_val(header, k) for k in keys}
 
 
-def _save_single_frame_png(array: np.ndarray, filename: Path, title: str, stats_text: str | None = None, use_asinh_scale: bool = False) -> None:
+def _save_single_frame_png(array: np.ndarray, filename: Path, title: str, stats_text: str | None = None) -> None:
     """Draw one 2D image with optional stats line; save to filename. Shared by write_calibration_frame_png and write_science_frames_png."""
     ny, nx = array.shape
     img_h_in = max(2.0, _WIDTH_IN * (ny / nx))
@@ -278,18 +278,7 @@ def _save_single_frame_png(array: np.ndarray, filename: Path, title: str, stats_
         vmax = float(np.max(array))
         if vmax <= vmin:
             vmax = vmin + 1.0
-    if use_asinh_scale:
-        arr_display = np.arcsinh(array)  # arcsinh(0)=0, no masking; linear for faint, log-like for bright
-        vmin = np.percentile(arr_display, 1)
-        vmax = np.percentile(arr_display, 93)
-        if (not np.isfinite(vmin)) or (not np.isfinite(vmax)) or (vmax <= vmin):
-            vmin = float(np.min(arr_display))
-            vmax = float(np.max(arr_display))
-            if vmax <= vmin:
-                vmax = vmin + 1.0
-        ax.imshow(arr_display, origin="lower", aspect="equal", cmap="gray", vmin=vmin, vmax=vmax)
-    else:
-        ax.imshow(array, origin="lower", aspect="equal", cmap="gray", vmin=vmin, vmax=vmax)
+    ax.imshow(array, origin="lower", aspect="equal", cmap="gray", vmin=vmin, vmax=vmax)
     ax.set_xlim(-0.5, nx - 0.5)
     ax.set_ylim(-0.5, ny - 0.5)
     ax.set_xlabel("pixels", labelpad=8)

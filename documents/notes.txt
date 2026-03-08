@@ -29,7 +29,15 @@ done
 wait
 '
 
-
+caffeinate -i bash -c '
+for i in 001 002 073 017 030 ; do
+    echo "=== START parameter_${i}.txt ==="
+    /Users/andreatanzer/.venvs/shared/bin/python \
+    "/Users/andreatanzer/Documents/Space Science/MasterThesis/WALTzER-simulator/src/waltzer_simulator.py" \
+    "/Users/andreatanzer/Documents/Space Science/MasterThesis/WALTzER-simulator/input/parameters/parameter_${i}.txt"
+    echo "=== END parameter_${i}.txt ==="
+done
+'
 
 
 # parallel run from terminal
