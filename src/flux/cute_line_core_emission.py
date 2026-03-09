@@ -9,8 +9,6 @@ def apply_line_core_emission(flux, sigmaMg22, sigmaMg21, logR, spectral_type, an
     Thin wrapper around legacy cute_snr_lca.
     """
     print_if_enabled("Starting to apply line core emission", announce_user)
-    logging.info("Starting to apply line core emission: Applying Mg II line core emission: "
-        "spectral_type=%s, logR=%s, sigmaMg22=%.6f, sigmaMg21=%.6f", spectral_type, logR, sigmaMg22, sigmaMg21)
     flux_before = flux[:, 1].copy()
 
     Rmg = compute_Rmg(spectral_type, logR)
@@ -26,22 +24,18 @@ def apply_line_core_emission(flux, sigmaMg22, sigmaMg21, logR, spectral_type, an
     # diff
     diff = flux[:, 1] - flux_before
 
-    msg = (
-        f"LCE DIFF max abs (full): {float(np.max(np.abs(diff)))} | "
-        f"mean abs (full): {float(np.mean(np.abs(diff)))}"
-    )
-    logging.info(msg)
+    max_abs_full = float(np.max(np.abs(diff)))
+    mean_abs_full = float(np.mean(np.abs(diff)))
 
     mg_mask = (flux[:, 0] >= 2790.0) & (flux[:, 0] <= 2850.0)
     if np.any(mg_mask):
-        msg = (
-            f"LCE DIFF max abs (Mg window): {float(np.max(np.abs(diff[mg_mask])))} | "
-            f"mean abs (Mg window): {float(np.mean(np.abs(diff[mg_mask])))}"
-        )
-        logging.info(msg)
+        max_abs_mg = float(np.max(np.abs(diff[mg_mask])))
+        mean_abs_mg = float(np.mean(np.abs(diff[mg_mask])))
     else:
-        msg = "LCE DIFF Mg window: EMPTY"
-        logging.info(msg)
+        max_abs_mg = None
+        mean_abs_mg = None
+
+    logging.info("Line core emission applied: spectral_type=%s logR=%s sigmaMg22=%.6f sigmaMg21=%.6f Rmg=%s max_abs_full=%s mean_abs_full=%s max_abs_mg=%s mean_abs_mg=%s", spectral_type, logR, sigmaMg22, sigmaMg21, Rmg, max_abs_full, mean_abs_full, max_abs_mg, mean_abs_mg)
 
     return flux
 
@@ -50,8 +44,6 @@ def compute_Rmg(stype, logR):
     Compute Mg II line core emission scaling factor Rmg
     from spectral type and logR (log R'_HK).
     """
-    logging.info("Computing Rmg: stype=%s logR=%s", stype, logR)
-
     if (stype == 'F5V' or stype == 'F6V' or stype == 'F7V' or 
         stype == 'F8V' or stype == 'F9V' or stype == 'F9.5V' or 
         stype == 'G0V' or stype == 'G1V' or stype == 'G2V' or 
@@ -61,7 +53,7 @@ def compute_Rmg(stype, logR):
                 c1 = 0.87
                 c2 = 5.73
                 Rmg = 10**(c1*logR+c2)
-                logging.info("Rmg regime: F/G dwarf, c1=%s c2=%s Rmg=%s", c1, c2, Rmg)
+                regime = "F/G dwarf"
 
     elif (stype == 'K9V' or stype == 'K8V' or stype == 'K7V' or 
           stype == 'K6.5V' or  stype == 'K6V' or stype == 'K5.5V' or 
@@ -72,7 +64,7 @@ def compute_Rmg(stype, logR):
                 c1 = 1.01
                 c2 = 6.00
                 Rmg = 10**(c1*logR+c2)
-                logging.info("Rmg regime: K dwarf, c1=%s c2=%s Rmg=%s", c1, c2, Rmg)
+                regime = "K dwarf"
 
     elif (stype == 'M5V' or stype == 'M4V' or stype == 'M3V' or 
           stype == 'M2V' or stype == 'M2.5V' or stype == 'M1.5V' or 
@@ -80,11 +72,15 @@ def compute_Rmg(stype, logR):
                 c1 = 1.59
                 c2 = 6.96
                 Rmg = 10**(c1*logR+c2)
-                logging.info("Rmg regime: M dwarf, c1=%s c2=%s Rmg=%s", c1, c2, Rmg)
+                regime = "M dwarf"
 
     else:
                 Rmg = 0.0
-                logging.info("Rmg not applicable for stype=%s -> using Rmg=0.0", stype)
+                c1 = None
+                c2 = None
+                regime = "not applicable"
+
+    logging.info("Rmg computed: stype=%s logR=%s regime=%s c1=%s c2=%s Rmg=%s", stype, logR, regime, c1, c2, Rmg)
 
     return Rmg
 

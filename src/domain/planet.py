@@ -30,8 +30,6 @@ class Planet:
         msg2 = f"Planet created: {planet_params['name']}"
         print(msg1)
         print(msg2)
-        logging.info(msg1.strip())
-        logging.info(msg2)
 
         planet = cls(
             name=planet_params["name"],

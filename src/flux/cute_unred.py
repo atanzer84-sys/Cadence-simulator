@@ -98,10 +98,7 @@ def unred(wave, flux, ebv, R_V=None, LMC2=False, AVGLMC=False):
     if R_V is None:
         R_V = DEFAULT_R_V
 
-    logging.info("Starting unred: ebv=%s R_V=%s LMC2=%s AVGLMC=%s", ebv, R_V, LMC2, AVGLMC)
-
     x = 10000./ wave # Convert to inverse microns 
-    logging.debug("unred wavelength range: %.2f %.2f", wave.min(), wave.max())
 
     curve = x*0.
     
@@ -128,8 +125,6 @@ def unred(wave, flux, ebv, R_V=None, LMC2=False, AVGLMC=False):
         c2    = 1.11
         c1    =  -1.28
     
-    logging.info("unred params: x0=%s gamma=%s c1=%s c2=%s c3=%s c4=%s", x0, gamma, c1, c2, c3, c4)
-
     # Compute UV portion of A(lambda)/E(B-V) curve using FM fitting function and 
     # R-dependent coefficients
     xcutuv = np.array([10000.0/2700.0])
@@ -166,7 +161,7 @@ def unred(wave, flux, ebv, R_V=None, LMC2=False, AVGLMC=False):
     
     #Now apply extinction correction to input flux vector
     curve *= ebv
-    logging.info("Applying unred extinction curve")
-    logging.info("Finished unred")
-
-    return flux * 10.**(0.4*curve)
+    corrected_flux = flux * 10.**(0.4*curve)
+    
+    logging.info("unred: ebv=%s R_V=%s LMC2=%s AVGLMC=%s x0=%s gamma=%s c1=%s c2=%s c3=%s c4=%s n_wave=%d wave_min=%s wave_max=%s", ebv, R_V, LMC2, AVGLMC, x0, gamma, c1, c2, c3, c4, wave.shape[0], float(np.min(wave)), float(np.max(wave)))
+    return corrected_flux

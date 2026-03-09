@@ -73,8 +73,6 @@ def get_global_config() -> GlobalConfig:
     return _GLOBAL
 
 def _read_global_cfg(path: Path) -> GlobalConfig:
-    logging.info("Reading global config from %s", path)
-
     raw = parse_simple_kv(path)
     _warn_default_used(raw, "sigmaMg22", DEFAULT_SIGMA_MG22, path=path)
     _warn_default_used(raw, "sigmaMg21", DEFAULT_SIGMA_MG21, path=path)

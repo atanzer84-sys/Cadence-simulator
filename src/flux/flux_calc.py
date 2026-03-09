@@ -24,7 +24,7 @@ def calculateFluxOnEarth(star: Star, ctx: RunContext, announce_user: bool = Fals
 
     flux_lambda_original = convertStellarModelToFlux(model_data, star.radius_sun_cm)
     # keep undiluted flux
-    flux_lambda_diluted = flux_lambda_original.copy()
+    flux_lambda_diluted = flux_lambda_original
     wavelengths = flux_lambda_original[:,0]
 
     ctx.dump_3d_array(flux_lambda_original, ctx.output_dir, star.name, "FluxCalc_2_convertIntensityToLuminosity_snapshot", perChannel=True, zoom=True)

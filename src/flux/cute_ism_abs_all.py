@@ -5,7 +5,6 @@ import numpy as np
 import logging
 
 def cute_ism_abs_all(flux,n_mg2,n_mg1,n_fe2):
-    logging.info("Applying ISM absorption: n_mg2=%s n_mg1=%s n_fe2=%s", n_mg2, n_mg1, n_fe2)
     #Construct the ISM absorption
     n_flux=flux[:,1]/flux[:,2]
     
@@ -17,19 +16,16 @@ def cute_ism_abs_all(flux,n_mg2,n_mg1,n_fe2):
     absorberMg2={'ion':'MG22','N':n_mg2,'B':ISM_b_Mg2,'Z':0.0}
     lineMg2={'ion':'Mg22','wave':MgII2w+MgII2w*vr_ISM/C_LIGHT_km_s,'F':10**MgII2_loggf,'gamma':10**MgII2_stark}
     ISMMg22=voigtq(flux[:,0],absorberMg2,lineMg2)
-    logging.info("ISM MgII doublet computed")
     
     #for MgI
     absorberMgI={'ion':'MG1','N':n_mg1,'B':ISM_b_Mg2,'Z':0.0}
     lineMgI={'ion':'Mg1','wave':MgIw+MgIw*vr_ISM/C_LIGHT_km_s,'F':10**MgI_loggf,'gamma':10**MgI_stark}
     ISMMg1=voigtq(flux[:,0],absorberMgI,lineMgI)
-    logging.info("ISM MgI computed")
     
     #for FeII 
     absorberFeII={'ion':'FE2"','N':n_fe2,'B':ISM_b_Mg2,'Z':0.0}
     lineFeII={'ion':'Fe2','wave':FeIIw+FeIIw*vr_ISM/C_LIGHT_km_s,'F':10**FeII_loggf,'gamma':10**FeII_stark}
     ISMFe2=voigtq(flux[:,0],absorberFeII,lineFeII)
-    logging.info("ISM FeII computed")
 
     #for CaII
     #absorberCaK=create_struct('ion','Ca2K','N',N,'B',ISM_b_Ca2,'Z',0.0)
@@ -41,11 +37,10 @@ def cute_ism_abs_all(flux,n_mg2,n_mg1,n_fe2):
     #ISMCaH=voigtq(flux[0,*],absorberCaH,lineCaH)
     
     ISM = ISMMg21*ISMMg22*ISMMg1*ISMFe2
-    logging.info("ISM transmission combined")
 
     flux_absorption = ISM * n_flux
     flux[:,1]=flux[:,2]*flux_absorption
-    logging.info("ISM absorption applied to flux")
+    logging.info("ISM absorption: n_mg2=%s n_mg1=%s n_fe2=%s input_flux_ratio_mean=%s transmission_mean=%s absorbed_flux_mean=%s", n_mg2, n_mg1, n_fe2, float(np.mean(n_flux)), float(np.mean(ISM)), float(np.mean(flux[:,1])))
     return flux
 
 def voigtq(wavelength, absorber, line):
