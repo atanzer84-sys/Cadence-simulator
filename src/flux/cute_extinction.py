@@ -39,18 +39,19 @@ def extinction_amores(glong,glat,distance):
     #declaring & puting values in the variables. The arrays will contain the
     #value of quantities like galactic radius | gas density for each step along the line-of sight
     #if you work with other language you should probably define these quantities in a loop
-    dis= np.zeros(nstep)
-    x  = np.zeros(nstep)
-    y  = np.zeros(nstep)
-    yy = np.zeros(nstep)
-    r  = np.zeros(nstep)
-    z  = np.zeros(nstep)
-    zCO= np.zeros(nstep)
-    zH = np.zeros(nstep)
-    ah1= np.zeros(nstep)
-    aco= np.zeros(nstep)
-    zmet=np.zeros(nstep)
-    agas=np.zeros(nstep)
+    dis= np.zeros(nstep, dtype=np.float32)
+    x  = np.zeros(nstep, dtype=np.float32)
+    y  = np.zeros(nstep, dtype=np.float32)
+    yy = np.zeros(nstep, dtype=np.float32)
+    r  = np.zeros(nstep, dtype=np.float32)
+    z  = np.zeros(nstep, dtype=np.float32)
+    zCO= np.zeros(nstep, dtype=np.float32)
+    zH = np.zeros(nstep, dtype=np.float32)
+    ah1= np.zeros(nstep, dtype=np.float32)
+    aco= np.zeros(nstep, dtype=np.float32)
+    zmet=np.zeros(nstep, dtype=np.float32)
+    agas=np.zeros(nstep, dtype=np.float32)
+
     ipas=np.arange(0,nstep)/1 +1  
 
     # generates an array with a sequence of numbers, used as index for
