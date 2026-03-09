@@ -85,7 +85,7 @@ def _spread_1d_to_2d_gaussian(counts_s_pixel_convolved, channel: SpectroscopyCha
         w = _gaussian_vertical_profile(ny, y0, spatial_sigma_pix)
         image = np.outer(w, counts_s_pixel_convolved)
     else:
-        image = np.zeros((ny, nx), dtype=np.float64)
+        image = np.zeros((ny, nx), dtype=np.float32)
         for i in range(nx):
             x = x0 + i
             if 0 <= x < nx:
@@ -97,7 +97,7 @@ def _spread_1d_to_2d_gaussian(counts_s_pixel_convolved, channel: SpectroscopyCha
     col_sums = image.sum(axis=0)
     logging.info("GAUSSIAN SPREAD CHECK: channel=%s input_sum=%g image_sum=%g max_abs_diff=%g", channel.channel_name, float(np.sum(counts_s_pixel_convolved)), float(np.sum(image)), float(np.max(np.abs(col_sums - counts_s_pixel_convolved))))
 
-    if not np.allclose(col_sums, counts_s_pixel_convolved, rtol=1e-10, atol=1e-12):
+    if not np.allclose(col_sums, counts_s_pixel_convolved, rtol=1e-6, atol=1e-7):
         logging.error("GAUSSIAN SPREAD CHECK FAILED: channel=%s column sums do not match input counts", channel.channel_name)
         raise ValueError("Gaussian spread column sum mismatch")
 
@@ -133,7 +133,7 @@ def _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel: SpectroscopyChan
 
     logging.info("PROFILE SPREAD START: channel=%s spread_file=%s nx=%d ny=%d n_bins=%d y0=%g", channel.channel_name, channel.spread_profile_file, int(nx), int(ny), int(spread_wavelengths.shape[0]), y0)
 
-    image = np.zeros((ny, nx), dtype=np.float64)
+    image = np.zeros((ny, nx), dtype=np.float32)
 
     x_indices = np.arange(nx, dtype=np.int64)
     y_centers = y0 + intercept + slope * (x_indices - x0)

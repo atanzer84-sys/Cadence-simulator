@@ -153,8 +153,7 @@ def test_gaussian_spread_with_nonzero_slope():
     image = _spread_1d_to_2d_gaussian(counts, channel, x0, y0, slope, intercept)
 
     assert image.shape == (channel.y_pixels, channel.x_pixels)
-    assert np.allclose(image.sum(axis=0), counts)
-
+    assert np.allclose(image.sum(axis=0), counts, rtol=1e-6, atol=1e-7)
 
 # ----------------------------------------------------------------------
 # TESTS FOR _spread_1d_to_2d_profile

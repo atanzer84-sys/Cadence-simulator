@@ -64,7 +64,7 @@ def load_psf_image_file(filename: str, channel_name: str, ctx: RunContext, min_c
             break
         rows.append(r)
 
-    psf = np.asarray(rows, dtype=float)
+    psf = np.asarray(rows, dtype=np.float32)
 
     # 3) read center from header if present, else fallback to peak
     psf_center_x = None

@@ -62,10 +62,9 @@ def load_effective_area_file(effective_area_filename: str) -> tuple[np.ndarray, 
         logging.error(msg)
         raise ValueError(msg)
 
-    wavelength = data[:, 0].astype(float, copy=False)
-
-    eff_area = data[:, -1].astype(float, copy=False)
-
+    wavelength = data[:, 0].astype(np.float32, copy=False)
+    eff_area = data[:, -1].astype(np.float32, copy=False)
+    
     if wavelength.shape[0] != eff_area.shape[0]:
         msg = (
             "Wavelength and effective area length mismatch "
@@ -129,8 +128,8 @@ def load_background_file(background_filename: str) -> tuple[np.ndarray | None, n
         logging.error(msg)
         raise ValueError(msg)
 
-    wavelength = data[:, 0].astype(float, copy=False)
-    flux = data[:, 1].astype(float, copy=False)
+    wavelength = data[:, 0].astype(np.float32, copy=False)
+    flux = data[:, 1].astype(np.float32, copy=False)
 
     if wavelength.shape[0] != flux.shape[0]:
         msg = f"Wavelength and flux length mismatch in background file: {path}"
@@ -202,7 +201,7 @@ def parse_spread_header_wavelengths(lines: list[str], path: Path, channel_name: 
                 logging.error("Channel %s: spread header has no wavelength columns in %s", channel_name, path)
                 raise ValueError(f"Spread header has no wavelength columns in file: {path}")
             try:
-                wavelength_header = np.array([float(x) for x in parts[1:]], dtype=float)
+                wavelength_header = np.array([float(x) for x in parts[1:]], dtype=np.float32)
                 logging.info("Channel %s: spread header wavelengths count=%d values=%s", channel_name, wavelength_header.shape[0], wavelength_header)
                 return wavelength_header
             except Exception as exc:
@@ -261,7 +260,7 @@ def load_zod_spectrum_file(filename: str) -> tuple[np.ndarray | None, np.ndarray
         logging.error(msg)
         raise ValueError(msg)
 
-    wavelength = data[:, 0].astype(float, copy=False)
-    spectrum = data[:, 1].astype(float, copy=False)
+    wavelength = data[:, 0].astype(np.float32, copy=False)
+    spectrum = data[:, 1].astype(np.float32, copy=False)
     logging.info("Zodiacal spectrum file loaded: filename=%s path=%s rows=%d", filename, path, wavelength.shape[0])
     return wavelength, spectrum

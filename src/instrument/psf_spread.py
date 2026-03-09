@@ -26,8 +26,7 @@ def spread_1d_photometry_to_2d(counts_s_px_nir: np.ndarray, channel: PhotometryC
     psf_stamp = channel.psf_image * total_flux_electrons_per_second
     logging.info("Channel %s: psf_stamp shape=%s sum=%e", channel.channel_name, psf_stamp.shape, float(np.sum(psf_stamp)))
 
-    detector_image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=float)
-
+    detector_image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
     source_pixel_x, source_pixel_y = get_photometry_placement(channel)
 
     psf_center_x = int(channel.psf_center_x)

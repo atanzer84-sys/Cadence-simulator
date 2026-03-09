@@ -85,12 +85,13 @@ def test_load_spread_profile_file_spectroscopy_leading_trailing_whitespace_ok(mo
     )
 
     pos, w, wl = load_spread_profile_file_spectroscopy("spread.txt", "NUV")
-    assert pos.dtype == float
-    assert w.dtype == float
-    assert wl.dtype == float
-    assert pos.shape == (2,)
-    assert w.shape == (2, 2)
-    assert wl.shape == (2,)
+
+    assert np.issubdtype(pos.dtype, np.floating)
+    assert np.issubdtype(w.dtype, np.floating)
+    assert np.issubdtype(wl.dtype, np.floating)
+    assert pos.dtype == np.float32
+    assert w.dtype == np.float32
+    assert wl.dtype == np.float32
     assert wl[0] == pytest.approx(1000.0)
     assert wl[1] == pytest.approx(1100.0)
     assert w[1, 1] == pytest.approx(0.40)

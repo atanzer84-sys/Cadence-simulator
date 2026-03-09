@@ -30,8 +30,8 @@ def load_spread_profile_file_spectroscopy(spread_filename: str, channel_name: st
         logging.error("Channel %s: invalid spread table structure in %s (need dy + >=1 weight col)", channel_name, path)
         raise ValueError(f"Invalid spread table structure in file: {path} (need dy + >=1 weight col)")
 
-    positions = data[:, 0].astype(float, copy=False)
-    weights_matrix = data[:, 1:].astype(float, copy=False)
+    positions = data[:, 0].astype(np.float32, copy=False)
+    weights_matrix = data[:, 1:].astype(np.float32, copy=False)
 
     if weights_matrix.shape[1] != wavelength_header.shape[0]:
         logging.error("Channel %s: spread header wavelength count != weight columns in %s", channel_name, path)
