@@ -49,11 +49,11 @@ def _create_spectroscopy_channel_images(spectra_2d, channel: SpectroscopyChannel
         roll_angle_deg = 360.0 * (time_s / orbit_duration_s)
 
         print(f"science exposure image {frame_index + 1}/{channel.n_science_frames} (roll_angle={roll_angle_deg:.2f}°)")
-        logging.info("science exposure image: frame_index=%d n_science_frames=%d time_s=%g roll_angle_deg=%g", frame_index, channel.n_science_frames, time_s, roll_angle_deg)
 
         img = _create_spectroscopy_per_exposure(spectra_component, background_component, channel, ctx, cfg, star, background_stars_catalog, frame_index, roll_angle_deg)
         images.append(img)
 
+    logging.info("Science image generation finished: channel=%s frames=%d", channel.channel_name, len(images))
     return images
 
 
@@ -79,8 +79,6 @@ def _create_spectroscopy_per_exposure(spectra_component, background_component, c
 
 def _create_photometry_channel_images(nir_rate, channel: PhotometryChannel, ctx: RunContext, cfg: GlobalConfig, star: Star, background_stars_catalog: StarCatalog):
     print(f"\n==== STARTING SCIENCE IMAGE GENERATION ({channel.channel_name}) =====")
-    logging.info("Science Image generation starting for channel %s", channel.channel_name)
-
 
     exposure = channel.exposure_s
     # compute artifacts that do not change from one exposure to the next to save time.
@@ -97,11 +95,12 @@ def _create_photometry_channel_images(nir_rate, channel: PhotometryChannel, ctx:
         roll_angle_end = 360.0 * ((time_s + channel.exposure_s) / orbit_duration_s)
 
         print(f"science exposure image {frame_index + 1}/{channel.n_science_frames} (roll_angle_start={roll_angle_start:.2f}°, roll_angle_end={roll_angle_end:.2f}°)")
-        logging.info("science exposure image: frame_index=%d n_science_frames=%d time_s=%g roll_angle_start=%g roll_angle_end=%g", frame_index, channel.n_science_frames, time_s, roll_angle_start, roll_angle_end)
 
         img = _create_photometry_per_exposure(nir_component, background_component, channel, ctx, cfg, star, background_stars_catalog, frame_index, roll_angle_start, roll_angle_end)
 
         images.append(img)
+    
+    logging.info("Science image generation finished: channel=%s frames=%d exposure_s=%g orbit_duration_s=%g", channel.channel_name, len(images), exposure, orbit_duration_s)
 
     return images
 

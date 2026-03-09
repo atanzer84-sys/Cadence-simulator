@@ -7,8 +7,6 @@ from configs.global_config import GlobalConfig
 
 def generate_cosmic_rays(ctx: RunContext, channel: SpectroscopyChannel, cfg: GlobalConfig, star=None):
 
-    logging.info( "COSMIC RAYS %s: starting calculation for detector (%d x %d)", channel.channel_name, channel.x_pixels, channel.y_pixels)
-    
     nx = channel.x_pixels
     ny = channel.y_pixels
     min_rays = cfg.cosmic_rays_min
@@ -27,7 +25,6 @@ def generate_cosmic_rays(ctx: RunContext, channel: SpectroscopyChannel, cfg: Glo
 
 
     direction = np.deg2rad(360.0 * rng.random(cosmic_rays))
-    logging.info("COSMIC RAYS %s: count=%d, x_val=%s, y_val=%s, direction=%s", channel.channel_name, cosmic_rays, x_val, y_val, direction)
 
     for i in range(cosmic_rays):
         length_cosmic_ray = rng.integers(cosmic_ray_length_min_px, cosmic_ray_length_max_px + 1)
@@ -36,7 +33,6 @@ def generate_cosmic_rays(ctx: RunContext, channel: SpectroscopyChannel, cfg: Glo
         y = int(np.trunc(y_val[i]))
 
         image[y, x] = cosmic_ray_charge_e
-        logging.debug("COSMIC RAYS %s: index=%d x=%d y=%d length=%d", channel.channel_name, i, x, y, length_cosmic_ray)
 
         for j in range(length_cosmic_ray):
             x_shft = int(np.round(j * np.cos(direction[i])))
@@ -51,6 +47,7 @@ def generate_cosmic_rays(ctx: RunContext, channel: SpectroscopyChannel, cfg: Glo
 
             image[y_n, x_n] = cosmic_ray_charge_e
 
+    logging.info("Cosmic rays generated: channel=%s count=%d signal_e=%d x_val=%s, y_val=%s, direction=%s", channel.channel_name, cosmic_rays, cosmic_ray_charge_e, x_val, y_val, direction)
     return image
 
 
