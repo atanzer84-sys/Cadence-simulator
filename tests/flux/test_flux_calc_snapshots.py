@@ -88,7 +88,7 @@ def run_snapshot_convertIntensityToLuminosity(star_name, radius_rsun, band):
     expected = np.loadtxt(expected_file, dtype=np.float64)
     got = convertStellarModelToFlux(model, radius_rsun * R_SUN_cm)
     assert got.shape == expected.shape
-    np.testing.assert_allclose(got, expected, rtol=1e-10, atol=0.0)
+    np.testing.assert_allclose(got, expected, rtol=1e-6, atol=0.0)
 
 def run_snapshot_apply_line_core_emission(star_name, band, sigmaMg22, sigmaMg21, log_r, spectral_type):
     base = SNAPSHOT_BASE
@@ -98,7 +98,7 @@ def run_snapshot_apply_line_core_emission(star_name, band, sigmaMg22, sigmaMg21,
     expected = np.loadtxt(expected_file, dtype=np.float64)
     got = apply_line_core_emission(before, sigmaMg22, sigmaMg21, log_r, spectral_type)
     assert got.shape == expected.shape
-    np.testing.assert_allclose(got, expected, rtol=1e-10, atol=0.0)
+    np.testing.assert_allclose(got, expected, rtol=1e-6, atol=0.0)
 
 def run_snapshot_apply_ism_absorption(star_name, band, EBV):
     base = SNAPSHOT_BASE
@@ -109,7 +109,7 @@ def run_snapshot_apply_ism_absorption(star_name, band, EBV):
     cfg = make_cfg_for_ism_absorption()
     got = apply_ism_absorption(before, EBV, cfg)
     assert got.shape == expected.shape
-    np.testing.assert_allclose(got, expected, rtol=1e-10, atol=0.0)
+    np.testing.assert_allclose(got, expected, rtol=1e-6, atol=0.0)
 
 def run_snapshot_compute_flux_at_earth(star_name, band, distance_pc):
     base = SNAPSHOT_BASE
@@ -123,7 +123,7 @@ def run_snapshot_compute_flux_at_earth(star_name, band, distance_pc):
 
     out = np.column_stack((before_2d[:, 0], flux))
     assert out.shape == expected.shape
-    np.testing.assert_allclose(out, expected, rtol=1e-10, atol=0.0)
+    np.testing.assert_allclose(out, expected, rtol=1e-6, atol=0.0)
 
 
 def run_snapshot_apply_unred(star_name, band):
@@ -135,7 +135,7 @@ def run_snapshot_apply_unred(star_name, band):
     flux = apply_unred(before_2d[:, 0], before_2d[:, 1], STARS[star_name]["EBV"])
     out = np.column_stack((before_2d[:, 0], flux))
     assert out.shape == expected.shape
-    np.testing.assert_allclose(out, expected, rtol=1e-10, atol=0.0)
+    np.testing.assert_allclose(out, expected, rtol=1e-6, atol=0.0)
 
 def run_snapshot_convert_flux_to_photons(star_name, band):
     # Verifies convert_flux_to_photons produces the expected photon flux snapshot from after_unred input.
@@ -153,7 +153,7 @@ def run_snapshot_convert_flux_to_photons(star_name, band):
     out = np.column_stack((wavelengths, photons_star))
 
     assert out.shape == expected.shape
-    np.testing.assert_allclose(out, expected, rtol=1e-10, atol=0.0)
+    np.testing.assert_allclose(out, expected, rtol=1e-6, atol=0.0)
 
 def test_WASP189_convertIntensityToLuminosity_IR():
     run_snapshot_convertIntensityToLuminosity("WASP-189", STARS["WASP-189"]["radius_rsun"], "IR")

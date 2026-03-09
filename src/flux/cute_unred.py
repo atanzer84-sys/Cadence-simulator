@@ -100,8 +100,7 @@ def unred(wave, flux, ebv, R_V=None, LMC2=False, AVGLMC=False):
 
     x = 10000./ wave # Convert to inverse microns 
 
-    curve = x*0.
-    
+    curve = np.zeros_like(x, dtype=np.float32)
     # Set some standard values:
     x0 = 4.596
     gamma =  0.99
@@ -127,9 +126,9 @@ def unred(wave, flux, ebv, R_V=None, LMC2=False, AVGLMC=False):
     
     # Compute UV portion of A(lambda)/E(B-V) curve using FM fitting function and 
     # R-dependent coefficients
-    xcutuv = np.array([10000.0/2700.0])
-    xspluv = 10000.0/np.array([2700.0,2600.0])
-    
+    xcutuv = np.array([10000.0/2700.0], dtype=np.float32)
+    xspluv = 10000.0 / np.array([2700.0, 2600.0], dtype=np.float32)
+
     iuv = np.where(x >= xcutuv)[0]
     N_UV = len(iuv)
     iopir = np.where(x < xcutuv)[0]
@@ -147,12 +146,17 @@ def unred(wave, flux, ebv, R_V=None, LMC2=False, AVGLMC=False):
     
     # Compute optical portion of A(lambda)/E(B-V) curve
     # using cubic spline anchored in UV, optical, and IR
-    xsplopir = np.concatenate(([0],10000.0/np.array([26500.0,12200.0,6000.0,5470.0,4670.0,4110.0])))
-    ysplir   = np.array([0.0,0.26469,0.82925])*R_V/3.1 
-    ysplop   = np.array((np.polyval([-4.22809e-01, 1.00270, 2.13572e-04][::-1],R_V ), 
-            np.polyval([-5.13540e-02, 1.00216, -7.35778e-05][::-1],R_V ), 
-            np.polyval([ 7.00127e-01, 1.00184, -3.32598e-05][::-1],R_V ), 
-            np.polyval([ 1.19456, 1.01707, -5.46959e-03, 7.97809e-04, -4.45636e-05][::-1],R_V ) ))
+    xsplopir = np.concatenate((np.array([0], dtype=np.float32), 10000.0 / np.array([26500.0, 12200.0, 6000.0, 5470.0, 4670.0, 4110.0], dtype=np.float32)))
+
+    ysplir = np.array([0.0, 0.26469, 0.82925], dtype=np.float32) * R_V / 3.1
+
+    ysplop = np.array((
+        np.polyval([-4.22809e-01, 1.00270, 2.13572e-04][::-1], R_V),
+        np.polyval([-5.13540e-02, 1.00216, -7.35778e-05][::-1], R_V),
+        np.polyval([7.00127e-01, 1.00184, -3.32598e-05][::-1], R_V),
+        np.polyval([1.19456, 1.01707, -5.46959e-03, 7.97809e-04, -4.45636e-05][::-1], R_V)
+    ), dtype=np.float32)
+
     ysplopir = np.concatenate((ysplir,ysplop))
     
     if (Nopir > 0): 
