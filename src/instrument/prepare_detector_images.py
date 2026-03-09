@@ -12,7 +12,11 @@ from instrument.psf_spread import spread_1d_photometry_to_2d
 
 def prepare_all_detector_images_all_channels(star: Star, ctx: RunContext, nuv: SpectroscopyChannel, vis: SpectroscopyChannel, nir: PhotometryChannel):
     print("\n==== STARTING CALCULATION FOR FLUX TO INSTRUMENT =====")
-    flux, wavelengths_total = calculateFluxOnEarth(star, ctx, announce_user=True)
+    wl_min_A, wl_max_A = _get_required_wavelength_range_A(nuv, vis, nir)
+    flux, wavelengths_total = calculateFluxOnEarth(star, ctx, wl_min_A, wl_max_A, announce_user=True)
+    flux = np.asarray(flux, dtype=np.float32)
+    wavelengths_total = np.asarray(wavelengths_total, dtype=np.float32)
+    # flux, wavelengths_total = calculateFluxOnEarth(star, ctx, announce_user=True)
 
     logging.info("Starting convolution to instrument")
     print("\n==== STARTING CONVOLUTION TO INSTRUMENT (NUV)=====")
@@ -40,8 +44,6 @@ def prepare_detector_image_photometry(flux: np.ndarray, wavelengths: np. ndarray
     logging.info("Detector image prepared: channel=%s mode=photometry shape=%s", channel.channel_name, rate_image_e_s.shape)
     return rate_image_e_s
 
-
-
 def compute_counts_per_s_px_one_channel(flux: np.ndarray, wavelengths: np.ndarray, channel: Channel, ctx: RunContext, star: Star):
 
     logging.info("Computing counts per second per pixel for channel %s", channel.channel_name)
@@ -63,3 +65,9 @@ def convert_flux_to_photons(flux_unred, wavelengths):
 
     logging.info(f"photon_flux_at_earth_A shape: {photon_flux.shape}")
     return photon_flux
+
+
+def _get_required_wavelength_range_A(nuv: SpectroscopyChannel, vis: SpectroscopyChannel, nir: PhotometryChannel, margin_A: float = 200.0) -> tuple[float, float]:
+    wl_min_A = min(float(nuv.effective_area_wavelength[0]), float(vis.effective_area_wavelength[0]), float(nir.effective_area_wavelength[0])) - margin_A
+    wl_max_A = max(float(nuv.effective_area_wavelength[-1]), float(vis.effective_area_wavelength[-1]), float(nir.effective_area_wavelength[-1])) + margin_A
+    return wl_min_A, wl_max_A

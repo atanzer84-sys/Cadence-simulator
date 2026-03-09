@@ -101,7 +101,7 @@ def test_calculateFluxOnEarth_no_optional_steps_called(monkeypatch, tmp_path):
     monkeypatch.setattr("flux.flux_calc.apply_ism_absorption", fake_ism)
 
     monkeypatch.setattr("flux.flux_calc.load_model_for_temperature",
-                        lambda _, announce_user=False: np.array([[100.0, 1.0, 1.0]]))
+                        lambda _, announce_user=False: np.array([[5000.0, 1.0, 1.0]]))
     monkeypatch.setattr("flux.flux_calc.convertStellarModelToFlux",
                         lambda d, _: d)
     monkeypatch.setattr("flux.flux_calc.compute_ebv_av",
@@ -125,7 +125,7 @@ def test_calculateFluxOnEarth_no_optional_steps_called(monkeypatch, tmp_path):
     )
     ctx = SimpleNamespace(output_dir=tmp_path, dump_3d_array=_noop, dump_1d_array=_noop, dump_1d_for_channel=_noop, plot_1d_for_channel=_noop, plot_flux_and_photons_windows=_noop, plot_background_star_counts=_noop)
 
-    calculateFluxOnEarth(star, ctx)
+    calculateFluxOnEarth(star, ctx, 3400.0, 18000.0)
 
     assert called["lce"] is False
     assert called["ism"] is False
@@ -184,7 +184,7 @@ def test_calculateFluxOnEarth_optional_steps_called(monkeypatch, tmp_path):
     )
     ctx = SimpleNamespace(output_dir=tmp_path, dump_3d_array=_noop, dump_1d_array=_noop, dump_1d_for_channel=_noop, plot_1d_for_channel=_noop, plot_flux_and_photons_windows=_noop, plot_background_star_counts=_noop)
 
-    calculateFluxOnEarth(star, ctx)
+    calculateFluxOnEarth(star, ctx, 3400.0, 18000.0)
 
     assert called["lce"] is True
     assert called["ism"] is True
@@ -219,7 +219,7 @@ def test_calculateFluxOnEarth_returns_photons_and_wavelengths_same_length(monkey
     )
     ctx = SimpleNamespace(output_dir=tmp_path, dump_3d_array=_noop, dump_1d_array=_noop, dump_1d_for_channel=_noop, plot_1d_for_channel=_noop, plot_flux_and_photons_windows=_noop, plot_background_star_counts=_noop)
 
-    photons, wavelengths = calculateFluxOnEarth(star, ctx)
+    photons, wavelengths = calculateFluxOnEarth(star, ctx, 3400.0, 18000.0)
 
     assert len(photons) == len(wavelengths)
     assert np.all(np.isfinite(photons))
@@ -235,7 +235,7 @@ def test_calculateFluxOnEarth_executes_write_intermediate_arrays_instrumentation
 
     monkeypatch.setattr(
         "flux.flux_calc.load_model_for_temperature",
-        lambda _t, announce_user=False: np.column_stack((np.array([1000.0, 1100.0]), np.array([1.0, 1.0]))),
+        lambda _t, announce_user=False: np.column_stack((np.array([5000.0, 5100.0]), np.array([1.0, 1.0])))
     )
     monkeypatch.setattr("flux.flux_calc.convertStellarModelToFlux", lambda model, _r: model)
     monkeypatch.setattr("flux.flux_calc.compute_ebv_av", lambda *_a: (0.0, 0.0))
@@ -265,6 +265,6 @@ def test_calculateFluxOnEarth_executes_write_intermediate_arrays_instrumentation
     )
     ctx = SimpleNamespace(output_dir=tmp_path, dump_3d_array=fake_dump_3d_array, dump_1d_array=_noop, dump_1d_for_channel=_noop, plot_1d_for_channel=_noop, plot_flux_and_photons_windows=_noop, plot_background_star_counts=_noop)
 
-    calculateFluxOnEarth(star, ctx)
+    calculateFluxOnEarth(star, ctx, 3400.0, 18000.0)
 
     assert called["dumped"] is True

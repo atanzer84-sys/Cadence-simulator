@@ -14,7 +14,8 @@ from loaders.load_gaia import gaia_lookup_for_background_stars
 import astropy.units as u
 from astropy.coordinates import SkyCoord
 
-def lookup_background_stars(ctx: RunContext, cfg: GlobalConfig, star: Star):
+# def lookup_background_stars(ctx: RunContext, cfg: GlobalConfig, star: Star):
+def lookup_background_stars(ctx: RunContext, cfg: GlobalConfig, star: Star, wl_min_A: float, wl_max_A: float):
     print("\n==== STARTING BACKGROUND STAR LOOKUP VIA GAIA OR CSV =====")
 
     # TODO: IF YOU WANT TO LOAD A CATALOG OF ALL BACKGROUND STARS AND LOOK THEM UP, THIS WOULD BE THE PLACE.
@@ -40,7 +41,8 @@ def lookup_background_stars(ctx: RunContext, cfg: GlobalConfig, star: Star):
     for i, (star_id, bg_star) in enumerate(catalog.stars_by_id.items(), start=1):
         logging.info("Calculating Flux on Earth %d/%d for %s", i, total, star_id)
         print(f"Flux Calculation for Star: {i}/{total} for {star_id}")
-        flux_unred, wavelengths = calculateFluxOnEarth(bg_star, ctx)
+        # flux_unred, wavelengths = calculateFluxOnEarth(bg_star, ctx)
+        flux_unred, wavelengths = calculateFluxOnEarth(bg_star, ctx, wl_min_A, wl_max_A)
         catalog.flux_earth_by_id[star_id] = (wavelengths, flux_unred)    
     
     logging.info("Background star catalog prepared: stars=%d fluxes=%d", len(catalog.stars_by_id), len(catalog.flux_earth_by_id))   

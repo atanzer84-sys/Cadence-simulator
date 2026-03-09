@@ -10,15 +10,18 @@ from flux.cute_unred import unred
 from astropy.coordinates import SkyCoord
 from astropy import units as u
 from loaders.run_waltzer_context import RunContext
-from loaders.load_model_temperature import load_model_for_temperature
+from loaders.load_model_temperature import load_model_for_temperature, cut_model_wavelength_range
 from utils.helpers import announce
 
 
-def calculateFluxOnEarth(star: Star, ctx: RunContext, announce_user: bool = False):
+# def calculateFluxOnEarth(star: Star, ctx: RunContext, announce_user: bool = False):
+def calculateFluxOnEarth(star: Star, ctx: RunContext, wl_min_A: float, wl_max_A: float, announce_user: bool = False):
     announce(f"Starting to calculate Flux on Earth for target star {star.name}", announce_user)
     cfg = get_global_config()
 
     model_data = load_model_for_temperature(star.effective_temperature, announce_user=announce_user)
+    model_data = cut_model_wavelength_range(model_data, wl_min_A, wl_max_A)
+    
     ctx.dump_3d_array(model_data, ctx.output_dir, star.name, "FluxCalc_1_model_input", perChannel=True, zoom=True) 
 
 

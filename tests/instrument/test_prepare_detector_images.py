@@ -11,6 +11,7 @@ def _channel(name="NUV"):
         channel_name=name,
         x_pixels=4,
         y_pixels=3,
+        effective_area_wavelength=np.array([3400.0, 5000.0, 7000.0], dtype=float),
     )
 
 
@@ -19,6 +20,7 @@ def _photometry_channel(name="NIR"):
         channel_name=name,
         x_pixels=4,
         y_pixels=3,
+        effective_area_wavelength=np.array([10000.0, 14000.0, 18000.0], dtype=float),
         psf_radial_distance=np.array([0.0, 1.0]),
         psf_radial_flux=np.array([1.0, 0.5]),
     )

@@ -40,6 +40,10 @@ def load_model_for_temperature(t_star, announce_user: bool = False):
         f"Model directory exists but model.flx missing for picked={t_pick} K (dir={model_dir.name})"
     )
 
+def cut_model_wavelength_range(model_data: np.ndarray, wl_min_A: float, wl_max_A: float) -> np.ndarray:
+    mask = (model_data[:, 0] >= wl_min_A) & (model_data[:, 0] <= wl_max_A)
+    return model_data[mask]
+    
 def _get_available_models(models_dir: Path) -> list[tuple[int, Path]]:
     models = []
     for p in models_dir.iterdir():
