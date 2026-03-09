@@ -80,7 +80,7 @@ def generate_background_calculated_image(channel: SpectroscopyChannel, star: Sta
     elb_s = float(sun_ecl.lon.to_value(u.deg))
     ela_s = float(sun_ecl.lat.to_value(u.deg))
 
-    data_zod = np.asarray(channel.zod_dist, dtype=np.float64)
+    data_zod = np.asarray(channel.zod_dist, dtype=np.float32)
 
     # euler, ra, dec, elb, ela, select=3   (target ICRS -> ecliptic lon/lat)
     targ_ecl = SkyCoord(ra=ra * u.deg, dec=dec * u.deg, frame="icrs").transform_to(BarycentricTrueEcliptic())
@@ -121,10 +121,10 @@ def generate_background_calculated_image(channel: SpectroscopyChannel, star: Sta
     zod_value = data_zod[i,j]
     logging.info("zod_value=%s", zod_value)
 
-    wl_sol = np.asarray(channel.zod_spectrum_wavelength, dtype=np.float64)
-    flux_sol = np.asarray(channel.zod_spectrum_flux, dtype=np.float64)
+    wl_sol = np.asarray(channel.zod_spectrum_wavelength, dtype=np.float32)
+    flux_sol = np.asarray(channel.zod_spectrum_flux, dtype=np.float32)
     zod_spectrum = zod_value * flux_sol
-    zod_spectrum = np.asarray(zod_spectrum, dtype=np.float64)
+    zod_spectrum = np.asarray(zod_spectrum, dtype=np.float32)
 
     spline = CubicSpline(wl_sol, zod_spectrum, extrapolate=True)
     background = spline(channel.effective_area_wavelength)

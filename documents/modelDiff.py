@@ -13,7 +13,7 @@ def main() -> None:
     output_dir, _ , _= setup_output_directory()
 
     model = load_model_for_temperature(teff)
-    wl_full = np.asarray(model[:, 0], dtype=np.float64)
+    wl_full = np.asarray(model[:, 0], dtype=np.float32)
 
     if wl_full.size < 2:
         raise ValueError("Wavelength array too short.")

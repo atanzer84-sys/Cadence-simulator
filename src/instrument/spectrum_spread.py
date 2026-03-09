@@ -85,7 +85,7 @@ def _spread_1d_to_2d_gaussian(counts_s_pixel_convolved, channel: SpectroscopyCha
         w = _gaussian_vertical_profile(ny, y0, spatial_sigma_pix)
         image = np.outer(w, counts_s_pixel_convolved)
     else:
-        image = np.zeros((ny, nx), dtype=np.float64)
+        image = np.zeros((ny, nx), dtype=np.float32)
         for i in range(nx):
             x = x0 + i
             if 0 <= x < nx:
@@ -93,11 +93,10 @@ def _spread_1d_to_2d_gaussian(counts_s_pixel_convolved, channel: SpectroscopyCha
                 w = _gaussian_vertical_profile(ny, y_center, spatial_sigma_pix)
                 image[:, x] = counts_s_pixel_convolved[i] * w
 
-    logging.info("GAUSSIAN SPREAD RESULT: channel=%s shape=(%d,%d) sum=%g", channel.channel_name, image.shape[0], image.shape[1], float(image.sum()))
     col_sums = image.sum(axis=0)
-    logging.info("GAUSSIAN SPREAD CHECK: channel=%s input_sum=%g image_sum=%g max_abs_diff=%g", channel.channel_name, float(np.sum(counts_s_pixel_convolved)), float(np.sum(image)), float(np.max(np.abs(col_sums - counts_s_pixel_convolved))))
+    logging.info("GAUSSIAN SPREAD RESULT: channel=%s shape=(%d,%d) input_sum=%g image_sum=%g max_abs_diff=%g", channel.channel_name, image.shape[0], image.shape[1], float(np.sum(counts_s_pixel_convolved)), float(np.sum(image)), float(np.max(np.abs(col_sums - counts_s_pixel_convolved))))
 
-    if not np.allclose(col_sums, counts_s_pixel_convolved, rtol=1e-10, atol=1e-12):
+    if not np.allclose(col_sums, counts_s_pixel_convolved, rtol=1e-6, atol=1e-8):
         logging.error("GAUSSIAN SPREAD CHECK FAILED: channel=%s column sums do not match input counts", channel.channel_name)
         raise ValueError("Gaussian spread column sum mismatch")
 
@@ -105,7 +104,7 @@ def _spread_1d_to_2d_gaussian(counts_s_pixel_convolved, channel: SpectroscopyCha
 
 def _gaussian_vertical_profile(ny: int, y_center: float, sigma: float) -> np.ndarray:
     """Normalized 1D Gaussian profile along y. Returns shape (ny,)."""
-    y_coords = np.arange(ny, dtype=np.float64) - y_center
+    y_coords = np.arange(ny, dtype=np.float32) - y_center
     w = np.exp(-0.5 * (y_coords / sigma) ** 2)
     w_sum = w.sum()
     if w_sum <= 0.0:
@@ -131,9 +130,7 @@ def _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel: SpectroscopyChan
 
     dy = np.round(spread_y_pos).astype(np.int64)
 
-    logging.info("PROFILE SPREAD START: channel=%s spread_file=%s nx=%d ny=%d n_bins=%d y0=%g", channel.channel_name, channel.spread_profile_file, int(nx), int(ny), int(spread_wavelengths.shape[0]), y0)
-
-    image = np.zeros((ny, nx), dtype=np.float64)
+    image = np.zeros((ny, nx), dtype=np.float32)
 
     x_indices = np.arange(nx, dtype=np.int64)
     y_centers = y0 + intercept + slope * (x_indices - x0)
@@ -147,7 +144,7 @@ def _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel: SpectroscopyChan
         np.add.at(image, (y_all[mask], x_indices[mask]), values[mask])
 
     col_sums = image.sum(axis=0)
-    logging.info("PROFILE SPREAD CHECK: channel=%s input_sum=%g image_sum=%g max_abs_diff=%g", channel.channel_name, float(np.sum(counts_s_pixel_convolved)), float(np.sum(image)), float(np.max(np.abs(col_sums - counts_s_pixel_convolved))))
+    logging.info("PROFILE SPREAD RESULT: channel=%s spread_file=%s nx=%d ny=%d n_bins=%d y0=%g input_sum=%g image_sum=%g max_abs_diff=%g", channel.channel_name, channel.spread_profile_file, int(nx), int(ny), int(spread_wavelengths.shape[0]), y0, float(np.sum(counts_s_pixel_convolved)), float(np.sum(image)), float(np.max(np.abs(col_sums - counts_s_pixel_convolved))))
 
     return image
 

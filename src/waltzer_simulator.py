@@ -9,7 +9,9 @@ from frame.frame_pipeline import generate_frames
 from instrument.prepare_detector_images import prepare_all_detector_images_all_channels
 from instrument.build_science_image import build_science_images
 
+from memory_profiler import profile
 
+@profile
 def main():
     try:
         

@@ -84,8 +84,8 @@ def run_snapshot_convertIntensityToLuminosity(star_name, radius_rsun, band):
     base = SNAPSHOT_BASE
     model_file = base / f"{star_name}_FluxCalc_1_model_input_{band}_zoom.txt"
     expected_file = base / f"{star_name}_FluxCalc_2_convertIntensityToLuminosity_snapshot_{band}_zoom.txt"
-    model = np.loadtxt(model_file, dtype=np.float64)
-    expected = np.loadtxt(expected_file, dtype=np.float64)
+    model = np.loadtxt(model_file, dtype=np.float32)
+    expected = np.loadtxt(expected_file, dtype=np.float32)
     got = convertStellarModelToFlux(model, radius_rsun * R_SUN_cm)
     assert got.shape == expected.shape
     np.testing.assert_allclose(got, expected, rtol=1e-10, atol=0.0)
@@ -94,8 +94,8 @@ def run_snapshot_apply_line_core_emission(star_name, band, sigmaMg22, sigmaMg21,
     base = SNAPSHOT_BASE
     before_file = base / f"{star_name}_FluxCalc_2_convertIntensityToLuminosity_snapshot_{band}_zoom.txt"
     expected_file = base / f"{star_name}_FluxCalc_3_after_line_core_emission_{band}_zoom.txt"
-    before = np.loadtxt(before_file, dtype=np.float64)
-    expected = np.loadtxt(expected_file, dtype=np.float64)
+    before = np.loadtxt(before_file, dtype=np.float32)
+    expected = np.loadtxt(expected_file, dtype=np.float32)
     got = apply_line_core_emission(before, sigmaMg22, sigmaMg21, log_r, spectral_type)
     assert got.shape == expected.shape
     np.testing.assert_allclose(got, expected, rtol=1e-10, atol=0.0)
@@ -104,8 +104,8 @@ def run_snapshot_apply_ism_absorption(star_name, band, EBV):
     base = SNAPSHOT_BASE
     before_file = base / f"{star_name}_FluxCalc_3_after_line_core_emission_{band}_zoom.txt"
     expected_file = base / f"{star_name}_FluxCalc_4_after_ISM_{band}_zoom.txt"
-    before = np.loadtxt(before_file, dtype=np.float64)
-    expected = np.loadtxt(expected_file, dtype=np.float64)
+    before = np.loadtxt(before_file, dtype=np.float32)
+    expected = np.loadtxt(expected_file, dtype=np.float32)
     cfg = make_cfg_for_ism_absorption()
     got = apply_ism_absorption(before, EBV, cfg)
     assert got.shape == expected.shape
@@ -115,10 +115,10 @@ def run_snapshot_compute_flux_at_earth(star_name, band, distance_pc):
     base = SNAPSHOT_BASE
     before_file = base / f"{star_name}_FluxCalc_5_before_flux_at_earth_{band}_zoom.txt"
     expected_file = base / f"{star_name}_FluxCalc_6_after_flux_at_earth_{band}_zoom.txt"
-    before_2d = np.loadtxt(before_file, dtype=np.float64)
-    expected = np.loadtxt(expected_file, dtype=np.float64)
+    before_2d = np.loadtxt(before_file, dtype=np.float32)
+    expected = np.loadtxt(expected_file, dtype=np.float32)
 
-    before_3d = np.column_stack((before_2d[:, 0], before_2d[:, 1], np.zeros(before_2d.shape[0], dtype=np.float64)))
+    before_3d = np.column_stack((before_2d[:, 0], before_2d[:, 1], np.zeros(before_2d.shape[0], dtype=np.float32)))
     flux = compute_flux_at_earth(before_3d, distance_pc)
 
     out = np.column_stack((before_2d[:, 0], flux))
@@ -130,8 +130,8 @@ def run_snapshot_apply_unred(star_name, band):
     base = SNAPSHOT_BASE
     before_file = base / f"{star_name}_FluxCalc_6_after_flux_at_earth_{band}_zoom.txt"
     expected_file = base / f"{star_name}_FluxCalc_7_after_unred_{band}_zoom.txt"
-    before_2d = np.loadtxt(before_file, dtype=np.float64)
-    expected = np.loadtxt(expected_file, dtype=np.float64)
+    before_2d = np.loadtxt(before_file, dtype=np.float32)
+    expected = np.loadtxt(expected_file, dtype=np.float32)
     flux = apply_unred(before_2d[:, 0], before_2d[:, 1], STARS[star_name]["EBV"])
     out = np.column_stack((before_2d[:, 0], flux))
     assert out.shape == expected.shape
@@ -143,8 +143,8 @@ def run_snapshot_convert_flux_to_photons(star_name, band):
     before_file = base / f"{star_name}_FluxCalc_7_after_unred_{band}_zoom.txt"
     expected_file = base / f"{star_name}_FluxCalc_8_photons_star_{band}_zoom.txt"
 
-    before_2d = np.loadtxt(before_file, dtype=np.float64)
-    expected = np.loadtxt(expected_file, dtype=np.float64)
+    before_2d = np.loadtxt(before_file, dtype=np.float32)
+    expected = np.loadtxt(expected_file, dtype=np.float32)
 
     wavelengths = before_2d[:, 0]
     flux_unred = before_2d[:, 1]

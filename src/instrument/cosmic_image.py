@@ -19,7 +19,7 @@ def generate_cosmic_rays(ctx: RunContext, channel: SpectroscopyChannel, cfg: Glo
 
     rng = np.random.default_rng()
     cosmic_rays = rng.integers(min_rays, max_rays + 1)
-    image = np.zeros((ny, nx), dtype=np.float64)
+    image = np.zeros((ny, nx), dtype=np.float32)
 
     # IDL: x_val=(nx-1)*randomu(seed,number) etc.
     x_val = (nx - 1) * rng.random(cosmic_rays)

@@ -15,10 +15,10 @@ git merge
 
 # call teststars with background stars that are interesting
 KELT-20 : 030
-HD 189733 : 017
+HD189733 : 017
 WASP-8 : 073
 KELT-9 : 002
-HD 2685 : 001
+HD2685 : 001
 
 caffeinate -i bash -c '
 for i in 001 002 017 030 073; do
