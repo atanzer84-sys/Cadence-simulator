@@ -21,11 +21,8 @@ def spread_1d_photometry_to_2d(counts_s_px_nir: np.ndarray, channel: PhotometryC
         raise ValueError("PSF center not loaded")
 
     total_flux_electrons_per_second = float(np.sum(counts_s_px_nir))
-    logging.info("Channel %s: summed NIR flux = %e electrons/s", channel.channel_name, total_flux_electrons_per_second)
 
     psf_stamp = channel.psf_image * total_flux_electrons_per_second
-    logging.info("Channel %s: psf_stamp shape=%s sum=%e", channel.channel_name, psf_stamp.shape, float(np.sum(psf_stamp)))
-
     detector_image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
     source_pixel_x, source_pixel_y = get_photometry_placement(channel)
 
@@ -34,14 +31,13 @@ def spread_1d_photometry_to_2d(counts_s_px_nir: np.ndarray, channel: PhotometryC
 
     paste_psf_stamp( detector_image, psf_stamp, source_pixel_x, source_pixel_y, psf_center_x, psf_center_y)
 
-    logging.info("Channel %s: PSF placed at detector pixel (%d,%d) flux=%e frame_sum=%e", channel.channel_name, source_pixel_x, source_pixel_y, total_flux_electrons_per_second, float(np.sum(detector_image)))
-    
     nonzero_y, nonzero_x = np.nonzero(detector_image)
     if nonzero_y.size > 0:
         logging.info("Channel %s: detector_image stats shape=%s nonzero=%d min=%e max=%e bbox_y=%d..%d bbox_x=%d..%d", channel.channel_name, detector_image.shape, int(nonzero_y.size), float(np.min(detector_image)), float(np.max(detector_image)), int(np.min(nonzero_y)), int(np.max(nonzero_y)), int(np.min(nonzero_x)), int(np.max(nonzero_x)))
     else:
         logging.info("Channel %s: detector_image stats shape=%s nonzero=0 min=%e max=%e bbox_y=none bbox_x=none", channel.channel_name, detector_image.shape, float(np.min(detector_image)), float(np.max(detector_image)))
 
+    logging.info("Photometry PSF spread applied: channel=%s detector_shape=(%d,%d) source_pixel=(%d,%d summed NIR flux = %e electrons/s frame_sum=%e", channel.channel_name, channel.y_pixels, channel.x_pixels, source_pixel_x, source_pixel_y, total_flux_electrons_per_second, float(np.sum(detector_image)))
     return detector_image
 
 def paste_psf_stamp(frame: np.ndarray, psf_stamp: np.ndarray, detector_center_x: int, detector_center_y: int, psf_center_x: int, psf_center_y: int) -> None:

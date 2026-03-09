@@ -22,8 +22,6 @@ def cut_wavelength_window_with_margin(photon_flux_at_earth: np.ndarray, waveleng
     wl_min = channel.effective_area_wavelength[0]
     wl_max = channel.effective_area_wavelength[-1]
 
-    logging.info("Cutting wavelength window: Detector wl_min=%g wl_max=%g", wl_min, wl_max)
-
     wl_min_ext = wl_min - margin_A
     wl_max_ext = wl_max + margin_A
 
@@ -105,17 +103,14 @@ def counts_per_s_px_conv_per_channel(broadened_photon_flux: np.ndarray, waveleng
     # Get the pixel wavelength grid from the channel and interpolate smoothed Earth flux onto the pixel wavelength grid
     photon_flux_on_pixel = np.interp(channel.effective_area_wavelength, wavelength, broadened_photon_flux)
     
-    logging.info("Channel %s flux_on_pixel sum=%g mean=%g min=%g max=%g", channel.channel_name, photon_flux_on_pixel.sum(), photon_flux_on_pixel.mean(), photon_flux_on_pixel.min(), photon_flux_on_pixel.max())
-
     # Step 3: convert photons per Angstrom into photons per pixel
     photons_per_pixel_cm2_s = photon_flux_on_pixel * channel.pixel_scale
 
     # Step 4: apply effective area to get detector counts per second per pixel
     counts_s_px_convolved = photons_per_pixel_cm2_s * channel.effective_area
-    logging.info("Channel %s counts_per_s_per_pixel sum=%g mean=%g min=%g max=%g", channel.channel_name, counts_s_px_convolved.sum(), counts_s_px_convolved.mean(), counts_s_px_convolved.min(), counts_s_px_convolved.max())
 
     ctx.dump_1d_for_channel(channel.effective_area_wavelength, counts_s_px_convolved, ctx.output_dir, star.name, "Detector_counts_s_px_convolved", channel_name=channel.channel_name, full=True, zoom=True)
-
     ctx.plot_1d_for_channel(channel.effective_area_wavelength, counts_s_px_convolved, ctx.output_dir, star, filename_tag=f"Detector_counts_s_px_convolved{'' if filename_suffix is None else '_' + filename_suffix}", title_text="Convolved Counts", y_label="Counts s⁻¹ pixel⁻¹", channel_name=channel.channel_name, full=True)
 
+    logging.info("Counts per pixel computed: channel=%s bins=%d", channel.channel_name, len(counts_s_px_convolved))
     return counts_s_px_convolved

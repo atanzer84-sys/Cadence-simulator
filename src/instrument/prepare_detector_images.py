@@ -15,13 +15,13 @@ def prepare_all_detector_images_all_channels(star: Star, ctx: RunContext, nuv: S
     flux, wavelengths_total = calculateFluxOnEarth(star, ctx, announce_user=True)
 
     logging.info("Starting convolution to instrument")
-    print("\n==== STARTING CONVOLUTION TO INSTRUMENT (NUV & VIS)=====")
-    # # NUV and VIS Channel
+    print("\n==== STARTING CONVOLUTION TO INSTRUMENT (NUV)=====")
     spectra_2d_nuv = prepare_all_detector_images_spectroscopy(flux, wavelengths_total, nuv, ctx, star)
+
+    print("\n==== STARTING CONVOLUTION TO INSTRUMENT (VIS)=====")
     spectra_2d_vis = prepare_all_detector_images_spectroscopy(flux, wavelengths_total, vis, ctx, star)
 
     print("\n==== STARTING CONVOLUTION TO INSTRUMENT (NIR)=====")
-    # NIR Channel
     nir_rate_frame = prepare_detector_image_photometry(flux, wavelengths_total, nir, ctx, star)
     
     return spectra_2d_nuv, spectra_2d_vis, nir_rate_frame
@@ -29,6 +29,7 @@ def prepare_all_detector_images_all_channels(star: Star, ctx: RunContext, nuv: S
 def prepare_all_detector_images_spectroscopy(flux: np.ndarray, wavelengths: np.ndarray, channel: SpectroscopyChannel, ctx: RunContext, star: Star):
     counts_s_px_convolved = compute_counts_per_s_px_one_channel(flux, wavelengths, channel, ctx, star)
     spectra_2d = spread_target_star_spectrum_to_2d(counts_s_px_convolved, channel)
+    logging.info("Detector image prepared: channel=%s mode=spectroscopy shape=%s", channel.channel_name, spectra_2d.shape)
     return spectra_2d
 
 def prepare_detector_image_photometry(flux: np.ndarray, wavelengths: np. ndarray, channel: PhotometryChannel, ctx: RunContext, star: Star):
@@ -36,6 +37,7 @@ def prepare_detector_image_photometry(flux: np.ndarray, wavelengths: np. ndarray
 
     counts_s_px_nir = compute_counts_per_s_px_one_channel(flux, wavelengths, channel, ctx, star)
     rate_image_e_s = spread_1d_photometry_to_2d(counts_s_px_nir, channel, ctx)
+    logging.info("Detector image prepared: channel=%s mode=photometry shape=%s", channel.channel_name, rate_image_e_s.shape)
     return rate_image_e_s
 
 
