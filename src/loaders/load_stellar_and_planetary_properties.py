@@ -10,6 +10,9 @@ from astropy.io import ascii
 from configs.global_config import GlobalConfig, get_global_config
 from loaders.run_waltzer_context import get_repo_root
 
+# Module-level cache (process lifetime) for Mamajek table arrays.
+_MAMAJEK_CACHE: tuple[np.ndarray, np.ndarray] | None = None
+
 def load_stellar_and_planetary_properties(target_name_user_input):
     cfg = get_global_config()
 
@@ -109,14 +112,21 @@ def merge_gaia_into_star_params(star_params, gaia_star_params):
 
 def infer_mamajek_spectral_type(star_params, mamajek_path, log_output: bool = True):
     mamajek_path = str(mamajek_path)
-    if log_output:
-        logging.info("Loading Mamajek table from %s", mamajek_path)
+    global _MAMAJEK_CACHE
 
-    data = ascii.read(mamajek_path, comment="#")
-    if log_output:
-        logging.info("Mamajek table loaded successfully (%d rows)", len(data))
-    Sp = np.array(data["col1"])
-    T_book = np.array(data["col2"], dtype=float)
+    if _MAMAJEK_CACHE is None:
+        if log_output:
+            logging.info("Loading Mamajek table from %s", mamajek_path)
+        data = ascii.read(mamajek_path, comment="#")
+        Sp = np.array(data["col1"])
+        T_book = np.array(data["col2"], dtype=float)
+        _MAMAJEK_CACHE = (Sp, T_book)
+        if log_output:
+            logging.info("Mamajek table loaded successfully (%d rows)", len(data))
+    else:
+        Sp, T_book = _MAMAJEK_CACHE
+        if log_output:
+            logging.info("Using cached Mamajek table")
 
     Teff_raw = star_params.get("effective_temperature")
 
