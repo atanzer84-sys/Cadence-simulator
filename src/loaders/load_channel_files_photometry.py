@@ -11,7 +11,6 @@ def load_psf_image_file(filename: str, channel_name: str, ctx: RunContext, min_c
         raise ValueError("PSF image file not configured.")
 
     path = resolve_path_under(repo_root, "data", filename)
-    logging.info("Channel %s: loading PSF image file: %s", channel_name, path)
 
     if not path.exists():
         raise ValueError(f"PSF image file not found: {path}")
@@ -100,6 +99,6 @@ def load_psf_image_file(filename: str, channel_name: str, ctx: RunContext, min_c
 
     psf /= total_sum
 
-    logging.info("Channel %s: PSF loaded shape=(%d,%d) raw_sum=%g norm_sum=%g center=(y=%d,x=%d) grid_start_line=%d", channel_name, psf.shape[0], psf.shape[1], total_sum, float(np.nansum(psf)), int(psf_center_y), int(psf_center_x), int(grid_start_line))
+    logging.info("PSF loaded: channel=%s shape=(%d,%d) center=(y=%d,x=%d)", channel_name, psf.shape[0], psf.shape[1], int(psf_center_y), int(psf_center_x))
 
     return psf, int(psf_center_y), int(psf_center_x)

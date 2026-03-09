@@ -33,6 +33,7 @@ def lookup_background_stars(ctx: RunContext, cfg: GlobalConfig, star: Star):
     add_background_star_offsets_arcsec(catalog, star)
 
     total = len(catalog.stars_by_id)
+    
     logging.info("Starting flux calculation for %d background stars", total)
     print(f"\n==== STARTING FLUX CALCULATION FOR {total} BACKGROUND STARS =====")
     
@@ -41,8 +42,11 @@ def lookup_background_stars(ctx: RunContext, cfg: GlobalConfig, star: Star):
         print(f"Flux Calculation for Star: {i}/{total} for {star_id}")
         flux_unred, wavelengths = calculateFluxOnEarth(bg_star, ctx)
         catalog.flux_earth_by_id[star_id] = (wavelengths, flux_unred)    
-
+    
+    logging.info("Background star catalog prepared: stars=%d fluxes=%d", len(catalog.stars_by_id), len(catalog.flux_earth_by_id))   
     return catalog
+
+
 def load_background_csv_if_exists(star: Star) -> Table | None:
     repo_root = get_repo_root()
     csv_name = star.name.replace(" ", "_")

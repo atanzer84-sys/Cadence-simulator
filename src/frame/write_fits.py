@@ -16,4 +16,4 @@ def write_fits_frames(frames, headers, frame_type, channel_tag, ctx: RunContext)
         header.append(("FILENAME", fname, "Output FITS filename"))
         fits.PrimaryHDU(data=frame, header=header).writeto(filename, overwrite=True)
 
-    logging.info("WRITE FITS SUMMARY type=%s channel=%s frames=%d outdir=%s", frame_type, channel_tag, n_frames, ctx.output_dir)
+    logging.info("FITS writing finished: channel=%s frame_type=%s frames=%d", channel_tag, frame_type, n_frames)

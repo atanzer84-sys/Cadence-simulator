@@ -40,6 +40,5 @@ def load_spread_profile_file_spectroscopy(spread_filename: str, channel_name: st
         logging.error("Spread File Error: channel=%s spread_y_positions and spread_y_weights row mismatch", channel_name)
         raise ValueError("Spread profile row mismatch")
 
-    logging.info("Channel %s: spread profile file=%s loaded rows=%d weight_cols=%d first_dy_values=%s first_row_weights=%s center_row_dy=%g center_row_weights=%s", channel_name, path, positions.shape[0], weights_matrix.shape[1], positions[:10], weights_matrix[0, :], positions[len(positions)//2], weights_matrix[len(positions)//2, :])
-
+    logging.info("Spread profile loaded: channel=%s rows=%d wavelength_bins=%d", channel_name, positions.shape[0], wavelength_header.shape[0])
     return positions, weights_matrix, wavelength_header

@@ -29,7 +29,6 @@ def load_effective_area_file(effective_area_filename: str) -> tuple[np.ndarray, 
     repo_root = get_repo_root()
     path = resolve_path_under(repo_root, "data", effective_area_filename)
 
-    logging.info("Loading effective area file: %s", path)
 
     if not path.exists():
         msg = f"Effective area file not found: {path}"
@@ -73,8 +72,7 @@ def load_effective_area_file(effective_area_filename: str) -> tuple[np.ndarray, 
         logging.error(msg)
         raise ValueError(msg)
 
-    logging.info("Effective area loaded (%s): Rows=%d, pixel_scale=%s", effective_area_filename, wavelength.shape[0], pixel_scale)
-    logging.info("Effective area summary: file=%s rows(WL)=%d rows(EA)=%d pixel_scale=%s", effective_area_filename, wavelength.shape[0], eff_area.shape[0], pixel_scale)
+    logging.info("Effective area loaded (%s): rows(WL)=%d rows(EA)=%d pixel_scale=%s", path, wavelength.shape[0], eff_area.shape[0], pixel_scale)
 
     return wavelength, eff_area, pixel_scale
 
@@ -104,7 +102,6 @@ def load_background_file(background_filename: str) -> tuple[np.ndarray | None, n
 
     path = resolve_path_under(repo_root, "data", background_filename)
 
-    logging.info("Loading background file: %s", path)
 
     if not path.exists():
         msg = f"Background file not found: {path}"
@@ -136,8 +133,7 @@ def load_background_file(background_filename: str) -> tuple[np.ndarray | None, n
         logging.error(msg)
         raise ValueError(msg)
 
-    logging.info("Background loaded (%s): rows=%d", background_filename, wavelength.shape[0])
-
+    logging.info("Background spectrum loaded: file=%s rows=%d", path, wavelength.shape[0])
     return wavelength, flux
 
 def _parse_pixel_scale(lines: list[str], path: Path) -> float:
@@ -234,7 +230,7 @@ def load_zod_dist_file(filename: str) -> np.ndarray | None:
         logging.error(msg)
         raise ValueError(msg)
 
-    logging.info("Zodiacal distribution file loaded: filename=%s path=%s shape=%s", filename, path, data.shape)
+    logging.info("Zodiacal distribution loaded: file=%s shape=%s", path, data.shape)
     return data
 
 def load_zod_spectrum_file(filename: str) -> tuple[np.ndarray | None, np.ndarray | None]:
@@ -262,5 +258,5 @@ def load_zod_spectrum_file(filename: str) -> tuple[np.ndarray | None, np.ndarray
 
     wavelength = data[:, 0].astype(np.float32, copy=False)
     spectrum = data[:, 1].astype(np.float32, copy=False)
-    logging.info("Zodiacal spectrum file loaded: filename=%s path=%s rows=%d", filename, path, wavelength.shape[0])
+    logging.info("Zodiacal spectrum loaded: file=%s rows=%d", path, wavelength.shape[0])
     return wavelength, spectrum

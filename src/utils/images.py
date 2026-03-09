@@ -95,19 +95,20 @@ def write_calibration_frame_png(array, frame_type: str, ctx: RunContext, channel
 def write_science_frames_png(frames, headers, frame_type, channel_tag, ctx: RunContext, star: Star, show_stats=False):
 
     n_frames = len(frames)
+    logging.info("PNG writing started: channel=%s frame_type=%s frames=%d", channel_tag, frame_type, n_frames)
+    
     if n_frames == 0:
         logging.info("Write PNG: no frames for %s channel %s", frame_type, channel_tag)
         return
-
-    logging.info("Writing %d %s PNG frame(s) for channel %s to %s", n_frames, frame_type, channel_tag, ctx.output_dir)
 
     title_base = _format_frame_title(star.name, channel_tag, frame_type, star)
 
     for k, (frame, header) in enumerate(zip(frames, headers)):
         stats_values, stats_keys = _build_frame_write_context(header, show_stats)
         _write_one_frame_png(frame, ctx.output_dir, star.name, channel_tag, frame_type, title_base, stats_values, stats_keys, index=k)
+    
+    logging.info("PNG writing finished: channel=%s frame_type=%s frames=%d", channel_tag, frame_type, n_frames)
 
-    logging.info("Finished writing %d PNG file(s)", n_frames)
 
 def plot_flux_and_photons_windows(wavelengths, values, output_dir, star: Star, filename_tag, title_text, y_label, perChannel: bool = True, full: bool = False, zoom: bool = True):
     print(f"Producing plots for {star.name}")
@@ -179,6 +180,8 @@ def plot_background_star_counts(background_stars_catalog: StarCatalog, channel: 
 
         plt.savefig(filename)
         plt.close()
+    
+    logging.info("Background star count plots finished: channel=%s", channel.channel_name)
         
 def _normalize_target_name(name: str) -> str:
     """Normalize target/star name for filenames (spaces → underscores). Used by PNG writes and plots."""

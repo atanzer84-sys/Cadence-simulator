@@ -150,7 +150,6 @@ def gaia_lookup_for_background_stars(star: Star, g_mag_limit, GAIA_USE_ASYNC_JOB
     radius_arcsec = 150.0
 
     print(f"==== Gaia background search: START (g_mag_limit={g_mag_limit}, GAIA_USE_ASYNC_JOBS={GAIA_USE_ASYNC_JOBS}) =====")
-    logging.info("Gaia background search: START (g_mag_limit=%s, GAIA_USE_ASYNC_JOBS=%s)", g_mag_limit, GAIA_USE_ASYNC_JOBS)
 
     center = SkyCoord(ra=star.right_ascension * u.deg, dec=star.declination * u.deg, frame="icrs")
 
@@ -161,7 +160,7 @@ def gaia_lookup_for_background_stars(star: Star, g_mag_limit, GAIA_USE_ASYNC_JOB
     drop_result = _gaia_drop_central_star(cone_small, center)
     if drop_result is None:
         return None
-    field_cone, central_cone_row, central_sep = drop_result
+    field_cone, _, _ = drop_result
 
     field_joined = _gaia_fetch_ap_and_join(field_cone)
     if field_joined is None:
@@ -170,8 +169,6 @@ def gaia_lookup_for_background_stars(star: Star, g_mag_limit, GAIA_USE_ASYNC_JOB
     # ----------------------------
     # 4) LOG central + field
     # ----------------------------
-    cols_center = ["source_id", "ra", "dec", "phot_g_mean_mag"]
-    logging.info("Gaia background search: CENTRAL (cone-only): %s", {c: central_cone_row[c] for c in cols_center} | {"sep_arcsec": central_sep})
 
     n_field = len(field_joined)
     g_mag_col = "phot_g_mean_mag"
@@ -186,8 +183,8 @@ def gaia_lookup_for_background_stars(star: Star, g_mag_limit, GAIA_USE_ASYNC_JOB
         logging.info("Gaia background search: FIELD stars count=%d", n_field)
 
     print(f"Gaia background search: DONE remaining background stars={n_field}")
-    logging.info("Gaia background search: DONE remaining background stars=%d", n_field)
 
+    logging.info("Gaia background search completed: target=%s stars=%d mag_limit=%s GAIA_USE_ASYNC_JOBS=%s", star.name, len(field_joined), g_mag_limit, GAIA_USE_ASYNC_JOBS)
     return field_joined
 
 
@@ -229,8 +226,6 @@ def _gaia_cone_search(center: SkyCoord, radius_arcsec: float, g_mag_limit: float
         print(msg)
         return None
 
-    logging.info("Gaia background search: after cone search rows=%d", len(cone))
-
     if cone is None or len(cone) == 0:
         logging.info("Gaia background search: no sources found")
         return None
@@ -239,11 +234,8 @@ def _gaia_cone_search(center: SkyCoord, radius_arcsec: float, g_mag_limit: float
 
     if g_mag_limit is not None:
         print(f"Gaia background search: applying G<{g_mag_limit} filter")
-        logging.info("Gaia background search: applying G<%s filter", g_mag_limit)
         cone_small = cone_small[cone_small["phot_g_mean_mag"] < g_mag_limit]
-        logging.info("Gaia background search: after mag filter rows=%d", len(cone_small))
-    else:
-        logging.info("Gaia background search: no magnitude filter (g_mag_limit=None)")
+        logging.info("Gaia background search: applying filter G<%s after mag filter rows=%d", g_mag_limit, len(cone_small))
 
     if len(cone_small) == 0:
         logging.info("Gaia background search: no sources after magnitude filter")
@@ -274,7 +266,6 @@ def _find_central_row(cone_small: Table, center: SkyCoord) -> tuple[object | Non
 def _gaia_drop_central_star(cone_small: Table, center: SkyCoord) -> tuple[Table, object, float] | None:
     """Identify central (nearest) star, remove it from table. Returns (field_cone, central_cone_row, central_sep) or None if no field left."""
 
-    logging.info("Gaia background search: identifying central star (nearest)")
 
     central_cone_row, central_sep = _find_central_row(cone_small, center)
     if central_cone_row is None:
@@ -289,12 +280,11 @@ def _gaia_drop_central_star(cone_small: Table, center: SkyCoord) -> tuple[Table,
     mask[idx_center] = False
     field_cone = cone_small[mask]
 
-    logging.info("Gaia background search: after central removal rows=%d", len(field_cone))
-
     if len(field_cone) == 0:
         logging.info("Gaia background search: only central star present after filters")
         return None
 
+    logging.info("Gaia background search: after central removal rows=%d", len(field_cone))
     return (field_cone, central_cone_row, central_sep)
 
 
