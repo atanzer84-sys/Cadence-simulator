@@ -46,8 +46,8 @@ def _render_star_if_on_detector(star_id: str, channel: PhotometryChannel, catalo
     x_target, y_target = target_star_placement
     dx, dy = catalog.get_offset_arcsec(star_id)
 
-    counts = _get_cached_counts(star_id, catalog, channel, frame_index)
-    if counts is None:
+    total_flux_electrons_per_second = _get_cached_counts(star_id, catalog, channel, frame_index)
+    if total_flux_electrons_per_second is None:
         return None
 
     roll_angles = _compute_roll_angle_samples(dx, dy, channel, roll_angle_start, roll_angle_stop)
@@ -67,7 +67,6 @@ def _render_star_if_on_detector(star_id: str, channel: PhotometryChannel, catalo
     if len(valid_positions) == 0:
         return None
 
-    total_flux_electrons_per_second = float(np.sum(counts))
     # exposure will not change, star is always visible and therefore for the full exposure.
     flux_per_step_electrons_per_second = total_flux_electrons_per_second / float(len(valid_positions))
 

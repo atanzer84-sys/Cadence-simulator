@@ -6,6 +6,7 @@ from domain.star import Star
 import logging
 from configs.channel_config import SpectroscopyChannel, PhotometryChannel, Channel
 from instrument.prepare_detector_images import compute_counts_per_s_px_one_channel
+import numpy as np
 
 
 def populate_background_star_catalog(nuv: SpectroscopyChannel, vis: SpectroscopyChannel, nir: PhotometryChannel, ctx: RunContext, cfg: GlobalConfig, star: Star):
@@ -34,4 +35,9 @@ def calculate_counts_per_px_s(background_stars_catalog: StarCatalog, channel: Ch
 
         counts_s_px = compute_counts_per_s_px_one_channel(flux_unred, wavelengths, channel, ctx, bg_star)
 
-        background_stars_catalog.counts_by_id_and_band[key] = counts_s_px
+        if isinstance(channel, SpectroscopyChannel):
+            # store full 1D array (float32)
+            background_stars_catalog.counts_by_id_and_band[key] = counts_s_px.astype(np.float32)
+        else:
+            # store only scalar total flux
+            background_stars_catalog.counts_by_id_and_band[key] = float(np.sum(counts_s_px))

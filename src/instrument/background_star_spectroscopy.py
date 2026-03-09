@@ -8,7 +8,7 @@ from instrument.spectrum_spread import get_spectrum_placement, smear_1d_spectrum
 
 
 def generate_background_star_spectroscopy_image(channel: SpectroscopyChannel, ctx: RunContext, star: Star, background_stars_catalog: StarCatalog, roll_angle_deg: float, frame_index: int) -> tuple[np.ndarray, dict[str, dict[str, float]]]:
-    image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float64)
+    image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
     background_star_bands: dict[str, dict[str, float]] = {}
 
     slit = _build_slit(channel, roll_angle_deg)

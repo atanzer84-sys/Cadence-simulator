@@ -129,9 +129,9 @@ def _create_photometry_per_exposure(nir_component, background_component, channel
 
 
 def _build_science_image_without_bg_stars(target_star_component, background_component, channel: Channel, ctx: RunContext, cfg: GlobalConfig, star: Star, frame_index: int):
-    image = np.zeros((channel.y_pixels, channel.x_pixels))
-    image_background_stars = np.zeros((channel.y_pixels, channel.x_pixels))
-    
+    image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
+    image_background_stars = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
+
     bias = generate_bias_image(channel)
     image += bias
     if frame_index < 1:

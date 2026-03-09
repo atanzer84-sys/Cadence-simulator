@@ -184,13 +184,13 @@ def _warn_default_used(raw: dict, key: str, default, *, path: Path) -> None:
     if key not in raw:
         logging.warning("%s not provided in %s, using default value %s", key, path, default)
 
-def _ensure_non_negative(value: int, *, key: str) -> int:
+def _ensure_non_negative(value: float | int, *, key: str) -> float | int:
     if value < 0:
         raise ValueError(f"{key} must be >= 0")
     return value
 
 
-def _ensure_min_le_max(min_val: int, max_val: int, *, key_min: str, key_max: str):
+def _ensure_min_le_max(min_val: float | int, max_val: float | int, *, key_min: str, key_max: str) -> None:
     if min_val > max_val:
         raise ValueError(f"{key_min} must be <= {key_max}")
 
