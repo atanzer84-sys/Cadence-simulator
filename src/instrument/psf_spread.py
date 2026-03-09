@@ -70,17 +70,7 @@ def paste_psf_stamp(frame: np.ndarray, psf_stamp: np.ndarray, detector_center_x:
 
         return
 
-    frame_before_sum = float(np.sum(frame))
-    stamp_sum = float(np.sum(psf_stamp))
-    stamp_patch_sum = float(np.sum(psf_stamp[stamp_y0:stamp_y1, stamp_x0:stamp_x1]))
-
-    logging.info("paste_psf_stamp frame_shape=%s stamp_shape=%s det=(%d,%d) psf_center=(%d,%d) stamp_left_top=(%d,%d) frame_xy=(x%d:%d,y%d:%d) stamp_xy=(x%d:%d,y%d:%d) stamp_sum=%0.18e stamp_patch_sum=%0.18e frame_sum_before=%0.18e", str(frame.shape), str(psf_stamp.shape), detector_center_x, detector_center_y, psf_center_x, psf_center_y, stamp_left, stamp_top, frame_x0, frame_x1, frame_y0, frame_y1, stamp_x0, stamp_x1, stamp_y0, stamp_y1, stamp_sum, stamp_patch_sum, frame_before_sum)
-
     frame[frame_y0:frame_y1, frame_x0:frame_x1] += psf_stamp[stamp_y0:stamp_y1, stamp_x0:stamp_x1]
-
-    frame_after_sum = float(np.sum(frame))
-
-    logging.info("paste_psf_stamp frame_sum_after=%0.18e delta=%0.18e", frame_after_sum, frame_after_sum - frame_before_sum)
 
 
 def get_photometry_placement(channel: PhotometryChannel):
