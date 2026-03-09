@@ -12,8 +12,6 @@ def load_spread_profile_file_spectroscopy(spread_filename: str, channel_name: st
         return None, None, None
 
     path = resolve_path_under(repo_root, "data", spread_filename)
-    logging.info("Channel %s: loading spread profile file: %s", channel_name, path)
-
     if not path.exists():
         logging.error("Channel %s: spread profile file not found: %s", channel_name, path)
         raise ValueError(f"Spread profile file not found: {path}")
@@ -42,9 +40,6 @@ def load_spread_profile_file_spectroscopy(spread_filename: str, channel_name: st
         logging.error("Spread File Error: channel=%s spread_y_positions and spread_y_weights row mismatch", channel_name)
         raise ValueError("Spread profile row mismatch")
 
-    logging.info("Channel %s: spread loaded rows=%d weight_cols=%d", channel_name, positions.shape[0], weights_matrix.shape[1])
-    logging.info("Channel %s: spread first vertical dispersion dy values=%s", channel_name, positions[:10])
-    logging.info("Channel %s: spread first row weights=%s", channel_name, weights_matrix[0, :])
-    logging.info("Channel %s: spread center row dy=%g weights=%s", channel_name, positions[len(positions)//2], weights_matrix[len(positions)//2, :])
+    logging.info("Channel %s: spread profile file=%s loaded rows=%d weight_cols=%d first_dy_values=%s first_row_weights=%s center_row_dy=%g center_row_weights=%s", channel_name, path, positions.shape[0], weights_matrix.shape[1], positions[:10], weights_matrix[0, :], positions[len(positions)//2], weights_matrix[len(positions)//2, :])
 
     return positions, weights_matrix, wavelength_header

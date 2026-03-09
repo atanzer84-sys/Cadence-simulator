@@ -219,7 +219,6 @@ def load_zod_dist_file(filename: str) -> np.ndarray | None:
         return None
 
     path = resolve_path_under(repo_root, "data", filename)
-    logging.info("Loading zodiacal distribution file: %s", path)
     if not path.exists():
         msg = f"Zodiacal distribution file not found: {path}"
         logging.error(msg)
@@ -236,7 +235,7 @@ def load_zod_dist_file(filename: str) -> np.ndarray | None:
         logging.error(msg)
         raise ValueError(msg)
 
-    logging.info("Zodiacal distribution loaded (%s): shape=%s", filename, data.shape)
+    logging.info("Zodiacal distribution file loaded: filename=%s path=%s shape=%s", filename, path, data.shape)
     return data
 
 def load_zod_spectrum_file(filename: str) -> tuple[np.ndarray | None, np.ndarray | None]:
@@ -246,7 +245,6 @@ def load_zod_spectrum_file(filename: str) -> tuple[np.ndarray | None, np.ndarray
         return None, None
 
     path = resolve_path_under(repo_root, "data", filename)
-    logging.info("Loading zodiacal spectrum file: %s", path)
     if not path.exists():
         msg = f"Zodiacal spectrum file not found: {path}"
         logging.error(msg)
@@ -265,5 +263,5 @@ def load_zod_spectrum_file(filename: str) -> tuple[np.ndarray | None, np.ndarray
 
     wavelength = data[:, 0].astype(float, copy=False)
     spectrum = data[:, 1].astype(float, copy=False)
-    logging.info("Zodiacal spectrum loaded (%s): rows=%d", filename, wavelength.shape[0])
+    logging.info("Zodiacal spectrum file loaded: filename=%s path=%s rows=%d", filename, path, wavelength.shape[0])
     return wavelength, spectrum

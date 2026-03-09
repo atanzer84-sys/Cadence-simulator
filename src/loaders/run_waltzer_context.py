@@ -19,7 +19,9 @@ def _select(enabled: bool, fn: Callable[..., Any]) -> Callable[..., Any]:
 
 
 def initialize_waltzer_runtime_context():
+
     print("\n==== LOADING AND INITIALIZING WALTzER SIMULATOR =====")
+
     output_dir, timestamp_str, timestamp = setup_output_directory()
     setup_logger(output_dir, timestamp_str)
     user_cfg = load_cfg_and_user_config()
@@ -103,11 +105,7 @@ def setup_logger(output_dir, timestamp_str):
     log_filename = output_dir / filename
     print(f"Log file created at: {log_filename.resolve()}")
 
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(filename)s:%(lineno)d %(message)s",
-        handlers=[logging.FileHandler(log_filename)],
-    )
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(filename)s:%(lineno)d %(message)s", handlers=[logging.FileHandler(log_filename)])
 
     logging.info("Logger initialized")
 
