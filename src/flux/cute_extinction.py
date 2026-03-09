@@ -52,8 +52,7 @@ def extinction_amores(glong,glat,distance):
     zmet=np.zeros(nstep, dtype=np.float32)
     agas=np.zeros(nstep, dtype=np.float32)
 
-    ipas=np.arange(0,nstep)/1 +1  
-
+    ipas=np.arange(0, nstep, dtype=np.int32) + 1
     # generates an array with a sequence of numbers, used as index for
     # distance along line-of-sight
     nel=len(ipas)
