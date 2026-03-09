@@ -109,7 +109,7 @@ def _compute_roll_angle_samples(dx: float, dy: float, channel: PhotometryChannel
     arc_length_px = arc_length_arcsec / float(channel.pixel_scale)
     n_steps = max(2, int(np.ceil(arc_length_px / max_motion_per_step_px)) + 1)
 
-    roll_angles = np.linspace(roll_angle_start, roll_angle_stop, n_steps)
+    roll_angles = np.linspace(roll_angle_start, roll_angle_stop, n_steps, dtype=np.float32)
 
     # logging.info("BG STAR ARC SAMPLING | dx=%f dy=%f radius_arcsec=%f delta_angle_deg=%f arc_length_arcsec=%f arc_length_px=%f n_steps=%d roll_angles=%s", dx, dy, radius_arcsec, roll_angle_stop - roll_angle_start, arc_length_arcsec, arc_length_px, n_steps, roll_angles)
     
