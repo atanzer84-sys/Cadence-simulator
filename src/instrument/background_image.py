@@ -16,9 +16,8 @@ def generate_background_image(channel: SpectroscopyChannel, ctx: RunContext, sta
     nx = channel.x_pixels
     ny = channel.y_pixels
 
-    logging.info("Generating background image for channel %s with size %dx%d (nx x ny).", channel.channel_name, nx, ny)
 
-    image = np.zeros((ny, nx), dtype=float)
+    image = np.zeros((ny, nx), dtype=np.float32)
 
     if channel.background_type is None:
         logging.info("Background disabled: 'background_type' is None. Returning zero background image.")
@@ -40,7 +39,7 @@ def generate_background_image(channel: SpectroscopyChannel, ctx: RunContext, sta
     image[:, :] = background[np.newaxis, :]
     image*=channel.exposure_s
 
-    logging.debug("Background 2D image created: %s", image.shape)
+    logging.info("Background 2D image created for channel %s with size %dx%d and shape %dx%d.", channel.channel_name, nx, ny, image.shape[0], image.shape[1])
     return image
 
 
@@ -80,7 +79,7 @@ def generate_background_calculated_image(channel: SpectroscopyChannel, star: Sta
     elb_s = float(sun_ecl.lon.to_value(u.deg))
     ela_s = float(sun_ecl.lat.to_value(u.deg))
 
-    data_zod = np.asarray(channel.zod_dist, dtype=np.float64)
+    data_zod = np.asarray(channel.zod_dist, dtype=np.float32)
 
     # euler, ra, dec, elb, ela, select=3   (target ICRS -> ecliptic lon/lat)
     targ_ecl = SkyCoord(ra=ra * u.deg, dec=dec * u.deg, frame="icrs").transform_to(BarycentricTrueEcliptic())
@@ -91,13 +90,6 @@ def generate_background_calculated_image(channel: SpectroscopyChannel, star: Sta
     if elb_h > 180:
         elb_h = 360 - elb_h
     ela_h = int(ela)
-
-    logging.info(
-        "Background type 'calc': running calculated (zodiacal) background image. "
-        "targ_ra=%s targ_dec=%s targ_elb=%s targ_ela=%s sunpos_jd=%s sunpos_ra=%s sunpos_dec=%s "
-        "sunpos_elb=%s sunpos_ela=%s elb_h=%s ela_h=%s",
-        ra, dec, elb, ela, jd, ra_s, dec_s, elb_s, ela_s, elb_h, ela_h,
-    )
 
 
     i = 0
@@ -119,12 +111,13 @@ def generate_background_calculated_image(channel: SpectroscopyChannel, star: Sta
 
 
     zod_value = data_zod[i,j]
-    logging.info("zod_value=%s", zod_value)
 
-    wl_sol = np.asarray(channel.zod_spectrum_wavelength, dtype=np.float64)
-    flux_sol = np.asarray(channel.zod_spectrum_flux, dtype=np.float64)
+    logging.info("Background type 'calc': running calculated (zodiacal) background image. targ_ra=%s targ_dec=%s targ_elb=%s targ_ela=%s sunpos_jd=%s sunpos_ra=%s sunpos_dec=%s sunpos_elb=%s sunpos_ela=%s elb_h=%s ela_h=%s zod_value=%s", ra, dec, elb, ela, jd, ra_s, dec_s, elb_s, ela_s, elb_h, ela_h, zod_value)
+
+    wl_sol = np.asarray(channel.zod_spectrum_wavelength, dtype=np.float32)
+    flux_sol = np.asarray(channel.zod_spectrum_flux, dtype=np.float32)
     zod_spectrum = zod_value * flux_sol
-    zod_spectrum = np.asarray(zod_spectrum, dtype=np.float64)
+    zod_spectrum = np.asarray(zod_spectrum, dtype=np.float32)
 
     spline = CubicSpline(wl_sol, zod_spectrum, extrapolate=True)
     background = spline(channel.effective_area_wavelength)

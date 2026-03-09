@@ -20,14 +20,14 @@ def populate_background_star_catalog(nuv: SpectroscopyChannel, vis: Spectroscopy
 
 def calculate_counts_per_px_s(background_stars_catalog: StarCatalog, channel: Channel, ctx: RunContext):
     total = len(background_stars_catalog.stars_by_id)
-
+    logging.info("Calculating counts for %d background stars in channel %s", total, channel.channel_name)
+    
     for i, (star_id, bg_star) in enumerate(background_stars_catalog.stars_by_id.items(), start=1):
 
         key = (star_id, channel.channel_name)
         if key in background_stars_catalog.counts_by_id_and_band:
             continue
 
-        logging.info("Calculating Counts / px / s %d/%d for %s channel %s", i, total, star_id, channel.channel_name)
         print(f"Calculating Counts / px / s {i}/{total} for {star_id} channel {channel.channel_name}")
 
         wavelengths, flux_unred = background_stars_catalog.flux_earth_by_id[star_id]

@@ -8,7 +8,7 @@ import logging
 
 def generate_background_star_photometry_image(channel: PhotometryChannel, ctx: RunContext, star: Star, background_stars_catalog: StarCatalog, roll_angle_start: float, roll_angle_stop: float, frame_index: int) -> tuple[np.ndarray, dict[str, dict[str, float]]]:
     
-    image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=float)
+    image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
     background_star_arcs: dict[str, list[tuple[int, int]]] = {}
 
     
@@ -43,32 +43,15 @@ def _build_detector(channel: PhotometryChannel, roll_angle_deg: float) -> tuple[
 
 def _render_star_if_on_detector(star_id: str, channel: PhotometryChannel, catalog: StarCatalog, frame_index: int, detector_start: tuple[float, float, float, float], detector_end: tuple[float, float, float, float], target_star_placement: tuple[int, float], roll_angle_start, roll_angle_stop) -> tuple[np.ndarray, list[tuple[int, int]]] | None:
 
-    # cos_roll_start, sin_roll_start, half_w, half_h = detector_start
-    # cos_roll_end, sin_roll_end, _, _ = detector_end
-
     x_target, y_target = target_star_placement
     dx, dy = catalog.get_offset_arcsec(star_id)
 
-    # uv_start = _detector_check(dx, dy, cos_roll_start, sin_roll_start, half_w, half_h)
-    # if uv_start is None:
-    #     return None
-    # u_start, v_start = uv_start
-
-    # uv_end = _detector_check(dx, dy, cos_roll_end, sin_roll_end, half_w, half_h)
-    # if uv_end is None:
-    #     return None
-    # u_end, v_end = uv_end
-
-    
     counts = _get_cached_counts(star_id, catalog, channel, frame_index)
     if counts is None:
         return None
 
-    # x_background_star_start, y_background_star_start = _detector_position(x_target, y_target, u_start, v_start, channel)
-    # x_background_star_end, y_background_star_end = _detector_position(x_target, y_target, u_end, v_end, channel)
-
     roll_angles = _compute_roll_angle_samples(dx, dy, channel, roll_angle_start, roll_angle_stop)
-    star_image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=float)
+    star_image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
     valid_positions: list[tuple[int, int]] = []
 
     for roll_angle_deg in roll_angles:
@@ -129,7 +112,7 @@ def _compute_roll_angle_samples(dx: float, dy: float, channel: PhotometryChannel
 
     roll_angles = np.linspace(roll_angle_start, roll_angle_stop, n_steps)
 
-    logging.info("BG STAR ARC SAMPLING | dx=%f dy=%f radius_arcsec=%f delta_angle_deg=%f arc_length_arcsec=%f arc_length_px=%f n_steps=%d roll_angles=%s", dx, dy, radius_arcsec, roll_angle_stop - roll_angle_start, arc_length_arcsec, arc_length_px, n_steps, roll_angles)
+    # logging.info("BG STAR ARC SAMPLING | dx=%f dy=%f radius_arcsec=%f delta_angle_deg=%f arc_length_arcsec=%f arc_length_px=%f n_steps=%d roll_angles=%s", dx, dy, radius_arcsec, roll_angle_stop - roll_angle_start, arc_length_arcsec, arc_length_px, n_steps, roll_angles)
     
     return roll_angles
 
