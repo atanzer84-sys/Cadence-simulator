@@ -457,7 +457,7 @@ def _science_frame_overlay_background_star_axis(fig: Any, gs: Any, merged_image:
         if np.any(mask_dilated):
             ax3.imshow(overlay, origin="lower", aspect="equal", cmap="Reds", alpha=0.2, interpolation="nearest")
             ax3.contour(mask_dilated.astype(float), levels=[0.5], colors="#00FF66", linewidths=0.6, alpha=0.95)
-        legend_lines = [Line2D([0], [0], color="#00FF66", lw=1.2, label="Background star arc footprint (R90)")]
+        legend_lines = [Line2D([0], [0], color="#00FF66", lw=1.2, label="Background Star Arc (90% Flux)")]
         ax3.legend(handles=legend_lines, loc="upper right", fontsize=8, frameon=True)
     else:
         if np.any(mask_dilated):
