@@ -84,3 +84,111 @@ find . -type f -print0 | while IFS= read -r -d '' f; do
   mkdir -p "$BASE/$d"
   mv "$f" "$BASE/$d/"
 done
+
+
+
+andreatanzer@public-20-179 WALTzER-simulator % cd src
+andreatanzer@public-20-179 src % /Users/andreatanzer/.venvs/shared/bin/python gaiahelper.loadcsvgaia               
+/opt/homebrew/Cellar/python@3.14/3.14.2/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python: can't open file '/Users/andreatanzer/Documents/Space Science/MasterThesis/WALTzER-simulator/src/gaiahelper.loadcsvgaia': [Errno 2] No such file or directory
+andreatanzer@public-20-179 src % /Users/andreatanzer/.venvs/shared/bin/python -m gaiahelper.loadcsvgaia
+
+==============================================================================================================================================================================================
+BACKGROUND STAR MAGNITUDE SUMMARY
+==============================================================================================================================================================================================
+file                                 n_stars    <7   7-8   8-9  9-10  10-11  11-12  12-13  13-14  14-15  15-16  16-17  17-18   >=18      <18
+==============================================================================================================================================================================================
+KELT-20.csv                            17673     0     0     1     3      7     23     50    113    302    654   1247   2415  12858     4815
+HD_189733.csv                           1433     2     1     0     0      1      0      0     10     18     19     36     82   1264      169
+TOI-677.csv                              791     1     0     0     0      1      0      0      6     15     22     39     72    635      156
+TOI-1333.csv                             709     1     0     0     2      0      3      4      4     10     21     37     61    566      143
+HD_332231.csv                            708     1     0     0     0      0      0      0      0     10     19     22     47    609       99
+TOI-622.csv                              591     0     0     0     0      1      1      1      6      7     18     25     46    486      105
+WASP-178.csv                             523     0     0     0     0      0      1      1      0      3     12     28     53    425       98
+MASCARA-4.csv                            454     1     0     0     1      0      1      3      2      7     11     23     49    356       98
+TOI-1431.csv                             448     2     0     0     0      0      0      1      1      2      9     13     32    388       60
+TOI-2497.csv                             236     0     0     0     0      0      0      1      4      8     11     16     30    166       70
+XO-3.csv                                 224     0     0     0     0      0      0      2      0      4      4      9     17    188       36
+TOI-4603.csv                             221     0     0     0     0      0      1      1      1      6     13     13     28    158       63
+WASP-74.csv                              218     0     0     0     0      0      0      0      2      4     10      9     24    169       49
+HAT-P-60.csv                             185     0     0     0     0      0      0      1      1      5     10     19     27    122       63
+KELT-7.csv                               179     3     0     0     0      0      0      0      2      5      4      6     16    143       36
+TOI-1518.csv                             165     1     0     0     0      0      0      0      0      0      3      7     13    141       24
+TOI-2005.csv                             155     0     0     0     0      0      0      1      0      2     10      8     20    114       41
+KOI-13.csv                               150     0     0     0     0      1      1      0      2      3      4     13     22    104       46
+KELT-2_A.csv                             140     0     0     0     0      0      1      0      0      2      6     11     14    106       34
+TIC_393818343.csv                        117     0     0     0     0      1      0      0      1      2      5      3     21     84       33
+TOI-481.csv                              108     1     0     0     0      0      0      0      0      1      6      4     22     74       34
+WASP-131.csv                             103     0     0     0     0      0      0      0      0      2      3     13     10     75       28
+HAT-P-1.csv                               93     0     0     0     1      0      0      0      1      0      5      5      8     73       20
+MASCARA-1.csv                             91     1     0     0     0      0      0      0      1      2      2      6     11     68       23
+K2-232.csv                                86     1     0     0     0      0      0      0      0      1      0      6      9     69       17
+WASP-69.csv                               78     0     0     0     0      0      0      0      0      1      1      4      4     68       10
+TOI-1408.csv                              77     1     0     0     0      0      0      0      2      2      3      3      7     59       18
+HAT-P-70.csv                              76     0     0     0     0      1      1      1      0      1      3      6     10     53       23
+HD_209458.csv                             74     1     0     0     0      0      2      1      2      1      8      3     10     46       28
+WASP-7.csv                                70     0     0     0     0      0      0      0      1      2      5      6      9     47       23
+WASP-12.csv                               66     0     0     1     2      7      7     15     28      6      0      0      0      0       66
+WASP-33.csv                               63     0     0     0     0      0      1      0      0      1      1      2     10     48       15
+HD_152843.csv                             62     0     0     0     0      0      0      0      0      1      4     10      4     43       19
+HD_2685.csv                               62     0     0     0     0      1      0      0      0      3      1      6      2     49       13
+WASP-38.csv                               62     0     0     0     0      0      0      0      0      2      1      3      5     51       11
+HAT-P-14.csv                              60     0     0     0     0      0      0      0      1      0      1      6      4     48       12
+WASP-94_A.csv                             59     0     0     0     0      1      0      0      0      0      0      5      3     50        9
+TOI-4551.csv                              56     0     0     0     0      0      0      0      0      0      0      1      6     49        7
+WASP-166.csv                              56     0     0     0     0      0      0      0      1      0      1      6      1     47        9
+HD_202772_A.csv                           53     0     0     1     0      0      0      0      0      4      5      2      4     37       16
+TOI-2145.csv                              52     0     0     0     0      0      0      0      1      0      0      4      8     39       13
+TOI-421.csv                               52     0     0     0     0      0      0      0      1      3      3      4      6     35       17
+KELT-17.csv                               50     0     0     0     0      0      0      0      1      3      4      3      6     33       17
+KELT-9.csv                                50     0     0     0     0      0      0      0      0      0      2      3      3     42        8
+HAT-P-22.csv                              48     0     0     0     0      0      0      1      0      1      1      0      2     43        5
+HAT-P-2.csv                               42     0     0     0     0      0      0      0      0      2      3      2      5     30       12
+WASP-82.csv                               40     0     0     0     0      0      0      0      0      1      1      5      3     30       10
+HAT-P-69.csv                              39     0     0     0     0      0      0      0      0      1      2      2      7     27       12
+TOI-778.csv                               38     1     0     0     0      0      1      0      1      2      2      3      3     25       13
+WASP-189.csv                              36     0     0     0     0      0      0      0      0      1      2      2      1     30        6
+HD_149026.csv                             35     0     0     0     0      0      0      2      0      1      2      0      3     27        8
+HD_1397.csv                               34     0     0     0     0      0      0      1      0      1      2      2      0     28        6
+WASP-95.csv                               33     0     0     0     0      0      1      0      0      1      2      2      3     24        9
+WASP-18.csv                               32     0     0     0     0      0      0      0      2      0      1      2      2     25        7
+HD_219666.csv                             28     0     0     0     0      0      0      0      0      0      0      1      4     23        5
+KELT-11.csv                               28     0     0     0     0      0      0      0      0      3      1      2      1     21        7
+TOI-1135.csv                              28     0     0     0     0      0      0      0      1      3      0      0      8     16       12
+TOI-1789.csv                              28     0     0     0     0      1      0      0      0      1      3      1      5     17       11
+HD_88133.csv                              25     0     0     0     0      0      0      0      0      0      1      2      1     21        4
+LTT_9779.csv                              25     0     0     0     0      0      0      0      0      1      3      3      2     16        9
+HD_221416.csv                             22     0     0     0     0      0      0      0      0      0      1      2      2     17        5
+WASP-136.csv                              22     0     0     0     0      0      0      0      0      0      1      0      1     20        2
+WASP-79.csv                               22     0     0     0     0      0      0      0      1      1      1      3      2     14        8
+TOI-1842.csv                              21     0     0     0     0      0      0      0      1      0      0      0      2     18        3
+HD_118203.csv                             20     0     0     0     0      0      1      0      0      0      0      1      2     16        4
+WASP-99.csv                               20     0     0     0     0      0      0      0      0      1      1      1      3     14        6
+HD_89345.csv                              19     0     0     0     0      0      0      0      0      1      1      1      2     14        5
+WASP-76.csv                               19     0     0     0     0      0      0      0      0      1      1      2      3     12        7
+KELT-3.csv                                18     0     0     0     0      0      1      0      1      0      2      1      2     11        7
+TOI-5108.csv                              18     0     0     0     0      0      0      0      0      1      2      1      2     12        6
+KELT-24.csv                               17     0     0     0     0      0      0      0      2      0      1      0      0     14        3
+WASP-8.csv                                17     0     0     1     0      0      0      0      1      1      1      2      3      8        9
+KELT-4_A.csv                              16     0     0     0     0      0      0      1      0      1      4      0      2      8        8
+TOI-257.csv                               15     0     0     0     0      0      0      0      1      1      1      1      4      7        8
+WASP-14.csv                               15     0     0     0     0      0      0      0      0      0      0      2      3     10        5
+TOI-5398.csv                              12     0     0     0     0      0      0      1      0      0      0      1      1      9        3
+TOI-1136.csv                               6     0     0     0     0      0      0      1      0      0      0      0      1      4        2
+andreatanzer@public-20-179 src %
+
+
+
+Chosen Stars:
+Gaia Cone Search < 15 Mag && 500 arcsec (=8.22 arcmin)
+- KELT-20: 
+-- Mag 7.5
+-- Background Stars: very crowded, 353 stars, magnitudes see Excel
+
+Gaia Cone Search < 17 Mag && 500 arcsec (=8.22 arcmin)
+- WASP-12
+-- Mag 11,49
+-- Background Stars: 49, few brighter as target
+
+- WASP-8
+-- Mag 9,61249
+-- Background Stars: 5, one brighter than target with 8,8
