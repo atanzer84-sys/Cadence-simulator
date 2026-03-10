@@ -1,6 +1,6 @@
 # Name of the target star. Its properties are read from the Excel file in the project root.
 # If a property is missing there, it will be retrieved from GAIA.
-target_name = WASP-95
+target_name = WASP-12
 
 # Total duration of the simulated observation, in hours.
 # The transit is centered in this window, with half of the time before and half after the transit.
@@ -8,6 +8,6 @@ target_name = WASP-95
 total_observation_length_h = 11.11
 
 # Exposure time of the Channels in seconds
-exposure_NUV_s = 300.0
-exposure_VIS_s = 60.0
-exposure_IR_s = 1.0
+exposure_NUV_s = 200.0
+exposure_VIS_s = 40.0
+exposure_IR_s = 5.0
