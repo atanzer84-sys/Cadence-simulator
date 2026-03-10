@@ -8,13 +8,15 @@ from loaders.run_waltzer_context import setup_output_directory
 def ts(*args):
     print(datetime.now().strftime('%H:%M:%S'), *args)
 
-def gaia_nearby_stars_with_params_by_name(target_name: str, radius_arcsec: float = 150.0):
+def gaia_nearby_stars_with_params_by_name(target_name: str, radius_arcsec: float, mag_limit: float):
     ts("Resolving target name...")
 
     coord = SkyCoord.from_name(target_name)
 
     # 1) fast: cone search in gaia_source
-    ts("Running cone search on gaia_source (150 arcsec)...")
+    radius_arcmin = radius_arcsec / 60
+
+    ts(f"Running cone search on gaia_source ({radius_arcsec} arcsec = {radius_arcmin:.2f} arcmin)...")
 
     # job1 = Gaia.cone_search_async(coord, radius=radius_arcsec * u.arcsec)
     # cone = job1.get_results()
@@ -31,6 +33,7 @@ def gaia_nearby_stars_with_params_by_name(target_name: str, radius_arcsec: float
     POINT('ICRS', ra, dec),
     CIRCLE('ICRS', {ra0}, {dec0}, {radius_deg})
     )
+    AND phot_g_mean_mag < {mag_limit}
     """
 
     job1 = Gaia.launch_job_async(query_cone)
@@ -75,9 +78,11 @@ def gaia_nearby_stars_with_params_by_name(target_name: str, radius_arcsec: float
 def main():
     # star_names = ["HD 2685","KELT-9","TIC 393818343","WASP-189","WASP-69","HAT-P-1","HAT-P-14","HAT-P-2","HAT-P-22","HAT-P-60","HATS-70","KELT-1","KELT-12","KELT-16","KELT-17","KELT-20","KELT-21","KELT-23","KELT-24","KELT-3","KELT-4 A","KELT-7","KELT-8","Kepler-13 A","TOI-1431","TOI-1516","TOI-2109","TOI-251","TOI-5398","TrES-3","WASP-103","WASP-104","WASP-12","WASP-121","WASP-127","WASP-131","WASP-135","WASP-136","WASP-138","WASP-14","WASP-140","WASP-141","WASP-142","WASP-15","WASP-151","WASP-156","WASP-157","WASP-159","WASP-16","WASP-161","WASP-162","WASP-167","WASP-17","WASP-172","WASP-18","WASP-184","WASP-19","WASP-2","WASP-20","WASP-21","WASP-22","WASP-23","WASP-24","WASP-25","WASP-26","WASP-28","WASP-29","WASP-3","WASP-31","WASP-32","WASP-33","WASP-34","WASP-35","WASP-36","WASP-4","WASP-43","WASP-49","WASP-5","WASP-82","WASP-94 A","WASP-95","WASP-99","XO-3"]
 
-    star_names = ["HD 2685","KELT-9","TIC 393818343","WASP-189","WASP-69","HAT-P-1","HAT-P-14","HAT-P-2","HAT-P-22","HAT-P-60","HAT-P-69","HAT-P-70","HD 118203","HD 1397","HD 149026","HD 152843","HD 189733","HD 202772 A","HD 209458","HD 219666","HD 221416","HD 332231","HD 88133","HD 89345","K2-232","KELT-11","KELT-17","KELT-19 A","KELT-2 A","KELT-20","KELT-24","KELT-3","KELT-4 A","KELT-7","KOI-13","LTT 9779","MASCARA-1","MASCARA-4","TOI-1135","TOI-1136","TOI-1333","TOI-1408","TOI-1431","TOI-1518","TOI-1789","TOI-1842","TOI-2005","TOI-2145","TOI-2497","TOI-257","TOI-421","TOI-4551","TOI-4603","TOI-481","TOI-5108","TOI-5398","TOI-6038 A","TOI-622","TOI-677","TOI-778","WASP-131","WASP-136","WASP-14","WASP-166","WASP-178","WASP-18","WASP-33","WASP-38","WASP-7","WASP-74","WASP-76","WASP-79","WASP-8","WASP-82","WASP-94 A","WASP-95","WASP-99","XO-3"]
+    # star_names = ["HD 2685","KELT-9","TIC 393818343","WASP-189","WASP-69","HAT-P-1","HAT-P-14","HAT-P-2","HAT-P-22","HAT-P-60","HAT-P-69","HAT-P-70","HD 118203","HD 1397","HD 149026","HD 152843","HD 189733","HD 202772 A","HD 209458","HD 219666","HD 221416","HD 332231","HD 88133","HD 89345","K2-232","KELT-11","KELT-17","KELT-19 A","KELT-2 A","KELT-20","KELT-24","KELT-3","KELT-4 A","KELT-7","KOI-13","LTT 9779","MASCARA-1","MASCARA-4","TOI-1135","TOI-1136","TOI-1333","TOI-1408","TOI-1431","TOI-1518","TOI-1789","TOI-1842","TOI-2005","TOI-2145","TOI-2497","TOI-257","TOI-421","TOI-4551","TOI-4603","TOI-481","TOI-5108","TOI-5398","TOI-6038 A","TOI-622","TOI-677","TOI-778","WASP-131","WASP-136","WASP-14","WASP-166","WASP-178","WASP-18","WASP-33","WASP-38","WASP-7","WASP-74","WASP-76","WASP-79","WASP-8","WASP-82","WASP-94 A","WASP-95","WASP-99","XO-3"]
+    star_names = ["WASP-12"]
     
-    RADIUS_ARCSEC = 150.0
+    RADIUS_ARCSEC = 600.0 # 10 arcmin
+    mag_limit = 14.1
 
     output_dir, _, _ = setup_output_directory()
 
@@ -86,7 +91,7 @@ def main():
         print(f"Processing {name}")
 
         try:
-            tbl, coord = gaia_nearby_stars_with_params_by_name(name, radius_arcsec=RADIUS_ARCSEC)
+            tbl, coord = gaia_nearby_stars_with_params_by_name(name, radius_arcsec=RADIUS_ARCSEC, mag_limit=mag_limit)
 
             if len(tbl) > 0:
                 sources_coord = SkyCoord(ra=tbl["ra"], dec=tbl["dec"], frame="icrs")
