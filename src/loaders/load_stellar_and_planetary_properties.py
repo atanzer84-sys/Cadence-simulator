@@ -9,6 +9,8 @@ from loaders.load_gaia import lookup_target_star_gaia, GAIA_PROVIDES
 from astropy.io import ascii
 from configs.global_config import GlobalConfig, get_global_config
 from loaders.run_waltzer_context import get_repo_root
+from utils.constants import MAG_G_SUN, TEMP_SUN
+
 
 # Module-level cache (process lifetime) for Mamajek table arrays.
 _MAMAJEK_CACHE: tuple[np.ndarray, np.ndarray] | None = None
@@ -44,6 +46,7 @@ def load_stellar_and_planetary_properties(target_name_user_input):
         # getting spectral type from mamjeck table.
         star_params= infer_mamajek(star_params)
         star_params = apply_log_r_fallback(star_params, cfg=cfg)
+        star_params = apply_radius_from_teff_mag_distance_if_missing(star_params)
 
         # now we finally have a list on missing parameters and can throw exceptions, because with missing parameters we can not do our simulation run.
         missing_star_final = get_missing_properties(star_params, mapping["required_stellar_parameters"])
@@ -71,6 +74,49 @@ def infer_mamajek(star_params, log_output: bool = True):
     repo_root = get_repo_root()
     mamajek_path = repo_root / "data" / "stellar_param_mamjeck.txt"
     return infer_mamajek_spectral_type(star_params, mamajek_path, log_output)
+
+def apply_radius_from_teff_mag_distance_if_missing(star_params: dict) -> None:
+    """
+    If radius is missing, estimate it from Gaia G magnitude, distance, and Teff.
+
+    Uses:
+        M_G = m_G - 5 * log10(d / 10)
+        L/Lsun = 10^(-0.4 * (M_G - M_G_sun))
+        R/Rsun = sqrt(L/Lsun) * (T_sun / Teff)^2
+
+    """
+    if star_params.get("radius") is not None:
+        return star_params
+
+    teff = star_params.get("effective_temperature")
+    distance_pc = star_params.get("distance")
+    gaia_mag = star_params.get("gaia_magnitude")
+
+    if teff is None or distance_pc is None or gaia_mag is None:
+        return star_params
+
+    try:
+        teff = float(teff)
+        distance_pc = float(distance_pc)
+        gaia_mag = float(gaia_mag)
+    except Exception:
+        logging.exception("Radius fallback failed: invalid inputs teff=%r distance=%r gaia_mag=%r", teff, distance_pc, gaia_mag)
+        return star_params
+
+    if teff <= 0.0 or distance_pc <= 0.0:
+        return star_params
+
+    abs_g_mag = gaia_mag - 5.0 * np.log10(distance_pc / 10.0)
+    luminosity_lsun = 10.0 ** (-0.4 * (abs_g_mag - MAG_G_SUN))
+    radius_rsun = np.sqrt(luminosity_lsun) * (TEMP_SUN / teff) ** 2
+
+    if not np.isfinite(radius_rsun) or radius_rsun <= 0.0:
+        return star_params
+
+    star_params["radius"] = float(radius_rsun)
+
+    logging.info("Radius fallback applied for %s: G=%.3f distance_pc=%.3f Teff=%.1f -> M_G=%.3f L/Lsun=%.6f R/Rsun=%.6f", star_params.get("name"), gaia_mag, distance_pc, teff, abs_g_mag, luminosity_lsun, radius_rsun)
+    return star_params
 
 def _find_excel_file(repo_root: Path):
     try:

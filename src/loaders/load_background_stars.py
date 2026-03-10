@@ -7,13 +7,12 @@ from loaders.run_waltzer_context import get_repo_root
 from utils.helpers import resolve_path_under
 from configs.global_config import GlobalConfig
 from domain.star_catalog import StarCatalog
-from loaders.load_stellar_and_planetary_properties import load_excel_mapping , infer_mamajek, apply_log_r_fallback, get_missing_properties
+from loaders.load_stellar_and_planetary_properties import load_excel_mapping , infer_mamajek, apply_log_r_fallback, get_missing_properties, apply_radius_from_teff_mag_distance_if_missing
 from loaders.load_gaia import get_gaia_stellar_properties
 from flux.flux_calc import calculateFluxOnEarth
 from loaders.load_gaia import gaia_lookup_for_background_stars
 import astropy.units as u
 from astropy.coordinates import SkyCoord
-from utils.constants import MAG_G_SUN, TEMP_SUN
 
 
 # def lookup_background_stars(ctx: RunContext, cfg: GlobalConfig, star: Star):
@@ -41,8 +40,6 @@ def lookup_background_stars(ctx: RunContext, cfg: GlobalConfig, star: Star, wl_m
     
     logging.info("Starting flux calculation for %d background stars", total)
     print(f"\n==== STARTING FLUX CALCULATION FOR {total} BACKGROUND STARS =====")
-    
- 
 
     for i, (star_id, bg_star) in enumerate(catalog.stars_by_id.items(), start=1):
         logging.info("Calculating Flux on Earth %d/%d for %s", i, total, star_id)
@@ -82,7 +79,7 @@ def create_background_star_catalog(table, cfg:GlobalConfig):
 
         _set_background_star_name(star_params, row)
         _apply_distance_from_parallax_if_missing(star_params, row)
-        _apply_radius_from_teff_mag_distance_if_missing(star_params)
+        apply_radius_from_teff_mag_distance_if_missing(star_params)
 
         if star_params.get("effective_temperature") is not None:
             star_params = infer_mamajek(star_params, log_output=False)
@@ -103,52 +100,6 @@ def create_background_star_catalog(table, cfg:GlobalConfig):
     
 
     return catalog, enriched_rows_final
-
-
-def _apply_radius_from_teff_mag_distance_if_missing(star_params: dict) -> None:
-    """
-    If radius is missing, estimate it from Gaia G magnitude, distance, and Teff.
-
-    Uses:
-        M_G = m_G - 5 * log10(d / 10)
-        L/Lsun = 10^(-0.4 * (M_G - M_G_sun))
-        R/Rsun = sqrt(L/Lsun) * (T_sun / Teff)^2
-
-    """
-    if star_params.get("radius") is not None:
-        return
-
-    teff = star_params.get("effective_temperature")
-    distance_pc = star_params.get("distance")
-    gaia_mag = star_params.get("gaia_magnitude")
-
-    if teff is None or distance_pc is None or gaia_mag is None:
-        return
-
-    try:
-        teff = float(teff)
-        distance_pc = float(distance_pc)
-        gaia_mag = float(gaia_mag)
-    except Exception:
-        logging.exception("Radius fallback failed: invalid inputs teff=%r distance=%r gaia_mag=%r", teff, distance_pc, gaia_mag)
-        return
-
-    if not np.isfinite(teff) or not np.isfinite(distance_pc) or not np.isfinite(gaia_mag):
-        return
-
-    if teff <= 0.0 or distance_pc <= 0.0:
-        return
-
-    abs_g_mag = gaia_mag - 5.0 * np.log10(distance_pc / 10.0)
-    luminosity_lsun = 10.0 ** (-0.4 * (abs_g_mag - MAG_G_SUN))
-    radius_rsun = np.sqrt(luminosity_lsun) * (TEMP_SUN / teff) ** 2
-
-    if not np.isfinite(radius_rsun) or radius_rsun <= 0.0:
-        return
-
-    star_params["radius"] = float(radius_rsun)
-
-    logging.info("Radius fallback applied for %s: G=%.3f distance_pc=%.3f Teff=%.1f -> M_G=%.3f L/Lsun=%.6f R/Rsun=%.6f", star_params.get("name"), gaia_mag, distance_pc, teff, abs_g_mag, luminosity_lsun, radius_rsun)
 
 def add_background_star_offsets_arcsec(catalog: StarCatalog, target_star: Star) -> None:
 
@@ -197,7 +148,7 @@ def save_background_stars_csv_2(table: Table, output_dir, star_name: str, suffix
         table = Table({k: [row.get(k) for row in table] for k in keys})
 
     csv_name = star_name.replace(" ", "_")
-    csv_path = output_dir / f"{csv_name}.csv"
+    csv_path = output_dir / f"{csv_name}_after.csv"
 
     table.write(csv_path, format="ascii.csv", overwrite=True)
 
