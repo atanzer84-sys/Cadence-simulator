@@ -16,6 +16,8 @@ PARSEC_CM = ac.pc.to("cm").value
 AU_cm = ac.au.to("cm").value  # cm (Astronomical Unit)
 M_SUN_kg = ac.M_sun.to("kg").value
 M_SUN_cgs = ac.M_sun.cgs.value  # g
+MAG_G_SUN = 4.67
+TEMP_SUN = 5772.0
 
 boltzmann = ac.k_B.to("erg / K").value # erg/K = g cm**2/s**2/K (boltzmann const)
 N_A   = ac.N_A.value # /mol (Avagadro constant)
