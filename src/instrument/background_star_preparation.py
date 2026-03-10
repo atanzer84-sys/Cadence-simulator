@@ -15,8 +15,8 @@ def populate_background_star_catalog(nuv: SpectroscopyChannel, vis: Spectroscopy
     wl_max_A = max(float(nuv.effective_area_wavelength[-1]), float(vis.effective_area_wavelength[-1]), float(nir.effective_area_wavelength[-1]))
 
     background_stars_catalog = lookup_background_stars(ctx, cfg, star, wl_min_A, wl_max_A)
-    calculate_counts_per_px_s(background_stars_catalog, nuv, ctx)
-    calculate_counts_per_px_s(background_stars_catalog, vis, ctx)
+    # calculate_counts_per_px_s(background_stars_catalog, nuv, ctx)
+    # calculate_counts_per_px_s(background_stars_catalog, vis, ctx)
     calculate_counts_per_px_s(background_stars_catalog, nir, ctx)
 
     return background_stars_catalog

@@ -16,17 +16,18 @@ from instrument.photon_noise import apply_photon_noise_gauss_from_spectra2d
 
 
 
-def build_science_images(spectra_2d_nuv, spectra_2d_vis, rate_nir, nuv: SpectroscopyChannel, vis: SpectroscopyChannel, nir: PhotometryChannel, ctx: RunContext, star: Star):
+# def build_science_images(spectra_2d_nuv, spectra_2d_vis, rate_nir, nuv: SpectroscopyChannel, vis: SpectroscopyChannel, nir: PhotometryChannel, ctx: RunContext, star: Star):
+def build_science_images(rate_nir, nuv: SpectroscopyChannel, vis: SpectroscopyChannel, nir: PhotometryChannel, ctx: RunContext, star: Star):
     cfg = get_global_config()
     background_stars_catalog = populate_background_star_catalog(nuv, vis, nir, ctx, cfg, star)
 
     for channel in (nuv, vis, nir):
         ctx.plot_background_star_counts(background_stars_catalog, channel, ctx)
 
-    nuv_imgs = _create_spectroscopy_channel_images(spectra_2d_nuv, nuv, ctx, cfg, star, background_stars_catalog)
-    vis_imgs = _create_spectroscopy_channel_images(spectra_2d_vis, vis, ctx, cfg, star, background_stars_catalog)
-    # nuv_imgs = []  # TODO: re-enable 
-    # vis_imgs = []  # TODO: re-enable 
+    # nuv_imgs = _create_spectroscopy_channel_images(spectra_2d_nuv, nuv, ctx, cfg, star, background_stars_catalog)
+    # vis_imgs = _create_spectroscopy_channel_images(spectra_2d_vis, vis, ctx, cfg, star, background_stars_catalog)
+    nuv_imgs = []  # TODO: re-enable 
+    vis_imgs = []  # TODO: re-enable 
 
     nir_imgs = _create_photometry_channel_images(rate_nir, nir, ctx, cfg, star, background_stars_catalog)
     # nir_img = []  # TODO: re-enable

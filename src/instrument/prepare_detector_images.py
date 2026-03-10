@@ -20,15 +20,16 @@ def prepare_all_detector_images_all_channels(star: Star, ctx: RunContext, nuv: S
 
     logging.info("Starting convolution to instrument")
     print("\n==== STARTING CONVOLUTION TO INSTRUMENT (NUV)=====")
-    spectra_2d_nuv = prepare_all_detector_images_spectroscopy(flux, wavelengths_total, nuv, ctx, star)
+    # spectra_2d_nuv = prepare_all_detector_images_spectroscopy(flux, wavelengths_total, nuv, ctx, star)
 
     print("\n==== STARTING CONVOLUTION TO INSTRUMENT (VIS)=====")
-    spectra_2d_vis = prepare_all_detector_images_spectroscopy(flux, wavelengths_total, vis, ctx, star)
+    # spectra_2d_vis = prepare_all_detector_images_spectroscopy(flux, wavelengths_total, vis, ctx, star)
 
     print("\n==== STARTING CONVOLUTION TO INSTRUMENT (NIR)=====")
     nir_rate_frame = prepare_detector_image_photometry(flux, wavelengths_total, nir, ctx, star)
     
-    return spectra_2d_nuv, spectra_2d_vis, nir_rate_frame
+    # return spectra_2d_nuv, spectra_2d_vis, nir_rate_frame
+    return nir_rate_frame
 
 def prepare_all_detector_images_spectroscopy(flux: np.ndarray, wavelengths: np.ndarray, channel: SpectroscopyChannel, ctx: RunContext, star: Star):
     counts_s_px_convolved = compute_counts_per_s_px_one_channel(flux, wavelengths, channel, ctx, star)

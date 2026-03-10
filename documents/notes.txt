@@ -10,6 +10,8 @@
 GAIA: 
 cd src
 /Users/andreatanzer/.venvs/shared/bin/python -m gaiahelper.gaiahelper_create_background_stars
+
+
 git switch -c feature/next-thing
 git switch main
 git merge
