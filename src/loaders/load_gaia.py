@@ -22,7 +22,7 @@ GAIA_PROVIDES = {
 }
 
 
-def lookup_star_gaia(star_params: dict, missing_star, cfg: GlobalConfig) -> dict:
+def lookup_target_star_gaia(star_params: dict, missing_star, cfg: GlobalConfig) -> dict:
     target_name = star_params["name"]
     logging.info("Gaia lookup required for star: %s for missing required parameters: %s", target_name, missing_star)
     print("Gaia lookup required for star: %s" % target_name)
@@ -128,7 +128,7 @@ def get_gaia_stellar_properties(gaia_row, log_output: bool = True):
     return gaia_star_params
 
 
-def gaia_lookup_for_background_stars(star: Star, g_mag_limit, GAIA_USE_ASYNC_JOBS) -> Table | None:
+def gaia_lookup_for_background_stars(star: Star, g_mag_limit, GAIA_USE_ASYNC_JOBS, radius_arcsec) -> Table | None:
     """
     Fetch background stars from Gaia in a cone around the target star.
 
@@ -147,9 +147,7 @@ def gaia_lookup_for_background_stars(star: Star, g_mag_limit, GAIA_USE_ASYNC_JOB
         Table of field stars (cone + AP columns), or None if no sources,
         no field after removing central, or on Gaia/TAP error.
     """
-    radius_arcsec = 150.0
-
-    print(f"==== Gaia background search: START (g_mag_limit={g_mag_limit}, GAIA_USE_ASYNC_JOBS={GAIA_USE_ASYNC_JOBS}) =====")
+    print(f"==== Gaia background search: START (g_mag_limit={g_mag_limit}, GAIA_USE_ASYNC_JOBS={GAIA_USE_ASYNC_JOBS} , radius_arcsec={radius_arcsec}) =====")
 
     center = SkyCoord(ra=star.right_ascension * u.deg, dec=star.declination * u.deg, frame="icrs")
 
@@ -162,7 +160,7 @@ def gaia_lookup_for_background_stars(star: Star, g_mag_limit, GAIA_USE_ASYNC_JOB
         return None
     field_cone, _, _ = drop_result
 
-    field_joined = _gaia_fetch_ap_and_join(field_cone)
+    field_joined = _gaia_fetch_ap_and_join(field_cone, GAIA_USE_ASYNC_JOBS=GAIA_USE_ASYNC_JOBS)
     if field_joined is None:
         return None
 
@@ -288,7 +286,7 @@ def _gaia_drop_central_star(cone_small: Table, center: SkyCoord) -> tuple[Table,
     return (field_cone, central_cone_row, central_sep)
 
 
-def _gaia_fetch_ap_and_join(field_cone: Table, ap_batch_size: int = 500) -> Table | None:
+def _gaia_fetch_ap_and_join(field_cone: Table, GAIA_USE_ASYNC_JOBS, ap_batch_size: int = 500) -> Table | None:
     """Query astrophysical_parameters for field source_ids in batches (sync), left-join to field_cone. Returns joined table or None on TAP/network error."""
     logging.info("Gaia background search: before AP search (remaining IDs=%d)", len(field_cone))
 
@@ -311,7 +309,7 @@ def _gaia_fetch_ap_and_join(field_cone: Table, ap_batch_size: int = 500) -> Tabl
             WHERE source_id IN ({in_list})
         """
         try:
-            tbl = _run_gaia_job(ap_query)
+            tbl = _run_gaia_job(ap_query, GAIA_USE_ASYNC_JOBS)
             if tbl is not None and len(tbl) > 0:
                 ap_tables.append(tbl)
         except Exception as e:

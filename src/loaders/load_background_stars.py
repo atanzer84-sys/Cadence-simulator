@@ -24,7 +24,7 @@ def lookup_background_stars(ctx: RunContext, cfg: GlobalConfig, star: Star, wl_m
     # lookup star_name.csv and load it, so we do not have to query gaia
     table = load_background_csv_if_exists(star)
     if table is None:
-        table = gaia_lookup_for_background_stars(star, g_mag_limit=cfg.magnitude_cutoff, GAIA_USE_ASYNC_JOBS=cfg.GAIA_USE_ASYNC_JOBS)
+        table = gaia_lookup_for_background_stars(star, g_mag_limit=cfg.magnitude_cutoff, GAIA_USE_ASYNC_JOBS=cfg.GAIA_USE_ASYNC_JOBS, radius_arcsec=cfg.gaia_conesearch_radius_arcsec)
         if table is not None and len(table) > 0:
             save_background_stars_csv(table, ctx.output_dir, star.name)
     else:

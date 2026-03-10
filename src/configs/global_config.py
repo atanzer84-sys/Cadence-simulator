@@ -38,6 +38,7 @@ class GlobalConfig:
 
     magnitude_cutoff: float
     GAIA_USE_ASYNC_JOBS: bool
+    gaia_conesearch_radius_arcsec: float
 
     background_type: str | None
     background_file: str | None
@@ -109,6 +110,7 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
 
     magnitude_cutoff = as_float(raw.get("magnitude_cutoff", 20.0), key="magnitude_cutoff")
     GAIA_USE_ASYNC_JOBS = as_bool(raw.get("GAIA_USE_ASYNC_JOBS", 1), key="GAIA_USE_ASYNC_JOBS")
+    gaia_conesearch_radius_arcsec = as_float(raw.get("gaia_conesearch_radius_arcsec", 500.0), key="gaia_conesearch_radius_arcsec")
 
     background_type = as_optional_lower_str(raw.get("background_type", ""))
     background_file = as_optional_str(raw.get("background_file", ""))
@@ -129,6 +131,8 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
     _ensure_non_negative(cosmic_rays_max, key="cosmic_rays_max")
     _ensure_non_negative(cosmic_ray_length_min_px, key="cosmic_ray_length_min_px")
     _ensure_non_negative(cosmic_ray_length_max_px, key="cosmic_ray_length_max_px")
+    _ensure_non_negative(gaia_conesearch_radius_arcsec, key="gaia_conesearch_radius_arcsec")
+    _ensure_non_negative(magnitude_cutoff, key="magnitude_cutoff")
     _ensure_min_le_max(cosmic_rays_min, cosmic_rays_max, key_min="cosmic_rays_min", key_max="cosmic_rays_max")
     _ensure_min_le_max(cosmic_ray_length_min_px, cosmic_ray_length_max_px, key_min="cosmic_ray_length_min_px", key_max="cosmic_ray_length_max_px")
     _ensure_min_le_max(log_r_hot_value, log_r_cool_value, key_min="log_r_hot_value", key_max="log_r_cool_value")
@@ -161,6 +165,7 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
         cosmic_ray_length_max_px=cosmic_ray_length_max_px,
         magnitude_cutoff=magnitude_cutoff,
         GAIA_USE_ASYNC_JOBS=GAIA_USE_ASYNC_JOBS,
+        gaia_conesearch_radius_arcsec=gaia_conesearch_radius_arcsec,
         background_type=background_type,
         background_file=background_file,
         sky_pixel_area_arcsec2=sky_pixel_area_arcsec2,

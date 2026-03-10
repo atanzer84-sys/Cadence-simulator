@@ -14,22 +14,24 @@ def prepare_all_detector_images_all_channels(star: Star, ctx: RunContext, nuv: S
     print("\n==== STARTING CALCULATION FOR FLUX TO INSTRUMENT =====")
     wl_min_A, wl_max_A = _get_required_wavelength_range_A(nuv, vis, nir)
     flux, wavelengths_total = calculateFluxOnEarth(star, ctx, wl_min_A, wl_max_A, announce_user=True)
+    
     flux = np.asarray(flux, dtype=np.float32)
     wavelengths_total = np.asarray(wavelengths_total, dtype=np.float32)
     # flux, wavelengths_total = calculateFluxOnEarth(star, ctx, announce_user=True)
 
     logging.info("Starting convolution to instrument")
     print("\n==== STARTING CONVOLUTION TO INSTRUMENT (NUV)=====")
-    # spectra_2d_nuv = prepare_all_detector_images_spectroscopy(flux, wavelengths_total, nuv, ctx, star)
+    spectra_2d_nuv = prepare_all_detector_images_spectroscopy(flux, wavelengths_total, nuv, ctx, star)
+    # spectra_2d_nuv = np.empty((0, 0), dtype=np.float32)  # placeholder
 
     print("\n==== STARTING CONVOLUTION TO INSTRUMENT (VIS)=====")
-    # spectra_2d_vis = prepare_all_detector_images_spectroscopy(flux, wavelengths_total, vis, ctx, star)
+    spectra_2d_vis = prepare_all_detector_images_spectroscopy(flux, wavelengths_total, vis, ctx, star)
+    # spectra_2d_vis = np.empty((0, 0), dtype=np.float32)  # placeholder
 
     print("\n==== STARTING CONVOLUTION TO INSTRUMENT (NIR)=====")
     nir_rate_frame = prepare_detector_image_photometry(flux, wavelengths_total, nir, ctx, star)
     
-    # return spectra_2d_nuv, spectra_2d_vis, nir_rate_frame
-    return nir_rate_frame
+    return spectra_2d_nuv, spectra_2d_vis, nir_rate_frame
 
 def prepare_all_detector_images_spectroscopy(flux: np.ndarray, wavelengths: np.ndarray, channel: SpectroscopyChannel, ctx: RunContext, star: Star):
     counts_s_px_convolved = compute_counts_per_s_px_one_channel(flux, wavelengths, channel, ctx, star)

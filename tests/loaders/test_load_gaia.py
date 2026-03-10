@@ -48,14 +48,14 @@ def test_find_central_row_returns_none_for_none_table():
     assert sep is None
 
 
-def test_lookup_star_gaia_returns_empty_dict_when_cone_search_empty(monkeypatch):
+def test_lookup_target_star_gaia_returns_empty_dict_when_cone_search_empty(monkeypatch):
     monkeypatch.setattr(
         load_gaia,
         "_gaia_cone_search",
         lambda _center, radius_arcsec=2.0, g_mag_limit=None, GAIA_USE_ASYNC_JOBS=False: None,
     )
 
-    out = load_gaia.lookup_star_gaia(
+    out = load_gaia.lookup_target_star_gaia(
         {"name": "No Match", "right_ascension": 1.0, "declination": 2.0},
         missing_star=["effective_temperature"],
         cfg=_dummy_cfg(),
@@ -63,14 +63,14 @@ def test_lookup_star_gaia_returns_empty_dict_when_cone_search_empty(monkeypatch)
     assert out == {}
 
 
-def test_lookup_star_gaia_returns_empty_dict_when_cone_search_returns_empty_table(monkeypatch):
+def test_lookup_target_star_gaia_returns_empty_dict_when_cone_search_returns_empty_table(monkeypatch):
     monkeypatch.setattr(
         load_gaia,
         "_gaia_cone_search",
         lambda _center, radius_arcsec=2.0, g_mag_limit=None, GAIA_USE_ASYNC_JOBS=False: _cone_table([]),
     )
 
-    out = load_gaia.lookup_star_gaia(
+    out = load_gaia.lookup_target_star_gaia(
         {"name": "No Match", "right_ascension": 1.0, "declination": 2.0},
         missing_star=["effective_temperature"],
         cfg=_dummy_cfg(),
@@ -78,7 +78,7 @@ def test_lookup_star_gaia_returns_empty_dict_when_cone_search_returns_empty_tabl
     assert out == {}
 
 
-def test_lookup_star_gaia_returns_empty_dict_when_query_gaia_returns_empty(monkeypatch):
+def test_lookup_target_star_gaia_returns_empty_dict_when_query_gaia_returns_empty(monkeypatch):
     cone = _cone_table([(1.0, 2.0, 222)])
     monkeypatch.setattr(
         load_gaia,
@@ -87,7 +87,7 @@ def test_lookup_star_gaia_returns_empty_dict_when_query_gaia_returns_empty(monke
     )
     monkeypatch.setattr(load_gaia, "query_gaia", lambda _source_id, _async: {})
 
-    out = load_gaia.lookup_star_gaia(
+    out = load_gaia.lookup_target_star_gaia(
         {"name": "HD 202772 A", "right_ascension": 1.0, "declination": 2.0},
         missing_star=["effective_temperature"],
         cfg=_dummy_cfg(),
@@ -95,13 +95,13 @@ def test_lookup_star_gaia_returns_empty_dict_when_query_gaia_returns_empty(monke
     assert out == {}
 
 
-def test_lookup_star_gaia_returns_empty_dict_on_any_exception(monkeypatch):
+def test_lookup_target_star_gaia_returns_empty_dict_on_any_exception(monkeypatch):
     def _raise(_center, radius_arcsec=2.0, g_mag_limit=None, GAIA_USE_ASYNC_JOBS=False):
         raise RuntimeError("gaia down")
 
     monkeypatch.setattr(load_gaia, "_gaia_cone_search", _raise)
 
-    out = load_gaia.lookup_star_gaia(
+    out = load_gaia.lookup_target_star_gaia(
         {"name": "HD 202772 A", "right_ascension": 1.0, "declination": 2.0},
         missing_star=["effective_temperature"],
         cfg=_dummy_cfg(),
@@ -131,7 +131,7 @@ def test_get_gaia_stellar_properties_converts_nan_to_none():
     assert out["gaia_magnitude"] == 10.0
 
 
-def test_lookup_star_gaia_returns_only_missing_keys(monkeypatch):
+def test_lookup_target_star_gaia_returns_only_missing_keys(monkeypatch):
     gaia_row = {
         "ra": 1.0,
         "dec": 2.0,
@@ -155,7 +155,7 @@ def test_lookup_star_gaia_returns_only_missing_keys(monkeypatch):
     star_params = {"name": "HD 202772 A", "right_ascension": 1.0, "declination": 2.0}
     missing = ["effective_temperature", "radius"]
 
-    out = load_gaia.lookup_star_gaia(star_params, missing_star=missing, cfg=_dummy_cfg())
+    out = load_gaia.lookup_target_star_gaia(star_params, missing_star=missing, cfg=_dummy_cfg())
 
     assert out == {
         "effective_temperature": 5777.0,
@@ -163,8 +163,8 @@ def test_lookup_star_gaia_returns_only_missing_keys(monkeypatch):
     }
 
 
-def test_lookup_star_gaia_passes_async_flag_to_helpers(monkeypatch):
-    """lookup_star_gaia should forward cfg.GAIA_USE_ASYNC_JOBS into _gaia_cone_search and query_gaia."""
+def test_lookup_target_star_gaia_passes_async_flag_to_helpers(monkeypatch):
+    """lookup_target_star_gaia should forward cfg.GAIA_USE_ASYNC_JOBS into _gaia_cone_search and query_gaia."""
     recorded = {"cone_async": None, "query_async": None}
 
     cone = _cone_table([(1.0, 2.0, 222)])
@@ -196,7 +196,7 @@ def test_lookup_star_gaia_passes_async_flag_to_helpers(monkeypatch):
 
     # async = True
     cfg_async = _dummy_cfg(async_flag=True)
-    load_gaia.lookup_star_gaia(star_params, missing_star=missing, cfg=cfg_async)
+    load_gaia.lookup_target_star_gaia(star_params, missing_star=missing, cfg=cfg_async)
     assert recorded["cone_async"] is True
     assert recorded["query_async"] is True
 
@@ -204,7 +204,7 @@ def test_lookup_star_gaia_passes_async_flag_to_helpers(monkeypatch):
     recorded["cone_async"] = None
     recorded["query_async"] = None
     cfg_sync = _dummy_cfg(async_flag=False)
-    load_gaia.lookup_star_gaia(star_params, missing_star=missing, cfg=cfg_sync)
+    load_gaia.lookup_target_star_gaia(star_params, missing_star=missing, cfg=cfg_sync)
     assert recorded["cone_async"] is False
     assert recorded["query_async"] is False
 

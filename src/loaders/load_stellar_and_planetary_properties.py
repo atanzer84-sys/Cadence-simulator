@@ -5,7 +5,7 @@ from domain.star import Star
 from domain.planet import Planet
 from loaders.load_excel import load_matching_excel_row_from_excel, load_excel_cfg, map_to_planet_or_star_dictionary
 from loaders.parameter_preprocessing import get_missing_properties, clean_and_cast_parameters
-from loaders.load_gaia import lookup_star_gaia, GAIA_PROVIDES
+from loaders.load_gaia import lookup_target_star_gaia, GAIA_PROVIDES
 from astropy.io import ascii
 from configs.global_config import GlobalConfig, get_global_config
 from loaders.run_waltzer_context import get_repo_root
@@ -37,7 +37,7 @@ def load_stellar_and_planetary_properties(target_name_user_input):
         missing_for_gaia = [k for k in missing_star if k in GAIA_PROVIDES]
 
         if missing_for_gaia:
-            gaia_star_params = lookup_star_gaia(star_params, missing_for_gaia, cfg)
+            gaia_star_params = lookup_target_star_gaia(star_params, missing_for_gaia, cfg)
             # merge missing only (Excel wins)
             star_params = merge_gaia_into_star_params(star_params, gaia_star_params)
 

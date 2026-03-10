@@ -39,6 +39,7 @@ BASE_GLOBAL_CFG = {
     "write_intermediate_arrays": False,
     "produce_flux_convolution_plots": False,
     "produce_background_star_counts_plot": False,
+    "gaia_conesearch_radius_arcsec" : 500.0,
 }
 
 
