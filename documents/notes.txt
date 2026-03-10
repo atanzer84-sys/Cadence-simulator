@@ -7,7 +7,9 @@
 #venvs
 /Users/andreatanzer/.venvs/shared/bin/python -m pip install astroquery
 
-
+GAIA: 
+cd src
+/Users/andreatanzer/.venvs/shared/bin/python -m gaiahelper.gaiahelper_create_background_stars
 git switch -c feature/next-thing
 git switch main
 git merge
@@ -20,6 +22,7 @@ WASP-8 : 073
 KELT-9 : 002
 HD 2685 : 001
 
+parallel:
 caffeinate -i bash -c '
 for i in 001 002 017 030 073; do
     /Users/andreatanzer/.venvs/shared/bin/python \
@@ -30,15 +33,17 @@ wait
 '
 
 caffeinate -i bash -c '
-for i in 001 002 073 017 030 ; do
+for i in 001 002 073 017 030; do
     echo "=== START parameter_${i}.txt ==="
     /Users/andreatanzer/.venvs/shared/bin/python \
     "/Users/andreatanzer/Documents/Space Science/MasterThesis/WALTzER-simulator/src/waltzer_simulator.py" \
     "/Users/andreatanzer/Documents/Space Science/MasterThesis/WALTzER-simulator/input/parameters/parameter_${i}.txt"
-    echo "=== END parameter_${i}.txt ==="
+    status=$?
+    echo "=== END parameter_${i}.txt (exit code: ${status}) ==="
+    echo "=== REST 120s ==="
+    sleep 120
 done
 '
-
 
 # parallel run from terminal
 for i in {001..005}; do
