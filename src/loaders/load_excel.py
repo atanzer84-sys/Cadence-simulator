@@ -34,7 +34,10 @@ def load_matching_excel_row_from_excel(excel_path, target_name_user_input):
         target_name_normalized = str(target_name_user_input).casefold()
         logging.info("Searching for target: '%s'", target_name_user_input)
 
+
         matching_row_dict = None
+        checked_names = []
+
         for row in worksheet.iter_rows(min_row=2, values_only=True):
             # Guard: rows shorter than headers: i also want to get null values for empty cells
             row = list(row) + [None] * (len(column_headers) - len(row))
@@ -44,6 +47,7 @@ def load_matching_excel_row_from_excel(excel_path, target_name_user_input):
                 break
 
             pl_name_normalized = str(pl_name_value).casefold().strip()
+            checked_names.append(pl_name_normalized)
 
             # First match wins. :(
             # TODO: harden later when planetary transits are a thing.
@@ -60,6 +64,7 @@ def load_matching_excel_row_from_excel(excel_path, target_name_user_input):
                 break
 
         if matching_row_dict is None:
+            logging.error("All pl_name values checked: %s", checked_names)
             raise ValueError(
                 f"No target found for '{target_name_user_input}' (searched until row with empty pl_name)"
             )
