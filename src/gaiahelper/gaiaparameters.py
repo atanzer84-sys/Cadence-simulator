@@ -6,7 +6,6 @@ from pathlib import Path
 import sys
 import numpy as np
 import math
-import pandas as pd
 from openpyxl import load_workbook
 from openpyxl.worksheet.table import Table as XLTable
 from openpyxl.worksheet.table import TableStyleInfo
@@ -256,7 +255,7 @@ def main():
         "gaiadr3.astrophysical_parameters_supp",
     ]
 
-    final_table, star_column_names = build_final_table(star_names, star_ids, tables_to_check)
+    final_table, _ = build_final_table(star_names, star_ids, tables_to_check)
 
     output_dir, _, _ = setup_output_directory()
     output_file = output_dir / "gaia_parameter_matrix.xlsx"
