@@ -102,10 +102,12 @@ def write_science_frames_png(frames, headers, frame_type, channel_tag, ctx: RunC
         return
 
     title_base = _format_frame_title(star.name, channel_tag, frame_type, star)
+    axis_label_fontsize = 15 if str(channel_tag).upper() == "NIR" else None
+    tick_label_fontsize = 15 if str(channel_tag).upper() == "NIR" else None
 
     for k, (frame, header) in enumerate(zip(frames, headers)):
         stats_values, stats_keys = _build_frame_write_context(header, show_stats)
-        _write_one_frame_png(frame, ctx.output_dir, star.name, channel_tag, frame_type, title_base, stats_values, stats_keys, index=k)
+        _write_one_frame_png(frame, ctx.output_dir, star.name, channel_tag, frame_type, title_base, stats_values, stats_keys, index=k, axis_label_fontsize=axis_label_fontsize, tick_label_fontsize=tick_label_fontsize)
     
     logging.info("PNG writing finished: channel=%s frame_type=%s frames=%d", channel_tag, frame_type, n_frames)
 
@@ -199,11 +201,11 @@ def _build_png_filename(output_dir: Path, target_name: str, channel_tag: str, fr
     return output_dir / f"{safe}_{channel_tag}_{frame_type}_image.png"
 
 
-def _write_one_frame_png(array: np.ndarray, output_dir: Path, target_name: str, channel_tag: str, frame_type: str, title: str, stats_values: dict | None, stats_keys: list[str], index: int | None = None, *, waltzer_prefix: bool = True) -> None:
+def _write_one_frame_png(array: np.ndarray, output_dir: Path, target_name: str, channel_tag: str, frame_type: str, title: str, stats_values: dict | None, stats_keys: list[str], index: int | None = None, *, waltzer_prefix: bool = True, axis_label_fontsize: int | None = None, tick_label_fontsize: int | None = None) -> None:
     """Write one PNG with unified filename, title, and stats. Used by write_calibration_frame_png and write_science_frames_png."""
     filename = _build_png_filename(output_dir, target_name, channel_tag, frame_type, index, waltzer_prefix=waltzer_prefix)
     stats_text = _format_stats_text(stats_values, stats_keys) if (stats_values and stats_keys) else None
-    _save_single_frame_png(array, filename, title, stats_text)
+    _save_single_frame_png(array, filename, title, stats_text, axis_label_fontsize=axis_label_fontsize, tick_label_fontsize=tick_label_fontsize)
 
 def _format_stats_text(values: dict, keys: list[str], *, use_scientific_for_small: bool = False) -> str:
     """Format key=value pairs. Use N/A for missing/None values. Add units for second-line items.
@@ -264,7 +266,7 @@ def _stats_from_header(header, keys: list[str]) -> dict:
     return {k: _header_val(header, k) for k in keys}
 
 
-def _save_single_frame_png(array: np.ndarray, filename: Path, title: str, stats_text: str | None = None) -> None:
+def _save_single_frame_png(array: np.ndarray, filename: Path, title: str, stats_text: str | None = None, axis_label_fontsize: int | None = None, tick_label_fontsize: int | None = None) -> None:
     """Draw one 2D image with optional stats line; save to filename. Shared by write_calibration_frame_png and write_science_frames_png."""
     ny, nx = array.shape
     img_h_in = max(2.0, _WIDTH_IN * (ny / nx))
@@ -284,8 +286,14 @@ def _save_single_frame_png(array: np.ndarray, filename: Path, title: str, stats_
     ax.imshow(array, origin="lower", aspect="equal", cmap="gray", vmin=vmin, vmax=vmax)
     ax.set_xlim(-0.5, nx - 0.5)
     ax.set_ylim(-0.5, ny - 0.5)
-    ax.set_xlabel("pixels", labelpad=8)
-    ax.set_ylabel("pixels", labelpad=8)
+    if axis_label_fontsize is None:
+        ax.set_xlabel("pixels", labelpad=8)
+        ax.set_ylabel("pixels", labelpad=8)
+    else:
+        ax.set_xlabel("pixels", labelpad=8, fontsize=axis_label_fontsize)
+        ax.set_ylabel("pixels", labelpad=8, fontsize=axis_label_fontsize)
+    if tick_label_fontsize is not None:
+        ax.tick_params(axis="both", which="both", labelsize=tick_label_fontsize)
     ax.set_title(title, fontsize=11)
 
     ax_txt = fig.add_subplot(gs[2, 0])
