@@ -12,14 +12,12 @@ def generate_background_star_photometry_image(channel: PhotometryChannel, ctx: R
     background_star_arcs: dict[str, list[tuple[int, int]]] = {}
 
     
-    detector_start = _build_detector(channel, roll_angle_start)
-    detector_end = _build_detector(channel, roll_angle_stop)
     target_star_placement = get_photometry_placement(channel)
     total = len(background_stars_catalog.stars_by_id)
     n_on_detector = 0
 
     for star_id in background_stars_catalog.stars_by_id:
-        bg_star_result = _render_star_if_on_detector(star_id, channel, background_stars_catalog, frame_index, detector_start, detector_end, target_star_placement, roll_angle_start, roll_angle_stop)
+        bg_star_result = _render_star_if_on_detector(star_id, channel, background_stars_catalog, frame_index, target_star_placement, roll_angle_start, roll_angle_stop)
         
         if bg_star_result is None:
             continue
@@ -41,7 +39,7 @@ def _build_detector(channel: PhotometryChannel, roll_angle_deg: float) -> tuple[
     half_h = float(channel.y_pixels * channel.pixel_scale * 0.5)
     return cos_roll, sin_roll, half_w, half_h
 
-def _render_star_if_on_detector(star_id: str, channel: PhotometryChannel, catalog: StarCatalog, frame_index: int, detector_start: tuple[float, float, float, float], detector_end: tuple[float, float, float, float], target_star_placement: tuple[int, float], roll_angle_start, roll_angle_stop) -> tuple[np.ndarray, list[tuple[int, int]]] | None:
+def _render_star_if_on_detector(star_id: str, channel: PhotometryChannel, catalog: StarCatalog, frame_index: int, target_star_placement: tuple[int, float], roll_angle_start, roll_angle_stop) -> tuple[np.ndarray, list[tuple[int, int]]] | None:
 
     x_target, y_target = target_star_placement
     dx, dy = catalog.get_offset_arcsec(star_id)
@@ -111,8 +109,6 @@ def _compute_roll_angle_samples(dx: float, dy: float, channel: PhotometryChannel
 
     roll_angles = np.linspace(roll_angle_start, roll_angle_stop, n_steps, dtype=np.float32)
 
-    # logging.info("BG STAR ARC SAMPLING | dx=%f dy=%f radius_arcsec=%f delta_angle_deg=%f arc_length_arcsec=%f arc_length_px=%f n_steps=%d roll_angles=%s", dx, dy, radius_arcsec, roll_angle_stop - roll_angle_start, arc_length_arcsec, arc_length_px, n_steps, roll_angles)
-    
     return roll_angles
 
 

@@ -46,32 +46,29 @@ def _create_spectroscopy_channel_images(spectra_2d, channel: SpectroscopyChannel
 
     for frame_index in range(channel.n_science_frames):
         time_s = frame_index * (channel.exposure_s + cfg.readout_gap_s)
-        roll_angle_deg = 360.0 * (time_s / orbit_duration_s)
+        roll_angle_start = 360.0 * (time_s / orbit_duration_s)
+        roll_angle_end = 360.0 * ((time_s + channel.exposure_s) / orbit_duration_s)
 
-        print(f"science exposure image {frame_index + 1}/{channel.n_science_frames} (roll_angle={roll_angle_deg:.2f}°)")
+        print(f"science exposure image {frame_index + 1}/{channel.n_science_frames} (roll_angle_start={roll_angle_start:.2f}°, roll_angle_end={roll_angle_end:.2f}°)")
 
-        img = _create_spectroscopy_per_exposure(spectra_component, background_component, channel, ctx, cfg, star, background_stars_catalog, frame_index, roll_angle_deg)
+        img = _create_spectroscopy_per_exposure(spectra_component, background_component, channel, ctx, cfg, star, background_stars_catalog, frame_index, roll_angle_start, roll_angle_end)
         images.append(img)
-
     logging.info("Science image generation finished: channel=%s frames=%d", channel.channel_name, len(images))
     return images
 
 
-def _create_spectroscopy_per_exposure(spectra_component, background_component, channel: SpectroscopyChannel, ctx: RunContext, cfg: GlobalConfig, star: Star, background_stars_catalog: StarCatalog, frame_index: int, roll_angle_deg: float) -> np.ndarray:
-    """Build one science frame. Constant debug images written once (frame 0); background stars use index (vary with roll)."""
-    ccd_gain = channel.ccd_gain
+def _create_spectroscopy_per_exposure(spectra_component, background_component, channel: SpectroscopyChannel, ctx: RunContext, cfg: GlobalConfig, star: Star, background_stars_catalog: StarCatalog, frame_index: int, roll_angle_start: float, roll_angle_end: float) -> np.ndarray:
 
+    ccd_gain = channel.ccd_gain
 
     image, _ = _build_science_image_without_bg_stars(spectra_component, background_component, channel, ctx, cfg, star, frame_index)
 
-    bg_stars, background_star_bands = generate_background_star_spectroscopy_image(channel, ctx, star, background_stars_catalog, roll_angle_deg, frame_index)
+    bg_stars, background_star_bands = generate_background_star_spectroscopy_image(channel, ctx, star, background_stars_catalog, roll_angle_start, roll_angle_end, frame_index)
+
     image += bg_stars
 
     image *= ccd_gain
-    
-    if frame_index < 1:
-        ctx.write_calibration_frame_png(image, "SCIENCE_COMPLETELY_MERGED", ctx, channel, star=star, index=frame_index)
-    
+
     ctx.generate_background_star_visibility_on_science_frame(image, bg_stars, "SCIENCE PANEL", ctx, channel, star=star, index=frame_index, background_star_bands=background_star_bands)
 
     return image
@@ -118,9 +115,6 @@ def _create_photometry_per_exposure(nir_component, background_component, channel
 
     image *= ccd_gain
     image_background_stars *= ccd_gain
-    
-    if frame_index < 1:
-        ctx.write_calibration_frame_png(image, "SCIENCE_COMPLETELY_MERGED", ctx, channel, star=star, index=frame_index)
     
     ctx.generate_background_star_visibility_on_science_frame(image, bg_stars, "SCIENCE PANEL", ctx, channel, star=star, index=frame_index, background_star_arcs=background_star_arcs)
 
