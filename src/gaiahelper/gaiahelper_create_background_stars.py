@@ -50,19 +50,34 @@ def gaia_nearby_stars_with_params_by_name(target_name: str, radius_arcsec: float
     ts("Querying astrophysical_parameters for", len(ids), "source_ids...")
     ids_sql = ",".join(ids)
 
+    # query = f"""
+    # SELECT
+    #     gs.source_id,
+    #     ap.teff_gspphot,
+    #     ap.teff_gspspec,
+    #     supp.teff_gspspec_ann,
+    #     gs.rv_template_teff,
+    #     COALESCE(ap.teff_gspphot, ap.teff_gspspec, supp.teff_gspspec_ann, gs.rv_template_teff) AS Teff,
+    #     ap.distance_gspphot,
+    #     supp.distance_gspphot_phoenix,
+    #     supp.distance_gspphot_marcs,
+    #     COALESCE(ap.distance_gspphot, supp.distance_gspphot_phoenix, supp.distance_gspphot_marcs) AS Distance
+
+    # FROM gaiadr3.gaia_source AS gs
+    # LEFT JOIN gaiadr3.astrophysical_parameters AS ap ON gs.source_id = ap.source_id
+    # LEFT JOIN gaiadr3.astrophysical_parameters_supp AS supp ON gs.source_id = supp.source_id
+    # WHERE gs.source_id IN ({ids_sql})
+    # """
     query = f"""
     SELECT
-        source_id,
-        teff_gspphot,
-        radius_gspphot,
-        mass_flame,
-        mh_gspphot,
-        logg_gspphot,
-        distance_gspphot
-    FROM gaiadr3.astrophysical_parameters
-    WHERE source_id IN ({ids_sql})
+        gs.source_id,
+        ap.teff_gspphot,
+        ap.teff_gspspec,
+        gs.rv_template_teff,
+    FROM gaiadr3.gaia_source AS gs
+    LEFT JOIN gaiadr3.astrophysical_parameters AS ap ON gs.source_id = ap.source_id
+    WHERE source_id = {ids_sql}
     """
-
     job2 = Gaia.launch_job_async(query)
     ap = job2.get_results()
     ts("AP query returned rows:", len(ap))
@@ -77,10 +92,11 @@ def gaia_nearby_stars_with_params_by_name(target_name: str, radius_arcsec: float
 
 def main():
 
-    star_names = ["HD 2685","KELT-9","TIC 393818343","WASP-189","WASP-69","HAT-P-1","HAT-P-14","HAT-P-2","HAT-P-22","HAT-P-60","HAT-P-69","HAT-P-70","HD 118203","HD 1397","HD 149026","HD 152843","HD 189733","HD 202772 A","HD 209458","HD 219666","HD 221416","HD 332231","HD 88133","HD 89345","K2-232","KELT-11","KELT-17","KELT-19 A","KELT-2 A","KELT-20","KELT-24","KELT-3","KELT-4 A","KELT-7","KOI-13","LTT 9779","MASCARA-1","MASCARA-4","TOI-1135","TOI-1136","TOI-1333","TOI-1408","TOI-1431","TOI-1518","TOI-1789","TOI-1842","TOI-2005","TOI-2145","TOI-2497","TOI-257","TOI-421","TOI-4551","TOI-4603","TOI-481","TOI-5108","TOI-5398","TOI-6038 A","TOI-622","TOI-677","TOI-778","WASP-131","WASP-136","WASP-14","WASP-166","WASP-178","WASP-18","WASP-33","WASP-38","WASP-7","WASP-74","WASP-76","WASP-79","WASP-8","WASP-82","WASP-94 A","WASP-95","WASP-99","XO-3", "WASP-12"]
+    # star_names = ["HD 2685","KELT-9","TIC 393818343","WASP-189","WASP-69","HAT-P-1","HAT-P-14","HAT-P-2","HAT-P-22","HAT-P-60","HAT-P-69","HAT-P-70","HD 118203","HD 1397","HD 149026","HD 152843","HD 189733","HD 202772 A","HD 209458","HD 219666","HD 221416","HD 332231","HD 88133","HD 89345","K2-232","KELT-11","KELT-17","KELT-19 A","KELT-2 A","KELT-20","KELT-24","KELT-3","KELT-4 A","KELT-7","KOI-13","LTT 9779","MASCARA-1","MASCARA-4","TOI-1135","TOI-1136","TOI-1333","TOI-1408","TOI-1431","TOI-1518","TOI-1789","TOI-1842","TOI-2005","TOI-2145","TOI-2497","TOI-257","TOI-421","TOI-4551","TOI-4603","TOI-481","TOI-5108","TOI-5398","TOI-6038 A","TOI-622","TOI-677","TOI-778","WASP-131","WASP-136","WASP-14","WASP-166","WASP-178","WASP-18","WASP-33","WASP-38","WASP-7","WASP-74","WASP-76","WASP-79","WASP-8","WASP-82","WASP-94 A","WASP-95","WASP-99","XO-3", "WASP-12"]
+    star_names = ["KELT-20"]
     
-    RADIUS_ARCSEC = 600.0 # 10 arcmin
-    mag_limit = 18.0
+    RADIUS_ARCSEC = 6.0 # 10 arcmin
+    mag_limit = 17.0
 
     output_dir, _, _ = setup_output_directory()
 
