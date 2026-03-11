@@ -109,8 +109,16 @@ def setup_logger(output_dir, timestamp_str):
 
     logging.info("Logger initialized")
 
+
 def get_repo_root(base_dir: Path | None = None) -> Path:
-    return base_dir or Path(__file__).resolve().parents[2]
+    p = (base_dir or Path(__file__)).resolve()
+
+    for parent in [p] + list(p.parents):
+        if (parent / "src").exists() and (parent / "input").exists():
+            return parent
+
+    raise RuntimeError("Repository root not found")
+
 
 def get_user_parameter_path():
     """Determine which user parameter file to use based on CLI arguments.
