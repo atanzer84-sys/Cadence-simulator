@@ -2,7 +2,6 @@ from astroquery.gaia import Gaia
 from astropy.coordinates import SkyCoord
 from datetime import datetime
 from loaders.run_waltzer_context import setup_output_directory
-from astropy.table import Table
 from pathlib import Path
 import pandas as pd
 
