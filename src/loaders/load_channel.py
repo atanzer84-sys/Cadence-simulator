@@ -13,10 +13,18 @@ from configs.global_config import get_global_config
 def load_channels_config(user_cfg: UserConfig, ctx):
     repo_root = get_repo_root()
     background = _load_background_from_global_cfg()
+    cfg = get_global_config()
 
-    nuv_channel = load_channel_config(repo_root / "configs" / "waltzer_nuv.cfg", user_cfg.exposure_NUV_s, ctx, background)
-    vis_channel = load_channel_config(repo_root / "configs" / "waltzer_vis.cfg", user_cfg.exposure_VIS_s, ctx, background)
-    nir_channel = load_channel_config(repo_root / "configs" / "waltzer_nir.cfg", user_cfg.exposure_IR_s, ctx, background)
+    nuv_channel = None
+    vis_channel = None
+    nir_channel = None
+
+    if cfg.run_nuv:
+        nuv_channel = load_channel_config(repo_root / "configs" / "waltzer_nuv.cfg", user_cfg.exposure_NUV_s, ctx, background)
+    if cfg.run_vis:
+        vis_channel = load_channel_config(repo_root / "configs" / "waltzer_vis.cfg", user_cfg.exposure_VIS_s, ctx, background)
+    if cfg.run_nir:
+        nir_channel = load_channel_config(repo_root / "configs" / "waltzer_nir.cfg", user_cfg.exposure_IR_s, ctx, background)
     
     return nuv_channel, vis_channel, nir_channel
 
@@ -83,8 +91,6 @@ def load_channel_config(path: Path, exposure_s: float, ctx, background: dict):
 
     # Spectroscopy only:
     # effective area only matches x pixels in spectroscopy
-
-
     _ensure_effective_area_matches_x_pixels(channel_name, effective_area_file, effective_area_wavelength, x_pixels, source_file)
     
     mode=as_int(raw["mode"], key="mode")
