@@ -92,7 +92,9 @@ def write_calibration_frame_png(array, frame_type: str, ctx: RunContext, channel
     _write_one_frame_png(array, ctx.output_dir, ctx.target_name, channel.channel_name, frame_type, title, stats_values, stats_keys, index=index, waltzer_prefix=False)
 
 
-def write_science_frames_png(frames, headers, frame_type, channel_tag, ctx: RunContext, star: Star, show_stats=False):
+# def write_science_frames_png(frames, headers, frame_type, channel_tag, ctx: RunContext, star: Star, show_stats=False):
+def write_science_frames_png(frames, headers, frame_type, channel_tag, ctx: RunContext, star: Star, show_stats=False, inverted=False):
+
 
     n_frames = len(frames)
     logging.info("PNG writing started: channel=%s frame_type=%s frames=%d", channel_tag, frame_type, n_frames)
@@ -106,8 +108,13 @@ def write_science_frames_png(frames, headers, frame_type, channel_tag, ctx: RunC
     tick_label_fontsize = 15 if str(channel_tag).upper() == "NIR" else None
 
     for k, (frame, header) in enumerate(zip(frames, headers)):
+        if inverted and str(channel_tag).upper() in ("NUV", "VIS"):
+            frame_to_plot = frame.max() - frame
+        else:
+            frame_to_plot = frame
+
         stats_values, stats_keys = _build_frame_write_context(header, show_stats)
-        _write_one_frame_png(frame, ctx.output_dir, star.name, channel_tag, frame_type, title_base, stats_values, stats_keys, index=k, axis_label_fontsize=axis_label_fontsize, tick_label_fontsize=tick_label_fontsize)
+        _write_one_frame_png(frame_to_plot, ctx.output_dir, star.name, channel_tag, frame_type, title_base, stats_values, stats_keys, index=k, axis_label_fontsize=axis_label_fontsize, tick_label_fontsize=tick_label_fontsize)
     
     logging.info("PNG writing finished: channel=%s frame_type=%s frames=%d", channel_tag, frame_type, n_frames)
 

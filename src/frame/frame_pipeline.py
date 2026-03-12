@@ -82,6 +82,6 @@ def _write_png_for_all(frame_lists, ctx: RunContext, star: Star, *, phase: str =
         data_list = [f.data for f in frames]
         header_list = [f.header for f in frames]
 
-        write_science_frames_png(frames=data_list, headers=header_list, frame_type=frame_type, channel_tag=channel_tag, ctx=ctx, star=star, show_stats=True)
+        write_science_frames_png(frames=data_list, headers=header_list, frame_type=frame_type, channel_tag=channel_tag, ctx=ctx, star=star, show_stats=True, inverted=True)
 
 
