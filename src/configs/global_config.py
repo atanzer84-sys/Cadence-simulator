@@ -7,6 +7,9 @@ from configs.config_parsing import (parse_simple_kv, as_bool, as_optional_float,
 
 @dataclass(frozen=True, slots=True)
 class GlobalConfig:
+    run_vis: bool
+    run_nuv: bool
+    run_nir: bool
     line_core_emission: bool
     interstellar_absorption: bool
     orbit_duration_minutes: float
@@ -78,6 +81,9 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
     _warn_default_used(raw, "sigmaMg22", DEFAULT_SIGMA_MG22, path=path)
     _warn_default_used(raw, "sigmaMg21", DEFAULT_SIGMA_MG21, path=path)
 
+    run_vis = as_bool(raw.get("run_vis", 1), key="run_vis")
+    run_nuv = as_bool(raw.get("run_nuv", 1), key="run_nuv")
+    run_nir = as_bool(raw.get("run_nir", 1), key="run_nir")
     line_core_emission = as_bool(raw.get("line_core_emission", 0), key="line_core_emission")
     interstellar_absorption = as_bool(raw.get("interstellar_absorption", 0), key="interstellar_absorption")
     orbit_duration_minutes = as_float(raw.get("orbit_duration_minutes", 100.0), key="orbit_duration_minutes")
@@ -122,6 +128,7 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
     produce_flux_convolution_plots = as_bool(raw.get("produce_flux_convolution_plots", raw.get("produce_flux_convolution_plots", 0)), key="produce_flux_convolution_plots")
     produce_background_star_counts_plot = as_bool(raw.get("produce_background_star_counts_plot", 0), key="produce_background_star_counts_plot")
 
+    _ensure_at_least_one_channel_enabled(run_vis, run_nuv, run_nir)
     _ensure_non_negative(orbit_duration_minutes, key="orbit_duration_minutes")
     _ensure_non_negative(orbit_revolutions, key="orbit_revolutions")
     _ensure_non_negative(readout_gap_s, key="readout_gap_s")
@@ -138,6 +145,9 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
     _ensure_min_le_max(log_r_hot_value, log_r_cool_value, key_min="log_r_hot_value", key_max="log_r_cool_value")
 
     cfg = GlobalConfig(
+        run_vis=run_vis,
+        run_nuv=run_nuv,
+        run_nir=run_nir,
         line_core_emission=line_core_emission,
         interstellar_absorption=interstellar_absorption,
         orbit_duration_minutes=orbit_duration_minutes,
@@ -178,6 +188,11 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
 
     logging.info("Global config loaded: %s", cfg)
     return cfg
+
+
+def _ensure_at_least_one_channel_enabled(run_vis: bool, run_nuv: bool, run_nir: bool) -> None:
+    if not (run_vis or run_nuv or run_nir):
+        raise ValueError("At least one channel must be enabled in global.cfg: run_vis, run_nuv, or run_nir")
 
 def _compute_sky_sweep_arcsec_per_s(orbit_duration_minutes):
     orbit_duration_s = orbit_duration_minutes * 60.0
