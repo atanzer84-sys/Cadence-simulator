@@ -24,7 +24,7 @@ def initialize_waltzer_runtime_context():
 
     output_dir, timestamp_str, timestamp = setup_output_directory()
     setup_logger(output_dir, timestamp_str)
-    user_cfg = load_cfg_and_user_config()
+    user_cfg = load_global_and_user_config()
     cfg = get_global_config()
     from utils import images
     dump_3d_array = _select(cfg.write_intermediate_arrays, debug_dumps.dump_3d_array)
@@ -53,7 +53,7 @@ def initialize_waltzer_runtime_context():
     logging.info("RunContext initialized: target=%s output_dir=%s write_intermediate_arrays=%s produce_flux_convolution_plots=%s write_calibration_frame_png=%s write_background_star_science_frames_png=%s", run_ctx.target_name, run_ctx.output_dir, cfg.write_intermediate_arrays, cfg.produce_flux_convolution_plots, cfg.write_calibration_frames_png, cfg.write_background_star_science_frames_png)
     return run_ctx, user_cfg
 
-def load_cfg_and_user_config():
+def load_global_and_user_config():
     # load global config (cached, once per run)
     repo_root = get_repo_root()
     load_global_config(repo_root / "configs" / "global.cfg")

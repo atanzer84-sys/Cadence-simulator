@@ -221,6 +221,6 @@ def test_invalid_params_raises_value_error(monkeypatch, tmp_path):
     monkeypatch.setattr(run_waltzer_context, "get_user_parameter_path", lambda: Path(param_file))
 
     with pytest.raises(ValueError) as exc_info:
-        run_waltzer_context.load_cfg_and_user_config()
+        run_waltzer_context.load_global_and_user_config()
 
     assert "total_observation_length_h" in str(exc_info.value)
