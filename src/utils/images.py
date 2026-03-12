@@ -108,7 +108,7 @@ def write_science_frames_png(frames, headers, frame_type, channel_tag, ctx: RunC
     tick_label_fontsize = 15 if str(channel_tag).upper() == "NIR" else None
 
     for k, (frame, header) in enumerate(zip(frames, headers)):
-        if inverted and str(channel_tag).upper() in ("NUV", "VIS"):
+        if inverted:
             frame_to_plot = frame.max() - frame
         else:
             frame_to_plot = frame

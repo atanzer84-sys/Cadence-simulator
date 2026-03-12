@@ -33,7 +33,7 @@ def generate_frames(nuv_images, vis_images, nir_images, nuv: SpectroscopyChannel
         _write_fits_for_all(calibration_frame_list, ctx, phase="calibration frames")
 
         if global_cfg.write_calibration_frames_png:
-            _write_png_for_all(calibration_frame_list, ctx, star, phase="calibration-frames")
+            _write_png_for_all(calibration_frame_list, ctx, star, phase="calibration-frames", inverted=global_cfg.invert_calibration_frames)
     else:
         logging.info("Calibration Frames: n_calibration_frames=%d \u2192 skipped.", n_calibration_frames)
 
@@ -48,7 +48,7 @@ def generate_frames(nuv_images, vis_images, nir_images, nuv: SpectroscopyChannel
 
     # Write PNGs
     if global_cfg.write_science_frames_png:
-        _write_png_for_all(science_lists, ctx, star, phase="science")
+        _write_png_for_all(science_lists, ctx, star, phase="science", inverted=global_cfg.invert_science_frames)
 
 
 def _write_fits_for_all(frame_lists, ctx: RunContext, *, phase: str = "") -> None:
@@ -68,7 +68,7 @@ def _write_fits_for_all(frame_lists, ctx: RunContext, *, phase: str = "") -> Non
         write_fits_frames(frames=data_list, headers=header_list, frame_type=frame_type, channel_tag=channel_tag, ctx=ctx)
 
 
-def _write_png_for_all(frame_lists, ctx: RunContext, star: Star, *, phase: str = "") -> None:
+def _write_png_for_all(frame_lists, ctx: RunContext, star: Star, phase: str = "", inverted: bool = False) -> None:
     phase_str = f" for {phase} frames" if phase else ""
     logging.info("Creating PNG files%s", phase_str)
     print(f"Creating PNG files{phase_str}")
@@ -82,6 +82,6 @@ def _write_png_for_all(frame_lists, ctx: RunContext, star: Star, *, phase: str =
         data_list = [f.data for f in frames]
         header_list = [f.header for f in frames]
 
-        write_science_frames_png(frames=data_list, headers=header_list, frame_type=frame_type, channel_tag=channel_tag, ctx=ctx, star=star, show_stats=True, inverted=True)
+        write_science_frames_png(frames=data_list, headers=header_list, frame_type=frame_type, channel_tag=channel_tag, ctx=ctx, star=star, show_stats=True, inverted=inverted)
 
 

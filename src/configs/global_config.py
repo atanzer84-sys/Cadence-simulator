@@ -27,6 +27,8 @@ class GlobalConfig:
     
     n_calibration_frames: int
     write_calibration_frames_png: bool
+    invert_calibration_frames: bool
+    invert_science_frames : bool
     write_science_frames_png: bool
     write_background_star_science_frames_png: bool
 
@@ -97,8 +99,11 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
     log_r_hot_value = as_float(raw["log_r_hot_value"], key="log_r_hot_value")
     log_r_cool_value = as_float(raw["log_r_cool_value"], key="log_r_cool_value")
 
+
     n_calibration_frames = as_int(raw.get("n_calibration_frames", 0), key="n_calibration_frames")
     write_calibration_frames_png = as_bool(raw.get("write_calibration_frames_png", 0), key="write_calibration_frames_png")
+    invert_calibration_frames = as_bool(raw.get("invert_calibration_frames", 0), key="invert_calibration_frames")
+    invert_science_frames = as_bool(raw.get("invert_science_frames", 0), key="invert_science_frames")
     write_science_frames_png = as_bool(raw.get("write_science_frames_png", 0), key="write_science_frames_png")
     write_background_star_science_frames_png = as_bool(raw.get("write_background_star_science_frames_png", 0), key="write_background_star_science_frames_png")
 
@@ -155,6 +160,8 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
         log_r_hot_value=log_r_hot_value,
         log_r_cool_value=log_r_cool_value,
         n_calibration_frames=n_calibration_frames,
+        invert_calibration_frames=invert_calibration_frames,
+        invert_science_frames=invert_science_frames,
         write_calibration_frames_png=write_calibration_frames_png,
         write_science_frames_png=write_science_frames_png,
         write_background_star_science_frames_png=write_background_star_science_frames_png,
