@@ -16,14 +16,16 @@ def generate_background_star_spectroscopy_image(channel: SpectroscopyChannel, ct
     total = len(background_stars_catalog.stars_by_id)
     n_in_slit = 0
     star_ids_in_slit: list[str] = []
+    star_exposure_s_by_id: dict[str, float] = {}
     is_vis_channel = channel.channel_name.upper() == "VIS"
     for star_id in background_stars_catalog.stars_by_id:
         bg_star_result = _render_star_if_in_slit(star_id, channel, background_stars_catalog, frame_index, spectrum_placement, roll_angle_start, roll_angle_stop)
         if bg_star_result is not None:
-            bg_star_2d, y_positions = bg_star_result
+            bg_star_2d, y_positions, rendered_exposure_s = bg_star_result
             image += bg_star_2d
             n_in_slit += 1
             star_ids_in_slit.append(star_id)
+            star_exposure_s_by_id[star_id] = float(rendered_exposure_s)
             if is_vis_channel and len(y_positions) > 0:
                 background_star_bands[star_id] = {
                     "y0": float(np.mean(y_positions)),
@@ -31,17 +33,20 @@ def generate_background_star_spectroscopy_image(channel: SpectroscopyChannel, ct
                 }
 
     star_ids_mag_in_slit: list[str] = []
+    star_ids_mag_texp_in_slit: list[str] = []
     for sid in star_ids_in_slit:
         mag = background_stars_catalog.stars_by_id[sid].gaia_magnitude
         mag_val = mag if mag is not None else float("nan")
         star_ids_mag_in_slit.append(f"{sid}:{mag_val:.3f}")
-    logging.info("BG STARS Slit and rendering in frame: roll_angle: frame=%d channel=%s roll_angle_start=%g roll_angle_stop=%g n_in_slit=%d/%d image_sum=%g star_ids_mag_in_slit=[%s]", frame_index, channel.channel_name, float(roll_angle_start), float(roll_angle_stop), int(n_in_slit), int(total), float(np.sum(image)), ", ".join(star_ids_mag_in_slit))
+        t_exp_s = star_exposure_s_by_id.get(sid, 0.0)
+        star_ids_mag_texp_in_slit.append(f"{sid}:{mag_val:.3f}:{t_exp_s:.3f}s")
+    logging.info("BG STARS Slit and rendering in frame: roll_angle: frame=%d channel=%s roll_angle_start=%g roll_angle_stop=%g n_in_slit=%d/%d image_sum=%g  star_ids_mag_texp_in_slit=[%s]", frame_index, channel.channel_name, float(roll_angle_start), float(roll_angle_stop), int(n_in_slit), int(total), float(np.sum(image)), ", ".join(star_ids_mag_texp_in_slit))
 
     return image, background_star_bands
 
 
-def _render_star_if_in_slit(star_id: str, channel: SpectroscopyChannel, catalog: StarCatalog, frame_index: int, spectrum_placement: tuple[int, float, float, float], roll_angle_start: float, roll_angle_stop: float) -> tuple[np.ndarray, list[int]] | None:
-    """Return 2d image for star if inside slit and has counts, else None."""
+def _render_star_if_in_slit(star_id: str, channel: SpectroscopyChannel, catalog: StarCatalog, frame_index: int, spectrum_placement: tuple[int, float, float, float], roll_angle_start: float, roll_angle_stop: float) -> tuple[np.ndarray, list[int], float] | None:
+    """Return 2d image, sampled detector rows, and rendered exposure in seconds."""
     x_target, y_target, slope, intercept = spectrum_placement
     dx, dy = catalog.get_offset_arcsec(star_id)
 
@@ -72,9 +77,10 @@ def _render_star_if_in_slit(star_id: str, channel: SpectroscopyChannel, catalog:
     if len(valid_y_positions) == 0:
         return None
 
+    rendered_exposure_s = len(valid_y_positions) * dt_per_sample
     _log_star_in_slit_arc(star_id, catalog, channel, frame_index, dx, dy, roll_angle_start, roll_angle_stop, valid_y_positions, x_target, dt_per_sample)
 
-    return star_image, valid_y_positions
+    return star_image, valid_y_positions, rendered_exposure_s
 
 
 def _build_slit(channel: SpectroscopyChannel, roll_angle_deg: float) -> tuple[float, float, float, float]:
