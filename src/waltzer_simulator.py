@@ -8,7 +8,7 @@ from domain.planet import Planet
 from frame.frame_pipeline import generate_frames
 from instrument.prepare_detector_images import prepare_star_photon_flux_for_channels, prepare_detector_image_spectroscopy, prepare_detector_image_photometry
 from instrument.build_science_image import build_science_images
-from instrument.background_star_preparation import populate_background_star_catalog
+from instrument.background_star_preparation import compute_background_stars_counts
 from loaders.load_background_stars import lookup_background_stars
 
 
@@ -34,7 +34,7 @@ def main():
 
         # lookup background stars and populate a catalog with the background stars
         background_stars_catalog = lookup_background_stars(nuv_channel, vis_channel, nir_channel, run_ctx, star)
-
+        background_stars_catalog = compute_background_stars_counts(background_stars_catalog, nuv_channel, vis_channel, nir_channel, run_ctx)
         # nuv_images, vis_images, nir_images = build_science_images(spectra_2d_nuv, spectra_2d_vis, rate_nir, nuv_channel, vis_channel, nir_channel, run_ctx, star)
         
         # # generating bias, dark and science frames (fits) for NUV, VIS

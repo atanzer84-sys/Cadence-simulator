@@ -9,7 +9,7 @@ from configs.global_config import GlobalConfig, get_global_config
 from instrument.background_image import generate_background_image
 from domain.star import Star
 from domain.star_catalog import StarCatalog
-from instrument.background_star_preparation import populate_background_star_catalog
+from instrument.background_star_preparation import compute_background_stars_counts
 from instrument.background_star_spectroscopy import generate_background_star_spectroscopy_image
 from instrument.background_star_photometry import generate_background_star_photometry_image
 from instrument.photon_noise import apply_photon_noise_gauss_from_spectra2d
@@ -18,7 +18,7 @@ from instrument.photon_noise import apply_photon_noise_gauss_from_spectra2d
 
 def build_science_images(spectra_2d_nuv, spectra_2d_vis, rate_nir, nuv: SpectroscopyChannel, vis: SpectroscopyChannel, nir: PhotometryChannel, ctx: RunContext, star: Star):
     cfg = get_global_config()
-    background_stars_catalog = populate_background_star_catalog(nuv, vis, nir, ctx, cfg, star)
+    background_stars_catalog = compute_background_stars_counts(nuv, vis, nir, ctx, cfg, star)
 
     for channel in (nuv, vis, nir):
         ctx.plot_background_star_counts(background_stars_catalog, channel, ctx)
