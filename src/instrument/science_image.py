@@ -9,7 +9,6 @@ from configs.global_config import GlobalConfig, get_global_config
 from instrument.background_image import generate_background_image
 from domain.star import Star
 from domain.star_catalog import StarCatalog
-from instrument.compute_background_stars_counts import compute_background_stars_counts
 from instrument.background_star_spectroscopy import generate_background_star_spectroscopy_image
 from instrument.background_star_photometry import generate_background_star_photometry_image
 from instrument.photon_noise import apply_photon_noise_gauss_from_spectra2d
@@ -18,110 +17,60 @@ from instrument.photon_noise import apply_photon_noise_gauss_from_spectra2d
 
 def build_science_images(stellar_signal, channel: Channel, ctx: RunContext, star: Star, background_stars_catalog: StarCatalog):
     cfg = get_global_config()
-
     ctx.plot_background_star_counts(background_stars_catalog, channel, ctx)
+    _create_channel_images(stellar_signal, channel, ctx, cfg, star, background_stars_catalog)
 
-    if isinstance(channel, SpectroscopyChannel):
-        _create_spectroscopy_channel_images(stellar_signal, channel, ctx, cfg, star, background_stars_catalog)
-        return
 
-    if isinstance(channel, PhotometryChannel):
-        _create_photometry_channel_images(stellar_signal, channel, ctx, cfg, star, background_stars_catalog)
-        return
-
-    raise TypeError(f"Unsupported channel type: {type(channel)}")
-
-def _create_spectroscopy_channel_images(spectra_2d, channel: SpectroscopyChannel, ctx: RunContext, cfg: GlobalConfig, star: Star, background_stars_catalog: StarCatalog) -> list:
+def _create_channel_images(stellar_signal, channel: Channel, ctx: RunContext, cfg: GlobalConfig, star: Star, background_stars_catalog: StarCatalog) -> None:
     print(f"\n==== STARTING SCIENCE IMAGE GENERATION ({channel.channel_name}) =====")
     logging.info("Science Image generation starting for channel %s", channel.channel_name)
 
     exposure = channel.exposure_s
-    # compute artifacts that do not change from one exposure to the next to save time.
+    readout_gap_s = cfg.readout_gap_s
     orbit_duration_s = cfg.orbit_duration_minutes * 60.0
-    spectra_component = spectra_2d * exposure
+    stellar_component = stellar_signal * exposure
     background_component = generate_background_image(channel, ctx, star)
-    images = []
+    n_science_frames = channel.n_science_frames
 
-    for frame_index in range(channel.n_science_frames):
-        time_s = frame_index * (channel.exposure_s + cfg.readout_gap_s)
+    for frame_index in range(n_science_frames):
+        time_s = frame_index * (exposure + readout_gap_s)
         roll_angle_start = 360.0 * (time_s / orbit_duration_s)
-        roll_angle_end = 360.0 * ((time_s + channel.exposure_s) / orbit_duration_s)
+        roll_angle_end = 360.0 * ((time_s + exposure) / orbit_duration_s)
 
-        print(f"science exposure image {frame_index + 1}/{channel.n_science_frames} (roll_angle_start={roll_angle_start:.2f}°, roll_angle_end={roll_angle_end:.2f}°)")
+        print(f"science exposure image {frame_index + 1}/{n_science_frames} (roll_angle_start={roll_angle_start:.2f}°, roll_angle_end={roll_angle_end:.2f}°)")
 
-        img = _create_spectroscopy_per_exposure(spectra_component, background_component, channel, ctx, cfg, star, background_stars_catalog, frame_index, roll_angle_start, roll_angle_end)
-        images.append(img)
-    logging.info("Science image generation finished: channel=%s frames=%d", channel.channel_name, len(images))
-    return images
+        img = _create_per_exposure(stellar_component, background_component, channel, ctx, cfg, star, background_stars_catalog, frame_index, roll_angle_start, roll_angle_end)
+
+        # TODO: !!!
+        _write_science_frame(img, channel, ctx, star, frame_index)
+
+    logging.info("Science image generation finished: channel=%s frames=%d exposure_s=%g orbit_duration_s=%g", channel.channel_name, n_science_frames, exposure, orbit_duration_s)
 
 
-def _create_spectroscopy_per_exposure(spectra_component, background_component, channel: SpectroscopyChannel, ctx: RunContext, cfg: GlobalConfig, star: Star, background_stars_catalog: StarCatalog, frame_index: int, roll_angle_start: float, roll_angle_end: float) -> np.ndarray:
-
+def _create_per_exposure(stellar_component, background_component, channel: Channel, ctx: RunContext, cfg: GlobalConfig, star: Star, background_stars_catalog: StarCatalog, frame_index: int, roll_angle_start: float, roll_angle_end: float) -> np.ndarray:
     ccd_gain = channel.ccd_gain
 
-    image, _ = _build_science_image_without_bg_stars(spectra_component, background_component, channel, ctx, cfg, star, frame_index)
+    image = _build_science_image_without_bg_stars(stellar_component, background_component, channel, ctx, cfg, star, frame_index)
 
-    bg_stars, background_star_bands = generate_background_star_spectroscopy_image(channel, ctx, star, background_stars_catalog, roll_angle_start, roll_angle_end, frame_index)
+    if isinstance(channel, SpectroscopyChannel):
+        bg_stars, background_star_visibility = generate_background_star_spectroscopy_image(channel, ctx, star, background_stars_catalog, roll_angle_start, roll_angle_end, frame_index)
+        visibility_kwargs = {"background_star_bands": background_star_visibility}
+    elif isinstance(channel, PhotometryChannel):
+        bg_stars, background_star_visibility = generate_background_star_photometry_image(channel, ctx, star, background_stars_catalog, roll_angle_start, roll_angle_end, frame_index)
+        visibility_kwargs = {"background_star_arcs": background_star_visibility}
+    else:
+        raise TypeError(f"Unsupported channel type: {type(channel)}")
 
     image += bg_stars
-
     image *= ccd_gain
 
-    ctx.generate_background_star_visibility_on_science_frame(image, bg_stars, "SCIENCE PANEL", ctx, channel, star=star, index=frame_index, background_star_bands=background_star_bands)
+    ctx.generate_background_star_visibility_on_science_frame(image, bg_stars, "SCIENCE PANEL", ctx, channel, star=star, index=frame_index, **visibility_kwargs)
 
     return image
 
-
-def _create_photometry_channel_images(nir_rate, channel: PhotometryChannel, ctx: RunContext, cfg: GlobalConfig, star: Star, background_stars_catalog: StarCatalog):
-    print(f"\n==== STARTING SCIENCE IMAGE GENERATION ({channel.channel_name}) =====")
-
-    exposure = channel.exposure_s
-    # compute artifacts that do not change from one exposure to the next to save time.
-    orbit_duration_s = cfg.orbit_duration_minutes * 60.0
-    nir_component = nir_rate * exposure
-    background_component = generate_background_image(channel, ctx, star)
-    images = []
-
-
-    for frame_index in range(channel.n_science_frames):
-        time_s = frame_index * (channel.exposure_s + cfg.readout_gap_s)
-
-        roll_angle_start = 360.0 * (time_s / orbit_duration_s)
-        roll_angle_end = 360.0 * ((time_s + channel.exposure_s) / orbit_duration_s)
-
-        print(f"science exposure image {frame_index + 1}/{channel.n_science_frames} (roll_angle_start={roll_angle_start:.2f}°, roll_angle_end={roll_angle_end:.2f}°)")
-
-        img = _create_photometry_per_exposure(nir_component, background_component, channel, ctx, cfg, star, background_stars_catalog, frame_index, roll_angle_start, roll_angle_end)
-
-        images.append(img)
     
-    logging.info("Science image generation finished: channel=%s frames=%d exposure_s=%g orbit_duration_s=%g", channel.channel_name, len(images), exposure, orbit_duration_s)
-
-    return images
-
-
-def _create_photometry_per_exposure(nir_component, background_component, channel: PhotometryChannel, ctx: RunContext, cfg: GlobalConfig, star: Star, background_stars_catalog: StarCatalog, frame_index: int, roll_angle_start: float, roll_angle_end: float) -> np.ndarray:
-
-    ccd_gain = channel.ccd_gain
-
-    image, image_background_stars = _build_science_image_without_bg_stars(nir_component, background_component, channel, ctx, cfg, star, frame_index)
-
-    bg_stars, background_star_arcs = generate_background_star_photometry_image(channel, ctx, star, background_stars_catalog, roll_angle_start, roll_angle_end, frame_index)
-
-    image += bg_stars
-    image_background_stars += bg_stars
-
-    image *= ccd_gain
-    image_background_stars *= ccd_gain
-    
-    ctx.generate_background_star_visibility_on_science_frame(image, bg_stars, "SCIENCE PANEL", ctx, channel, star=star, index=frame_index, background_star_arcs=background_star_arcs)
-
-    return image
-
-
 def _build_science_image_without_bg_stars(target_star_component, background_component, channel: Channel, ctx: RunContext, cfg: GlobalConfig, star: Star, frame_index: int):
     image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
-    image_background_stars = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
 
     bias = generate_bias_image(channel)
     image += bias
@@ -134,7 +83,6 @@ def _build_science_image_without_bg_stars(target_star_component, background_comp
         ctx.write_calibration_frame_png(image, "SCIENCE_DARK_ONLY", ctx, channel, star=star, index=frame_index)
 
     image += target_star_component
-    image_background_stars += target_star_component
     if frame_index < 1:
         ctx.write_calibration_frame_png(target_star_component, "SCIENCE_SIGNAL_ONLY", ctx, channel, star=star, index=frame_index)
         ctx.write_calibration_frame_png(image, "SCIENCE_SPECTRA", ctx, channel, star=star, index=frame_index)
@@ -153,5 +101,5 @@ def _build_science_image_without_bg_stars(target_star_component, background_comp
     if frame_index < 1:
         ctx.write_calibration_frame_png(cosmic, "SCIENCE_COSMIC_ONLY", ctx, channel, star=star, index=frame_index)
 
-    return image, image_background_stars
+    return image
 

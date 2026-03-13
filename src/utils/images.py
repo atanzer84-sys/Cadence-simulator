@@ -6,7 +6,6 @@ from loaders.run_waltzer_context import RunContext
 from domain.star import Star
 import numpy as np
 from configs.channel_config import Channel, PhotometryChannel
-from domain.star_catalog import StarCatalog
 from matplotlib.lines import Line2D
 from utils.images_common import normalize_target_name, format_frame_title
 
@@ -92,9 +91,7 @@ def write_calibration_frame_png(array, frame_type: str, ctx: RunContext, channel
     _write_one_frame_png(array, ctx.output_dir, ctx.target_name, channel.channel_name, frame_type, title, stats_values, stats_keys, index=index, waltzer_prefix=False)
 
 
-# def write_science_frames_png(frames, headers, frame_type, channel_tag, ctx: RunContext, star: Star, show_stats=False):
 def write_science_frames_png(frames, headers, frame_type, channel_tag, ctx: RunContext, star: Star, show_stats=False, inverted=False):
-
 
     n_frames = len(frames)
     logging.info("PNG writing started: channel=%s frame_type=%s frames=%d", channel_tag, frame_type, n_frames)
@@ -119,44 +116,6 @@ def write_science_frames_png(frames, headers, frame_type, channel_tag, ctx: RunC
     logging.info("PNG writing finished: channel=%s frame_type=%s frames=%d", channel_tag, frame_type, n_frames)
 
 
-def plot_background_star_counts(background_stars_catalog: StarCatalog, channel: Channel | None, ctx: RunContext):
-
-    if channel is None:
-        return
-
-    wavelength = channel.effective_area_wavelength
-    stars_sorted = sorted(background_stars_catalog.stars_by_id.items(), key=lambda item: item[1].gaia_magnitude)
-    total = len(stars_sorted)
-    safe_target = normalize_target_name(ctx.target_name)
-
-    for start in range(0, total, 5):
-
-        subset = stars_sorted[start:start + 5]
-
-        plt.figure()
-
-        for star_id, bg_star in subset:
-            counts_s_px = background_stars_catalog.counts_by_id_and_band[(star_id, channel.channel_name)]
-            counts_exp = counts_s_px * channel.exposure_s
-
-            label = f"G={bg_star.gaia_magnitude:.2f}"
-            plt.plot(wavelength, counts_exp, label=label, linewidth=0.4, alpha=0.6)
-
-        plt.axhline(channel.read_noise, linestyle="--", color="black", label=f"Read noise={channel.read_noise:g} e⁻")
-        plt.axhline(channel.dark_noise * channel.exposure_s, linestyle=":", color="black", label=f"Dark={channel.dark_noise:g} e⁻/s ({channel.dark_noise * channel.exposure_s:g} e⁻)")
-        plt.xlabel("Wavelength [A]")
-        plt.ylabel("Counts exposure^-1 pixel^-1")
-        plt.legend()
-
-        title = f"{ctx.target_name}: Background stars vs noise ({channel.channel_name}, {channel.exposure_s}s)"
-        plt.title(title)
-
-        filename = ctx.output_dir / f"{safe_target}_background_stars_{channel.channel_name}_{start}.png"
-
-        plt.savefig(filename)
-        plt.close()
-    
-    logging.info("Background star count plots finished: channel=%s", channel.channel_name)
 
 
 def _build_png_filename(output_dir: Path, target_name: str, channel_tag: str, frame_type: str, index: int | None = None, *, waltzer_prefix: bool = True) -> Path:

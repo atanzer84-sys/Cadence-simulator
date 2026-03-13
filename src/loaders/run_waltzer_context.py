@@ -33,7 +33,7 @@ def initialize_waltzer_runtime_context():
     dump_1d_for_channel = _select(cfg.write_intermediate_arrays, debug_dumps.dump_1d_for_channel)
     plot_1d_for_channel = _select(cfg.produce_flux_convolution_plots, flux_image_array.plot_1d_for_channel)
     plot_flux_and_photons_windows = _select(cfg.produce_flux_convolution_plots, flux_image_array.plot_flux_and_photons_windows)
-    plot_background_star_counts = _select(cfg.produce_background_star_counts_plot, images.plot_background_star_counts)
+    plot_background_star_counts = _select(cfg.produce_background_star_counts_plot, flux_image_array.plot_background_star_counts)
     write_calibration_frame_png = _select(cfg.write_calibration_frames_png, images.write_calibration_frame_png)
     generate_background_star_visibility_on_science_frame = _select(cfg.write_background_star_science_frames_png, images.generate_background_star_visibility_on_science_frame)
 
