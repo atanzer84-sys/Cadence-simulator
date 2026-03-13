@@ -6,17 +6,18 @@ from loaders.run_waltzer_context import get_repo_root
 from utils.helpers import resolve_path_under
 from configs.global_config import GlobalConfig
 from domain.star_catalog import StarCatalog
+from configs.channel_config import SpectroscopyChannel, PhotometryChannel
 from loaders.load_stellar_and_planetary_properties import load_excel_mapping, infer_mamajek, apply_log_r_fallback, get_missing_properties, apply_radius_from_teff_mag_distance_if_missing, apply_distance_from_parallax_if_missing
-from loaders.load_gaia import get_gaia_stellar_properties
-from flux.flux_calc import calculateFluxOnEarth
-from loaders.load_gaia import gaia_lookup_for_background_stars
+from loaders.load_gaia import get_gaia_stellar_properties, gaia_lookup_for_background_stars
 import astropy.units as u
 from astropy.coordinates import SkyCoord
+from configs.global_config import get_global_config
 
 
-# def lookup_background_stars(ctx: RunContext, cfg: GlobalConfig, star: Star):
-def lookup_background_stars(ctx: RunContext, cfg: GlobalConfig, star: Star, wl_min_A: float, wl_max_A: float):
+def lookup_background_stars(nuv: SpectroscopyChannel | None, vis: SpectroscopyChannel | None, nir: PhotometryChannel | None, ctx: RunContext, star: Star):
     print("\n==== STARTING BACKGROUND STAR LOOKUP VIA GAIA OR CSV =====")
+
+    cfg = get_global_config()
 
     # TODO: IF YOU WANT TO LOAD A CATALOG OF ALL BACKGROUND STARS AND LOOK THEM UP, THIS WOULD BE THE PLACE.
     # lookup star_name.csv and load it, so we do not have to query gaia
@@ -30,24 +31,13 @@ def lookup_background_stars(ctx: RunContext, cfg: GlobalConfig, star: Star, wl_m
     if table is None or len(table) == 0:
         return StarCatalog()
 
+    table = annotate_background_star_offsets_arcsec(table, star)
+    table = drop_stars_outside_max_radius(table, nuv, vis, nir)
     catalog = create_background_star_catalog(table, cfg)
-    add_background_star_offsets_arcsec(catalog, star)
 
-    total = len(catalog.stars_by_id)
-    
-    logging.info("Starting flux calculation for %d background stars", total)
-    print(f"\n==== STARTING FLUX CALCULATION FOR {total} BACKGROUND STARS =====")
+    logging.info("Background star catalog prepared: stars=%d", len(catalog.stars_by_id))
 
-    for i, (star_id, bg_star) in enumerate(catalog.stars_by_id.items(), start=1):
-        logging.info("Calculating Flux on Earth %d/%d for %s", i, total, star_id)
-        print(f"Flux Calculation for Star: {i}/{total} for {star_id}")
-        # flux_unred, wavelengths = calculateFluxOnEarth(bg_star, ctx)
-        flux_unred, wavelengths = calculateFluxOnEarth(bg_star, ctx, wl_min_A, wl_max_A)
-        catalog.flux_earth_by_id[star_id] = (wavelengths, flux_unred)    
-    
-    logging.info("Background star catalog prepared: stars=%d fluxes=%d", len(catalog.stars_by_id), len(catalog.flux_earth_by_id))   
     return catalog
-
 
 def load_background_csv_if_exists(star: Star) -> Table | None:
     repo_root = get_repo_root()
@@ -62,6 +52,74 @@ def load_background_csv_if_exists(star: Star) -> Table | None:
     logging.info("Background stars: loading cached CSV: %s", csv_path)
     logging.info("Loaded background CSV for %s: rows=%d, columns=%s", star.name, len(table), list(table.colnames))
     return table
+
+def annotate_background_star_offsets_arcsec(table: Table, target_star: Star) -> Table:
+    ra0 = float(target_star.right_ascension)
+    dec0 = float(target_star.declination)
+    target = SkyCoord(ra=ra0 * u.deg, dec=dec0 * u.deg, frame="icrs")
+
+    dx_values = []
+    dy_values = []
+    sep_values = []
+
+    for row in table:
+        bg = SkyCoord(ra=float(row["ra"]) * u.deg, dec=float(row["dec"]) * u.deg, frame="icrs")
+        dlon, dlat = target.spherical_offsets_to(bg)
+        dx_values.append(dlon.to(u.arcsec).value)
+        dy_values.append(dlat.to(u.arcsec).value)
+        sep_values.append(target.separation(bg).to(u.arcsec).value)
+
+    table = table.copy()
+    table["relative_dx_arcsec"] = dx_values
+    table["relative_dy_arcsec"] = dy_values
+    table["separation_arcsec"] = sep_values
+
+    logging.info("Background star offsets computed: stars=%d", len(table))
+
+    return table
+
+def drop_stars_outside_max_radius(table: Table, nuv: SpectroscopyChannel | None, vis: SpectroscopyChannel | None, nir: PhotometryChannel | None) -> Table:
+    """Filter Gaia background stars to those that can reach any active channel."""
+
+    radii_arcsec = []
+
+    if nuv is not None:
+        radii_arcsec.append(_spectroscopy_radius_arcsec(nuv))
+
+    if vis is not None:
+        radii_arcsec.append(_spectroscopy_radius_arcsec(vis))
+
+    if nir is not None:
+        radii_arcsec.append(_photometry_radius_arcsec(nir))
+
+    if not radii_arcsec:
+        logging.info("Background star radius filter skipped: no channels enabled; input_rows=%d",
+            len(table))
+        return table
+
+    max_radius_arcsec = max(radii_arcsec)
+
+    if max_radius_arcsec <= 0.0:
+        logging.info("Background star radius filter no-op: non-positive max_radius_arcsec=%.6f; input_rows=%d", max_radius_arcsec, len(table))
+        return table
+
+    before = len(table)
+    result = table[table["separation_arcsec"] <= max_radius_arcsec]
+    after = len(result)
+
+    logging.info("Background star reach radii: radii_arcsec=%s max_radius_arcsec=%.6f kept=%d/%d", [round(r, 6) for r in radii_arcsec], max_radius_arcsec, after, before)
+
+    return result
+
+def _spectroscopy_radius_arcsec(channel: SpectroscopyChannel) -> float:
+    x = float(channel.slit_half_width_arcsec)
+    y = float(channel.slit_half_length_arcsec)
+    return (x * x + y * y) ** 0.5
+
+def _photometry_radius_arcsec(channel: PhotometryChannel) -> float:
+    half_width_arcsec = 0.5 * float(channel.x_pixels) * float(channel.pixel_scale)
+    half_height_arcsec = 0.5 * float(channel.y_pixels) * float(channel.pixel_scale)
+    return (half_width_arcsec * half_width_arcsec + half_height_arcsec * half_height_arcsec) ** 0.5
 
 def create_background_star_catalog(table, cfg:GlobalConfig):
     catalog = StarCatalog()
@@ -88,35 +146,18 @@ def create_background_star_catalog(table, cfg:GlobalConfig):
         bg_star = Star.from_params(star_params, required_keys, log_output = False)
 
         catalog.add_star(bg_star.name, bg_star)
+
+        dx = float(row["relative_dx_arcsec"])
+        dy = float(row["relative_dy_arcsec"])
+        catalog.set_offset_arcsec(bg_star.name, dx, dy)
+
+
         formatted_id = f"{int(bg_star.name.split('_')[1]):,}".replace(",", " ")
         mass_str = f"{bg_star.mass:.3f}" if bg_star.mass is not None else "n/a"
-        logging.info("Background star added: star_id_formatted=%s star_id=%s mag=%.3f teff=%.0f radius=%.3f mass=%s ra=%.6f dec=%.6f dist=%.2f", formatted_id, bg_star.name, bg_star.gaia_magnitude, bg_star.effective_temperature, bg_star.radius, mass_str, bg_star.right_ascension, bg_star.declination, bg_star.distance_pc)
+        logging.info("Background star added: star_id_formatted=%s star_id=%s mag=%.3f teff=%.0f radius=%.3f mass=%s ra=%.6f dec=%.6f dist=%.2f dx=%.3f dy=%.3f", formatted_id, bg_star.name, bg_star.gaia_magnitude, bg_star.effective_temperature, bg_star.radius, mass_str, bg_star.right_ascension, bg_star.declination, bg_star.distance_pc, dx, dy)
     
 
     return catalog
-
-def add_background_star_offsets_arcsec(catalog: StarCatalog, target_star: Star) -> None:
-
-    ra0 = float(target_star.right_ascension)
-    dec0 = float(target_star.declination)
-    target = SkyCoord(ra=ra0 * u.deg, dec=dec0 * u.deg, frame="icrs")
-    
-    for star_id, bg_star in catalog.stars_by_id.items():
-        ra = float(bg_star.right_ascension)
-        dec = float(bg_star.declination)
-
-        #astropy
-        bg = SkyCoord(ra=ra * u.deg, dec=dec * u.deg, frame="icrs")
-        dlon, dlat = target.spherical_offsets_to(bg)
-
-        dx = dlon.to(u.arcsec).value
-        dy = dlat.to(u.arcsec).value
-        sep_arcsec = target.separation(bg).to(u.arcsec).value
-        logging.info("Background star offset: target_ra=%.6f deg target_dec=%.6f deg bg_ra=%.6f deg bg_dec=%.6f deg relative_dx=%.6f arcsec relative_dy=%.6f arcsec separation=%.6f arcsec", ra0, dec0, ra, dec, dx, dy, sep_arcsec)
-
-        catalog.set_offset_arcsec(star_id, dx, dy)
-
-
 
 def load_required_stellar_parameters():
     mapping = load_excel_mapping()

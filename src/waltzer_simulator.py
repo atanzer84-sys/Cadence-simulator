@@ -9,6 +9,7 @@ from frame.frame_pipeline import generate_frames
 from instrument.prepare_detector_images import prepare_star_photon_flux_for_channels, prepare_detector_image_spectroscopy, prepare_detector_image_photometry
 from instrument.build_science_image import build_science_images
 from instrument.background_star_preparation import populate_background_star_catalog
+from loaders.load_background_stars import lookup_background_stars
 
 
 def main():
@@ -31,9 +32,8 @@ def main():
         rate_nir = prepare_detector_image_photometry(photons_star, wavelengths_total, nir_channel, run_ctx, star) if nir_channel is not None else None
 
 
-
-        # # generating single science images that are then stacked
-        # background_stars_catalog = populate_background_star_catalog(nuv_channel, vis_channel, nir_channel, run_ctx, star)
+        # lookup background stars and populate a catalog with the background stars
+        background_stars_catalog = lookup_background_stars(nuv_channel, vis_channel, nir_channel, run_ctx, star)
 
         # nuv_images, vis_images, nir_images = build_science_images(spectra_2d_nuv, spectra_2d_vis, rate_nir, nuv_channel, vis_channel, nir_channel, run_ctx, star)
         

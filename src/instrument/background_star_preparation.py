@@ -9,6 +9,7 @@ import numpy as np
 from configs.global_config import get_global_config
 
 
+# TODO:
 def populate_background_star_catalog(nuv: SpectroscopyChannel, vis: SpectroscopyChannel, nir: PhotometryChannel, ctx: RunContext, star: Star):
 
     cfg = get_global_config()
