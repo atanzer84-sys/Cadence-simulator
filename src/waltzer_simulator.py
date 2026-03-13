@@ -31,8 +31,7 @@ def main():
         spectra_2d_vis = prepare_detector_image_spectroscopy(photons_star, wavelengths_total, vis_channel, run_ctx, star) if vis_channel is not None else None
         rate_nir = prepare_detector_image_photometry(photons_star, wavelengths_total, nir_channel, run_ctx, star) if nir_channel is not None else None
 
-
-        # lookup background stars and populate a catalog with the background stars
+        # lookup background stars and populate a star catalog with the background stars and convolved counts
         background_stars_catalog = lookup_background_stars(nuv_channel, vis_channel, nir_channel, run_ctx, star)
         background_stars_catalog = compute_background_stars_counts(background_stars_catalog, nuv_channel, vis_channel, nir_channel, run_ctx)
         # nuv_images, vis_images, nir_images = build_science_images(spectra_2d_nuv, spectra_2d_vis, rate_nir, nuv_channel, vis_channel, nir_channel, run_ctx, star)

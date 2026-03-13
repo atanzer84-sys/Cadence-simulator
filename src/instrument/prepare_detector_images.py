@@ -14,16 +14,21 @@ from instrument.wavelength_range import get_required_wavelength_range
 def prepare_star_photon_flux_for_channels(star: Star, ctx: RunContext, nuv: SpectroscopyChannel | None, vis: SpectroscopyChannel | None, nir: PhotometryChannel | None):
     print("\n==== STARTING CALCULATION FOR FLUX TO INSTRUMENT =====")
     wl_min_A, wl_max_A = get_required_wavelength_range(nuv, vis, nir)
-    flux, wavelengths_total = calculateFluxOnEarth(star, ctx, wl_min_A, wl_max_A, announce_user=True)
-
-    logging.info("Converting to photons")
-    photons_star = convert_flux_to_photons(flux, wavelengths_total)
-    ctx.plot_flux_and_photons_windows(wavelengths_total, photons_star, ctx.output_dir, star, "FluxCalc_photons", "Photon Flux", "Photon flux [photons s⁻¹ cm⁻² Å⁻¹]")
-    ctx.dump_1d_array(wavelengths_total, photons_star, ctx.output_dir, star.name, "FluxCalc_8_photons_star", perChannel=True, zoom=True)
-
-    photons_star = np.asarray(photons_star, dtype=np.float32)
-    wavelengths_total = np.asarray(wavelengths_total, dtype=np.float32)
+    photons_star, wavelengths_total = prepare_star_photon_flux_in_range(star, ctx, wl_min_A, wl_max_A, announce_user=True)
     return photons_star, wavelengths_total
+
+def prepare_star_photon_flux_in_range(star: Star, ctx: RunContext, wl_min_A: float, wl_max_A: float, announce_user: bool = True):
+    logging.info("Calculating flux on Earth and converting to photons for star %s", star.name)
+
+    flux, wavelengths = calculateFluxOnEarth(star, ctx, wl_min_A, wl_max_A, announce_user=announce_user)
+    photons_star = convert_flux_to_photons(flux, wavelengths)
+    photons_star = np.asarray(photons_star, dtype=np.float32)
+    wavelengths = np.asarray(wavelengths, dtype=np.float32)
+    ctx.plot_flux_and_photons_windows(wavelengths, photons_star, ctx.output_dir, star, "FluxCalc_photons", "Photon Flux", "Photon flux [photons s⁻¹ cm⁻² Å⁻¹]")
+    ctx.dump_1d_array(wavelengths, photons_star, ctx.output_dir, star.name, "FluxCalc_8_photons_star", perChannel=True, zoom=True)
+
+    return photons_star, wavelengths
+
 
 def prepare_detector_image_spectroscopy(photons: np.ndarray, wavelengths: np.ndarray, channel: SpectroscopyChannel, ctx: RunContext, star: Star):
     logging.info("Starting convolution to instrument: channel=%s mode=spectroscopy", channel.channel_name)
