@@ -4,6 +4,11 @@ from configs.global_config import GlobalConfig
 
 # Keep this in sync with required GlobalConfig fields.
 BASE_GLOBAL_CFG = {
+    # Channel enable flags (new required fields)
+    "run_vis": True,
+    "run_nuv": True,
+    "run_nir": True,
+    # Existing defaults
     "line_core_emission": False,
     "interstellar_absorption": False,
     "orbit_duration_minutes": 100.0,
@@ -41,7 +46,7 @@ BASE_GLOBAL_CFG = {
     "write_intermediate_arrays": False,
     "produce_flux_convolution_plots": False,
     "produce_background_star_counts_plot": False,
-    "gaia_conesearch_radius_arcsec" : 500.0,
+    "gaia_conesearch_radius_arcsec": 500.0,
 }
 
 

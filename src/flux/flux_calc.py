@@ -14,7 +14,6 @@ from loaders.load_model_temperature import load_model_for_temperature, cut_model
 from utils.helpers import announce
 
 
-# def calculateFluxOnEarth(star: Star, ctx: RunContext, announce_user: bool = False):
 def calculateFluxOnEarth(star: Star, ctx: RunContext, wl_min_A: float, wl_max_A: float, announce_user: bool = False):
     announce(f"Starting to calculate Flux on Earth for target star {star.name}", announce_user)
     cfg = get_global_config()

@@ -1,5 +1,4 @@
 from loaders.load_background_stars import lookup_background_stars
-from configs.global_config import GlobalConfig
 from domain.star_catalog import StarCatalog
 from loaders.run_waltzer_context import RunContext
 from domain.star import Star
@@ -7,9 +6,12 @@ import logging
 from configs.channel_config import SpectroscopyChannel, PhotometryChannel, Channel
 from instrument.prepare_detector_images import compute_counts_per_s_px_one_channel
 import numpy as np
+from configs.global_config import get_global_config
 
 
-def populate_background_star_catalog(nuv: SpectroscopyChannel, vis: SpectroscopyChannel, nir: PhotometryChannel, ctx: RunContext, cfg: GlobalConfig, star: Star):
+def populate_background_star_catalog(nuv: SpectroscopyChannel, vis: SpectroscopyChannel, nir: PhotometryChannel, ctx: RunContext, star: Star):
+
+    cfg = get_global_config()
 
     wl_min_A = min(float(nuv.effective_area_wavelength[0]), float(vis.effective_area_wavelength[0]), float(nir.effective_area_wavelength[0]))
     wl_max_A = max(float(nuv.effective_area_wavelength[-1]), float(vis.effective_area_wavelength[-1]), float(nir.effective_area_wavelength[-1]))

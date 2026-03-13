@@ -2,7 +2,7 @@ import numpy as np
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from instrument.prepare_detector_images import prepare_all_detector_images_all_channels
+import instrument.prepare_detector_images as pdi
 
 
 def _channel(name="NUV"):
@@ -27,14 +27,18 @@ def _photometry_channel(name="NIR"):
 
 
 def _ctx(tmp_path):
-    return SimpleNamespace(output_dir=tmp_path)
+    return SimpleNamespace(
+        output_dir=tmp_path,
+        plot_flux_and_photons_windows=lambda *args, **kwargs: None,
+        dump_1d_array=lambda *args, **kwargs: None,
+    )
 
 
 def _star():
     return SimpleNamespace(name="TESTSTAR")
 
 
-def test_prepare_all_detector_images_calls_dependencies_and_returns_shapes(tmp_path):
+def test_prepare_detector_image_flow_calls_dependencies_and_returns_shapes(tmp_path):
     star = _star()
     ctx = _ctx(tmp_path)
     nuv = _channel("NUV")
@@ -48,19 +52,27 @@ def test_prepare_all_detector_images_calls_dependencies_and_returns_shapes(tmp_p
     fake_spectra_vis = np.ones((vis.y_pixels, vis.x_pixels), dtype=float) * 3.0
     fake_psf_nir = np.ones((5, 5), dtype=float) * 7.0
 
-    with patch(
-        "instrument.prepare_detector_images.calculateFluxOnEarth",
-        return_value=(photon_flux, wavelengths),
-    ) as mock_flux, patch(
-        "instrument.prepare_detector_images.prepare_all_detector_images_spectroscopy",
+    with patch.object(
+        pdi, "calculateFluxOnEarth", return_value=(photon_flux, wavelengths)
+    ) as mock_flux, patch.object(
+        pdi, "prepare_detector_image_spectroscopy",
         side_effect=[fake_spectra_nuv, fake_spectra_vis],
-    ) as mock_spec, patch(
-        "instrument.prepare_detector_images.prepare_detector_image_photometry",
-        return_value=fake_psf_nir,
+    ) as mock_spec, patch.object(
+        pdi, "prepare_detector_image_photometry", return_value=fake_psf_nir
     ) as mock_phot:
 
-        spectra_2d_nuv, spectra_2d_vis, psf_nir = prepare_all_detector_images_all_channels(
+        photons_star, wavelengths_total = pdi.prepare_star_photon_flux_for_channels(
             star, ctx, nuv, vis, nir
+        )
+
+        spectra_2d_nuv = pdi.prepare_detector_image_spectroscopy(
+            photons_star, wavelengths_total, nuv, ctx, star
+        )
+        spectra_2d_vis = pdi.prepare_detector_image_spectroscopy(
+            photons_star, wavelengths_total, vis, ctx, star
+        )
+        psf_nir = pdi.prepare_detector_image_photometry(
+            photons_star, wavelengths_total, nir, ctx, star
         )
 
     # calculateFluxOnEarth called once with star, ctx
@@ -73,14 +85,14 @@ def test_prepare_all_detector_images_calls_dependencies_and_returns_shapes(tmp_p
     assert mock_spec.call_count == 2
     (args_nuv, _), (args_vis, _) = mock_spec.call_args_list
     # First call: NUV channel
-    assert np.allclose(args_nuv[0], photon_flux)
-    assert np.allclose(args_nuv[1], wavelengths)
+    assert np.allclose(args_nuv[0], photons_star)
+    assert np.allclose(args_nuv[1], wavelengths_total)
     assert args_nuv[2] is nuv
     assert args_nuv[3] is ctx
     assert args_nuv[4] is star
     # Second call: VIS channel
-    assert np.allclose(args_vis[0], photon_flux)
-    assert np.allclose(args_vis[1], wavelengths)
+    assert np.allclose(args_vis[0], photons_star)
+    assert np.allclose(args_vis[1], wavelengths_total)
     assert args_vis[2] is vis
     assert args_vis[3] is ctx
     assert args_vis[4] is star
@@ -88,8 +100,8 @@ def test_prepare_all_detector_images_calls_dependencies_and_returns_shapes(tmp_p
     # Photometry path called once with NIR
     mock_phot.assert_called_once()
     args_nir, _ = mock_phot.call_args
-    assert np.allclose(args_nir[0], photon_flux)
-    assert np.allclose(args_nir[1], wavelengths)
+    assert np.allclose(args_nir[0], photons_star)
+    assert np.allclose(args_nir[1], wavelengths_total)
     assert args_nir[2] is nir
     assert args_nir[3] is ctx
     assert args_nir[4] is star

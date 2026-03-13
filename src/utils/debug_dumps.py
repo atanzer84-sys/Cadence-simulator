@@ -1,6 +1,7 @@
 import numpy as np
 from pathlib import Path
 from utils.constants import (debug_wavelength_range_nuv, debug_wavelength_range_vis, debug_wavelength_range_ir, DEBUG_WL_A_NUV, DEBUG_WL_A_VIS, DEBUG_WL_A_NIR)
+from configs.global_config import get_global_config
 
 
 
@@ -16,32 +17,50 @@ def dump_3d_array(array, output_dir, star_name: str, tag: str, perChannel: bool 
         out = array[(wl >= wmin) & (wl <= wmax)]
         np.savetxt(output_dir / filename, out, fmt=fmt)
 
+    cfg = get_global_config()
+    channels = {name for name, enabled in (("NUV", cfg.run_nuv), ("VIS", cfg.run_vis), ("NIR", cfg.run_nir)) if enabled}
+
     if perChannel:
-        _dump(f"{star_name}_{tag}_NUV.txt", debug_wavelength_range_nuv[0], debug_wavelength_range_nuv[1])
-        _dump(f"{star_name}_{tag}_VIS.txt", debug_wavelength_range_vis[0], debug_wavelength_range_vis[1])
-        _dump(f"{star_name}_{tag}_IR.txt", debug_wavelength_range_ir[0], debug_wavelength_range_ir[1])
+        if "NUV" in channels:
+            _dump(f"{star_name}_{tag}_NUV.txt", debug_wavelength_range_nuv[0], debug_wavelength_range_nuv[1])
+        if "VIS" in channels:
+            _dump(f"{star_name}_{tag}_VIS.txt", debug_wavelength_range_vis[0], debug_wavelength_range_vis[1])
+        if "NIR" in channels:
+            _dump(f"{star_name}_{tag}_NIR.txt", debug_wavelength_range_ir[0], debug_wavelength_range_ir[1])
     if full:
         _dump(f"{star_name}_{tag}_full.txt", debug_wavelength_range_nuv[0], debug_wavelength_range_ir[1])
     if zoom:
-        _dump(f"{star_name}_{tag}_NUV_zoom.txt", *DEBUG_WL_A_NUV)
-        _dump(f"{star_name}_{tag}_VIS_zoom.txt", *DEBUG_WL_A_VIS)
-        _dump(f"{star_name}_{tag}_IR_zoom.txt",  *DEBUG_WL_A_NIR)
+        if "NUV" in channels:
+            _dump(f"{star_name}_{tag}_NUV_zoom.txt", *DEBUG_WL_A_NUV)
+        if "VIS" in channels:
+            _dump(f"{star_name}_{tag}_VIS_zoom.txt", *DEBUG_WL_A_VIS)
+        if "NIR" in channels:
+            _dump(f"{star_name}_{tag}_IR_zoom.txt",  *DEBUG_WL_A_NIR)
 
 
 
 def dump_1d_array(wave, array, output_dir, star_name: str, tag: str, perChannel: bool = False, full: bool = False, zoom: bool = False, fmt="%.18e"):
+    cfg = get_global_config()
+    channels = {name for name, enabled in (("NUV", cfg.run_nuv), ("VIS", cfg.run_vis), ("NIR", cfg.run_nir)) if enabled}
+
     if perChannel:
-        dump_masked_1d(wave, array, output_dir, f"{star_name}_{tag}_NUV.txt", debug_wavelength_range_nuv[0], debug_wavelength_range_nuv[1], fmt)
-        dump_masked_1d(wave, array, output_dir, f"{star_name}_{tag}_VIS.txt", debug_wavelength_range_vis[0], debug_wavelength_range_vis[1], fmt)
-        dump_masked_1d(wave, array, output_dir, f"{star_name}_{tag}_IR.txt",  debug_wavelength_range_ir[0],  debug_wavelength_range_ir[1],  fmt)
+        if "NUV" in channels:
+            dump_masked_1d(wave, array, output_dir, f"{star_name}_{tag}_NUV.txt", debug_wavelength_range_nuv[0], debug_wavelength_range_nuv[1], fmt)
+        if "VIS" in channels:
+            dump_masked_1d(wave, array, output_dir, f"{star_name}_{tag}_VIS.txt", debug_wavelength_range_vis[0], debug_wavelength_range_vis[1], fmt)
+        if "NIR" in channels:
+            dump_masked_1d(wave, array, output_dir, f"{star_name}_{tag}_IR.txt",  debug_wavelength_range_ir[0],  debug_wavelength_range_ir[1],  fmt)
 
     if full:
         dump_masked_1d(wave, array, output_dir, f"{star_name}_{tag}_full.txt", debug_wavelength_range_nuv[0], debug_wavelength_range_ir[1], fmt)
 
     if zoom:
-        dump_masked_1d(wave, array, output_dir, f"{star_name}_{tag}_NUV_zoom.txt", *DEBUG_WL_A_NUV, fmt)
-        dump_masked_1d(wave, array, output_dir, f"{star_name}_{tag}_VIS_zoom.txt", *DEBUG_WL_A_VIS, fmt)
-        dump_masked_1d(wave, array, output_dir, f"{star_name}_{tag}_IR_zoom.txt",  *DEBUG_WL_A_NIR,  fmt)
+        if "NUV" in channels:
+            dump_masked_1d(wave, array, output_dir, f"{star_name}_{tag}_NUV_zoom.txt", *DEBUG_WL_A_NUV, fmt)
+        if "VIS" in channels:
+            dump_masked_1d(wave, array, output_dir, f"{star_name}_{tag}_VIS_zoom.txt", *DEBUG_WL_A_VIS, fmt)
+        if "NIR" in channels:
+            dump_masked_1d(wave, array, output_dir, f"{star_name}_{tag}_IR_zoom.txt",  *DEBUG_WL_A_NIR,  fmt)
 
 
 def dump_masked_1d(wave, array, output_dir, filename, wmin, wmax, fmt="%.18e"):

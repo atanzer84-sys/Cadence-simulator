@@ -6,8 +6,9 @@ from loaders.load_stellar_and_planetary_properties import load_stellar_and_plane
 from domain.star import Star
 from domain.planet import Planet
 from frame.frame_pipeline import generate_frames
-from instrument.prepare_detector_images import prepare_all_detector_images_all_channels
+from instrument.prepare_detector_images import prepare_star_photon_flux_for_channels, prepare_detector_image_spectroscopy, prepare_detector_image_photometry
 from instrument.build_science_image import build_science_images
+from instrument.background_star_preparation import populate_background_star_catalog
 
 
 def main():
@@ -21,14 +22,23 @@ def main():
         star = Star.from_params(stellar_param, required_keys=required_stellar_parameters)
         _ = Planet.from_params(planet_param, required_keys=required_planetary_parameters)
 
-        # calculating flux on earth, convoluting it to nstrument properties and returning a 2d image without any additional information
-        spectra_2d_nuv, spectra_2d_vis, rate_nir = prepare_all_detector_images_all_channels(star, run_ctx, nuv_channel, vis_channel, nir_channel)
+        # calculating flux on earth once for all enabled channels
+        photons_star, wavelengths_total = prepare_star_photon_flux_for_channels(star, run_ctx, nuv_channel, vis_channel, nir_channel)
 
-        # generating single science images that are then stacked
-        nuv_images, vis_images, nir_images = build_science_images(spectra_2d_nuv, spectra_2d_vis, rate_nir, nuv_channel, vis_channel, nir_channel, run_ctx, star)
+        # convoluting flux to instrument properties and returning per-channel detector images
+        spectra_2d_nuv = prepare_detector_image_spectroscopy(photons_star, wavelengths_total, nuv_channel, run_ctx, star) if nuv_channel is not None else None
+        spectra_2d_vis = prepare_detector_image_spectroscopy(photons_star, wavelengths_total, vis_channel, run_ctx, star) if vis_channel is not None else None
+        rate_nir = prepare_detector_image_photometry(photons_star, wavelengths_total, nir_channel, run_ctx, star) if nir_channel is not None else None
+
+
+
+        # # generating single science images that are then stacked
+        # background_stars_catalog = populate_background_star_catalog(nuv_channel, vis_channel, nir_channel, run_ctx, star)
+
+        # nuv_images, vis_images, nir_images = build_science_images(spectra_2d_nuv, spectra_2d_vis, rate_nir, nuv_channel, vis_channel, nir_channel, run_ctx, star)
         
-        # generating bias, dark and science frames (fits) for NUV, VIS
-        generate_frames(nuv_images, vis_images, nir_images, nuv_channel, vis_channel, nir_channel, run_ctx, star)
+        # # generating bias, dark and science frames (fits) for NUV, VIS
+        # generate_frames(nuv_images, vis_images, nir_images, nuv_channel, vis_channel, nir_channel, run_ctx, star)
 
 
     except Exception as e:

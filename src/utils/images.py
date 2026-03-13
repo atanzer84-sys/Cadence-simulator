@@ -2,13 +2,13 @@ import logging
 import matplotlib.pyplot as plt
 from pathlib import Path
 from typing import Any
-from utils.constants import debug_wavelength_range_ir, debug_wavelength_range_nuv, debug_wavelength_range_vis, DEBUG_WL_A_NUV, DEBUG_WL_A_VIS, DEBUG_WL_A_NIR
 from loaders.run_waltzer_context import RunContext
 from domain.star import Star
 import numpy as np
 from configs.channel_config import Channel, PhotometryChannel
 from domain.star_catalog import StarCatalog
 from matplotlib.lines import Line2D
+from utils.images_common import normalize_target_name, format_frame_title
 
 STATS_KEYS = {
     "BIAS":     ["MEAN", "MEDIAN", "STDDEV", "MIN", "MAX", "RNOISE", "B_OFFSET"],
@@ -103,7 +103,7 @@ def write_science_frames_png(frames, headers, frame_type, channel_tag, ctx: RunC
         logging.info("Write PNG: no frames for %s channel %s", frame_type, channel_tag)
         return
 
-    title_base = _format_frame_title(star.name, channel_tag, frame_type, star)
+    title_base = format_frame_title(star.name, channel_tag, frame_type, star)
     axis_label_fontsize = 15 if str(channel_tag).upper() == "NIR" else None
     tick_label_fontsize = 15 if str(channel_tag).upper() == "NIR" else None
 
@@ -119,43 +119,6 @@ def write_science_frames_png(frames, headers, frame_type, channel_tag, ctx: RunC
     logging.info("PNG writing finished: channel=%s frame_type=%s frames=%d", channel_tag, frame_type, n_frames)
 
 
-def plot_flux_and_photons_windows(wavelengths, values, output_dir, star: Star, filename_tag, title_text, y_label, perChannel: bool = True, full: bool = False, zoom: bool = True):
-    print(f"Producing plots for {star.name}")
-    logging.info("Producing plots for %s", star.name)
-
-    if perChannel:
-        _plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, "NUV", debug_wavelength_range_nuv[0], debug_wavelength_range_nuv[1])
-        _plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, "VIS", debug_wavelength_range_vis[0], debug_wavelength_range_vis[1])
-        _plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, "NIR",  debug_wavelength_range_ir[0],  debug_wavelength_range_ir[1])
-
-    if full:
-        _plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, "full", float(wavelengths.min()), float(wavelengths.max()))
-
-    if zoom:
-        _plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, "NUV_zoom", *DEBUG_WL_A_NUV)
-        _plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, "VIS_zoom", *DEBUG_WL_A_VIS)
-        _plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, "NIR_zoom",  *DEBUG_WL_A_NIR)
-
-
-def plot_1d_for_channel(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, channel_name: str, full: bool = False, zoom: bool = False):
-    if channel_name == "NUV":
-        full_range = debug_wavelength_range_nuv
-        zoom_range = DEBUG_WL_A_NUV
-    elif channel_name == "VIS":
-        full_range = debug_wavelength_range_vis
-        zoom_range = DEBUG_WL_A_VIS
-    elif channel_name == "NIR":
-        full_range = debug_wavelength_range_ir
-        zoom_range = DEBUG_WL_A_NIR
-    else:
-        raise ValueError("channel_name must be 'NUV', 'VIS', or 'NIR'")
-
-    if full:
-        _plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, channel_name, full_range[0], full_range[1])
-
-    if zoom:
-        _plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, f"{channel_name}_zoom", zoom_range[0], zoom_range[1])
-
 def plot_background_star_counts(background_stars_catalog: StarCatalog, channel: Channel | None, ctx: RunContext):
 
     if channel is None:
@@ -164,7 +127,7 @@ def plot_background_star_counts(background_stars_catalog: StarCatalog, channel: 
     wavelength = channel.effective_area_wavelength
     stars_sorted = sorted(background_stars_catalog.stars_by_id.items(), key=lambda item: item[1].gaia_magnitude)
     total = len(stars_sorted)
-    safe_target = _normalize_target_name(ctx.target_name)
+    safe_target = normalize_target_name(ctx.target_name)
 
     for start in range(0, total, 5):
 
@@ -194,15 +157,11 @@ def plot_background_star_counts(background_stars_catalog: StarCatalog, channel: 
         plt.close()
     
     logging.info("Background star count plots finished: channel=%s", channel.channel_name)
-        
-def _normalize_target_name(name: str) -> str:
-    """Normalize target/star name for filenames (spaces → underscores). Used by PNG writes and plots."""
-    return str(name).replace(" ", "_")
 
 
 def _build_png_filename(output_dir: Path, target_name: str, channel_tag: str, frame_type: str, index: int | None = None, *, waltzer_prefix: bool = True) -> Path:
     """Build PNG filename. waltzer_prefix=True: FITS→PNG (WALTzER_...). waltzer_prefix=False: debug PNGs ({target}_{channel}_{frame_type}.png, no WALTzER)."""
-    safe = _normalize_target_name(target_name)
+    safe = normalize_target_name(target_name)
     prefix = "WALTzER_" if waltzer_prefix else ""
     if index is not None:
         return output_dir / f"{prefix}{safe}_{channel_tag}_{frame_type}_{index:05d}.png"
@@ -315,23 +274,6 @@ def _save_single_frame_png(array: np.ndarray, filename: Path, title: str, stats_
     plt.close(fig)
     logging.debug("Wrote %s", filename)
 
-
-def _format_star_metadata(star: Star | None) -> str:
-    """Format Teff and distance for titles. Returns empty string if star is None."""
-    if star is None:
-        return ""
-    teff_str = f"{int(round(star.effective_temperature))}" if star.effective_temperature is not None else "—"
-    dist_str = f"{int(round(star.distance_pc))}" if star.distance_pc is not None else "—"
-    return f"$T_{{\\mathrm{{eff}}}}$={teff_str} K, $d$={dist_str} pc"
-
-
-def _format_frame_title(target_name: str, channel_tag: str, frame_type: str, star: Star | None) -> str:
-    """Build title with optional Teff and distance when star is provided."""
-    base = f"{target_name} | {channel_tag} {frame_type}"
-    meta = _format_star_metadata(star)
-    return f"{base} | {meta}" if meta else base
-
-
 def _stats_filetype_for_frame_type(frame_type: str) -> str:
     u = frame_type.upper()
     for token, filetype in _FRAME_TYPE_TO_STATS_FILETYPE:
@@ -352,7 +294,7 @@ def _build_header_stats_payload(header) -> tuple[dict, list[str]]:
     return _stats_from_header(header, stats_keys), stats_keys
 
 def _build_image_write_context(array: np.ndarray, frame_type: str, ctx: RunContext, channel: Channel, show_stats: bool, star: Star | None) -> tuple[str, dict | None, list[str]]:
-    title = _format_frame_title(ctx.target_name, channel.channel_name, frame_type, star)
+    title = format_frame_title(ctx.target_name, channel.channel_name, frame_type, star)
     if not show_stats:
         return title, None, []
     stats_values, stats_keys = _build_image_stats_payload(array, channel, frame_type)
@@ -387,33 +329,8 @@ def format_header(header, key, fmt_str=".2f"):
     return f"{key}={format(val, fmt_str)}" if fmt_str else f"{key}={val}"
 
 
-def _plot_photon_flux(wavelengths, values, output_dir, star : Star, filename_tag, title_text, y_label, key, wmin, wmax):
-
-    mask = (wavelengths >= wmin) & (wavelengths <= wmax)
-    logging.info("Plotting %s for star %s in window '%s' (%.1f–%.1f Å); %d wavelength bins", filename_tag, star.name, key, wmin, wmax, int(mask.sum()))
-
-    wl = wavelengths[mask]
-    flux = values[mask]
-
-    fig, ax = plt.subplots(figsize=(12, 4))
-
-    band = key.split("_")[0].lower()
-    colors = {"nuv": "darkblue", "vis": "darkgreen", "nir": "darkred"}
-    color = colors.get(band, "black")
-
-    ax.plot(wl, flux, color=color, linewidth=0.4, alpha=0.6)
-    ax.set_xlabel("Wavelength (Å)")
-    ax.set_ylabel(y_label)
-    meta = _format_star_metadata(star)
-    ax.set_title(f"{star.name}: {title_text} | {wmin:.2f}–{wmax:.2f} Å, {meta}", fontsize=11)
-    safe_name = _normalize_target_name(star.name)
-    fig.savefig(Path(output_dir) / f"{safe_name}_{filename_tag}_{key}.png", dpi=200, bbox_inches="tight")
-    plt.close(fig)
-
-
-
 def _build_background_visibility_context(merged_image: np.ndarray, spectra_bgstars_image: np.ndarray, frame_type: str, ctx: RunContext, channel: Channel, show_stats: bool, star: Star | None) -> tuple[str, list[tuple[dict | None, list[str]]], dict[str, float | list[float]]]:
-    title = _format_frame_title(ctx.target_name, channel.channel_name, frame_type, star)
+    title = format_frame_title(ctx.target_name, channel.channel_name, frame_type, star)
     per_panel_stats = _prepare_background_star_panel_stats(merged_image, spectra_bgstars_image, channel, show_stats)
     panel_shapes = [merged_image.shape, spectra_bgstars_image.shape, merged_image.shape]
     layout = _compute_panel_layout(panel_shapes)

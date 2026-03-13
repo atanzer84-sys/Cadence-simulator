@@ -144,3 +144,13 @@ def test_load_channels_config_calls_load_channel_config_three_times(monkeypatch,
     assert nuv_ch.channel_name == "NUV"
     assert vis_ch.channel_name == "VIS"
     assert ir_ch.channel_name == "NIR"
+
+
+def test_global_config_requires_at_least_one_channel_enabled():
+    """_ensure_at_least_one_channel_enabled enforces at least one run_* flag."""
+    from configs.global_config import _ensure_at_least_one_channel_enabled
+
+    with pytest.raises(ValueError) as exc_info:
+        _ensure_at_least_one_channel_enabled(run_vis=False, run_nuv=False, run_nir=False)
+
+    assert "At least one channel must be enabled" in str(exc_info.value)

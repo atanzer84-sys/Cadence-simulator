@@ -3,6 +3,7 @@ import logging
 from domain.star import Star
 from configs.channel_config import Channel
 from loaders.run_waltzer_context import RunContext
+from instrument.wavelength_range import compute_extended_wavelength_range
 
 
 def compute_broadened_channel_flux(photon_flux_at_earth: np.ndarray, wavelengths_total: np.ndarray, channel: Channel, output_dir, cfg, star: Star, ctx: RunContext):
@@ -19,11 +20,7 @@ def compute_broadened_channel_flux(photon_flux_at_earth: np.ndarray, wavelengths
 
 
 def cut_wavelength_window_with_margin(photon_flux_at_earth: np.ndarray, wavelengths_total: np.ndarray, channel: Channel, output_dir, cfg, star: Star, ctx: RunContext, margin_A: float = 200.0):
-    wl_min = channel.effective_area_wavelength[0]
-    wl_max = channel.effective_area_wavelength[-1]
-
-    wl_min_ext = wl_min - margin_A
-    wl_max_ext = wl_max + margin_A
+    wl_min_ext, wl_max_ext = compute_extended_wavelength_range([channel], margin_A)
 
     i0_raw = np.searchsorted(wavelengths_total, wl_min_ext)
     i1_raw = np.searchsorted(wavelengths_total, wl_max_ext)
@@ -36,7 +33,7 @@ def cut_wavelength_window_with_margin(photon_flux_at_earth: np.ndarray, waveleng
 
     if len(wavelength_cut) == 0:
         raise ValueError(
-            f"Channel wavelength range [{wl_min}, {wl_max}] (extended by margin {margin_A} Å) "
+            f"Channel wavelength range [{channel.effective_area_wavelength[0]}, {channel.effective_area_wavelength[-1]}] (extended by margin {margin_A} Å) "
             f"does not overlap wavelengths_total [{wavelengths_total[0]}, {wavelengths_total[-1]}]"
         )
 
