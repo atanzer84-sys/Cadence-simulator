@@ -16,22 +16,20 @@ from instrument.photon_noise import apply_photon_noise_gauss_from_spectra2d
 
 
 
-def build_science_images(spectra_2d_nuv, spectra_2d_vis, rate_nir, nuv: SpectroscopyChannel, vis: SpectroscopyChannel, nir: PhotometryChannel, ctx: RunContext, star: Star):
+def build_science_images(stellar_signal, channel: Channel, ctx: RunContext, star: Star, background_stars_catalog: StarCatalog):
     cfg = get_global_config()
-    background_stars_catalog = compute_background_stars_counts(nuv, vis, nir, ctx, cfg, star)
 
-    for channel in (nuv, vis, nir):
-        ctx.plot_background_star_counts(background_stars_catalog, channel, ctx)
+    ctx.plot_background_star_counts(background_stars_catalog, channel, ctx)
 
-    nuv_imgs = _create_spectroscopy_channel_images(spectra_2d_nuv, nuv, ctx, cfg, star, background_stars_catalog)
-    vis_imgs = _create_spectroscopy_channel_images(spectra_2d_vis, vis, ctx, cfg, star, background_stars_catalog)
-    # nuv_imgs = []  # TODO: re-enable 
-    # vis_imgs = []  # TODO: re-enable 
+    if isinstance(channel, SpectroscopyChannel):
+        _create_spectroscopy_channel_images(stellar_signal, channel, ctx, cfg, star, background_stars_catalog)
+        return
 
-    nir_imgs = _create_photometry_channel_images(rate_nir, nir, ctx, cfg, star, background_stars_catalog)
-    # nir_img = []  # TODO: re-enable
+    if isinstance(channel, PhotometryChannel):
+        _create_photometry_channel_images(stellar_signal, channel, ctx, cfg, star, background_stars_catalog)
+        return
 
-    return nuv_imgs, vis_imgs, nir_imgs
+    raise TypeError(f"Unsupported channel type: {type(channel)}")
 
 def _create_spectroscopy_channel_images(spectra_2d, channel: SpectroscopyChannel, ctx: RunContext, cfg: GlobalConfig, star: Star, background_stars_catalog: StarCatalog) -> list:
     print(f"\n==== STARTING SCIENCE IMAGE GENERATION ({channel.channel_name}) =====")
