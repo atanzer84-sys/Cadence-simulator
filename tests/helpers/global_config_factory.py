@@ -21,6 +21,8 @@ BASE_GLOBAL_CFG = {
     "log_r_hot_value": 0.0,
     "log_r_cool_value": 0.0,
     "n_calibration_frames": 0,
+    "invert_calibration_frames": False,
+    "invert_science_frames": False,
     "write_calibration_frames_png": False,
     "write_science_frames_png": False,
     "write_background_star_science_frames_png": False,

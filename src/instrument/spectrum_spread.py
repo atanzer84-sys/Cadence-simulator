@@ -17,12 +17,15 @@ def get_spectrum_placement(channel: SpectroscopyChannel) -> tuple[int, float, fl
 
 
 def smear_1d_spectrum_dispersion(counts_s_px: np.ndarray, channel: SpectroscopyChannel) -> np.ndarray:
-    """Apply charge-transfer smear along dispersion axis. Returns counts/s/pixel scaled by crossing_time_s."""
+    """Apply dispersion smear while preserving total counts."""
     n_smear_steps = int(round(channel.smear_shift_pixels))
-    if n_smear_steps <= 0:
-        return counts_s_px * channel.crossing_time_s
+
+    if n_smear_steps <= 1:
+        return counts_s_px.copy()
+
     counts_smeared_px = np.zeros_like(counts_s_px)
-    counts_smear_step_px = counts_s_px * (channel.crossing_time_s / n_smear_steps)
+    counts_smear_step_px = counts_s_px / n_smear_steps
+
     half = n_smear_steps // 2
     for x_shift in range(-half, -half + n_smear_steps):
         if x_shift == 0:
