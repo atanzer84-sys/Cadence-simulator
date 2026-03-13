@@ -1,5 +1,4 @@
 import logging
-import numpy as np
 from loaders.run_waltzer_context import RunContext
 from domain.star import Star
 from astropy.table import Table
@@ -7,7 +6,7 @@ from loaders.run_waltzer_context import get_repo_root
 from utils.helpers import resolve_path_under
 from configs.global_config import GlobalConfig
 from domain.star_catalog import StarCatalog
-from loaders.load_stellar_and_planetary_properties import load_excel_mapping , infer_mamajek, apply_log_r_fallback, get_missing_properties, apply_radius_from_teff_mag_distance_if_missing
+from loaders.load_stellar_and_planetary_properties import load_excel_mapping, infer_mamajek, apply_log_r_fallback, get_missing_properties, apply_radius_from_teff_mag_distance_if_missing, apply_distance_from_parallax_if_missing
 from loaders.load_gaia import get_gaia_stellar_properties
 from flux.flux_calc import calculateFluxOnEarth
 from loaders.load_gaia import gaia_lookup_for_background_stars
@@ -31,9 +30,7 @@ def lookup_background_stars(ctx: RunContext, cfg: GlobalConfig, star: Star, wl_m
     if table is None or len(table) == 0:
         return StarCatalog()
 
-    catalog, enriched_rows_final = create_background_star_catalog(table, cfg)
-    save_background_stars_csv_2(enriched_rows_final, ctx.output_dir, star.name)
-
+    catalog = create_background_star_catalog(table, cfg)
     add_background_star_offsets_arcsec(catalog, star)
 
     total = len(catalog.stars_by_id)
@@ -70,16 +67,14 @@ def create_background_star_catalog(table, cfg:GlobalConfig):
     catalog = StarCatalog()
     required_keys = load_required_stellar_parameters()
 
-    enriched_rows_final = []
-    
     for row in table:
         star_params = get_gaia_stellar_properties(row, log_output=False)
         if not _passes_magnitude_cutoff(star_params, max_mag=cfg.magnitude_cutoff):
             continue
 
         _set_background_star_name(star_params, row)
-        _apply_distance_from_parallax_if_missing(star_params, row)
-        apply_radius_from_teff_mag_distance_if_missing(star_params)
+        star_params = apply_distance_from_parallax_if_missing(star_params)
+        star_params = apply_radius_from_teff_mag_distance_if_missing(star_params)
 
         if star_params.get("effective_temperature") is not None:
             star_params = infer_mamajek(star_params, log_output=False)
@@ -91,7 +86,6 @@ def create_background_star_catalog(table, cfg:GlobalConfig):
             continue
 
         bg_star = Star.from_params(star_params, required_keys, log_output = False)
-        enriched_rows_final.append(star_params.copy())
 
         catalog.add_star(bg_star.name, bg_star)
         formatted_id = f"{int(bg_star.name.split('_')[1]):,}".replace(",", " ")
@@ -99,7 +93,7 @@ def create_background_star_catalog(table, cfg:GlobalConfig):
         logging.info("Background star added: star_id_formatted=%s star_id=%s mag=%.3f teff=%.0f radius=%.3f mass=%s ra=%.6f dec=%.6f dist=%.2f", formatted_id, bg_star.name, bg_star.gaia_magnitude, bg_star.effective_temperature, bg_star.radius, mass_str, bg_star.right_ascension, bg_star.declination, bg_star.distance_pc)
     
 
-    return catalog, enriched_rows_final
+    return catalog
 
 def add_background_star_offsets_arcsec(catalog: StarCatalog, target_star: Star) -> None:
 
@@ -139,23 +133,6 @@ def save_background_stars_csv(table: Table, output_dir, star_name: str) -> None:
     print(msg)
 
 
-def save_background_stars_csv_2(table: Table, output_dir, star_name: str, suffix: str = "") -> None:
-
-    if isinstance(table, list):
-        if not table:
-            return
-        keys = sorted({k for row in table for k in row.keys()})
-        table = Table({k: [row.get(k) for row in table] for k in keys})
-
-    csv_name = star_name.replace(" ", "_")
-    csv_path = output_dir / f"{csv_name}_after.csv"
-
-    table.write(csv_path, format="ascii.csv", overwrite=True)
-
-    msg = f"Background stars: saved to {csv_path} (move to data/BackgroundStars/ for cache)"
-    logging.info(msg)
-    print(msg)
-
 def _passes_magnitude_cutoff(star_params: dict, max_mag: float) -> bool:
     """True if star has gaia_magnitude and it is <= max_mag."""
     mag = star_params.get("gaia_magnitude")
@@ -170,18 +147,6 @@ def _set_background_star_name(star_params: dict, row) -> None:
         star_params["name"] = f"gaia_{int(row['source_id'])}"
     else:
         star_params["name"] = "0000"
-
-
-def _apply_distance_from_parallax_if_missing(star_params: dict, row) -> None:
-    """If star_params has no distance, set it from row parallax (distance_pc = 1000/parallax_mas) when valid."""
-    if star_params.get("distance") is not None:
-        return
-    if "parallax" not in row.colnames:
-        return
-    par = row["parallax"]
-    if par is None or np.ma.is_masked(par) or not np.isfinite(par) or float(par) <= 0.0:
-        return
-    star_params["distance"] = 1000.0 / float(par)
 
 
 def _ensure_required_properties(star_params: dict, required_keys: list[str]) -> bool:

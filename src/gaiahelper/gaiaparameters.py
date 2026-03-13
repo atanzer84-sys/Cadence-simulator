@@ -165,7 +165,7 @@ def build_final_table(star_names, star_ids, tables_to_check):
         ts("Processing entry", i)
 
         try:
-            source_id, label = get_source_id_and_label(star_name=star_name, star_id=star_id, radius_arcsec=2.0)
+            source_id, label = get_source_id_and_label(star_name=star_name, star_id=star_id, radius_arcsec=4.0)
             source_id_fmt = format_source_id(source_id)
             star_col_name = f"{label} [{source_id_fmt}]"
 
@@ -230,23 +230,14 @@ def main():
     print("repo_root =", repo_root)
 
     star_names = [
-        "eps Boo",
-        "WASP-12",
-        "KELT-20",
-        None,
-        None,
-        None,
-        None,
+        "TrES-4",
+        "HD 189733 B",
+        "HD 189733",
     ]
 
     star_ids = [
         None,
         None,
-        None,
-        "2033110837908993920",
-        "2033115442114430976",
-        "2033124577474702336",
-        "2033122795099056512",
     ]
 
     tables_to_check = [

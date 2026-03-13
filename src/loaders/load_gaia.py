@@ -76,19 +76,15 @@ def query_gaia(sourceID, GAIA_USE_ASYNC_JOBS):
             gs.source_id,
             gs.ra,
             gs.dec,
+            gs.parallax,
             gs.phot_g_mean_mag,
-
-            ap.teff_gspphot,
-            ap.radius_gspphot,
-            ap.mass_flame,
-            ap.mh_gspphot,
-            ap.logg_gspphot,
-            ap.distance_gspphot
-
+            COALESCE(ap.teff_gspphot, ap.teff_gspspec, supp.teff_gspspec_ann, gs.rv_template_teff) AS Teff,
+            COALESCE(ap.distance_gspphot, supp.distance_gspphot_phoenix, supp.distance_gspphot_marcs) AS dist_pc, 
+            COALESCE(ap.radius_gspphot, supp.radius_gspphot_a, supp.radius_gspphot_phoenix, supp.radius_gspphot_marcs) AS radius_sun, 
+            COALESCE(ap.mass_flame, supp.mass_flame_spec) AS mass_sun
         FROM gaiadr3.gaia_source AS gs
-        LEFT JOIN gaiadr3.astrophysical_parameters AS ap
-            ON gs.source_id = ap.source_id
-
+        LEFT JOIN gaiadr3.astrophysical_parameters AS ap ON gs.source_id = ap.source_id
+        LEFT JOIN gaiadr3.astrophysical_parameters_supp AS supp ON gs.source_id = supp.source_id
         WHERE gs.source_id = {sourceID}
         """
     gaia_result_row = _run_gaia_job(query, GAIA_USE_ASYNC_JOBS)
@@ -111,16 +107,17 @@ def get_gaia_stellar_properties(gaia_row, log_output: bool = True):
         return None if math.isnan(value) else value
     
     gaia_star_params = {
-        "effective_temperature": _to_float(gaia_row.get("teff_gspphot")),
-        "radius": _to_float(gaia_row.get("radius_gspphot")),
-        "mass": _to_float(gaia_row.get("mass_flame")),
+        "effective_temperature": _to_float(gaia_row.get("Teff")),
+        "radius": _to_float(gaia_row.get("radius_sun")),
+        "mass": _to_float(gaia_row.get("mass_sun")),
         "metallicity": _to_float(gaia_row.get("mh_gspphot")),
         "surface_gravity": _to_float(gaia_row.get("logg_gspphot")),
         "right_ascension": _to_float(gaia_row.get("ra")),
         "declination": _to_float(gaia_row.get("dec")),
-        "distance": _to_float(gaia_row.get("distance_gspphot")),
+        "distance": _to_float(gaia_row.get("dist_pc")),
         "v_magnitude": _to_float(gaia_row.get("phot_g_mean_mag")),
         "gaia_magnitude": _to_float(gaia_row.get("phot_g_mean_mag")),
+        "parallax": _to_float(gaia_row.get("parallax")),
     }
     if log_output:
         logging.info("Gaia stellar parameters extracted: %s", gaia_star_params)    
@@ -271,9 +268,7 @@ def _gaia_drop_central_star(cone_small: Table, center: SkyCoord) -> tuple[Table,
         return None
 
     # build field table without the central row
-    idx_center = int(
-        np.where(cone_small["source_id"] == central_cone_row["source_id"])[0][0]
-    )
+    idx_center = int(np.where(cone_small["source_id"] == central_cone_row["source_id"])[0][0])
     mask = np.ones(len(cone_small), dtype=bool)
     mask[idx_center] = False
     field_cone = cone_small[mask]
@@ -299,13 +294,12 @@ def _gaia_fetch_ap_and_join(field_cone: Table, GAIA_USE_ASYNC_JOBS, ap_batch_siz
         ap_query = f"""
             SELECT
                 source_id,
-                teff_gspphot,
-                radius_gspphot,
-                mass_flame,
-                mh_gspphot,
-                logg_gspphot,
-                distance_gspphot
-            FROM gaiadr3.astrophysical_parameters
+                COALESCE(ap.teff_gspphot, ap.teff_gspspec, supp.teff_gspspec_ann) AS Teff,
+                COALESCE(ap.distance_gspphot, supp.distance_gspphot_phoenix, supp.distance_gspphot_marcs) AS dist_pc, 
+                COALESCE(ap.radius_gspphot, supp.radius_gspphot_a, supp.radius_gspphot_phoenix, supp.radius_gspphot_marcs) AS radius_sun, 
+                COALESCE(ap.mass_flame, supp.mass_flame_spec) AS mass_sun
+            FROM gaiadr3.astrophysical_parameters as ap
+            LEFT JOIN gaiadr3.astrophysical_parameters_supp AS supp ON ap.source_id = supp.source_id
             WHERE source_id IN ({in_list})
         """
         try:
