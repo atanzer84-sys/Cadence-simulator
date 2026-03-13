@@ -9,7 +9,7 @@ from configs.global_config import GlobalConfig, get_global_config
 from instrument.background_image import generate_background_image
 from domain.star import Star
 from domain.star_catalog import StarCatalog
-from instrument.background_star_preparation import compute_background_stars_counts
+from instrument.compute_background_stars_counts import compute_background_stars_counts
 from instrument.background_star_spectroscopy import generate_background_star_spectroscopy_image
 from instrument.background_star_photometry import generate_background_star_photometry_image
 from instrument.photon_noise import apply_photon_noise_gauss_from_spectra2d

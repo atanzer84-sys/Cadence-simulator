@@ -8,7 +8,7 @@ from domain.planet import Planet
 from frame.frame_pipeline import generate_frames
 from instrument.prepare_detector_images import prepare_star_photon_flux_for_channels, prepare_detector_image_spectroscopy, prepare_detector_image_photometry
 from instrument.build_science_image import build_science_images
-from instrument.background_star_preparation import compute_background_stars_counts
+from instrument.compute_background_stars_counts import compute_background_stars_counts
 from loaders.load_background_stars import lookup_background_stars
 
 
