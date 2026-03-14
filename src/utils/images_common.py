@@ -174,6 +174,7 @@ def save_single_frame_png_NIR(array: np.ndarray, filename: Path, title: str, sta
 
 
 def save_single_frame_png_NUV(array: np.ndarray, filename: Path, title: str, stats_text: str,  channel_name:str) -> None:
+    FIGURE_DPI = 175
     
     ny, nx = array.shape
     img_h_in = max(2.0, _WIDTH_IN * (ny / nx))
@@ -195,8 +196,8 @@ def save_single_frame_png_NUV(array: np.ndarray, filename: Path, title: str, sta
     ax_txt.axis("off")
     ax_txt.text(0.5, 0.5, stats_text, ha="center", va="center", fontsize=_STATS_FONTSIZE, transform=ax_txt.transAxes)
 
-    fig.subplots_adjust(left=0.10, right=0.98, top=0.92, bottom=0.10)
-    fig.savefig(filename, dpi=_FIGURE_DPI, bbox_inches=_BBOX_INCHES)
+    fig.subplots_adjust(left=0.05, right=0.98, top=0.92, bottom=0.05)
+    fig.savefig(filename, dpi=FIGURE_DPI, bbox_inches=_BBOX_INCHES)
     plt.close(fig)
     logging.debug("Wrote %s", filename)
 
