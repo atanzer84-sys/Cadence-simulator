@@ -1,19 +1,14 @@
 """Tests for utils.images_common."""
 
-from types import SimpleNamespace
-
+from tests.helpers.star_factory import star
 from utils import images_common
 
 
 def test_format_star_metadata_includes_teff_and_distance():
     """Teff (K) and distance (pc) appear in the formatted metadata string."""
-    star = SimpleNamespace(
-        effective_temperature=5777.6,
-        distance_pc=42.3,
-        gaia_magnitude=None,
-    )
+    s = star(effective_temperature=5777.6, distance_pc=42.3, gaia_magnitude=None)
 
-    text = images_common.format_star_metadata(star)
+    text = images_common.format_star_metadata(s)
 
     assert "5778 K" in text
     assert "42 pc" in text
@@ -26,24 +21,16 @@ def test_format_star_metadata_none_returns_empty_string():
 
 def test_format_star_metadata_includes_gaia_magnitude_with_one_decimal():
     """When gaia_magnitude is set, it appears in the string formatted to one decimal."""
-    star = SimpleNamespace(
-        effective_temperature=5778.0,
-        distance_pc=100.0,
-        gaia_magnitude=7.64,
-    )
-    text = images_common.format_star_metadata(star)
+    s = star(gaia_magnitude=7.64)
+    text = images_common.format_star_metadata(s)
     assert "7.6" in text
 
 
 def test_format_frame_title_includes_metadata_when_star_given():
     """Title includes target name, channel/type, and star Teff/distance when star is provided."""
-    star = SimpleNamespace(
-        effective_temperature=6000.0,
-        distance_pc=50.0,
-        gaia_magnitude=None,
-    )
+    s = star(effective_temperature=6000.0, distance_pc=50.0, gaia_magnitude=None)
 
-    title = images_common.format_frame_title("HD 2685", "NUV", "BIAS", star)
+    title = images_common.format_frame_title("HD 2685", "NUV", "BIAS", s)
 
     assert "HD 2685" in title
     assert "NUV BIAS" in title

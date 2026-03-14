@@ -6,19 +6,9 @@ matplotlib.use("Agg")
 
 import numpy as np
 from pathlib import Path
-from types import SimpleNamespace
 
+from tests.helpers.star_factory import star
 from utils import flux_image_array
-
-
-def _star():
-    return SimpleNamespace(
-        name="HD 2685",
-        mass=1.1,
-        distance_pc=100.0,
-        effective_temperature=5778.0,
-        gaia_magnitude=None,
-    )
 
 
 def test_plot_flux_and_photons_windows_respects_enabled_channels(monkeypatch, tmp_path):
@@ -35,13 +25,13 @@ def test_plot_flux_and_photons_windows_respects_enabled_channels(monkeypatch, tm
 
     wavelengths = np.linspace(1000.0, 2000.0, 128, dtype=float)
     values = np.ones_like(wavelengths)
-    star = _star()
+    s = star()
 
     flux_image_array.plot_flux_and_photons_windows(
         wavelengths,
         values,
         tmp_path,
-        star,
+        s,
         "FluxTest",
         "Photon Flux",
         "Flux",
@@ -78,13 +68,13 @@ def test_plot_flux_and_photons_windows_full_writes_full_range_png(monkeypatch, t
 
     wavelengths = np.linspace(2000.0, 15000.0, 128, dtype=float)
     values = np.ones_like(wavelengths)
-    star = _star()
+    s = star()
 
     flux_image_array.plot_flux_and_photons_windows(
         wavelengths,
         values,
         tmp_path,
-        star,
+        s,
         "FullTest",
         "Photon Flux",
         "Flux",
@@ -102,13 +92,13 @@ def test_plot_1d_for_channel_writes_expected_files(tmp_path):
     """plot_1d_for_channel writes full and zoom PNGs for a single channel."""
     wavelengths = np.linspace(1000.0, 3000.0, 256, dtype=float)
     values = np.linspace(0.0, 1.0, 256, dtype=float)
-    star = _star()
+    s = star()
 
     flux_image_array.plot_1d_for_channel(
         wavelengths,
         values,
         tmp_path,
-        star,
+        s,
         "Counts",
         "Convolved Counts",
         "Counts s⁻¹ pixel⁻¹",
