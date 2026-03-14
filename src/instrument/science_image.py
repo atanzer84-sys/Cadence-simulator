@@ -13,9 +13,9 @@ from instrument.background_star_spectroscopy import generate_background_star_spe
 from instrument.background_star_photometry import generate_background_star_photometry_image
 from instrument.photon_noise import apply_photon_noise_gauss_from_spectra2d
 from frame.fits_header import initialize_fits_header
-from frame.bias_frame import generate_bias_frames
-from frame.dark_frame import generate_dark_frames
-from frame.write_fits import write_fits_frames
+from frame.bias_frame import generate_bias_frame_with_index
+from frame.dark_frame import generate_dark_frame_with_index
+from frame.write_fits import write_fits_frame
 from utils.images import write_science_frames_png
 from frame.fits_header import append_image_stats_header, append_channel_frame_header, append_base_frame_header
 from frame.frame_class import Frame
@@ -36,18 +36,19 @@ def _generate_channel_calibration_frames(channel: Channel, header, ctx: RunConte
     logging.info("FITS generation starting (n_calibration_frames=%d)", n_calibration_frames)
     print(f"\n==== STARTING FITS CALIBRATION FRAME GENERATION ({channel.channel_name}) =====")
 
-    if n_calibration_frames > 0:
-        bias_frames = generate_bias_frames(channel, n_calibration_frames, header)
-        dark_frames = generate_dark_frames(channel, n_calibration_frames, header)
-        calibration_frame_list = [bias_frames, dark_frames]
-
-        _write_fits_for_all(calibration_frame_list, ctx, phase="calibration frames")
-
-        if cfg.write_calibration_frames_png:
-            _write_png_for_all(calibration_frame_list, ctx, star, phase="calibration frames", inverted=cfg.invert_calibration_science_frame_component)
-        
-    else:
+    if n_calibration_frames <= 0:
         logging.info("Calibration Frames: n_calibration_frames=%d -> skipped.", n_calibration_frames)
+        return
+
+    for i in range(n_calibration_frames):
+        bias_frame = generate_bias_frame_with_index(channel, i, header)
+        write_fits_frame(bias_frame, ctx, i)
+        ctx.write_calibration_frame_png(bias_frame.data, bias_frame.frame_type, ctx, channel, star=star, index=i, inverted=cfg.invert_calibration_science_frame_component)
+
+        dark_frame = generate_dark_frame_with_index(channel, i, header)
+        write_fits_frame(dark_frame, ctx, i)
+        ctx.write_calibration_frame_png(dark_frame.data, dark_frame.frame_type, ctx, channel, star=star, index=i, inverted=cfg.invert_calibration_science_frame_component)
+
 
 def _create_channel_images(stellar_signal, channel: Channel, ctx: RunContext, cfg: GlobalConfig, star: Star, background_stars_catalog: StarCatalog, base_header) -> None:
     print(f"\n==== STARTING SCIENCE IMAGE GENERATION ({channel.channel_name}) =====")
@@ -75,15 +76,11 @@ def _create_channel_images(stellar_signal, channel: Channel, ctx: RunContext, cf
         append_channel_frame_header(header, channel, exptime_s=exposure, include_bias=True, include_dark=True)
 
         frame = Frame(data=img, header=header, frame_type="science", channel_tag=channel.channel_name)
-        science_list = [frame]
-
-        _write_fits_for_all([science_list], ctx, phase="science", start_index=frame_index, announce_to_user=False)
+        write_fits_frame(frame, ctx, frame_index)
         if cfg.write_science_frames_png:
-            _write_png_for_all([science_list], ctx, star, phase="science", inverted=cfg.invert_science_frames, start_index=frame_index, announce_to_user=False)
-            
+            write_science_frame_png(frame, ctx, star, inverted=cfg.invert_science_frames)
+ 
     logging.info("Science image generation finished: channel=%s frames=%d exposure_s=%g orbit_duration_s=%g", channel.channel_name, n_science_frames, exposure, orbit_duration_s)
-
-
 
 def _create_per_exposure(stellar_component, background_component, channel: Channel, ctx: RunContext, cfg: GlobalConfig, star: Star, background_stars_catalog: StarCatalog, frame_index: int, roll_angle_start: float, roll_angle_end: float) -> np.ndarray:
     ccd_gain = channel.ccd_gain
@@ -106,7 +103,6 @@ def _create_per_exposure(stellar_component, background_component, channel: Chann
 
     return image
 
-    
 def _build_science_image_without_bg_stars(target_star_component, background_component, channel: Channel, ctx: RunContext, cfg: GlobalConfig, star: Star, frame_index: int):
     image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
 
@@ -140,25 +136,6 @@ def _build_science_image_without_bg_stars(target_star_component, background_comp
         ctx.write_science_frame_component_png(cosmic, "SCIENCE_COSMIC_ONLY", ctx, channel, star=star, index=frame_index, inverted=cfg.invert_calibration_science_frame_component)
 
     return image
-
-
-def _write_fits_for_all(frame_lists, ctx: RunContext, *, phase: str = "", start_index: int = 0, announce_to_user: bool = True) -> None:
-    phase_str = f" for {phase}" if phase else ""
-    logging.info("Creating FITS files%s", phase_str)
-    if announce_to_user:
-        print(f"Creating FITS files{phase_str}")
-    for frames in frame_lists:
-        if not frames:
-            continue
-
-        frame_type = frames[0].frame_type
-        channel_tag = frames[0].channel_tag
-
-        data_list = [frame.data for frame in frames]
-        header_list = [frame.header for frame in frames]
-
-        write_fits_frames(frames=data_list, headers=header_list, frame_type=frame_type, channel_tag=channel_tag, ctx=ctx, start_index=start_index)
-
 
 def _write_png_for_all(frame_lists, ctx: RunContext, star: Star, phase: str = "", inverted: bool = False, start_index: int = 0, announce_to_user: bool = True) -> None:
     phase_str = f" for {phase}" if phase else ""

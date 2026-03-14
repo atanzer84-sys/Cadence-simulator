@@ -27,7 +27,7 @@ BASE_GLOBAL_CFG = {
     "n_calibration_frames": 0,
     "invert_calibration_science_frame_component": False,
     "invert_science_frames": False,
-    "write_calibration_frames_png": False,
+    "write_calibration_frame_png": False,
     "write_science_frame_component_png": False,
     "write_science_frames_png": False,
     "write_background_star_footprint_on_science_frame": False,
