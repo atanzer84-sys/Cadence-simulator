@@ -6,9 +6,11 @@ from frame.fits_header import append_image_stats_header, append_channel_frame_he
 
 def generate_science_frame(images, channel: Channel, base_header):
     """Generate science frame(s). Accepts single image or list of images. Returns list of frames."""
+    
     if not isinstance(images, list):
         images = [images]
     exposure_time_s = channel.exposure_s
+    
     logging.info("SCIENCE: generating %d science frame(s) for %s (%d x %d), exptime_s=%g.", len(images), channel.channel_name, channel.x_pixels, channel.y_pixels, exposure_time_s)
     print(f"Creating SCIENCE Frames for channel {channel.channel_name} ({len(images)} frame(s)).")
 
