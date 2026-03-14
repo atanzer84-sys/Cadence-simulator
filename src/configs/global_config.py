@@ -33,6 +33,7 @@ class GlobalConfig:
     invert_calibration_science_frame_component: bool
     invert_science_frames : bool
     write_science_frames_png: bool
+    science_frame_png_crop_spectrum_region: bool
     write_background_star_footprint_on_science_frame: bool
 
     cosmic_rays_min: int
@@ -111,6 +112,7 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
     invert_calibration_science_frame_component = as_bool(raw.get("invert_calibration_science_frame_component", 0), key="invert_calibration_science_frame_component")
     invert_science_frames = as_bool(raw.get("invert_science_frames", 0), key="invert_science_frames")
     write_science_frames_png = as_bool(raw.get("write_science_frames_png", 0), key="write_science_frames_png")
+    science_frame_png_crop_spectrum_region = as_bool(raw.get("science_frame_png_crop_spectrum_region", 0), key="science_frame_png_crop_spectrum_region")
     write_background_star_footprint_on_science_frame = as_bool(raw.get("write_background_star_footprint_on_science_frame", 0), key="write_background_star_footprint_on_science_frame")
 
     cosmic_rays_min = as_int(raw.get("cosmic_rays_min", 5), key="cosmic_rays_min")
@@ -174,6 +176,7 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
         write_calibration_frame_png=write_calibration_frame_png,
         write_science_frame_component_png=write_science_frame_component_png,
         write_science_frames_png=write_science_frames_png,
+        science_frame_png_crop_spectrum_region=science_frame_png_crop_spectrum_region,
         write_background_star_footprint_on_science_frame=write_background_star_footprint_on_science_frame,
         cosmic_rays_min=cosmic_rays_min,
         cosmic_rays_max=cosmic_rays_max,

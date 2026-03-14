@@ -3,6 +3,8 @@ from configs.channel_config import Channel
 import numpy as np
 from pathlib import Path
 import logging
+import matplotlib
+matplotlib.use("Agg")  # non-interactive backend for fast batch PNG writing
 import matplotlib.pyplot as plt
 
 
@@ -40,8 +42,11 @@ _GAP_IN = 0.8
 _NIR_LABEL_FONTSIZE = 15
 _TITLE_FONTSIZE = 11
 _STATS_FONTSIZE = 10
-_FIGURE_DPI = 200
-_BBOX_INCHES = "tight"
+_FIGURE_DPI = 100
+# None avoids expensive tight-bbox computation; we use tight_layout() for spacing instead.
+_BBOX_INCHES = None
+# Max pixels used for percentile scaling; larger arrays are subsampled to reduce runtime.
+_PERCENTILE_MAX_PIXELS = 250_000
 
 
 def format_star_metadata(star: Star | None) -> str:
@@ -117,12 +122,19 @@ def format_stats_text(values: dict, keys: list[str], *, use_scientific_for_small
 
 
 def _calculate_percentile_scales(array: np.ndarray, low_pct: float = 1, high_pct: float = 99.9) -> tuple[float, float]:
-    """Robust (vmin, vmax) for image display: percentiles with fallback for non-finite or flat arrays."""
-    vmin = float(np.percentile(array, low_pct))
-    vmax = float(np.percentile(array, high_pct))
+    """Robust (vmin, vmax) for image display: percentiles with fallback for non-finite or flat arrays.
+    Large arrays are subsampled for percentile computation to reduce runtime."""
+    n = array.size
+    if n > _PERCENTILE_MAX_PIXELS:
+        step = max(1, int(np.ceil(np.sqrt(n / _PERCENTILE_MAX_PIXELS))))
+        arr = array[::step, ::step]
+    else:
+        arr = array
+    vmin = float(np.percentile(arr, low_pct))
+    vmax = float(np.percentile(arr, high_pct))
     if (not np.isfinite(vmin)) or (not np.isfinite(vmax)) or (vmax <= vmin):
-        vmin = float(np.min(array))
-        vmax = float(np.max(array))
+        vmin = float(np.min(arr))
+        vmax = float(np.max(arr))
         if vmax <= vmin:
             vmax = vmin + 1.0
     return vmin, vmax
@@ -152,6 +164,7 @@ def save_single_frame_png(array: np.ndarray, filename: Path, title: str, stats_t
     ax_txt.axis("off")
     ax_txt.text(0.5, 0.5, stats_text, ha="center", va="center", fontsize=_STATS_FONTSIZE, transform=ax_txt.transAxes)
 
+    fig.tight_layout()
     fig.savefig(filename, dpi=_FIGURE_DPI, bbox_inches=_BBOX_INCHES)
     plt.close(fig)
     logging.debug("Wrote %s", filename)
