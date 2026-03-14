@@ -18,5 +18,6 @@ class RunContext:
     plot_star_counts_vs_noise_spectroscopy: Callable[..., Any]
     plot_star_counts_vs_noise_photometry: Callable[..., Any]
     write_calibration_frame_png: Callable[..., Any]
+    write_science_frame_png: Callable[..., Any]
     write_science_frame_component_png: Callable[..., Any]
     generate_background_star_visibility_on_science_frame: Callable[..., Any]

@@ -15,6 +15,7 @@ STATS_KEYS = {
     "SCIENCE":  ["MEAN", "MEDIAN", "STDDEV", "MIN", "MAX", "RNOISE", "B_OFFSET", "DARKVAL", "DARKSIG", "EXPTIME"],
     "BG_STARS": ["MEAN", "MEDIAN", "STDDEV", "MIN", "MAX", "EXPTIME"],
 }
+
 _FRAME_TYPE_TO_STATS_FILETYPE = (("BIAS", "BIAS"), ("DARK", "DARK"))
 _DEFAULT_FRAME_STATS_FILETYPE = "SCIENCE"
 
@@ -87,38 +88,6 @@ def generate_background_star_visibility_on_science_frame(merged_image: np.ndarra
     logging.debug("Wrote %s", filename)
 
 
-def write_calibration_frame_png(array, frame_type: str, ctx: RunContext, channel: Channel, show_stats: bool = True, star: Star | None = None, index: int | None = None, inverted: bool = False) -> None:
-    """Write 2D array as PNG. Uses percentile scaling (1–99.9) like write_science_frames_png. Optional index for multi-frame output (e.g. frame_00042.png)."""
-    logging.info("write_calibration_frame_png called | frame_type=%s | channel=%s | shape=%s | index=%s", frame_type, channel.channel_name, array.shape, index)
-
-    frame_to_plot = (array.max() - array) if inverted else array
-    title, stats_values, stats_keys = _build_image_write_context(array, frame_type, ctx, channel, show_stats, star)
-    _write_one_frame_png(frame_to_plot, ctx.output_dir, ctx.target_name, channel.channel_name, frame_type, title, stats_values, stats_keys, index=index, waltzer_prefix=False)
-
-
-def write_science_frames_png(frames, headers, frame_type, channel_tag, ctx: RunContext, star: Star, show_stats=False, inverted=False, start_index: int = 0):
-
-    n_frames = len(frames)
-    logging.info("PNG writing started: channel=%s frame_type=%s frames=%d", channel_tag, frame_type, n_frames)
-    
-    if n_frames == 0:
-        logging.info("Write PNG: no frames for %s channel %s", frame_type, channel_tag)
-        return
-
-    title_base = format_frame_title(star.name, channel_tag, frame_type, star)
-    axis_label_fontsize = 15 if str(channel_tag).upper() == "NIR" else None
-    tick_label_fontsize = 15 if str(channel_tag).upper() == "NIR" else None
-
-    for k, (frame, header) in enumerate(zip(frames, headers), start=start_index):
-        if inverted:
-            frame_to_plot = frame.max() - frame
-        else:
-            frame_to_plot = frame
-
-        stats_values, stats_keys = _build_frame_write_context(header, show_stats)
-        _write_one_frame_png(frame_to_plot, ctx.output_dir, star.name, channel_tag, frame_type, title_base, stats_values, stats_keys, index=k, axis_label_fontsize=axis_label_fontsize, tick_label_fontsize=tick_label_fontsize)
-    
-    logging.info("PNG writing finished: channel=%s frame_type=%s frames=%d", channel_tag, frame_type, n_frames)
 
 
 
@@ -134,7 +103,7 @@ def _build_png_filename(output_dir: Path, target_name: str, channel_tag: str, fr
     return output_dir / f"{safe}_{channel_tag}_{frame_type}_image.png"
 
 
-def _write_one_frame_png(array: np.ndarray, output_dir: Path, target_name: str, channel_tag: str, frame_type: str, title: str, stats_values: dict | None, stats_keys: list[str], index: int | None = None, *, waltzer_prefix: bool = True, axis_label_fontsize: int | None = None, tick_label_fontsize: int | None = None) -> None:
+def write_one_frame_png(array: np.ndarray, output_dir: Path, target_name: str, channel_tag: str, frame_type: str, title: str, stats_values: dict | None, stats_keys: list[str], index: int | None = None, *, waltzer_prefix: bool = True, axis_label_fontsize: int | None = None, tick_label_fontsize: int | None = None) -> None:
     """Write one PNG with unified filename, title, and stats. Used by write_calibration_frame_png and write_science_frames_png."""
     filename = _build_png_filename(output_dir, target_name, channel_tag, frame_type, index, waltzer_prefix=waltzer_prefix)
     stats_text = _format_stats_text(stats_values, stats_keys) if (stats_values and stats_keys) else None
@@ -167,7 +136,7 @@ def _format_stats_text(values: dict, keys: list[str], *, use_scientific_for_smal
     return "".join(parts)
 
 
-def _stats_from_array_channel(array: np.ndarray, channel: Channel) -> dict:
+def stats_from_array_channel(array: np.ndarray, channel: Channel) -> dict:
     """Build stats dict from array and channel (for write_calibration_frame_png)."""
     return {
         "MEAN": float(np.mean(array)),
@@ -194,9 +163,6 @@ def _stats_from_array_only(array: np.ndarray) -> dict:
     }
 
 
-def _stats_from_header(header, keys: list[str]) -> dict:
-    """Build stats dict from FITS header. Values not in header become None (filtered later)."""
-    return {k: _header_val(header, k) for k in keys}
 
 
 def _save_single_frame_png(array: np.ndarray, filename: Path, title: str, stats_text: str | None = None, axis_label_fontsize: int | None = None, tick_label_fontsize: int | None = None) -> None:
@@ -238,59 +204,9 @@ def _save_single_frame_png(array: np.ndarray, filename: Path, title: str, stats_
     plt.close(fig)
     logging.debug("Wrote %s", filename)
 
-def _stats_filetype_for_frame_type(frame_type: str) -> str:
-    u = frame_type.upper()
-    for token, filetype in _FRAME_TYPE_TO_STATS_FILETYPE:
-        if token in u:
-            return filetype
-    return _DEFAULT_FRAME_STATS_FILETYPE
 
-def _stats_keys_for_filetype(filetype: str, default_filetype: str = _DEFAULT_FRAME_STATS_FILETYPE) -> list[str]:
+def stats_keys_for_filetype(filetype: str, default_filetype: str = _DEFAULT_FRAME_STATS_FILETYPE) -> list[str]:
     return STATS_KEYS.get(filetype, STATS_KEYS[default_filetype])
-
-def _build_image_stats_payload(array: np.ndarray, channel: Channel, frame_type: str) -> tuple[dict, list[str]]:
-    filetype = _stats_filetype_for_frame_type(frame_type)
-    stats_keys = _stats_keys_for_filetype(filetype)
-    return _stats_from_array_channel(array, channel), stats_keys
-
-def _build_header_stats_payload(header) -> tuple[dict, list[str]]:
-    stats_keys = _stats_keys_for_header(header)
-    return _stats_from_header(header, stats_keys), stats_keys
-
-def _build_image_write_context(array: np.ndarray, frame_type: str, ctx: RunContext, channel: Channel, show_stats: bool, star: Star | None) -> tuple[str, dict | None, list[str]]:
-    title = format_frame_title(ctx.target_name, channel.channel_name, frame_type, star)
-    if not show_stats:
-        return title, None, []
-    stats_values, stats_keys = _build_image_stats_payload(array, channel, frame_type)
-    return title, stats_values, stats_keys
-
-def _build_frame_write_context(header, show_stats: bool) -> tuple[dict | None, list[str]]:
-    if not show_stats:
-        return None, []
-    stats_values, stats_keys = _build_header_stats_payload(header)
-    return stats_values, stats_keys
-
-
-def _header_val(header, key):
-    if hasattr(header, "get"):
-        return header.get(key)
-    for item in header:
-        if len(item) >= 2 and item[0] == key:
-            return item[1]
-    return None
-
-
-def _stats_keys_for_header(header):
-    ft = _header_val(header, "FILETYPE")
-    filetype = str(ft).upper() if ft else "BIAS"
-    return _stats_keys_for_filetype(filetype, default_filetype="BIAS")
-
-
-def format_header(header, key, fmt_str=".2f"):
-    val = _header_val(header, key)
-    if val is None:
-        return f"{key}=n/a"
-    return f"{key}={format(val, fmt_str)}" if fmt_str else f"{key}={val}"
 
 
 def _build_background_visibility_context(merged_image: np.ndarray, spectra_bgstars_image: np.ndarray, frame_type: str, ctx: RunContext, channel: Channel, show_stats: bool, star: Star | None) -> tuple[str, list[tuple[dict | None, list[str]]], dict[str, float | list[float]]]:
@@ -461,11 +377,11 @@ def _prepare_background_star_panel_stats(merged_image: np.ndarray, spectra_bgsta
     return per_panel_stats
 
 def _build_channel_panel_stats_row(array: np.ndarray, channel: Channel) -> tuple[dict, list[str]]:
-    science_keys = _stats_keys_for_filetype("SCIENCE")
-    return _stats_from_array_channel(array, channel), science_keys
+    science_keys = stats_keys_for_filetype("SCIENCE")
+    return stats_from_array_channel(array, channel), science_keys
 
 def _build_bg_star_panel_stats_row(spectra_bgstars_image: np.ndarray, channel: Channel) -> tuple[dict, list[str]]:
-    bg_keys = _stats_keys_for_filetype("BG_STARS")
+    bg_keys = stats_keys_for_filetype("BG_STARS")
     has_bg = np.any(spectra_bgstars_image > 0.0)
     if has_bg:
         values = _stats_from_array_only(spectra_bgstars_image)

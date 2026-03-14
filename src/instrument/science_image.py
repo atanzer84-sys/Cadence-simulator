@@ -16,10 +16,8 @@ from frame.fits_header import initialize_fits_header
 from frame.bias_frame import generate_bias_frame_with_index
 from frame.dark_frame import generate_dark_frame_with_index
 from frame.write_fits import write_fits_frame
-from utils.images import write_science_frames_png
 from frame.fits_header import append_image_stats_header, append_channel_frame_header, append_base_frame_header
 from frame.frame_class import Frame
-
 
 def build_science_images(stellar_signal, channel: Channel, ctx: RunContext, star: Star, background_stars_catalog: StarCatalog):
     cfg = get_global_config()
@@ -45,10 +43,10 @@ def _generate_channel_calibration_frames(channel: Channel, header, ctx: RunConte
         write_fits_frame(bias_frame, ctx, i)
         ctx.write_calibration_frame_png(bias_frame.data, bias_frame.frame_type, ctx, channel, star=star, index=i, inverted=cfg.invert_calibration_science_frame_component)
 
+
         dark_frame = generate_dark_frame_with_index(channel, i, header)
         write_fits_frame(dark_frame, ctx, i)
         ctx.write_calibration_frame_png(dark_frame.data, dark_frame.frame_type, ctx, channel, star=star, index=i, inverted=cfg.invert_calibration_science_frame_component)
-
 
 def _create_channel_images(stellar_signal, channel: Channel, ctx: RunContext, cfg: GlobalConfig, star: Star, background_stars_catalog: StarCatalog, base_header) -> None:
     print(f"\n==== STARTING SCIENCE IMAGE GENERATION ({channel.channel_name}) =====")
@@ -77,9 +75,8 @@ def _create_channel_images(stellar_signal, channel: Channel, ctx: RunContext, cf
 
         frame = Frame(data=img, header=header, frame_type="science", channel_tag=channel.channel_name)
         write_fits_frame(frame, ctx, frame_index)
-        if cfg.write_science_frames_png:
-            write_science_frame_png(frame, ctx, star, inverted=cfg.invert_science_frames)
- 
+        ctx.write_science_frame_png(frame.data, frame.header, frame.frame_type, channel.channel_name, ctx, star=star, show_stats=True, index=frame_index, inverted=cfg.invert_science_frames)
+            
     logging.info("Science image generation finished: channel=%s frames=%d exposure_s=%g orbit_duration_s=%g", channel.channel_name, n_science_frames, exposure, orbit_duration_s)
 
 def _create_per_exposure(stellar_component, background_component, channel: Channel, ctx: RunContext, cfg: GlobalConfig, star: Star, background_stars_catalog: StarCatalog, frame_index: int, roll_angle_start: float, roll_angle_end: float) -> np.ndarray:
@@ -136,22 +133,4 @@ def _build_science_image_without_bg_stars(target_star_component, background_comp
         ctx.write_science_frame_component_png(cosmic, "SCIENCE_COSMIC_ONLY", ctx, channel, star=star, index=frame_index, inverted=cfg.invert_calibration_science_frame_component)
 
     return image
-
-def _write_png_for_all(frame_lists, ctx: RunContext, star: Star, phase: str = "", inverted: bool = False, start_index: int = 0, announce_to_user: bool = True) -> None:
-    phase_str = f" for {phase}" if phase else ""
-    logging.info("Creating PNG files%s", phase_str)
-    if announce_to_user:
-        print(f"Creating PNG files{phase_str}")
-    for frames in frame_lists:
-    
-        if not frames:
-            continue
-        
-        frame_type = frames[0].frame_type
-        channel_tag = frames[0].channel_tag
-
-        data_list = [f.data for f in frames]
-        header_list = [f.header for f in frames]
-
-        write_science_frames_png(frames=data_list, headers=header_list, frame_type=frame_type, channel_tag=channel_tag, ctx=ctx, star=star, show_stats=True, inverted=inverted, start_index=start_index)
 

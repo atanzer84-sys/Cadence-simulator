@@ -25,6 +25,7 @@ def test_main_catches_exception_exits_with_message(monkeypatch, tmp_path, capsys
         plot_star_counts_vs_noise_spectroscopy=_noop,
         plot_star_counts_vs_noise_photometry=_noop,
         write_calibration_frame_png=_noop,
+        write_science_frame_png=_noop,
         write_science_frame_component_png=_noop,
         generate_background_star_visibility_on_science_frame=_noop,
     )
