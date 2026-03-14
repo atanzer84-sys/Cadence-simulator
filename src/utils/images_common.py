@@ -138,7 +138,6 @@ def _calculate_percentile_scales(array: np.ndarray, low_pct: float = 1, high_pct
             vmax = vmin + 1.0
     return vmin, vmax
 
-
 def save_single_frame_png_NIR(array: np.ndarray, filename: Path, title: str, stats_text: str,  channel_name:str) -> None:
     STATS_FONTSIZE_NIR = 13
     TITLE_FONTSIZE_NIR = 18
@@ -172,7 +171,6 @@ def save_single_frame_png_NIR(array: np.ndarray, filename: Path, title: str, sta
     plt.close(fig)
     logging.debug("Wrote %s", filename)
 
-
 def save_single_frame_png_NUV(array: np.ndarray, filename: Path, title: str, stats_text: str,  channel_name:str) -> None:
     FIGURE_DPI = 175
     
@@ -201,7 +199,6 @@ def save_single_frame_png_NUV(array: np.ndarray, filename: Path, title: str, sta
     plt.close(fig)
     logging.debug("Wrote %s", filename)
 
-
 def save_single_frame_png_VIS(array: np.ndarray, filename: Path, title: str, stats_text: str,  channel_name:str) -> None:
     
     ny, nx = array.shape
@@ -225,6 +222,36 @@ def save_single_frame_png_VIS(array: np.ndarray, filename: Path, title: str, sta
     ax_txt.text(0.5, 0.5, stats_text, ha="center", va="center", fontsize=_STATS_FONTSIZE, transform=ax_txt.transAxes)
 
     fig.tight_layout()
+    fig.savefig(filename, dpi=_FIGURE_DPI, bbox_inches=_BBOX_INCHES)
+    plt.close(fig)
+    logging.debug("Wrote %s", filename)
+
+
+def save_single_frame_png_VIS_cropped(array: np.ndarray, filename: Path, title: str, stats_text: str, channel_name: str) -> None:
+    GAP_IN_VIS = 0.8
+    TEXT_H_IN_VIS = 0.28
+
+    ny, nx = array.shape
+    img_h_in = max(1.2, _WIDTH_IN * (ny / nx))
+
+    fig = plt.figure(figsize=(_WIDTH_IN, img_h_in + GAP_IN_VIS + TEXT_H_IN_VIS), facecolor="white")
+    gs = fig.add_gridspec(nrows=3, ncols=1, height_ratios=[img_h_in, GAP_IN_VIS, TEXT_H_IN_VIS], hspace=0)
+
+    ax = fig.add_subplot(gs[0, 0])
+    vmin, vmax = _calculate_percentile_scales(array)
+    ax.imshow(array, origin="lower", aspect="equal", cmap="gray", vmin=vmin, vmax=vmax)
+    ax.set_xlim(-0.5, nx - 0.5)
+    ax.set_ylim(-0.5, ny - 0.5)
+
+    ax.set_xlabel("pixels", labelpad=6)
+    ax.set_ylabel("pixels", labelpad=6)
+    ax.set_title(title, fontsize=_TITLE_FONTSIZE, pad=10)
+
+    ax_txt = fig.add_subplot(gs[2, 0])
+    ax_txt.axis("off")
+    ax_txt.text(0.5, 0.5, stats_text, ha="center", va="center", fontsize=_STATS_FONTSIZE, transform=ax_txt.transAxes)
+
+    fig.subplots_adjust(left=0.10, right=0.98, top=0.85, bottom=0.08)
     fig.savefig(filename, dpi=_FIGURE_DPI, bbox_inches=_BBOX_INCHES)
     plt.close(fig)
     logging.debug("Wrote %s", filename)
