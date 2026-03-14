@@ -17,6 +17,7 @@ def _star():
         mass=1.1,
         distance_pc=100.0,
         effective_temperature=5778.0,
+        gaia_magnitude=None,
     )
 
 
@@ -63,6 +64,38 @@ def test_plot_flux_and_photons_windows_respects_enabled_channels(monkeypatch, tm
     # VIS disabled → no VIS plots
     assert not _exists("VIS")
     assert not _exists("VIS_zoom")
+
+
+def test_plot_flux_and_photons_windows_full_writes_full_range_png(monkeypatch, tmp_path):
+    """plot_flux_and_photons_windows with full=True writes the full-range PNG (wavelength min–max)."""
+    class _Cfg:
+        run_nuv = True
+        run_vis = False
+        run_nir = False
+
+    import configs.global_config as gc
+    monkeypatch.setattr(gc, "_GLOBAL", _Cfg())
+
+    wavelengths = np.linspace(2000.0, 15000.0, 128, dtype=float)
+    values = np.ones_like(wavelengths)
+    star = _star()
+
+    flux_image_array.plot_flux_and_photons_windows(
+        wavelengths,
+        values,
+        tmp_path,
+        star,
+        "FullTest",
+        "Photon Flux",
+        "Flux",
+        perChannel=False,
+        full=True,
+        zoom=False,
+    )
+
+    full_path = Path(tmp_path) / "HD_2685_FullTest_full.png"
+    assert full_path.exists()
+    assert full_path.stat().st_size > 0
 
 
 def test_plot_1d_for_channel_writes_expected_files(tmp_path):

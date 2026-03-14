@@ -11,13 +11,14 @@ from utils.images_common import normalize_target_name, format_frame_title
 _COUNTS_VS_NOISE_DPI = 100
 _COUNTS_VS_NOISE_FIGSIZE = (12, 5)  # inches; output pixels = figsize * dpi → 1200×500
 _COUNTS_VS_NOISE_BBOX = "tight"
+_COUNTS_VS_NOISE_FILENAME_TAG = "target_star_counts_vs_noise"
 _FONTSIZE_LABEL = 16
 _FONTSIZE_TICK = 14
 _FONTSIZE_TITLE = 16
 _FONTSIZE_LEGEND = 14
 
 
-def plot_star_counts_vs_noise_spectroscopy(wavelength: np.ndarray, counts_s_px: np.ndarray, channel: Channel, ctx: RunContext, *, filename_tag: str = "target_star_counts_vs_noise", already_per_second: bool = False, star: Star | None = None) -> None:
+def plot_star_counts_vs_noise_spectroscopy(wavelength: np.ndarray, counts_s_px: np.ndarray, channel: Channel, ctx: RunContext, star: Star | None = None) -> None:
     """Plot peak counts per wavelength vs noise levels for one spectroscopy channel; save PNG to ctx.output_dir."""
     safe_target = normalize_target_name(ctx.target_name)
     plt.figure(figsize=_COUNTS_VS_NOISE_FIGSIZE)
@@ -32,13 +33,13 @@ def plot_star_counts_vs_noise_spectroscopy(wavelength: np.ndarray, counts_s_px: 
     title = format_frame_title(ctx.target_name, channel.channel_name, f"Peak Pixel Counts ({channel.exposure_s}s)", star)
     _style_counts_vs_noise_figure(channel, title)
     plt.xlabel("Wavelength [Å]", fontsize=_FONTSIZE_LABEL)
-    filename = ctx.output_dir / f"{safe_target}_{filename_tag}_{channel.channel_name}.png"
+    filename = ctx.output_dir / f"{safe_target}_{_COUNTS_VS_NOISE_FILENAME_TAG}_{channel.channel_name}.png"
     plt.savefig(filename, dpi=_COUNTS_VS_NOISE_DPI, bbox_inches=_COUNTS_VS_NOISE_BBOX)
     plt.close()
     logging.debug("Wrote %s", filename)
 
 
-def plot_star_counts_vs_noise_photometry(rate_image_e_s: np.ndarray, channel: PhotometryChannel, ctx: RunContext, *, filename_tag: str = "target_star_counts_vs_noise", star: Star | None = None) -> None:
+def plot_star_counts_vs_noise_photometry(rate_image_e_s: np.ndarray, channel: PhotometryChannel, ctx: RunContext, star: Star | None = None) -> None:
     """Plot peak pixel count vs noise levels for one photometry channel; save PNG to ctx.output_dir."""
     safe_target = normalize_target_name(ctx.target_name)
     plt.figure(figsize=_COUNTS_VS_NOISE_FIGSIZE)
@@ -52,7 +53,7 @@ def plot_star_counts_vs_noise_photometry(rate_image_e_s: np.ndarray, channel: Ph
     plt.xlabel("Photometric band", fontsize=_FONTSIZE_LABEL)
     plt.xlim(-0.5, 0.5)
     plt.xticks(x, [channel.channel_name])
-    filename = ctx.output_dir / f"{safe_target}_{filename_tag}_{channel.channel_name}.png"
+    filename = ctx.output_dir / f"{safe_target}_{_COUNTS_VS_NOISE_FILENAME_TAG}_{channel.channel_name}.png"
     plt.savefig(filename, dpi=_COUNTS_VS_NOISE_DPI, bbox_inches=_COUNTS_VS_NOISE_BBOX)
     plt.close()
 

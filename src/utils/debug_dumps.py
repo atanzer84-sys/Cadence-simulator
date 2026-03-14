@@ -89,7 +89,7 @@ def dump_1d_for_channel(wave, array, output_dir, star_name: str, tag: str, chann
         full_range = debug_wavelength_range_ir
         zoom_range = DEBUG_WL_A_NIR
     else:
-        raise ValueError("cal_name must be 'NUV', 'VIS', or 'IR'")
+        raise ValueError("channel_name must be 'NUV', 'VIS', or 'IR'")
 
     if full:
         dump_masked_1d(wave, array, output_dir, f"{star_name}_{tag}_{channel_name}.txt", full_range[0], full_range[1], fmt)

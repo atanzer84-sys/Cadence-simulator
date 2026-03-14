@@ -52,9 +52,9 @@ def _plot_background_star_visibility_spectroscopy(star_id: str, channel: Spectro
     slope = 0.0
     intercept = 0.0
     detector_image = spread_1d_spectrum_to_2d(counts_s_px, channel, x0, y0, slope, intercept, announce_user=False)
-    ctx.plot_star_counts_vs_noise_spectroscopy(channel.effective_area_wavelength, detector_image.max(axis=0), channel, ctx, filename_tag=f"background_star_counts_vs_noise_{star_id}", star=star)
+    ctx.plot_star_counts_vs_noise_spectroscopy(channel.effective_area_wavelength, detector_image.max(axis=0), channel, ctx, star)
 
 def _plot_background_star_visibility_photometry(star_id: str, channel: PhotometryChannel, counts_s_px: np.ndarray, ctx: RunContext, *, star: Star | None = None) -> None:
     detector_image = spread_1d_photometry_to_2d(counts_s_px, channel, ctx)
-    ctx.plot_star_counts_vs_noise_photometry(detector_image, channel, ctx, filename_tag=f"background_star_counts_vs_noise_{star_id}", star=star)
+    ctx.plot_star_counts_vs_noise_photometry(detector_image, channel, ctx, star)
     # TODO!!
