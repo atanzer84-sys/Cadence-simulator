@@ -16,7 +16,6 @@ class GlobalConfig:
     orbit_revolutions: float
     orbit_total_duration_s: float
     readout_gap_s: float
-    sky_sweep_arcsec_per_s: float
     mg2_col: float | None
     mg1_col: float | None
     fe2_col: float | None
@@ -92,7 +91,6 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
     orbit_duration_minutes = as_float(raw.get("orbit_duration_minutes", 100.0), key="orbit_duration_minutes")
     orbit_revolutions = as_float(raw.get("orbit_revolutions", 1.0), key="orbit_revolutions")
     orbit_total_duration_s = _compute_total_simulation_time_s(orbit_duration_minutes, orbit_revolutions)
-    sky_sweep_arcsec_per_s = _compute_sky_sweep_arcsec_per_s(orbit_duration_minutes)
     readout_gap_s = as_float(raw.get("readout_gap_s", 0.0), key="readout_gap_s")
 
     mg2_col = as_optional_float(raw.get("mg2_col", None))
@@ -160,7 +158,6 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
         orbit_duration_minutes=orbit_duration_minutes,
         orbit_revolutions=orbit_revolutions,
         orbit_total_duration_s=orbit_total_duration_s,
-        sky_sweep_arcsec_per_s=sky_sweep_arcsec_per_s,
         readout_gap_s=readout_gap_s,
         mg2_col=mg2_col,
         mg1_col=mg1_col,
@@ -203,12 +200,6 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
 def _ensure_at_least_one_channel_enabled(run_vis: bool, run_nuv: bool, run_nir: bool) -> None:
     if not (run_vis or run_nuv or run_nir):
         raise ValueError("At least one channel must be enabled in global.cfg: run_vis, run_nuv, or run_nir")
-
-def _compute_sky_sweep_arcsec_per_s(orbit_duration_minutes):
-    orbit_duration_s = orbit_duration_minutes * 60.0
-    degree_per_second = 360.0 / orbit_duration_s
-    arcsecond_per_second = degree_per_second * 3600.0
-    return arcsecond_per_second
 
 def _warn_default_used(raw: dict, key: str, default, *, path: Path) -> None:
     if key not in raw:

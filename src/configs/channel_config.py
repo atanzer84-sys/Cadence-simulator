@@ -63,7 +63,6 @@ class SpectroscopyChannel(Channel):
     slit_length_arcsec: float
     slit_half_width_arcsec: float
     slit_half_length_arcsec: float
-    crossing_time_s: float
     smear_shift_pixels: float
 
 @dataclass(frozen=True, slots=True, kw_only=True)

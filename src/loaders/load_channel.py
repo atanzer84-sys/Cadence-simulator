@@ -106,7 +106,7 @@ def load_channel_config(path: Path, exposure_s: float, ctx, background: dict):
     slit_width_arcsec = _ensure_positive(as_float(raw["slit_width_arcsec"], key="slit_width_arcsec"), "slit_width_arcsec", channel_name)
     slit_length_arcsec = _ensure_positive(as_float(raw["slit_length_arcsec"], key="slit_length_arcsec"), "slit_length_arcsec", channel_name)
 
-    crossing_time_s, smear_shift_pixels = _compute_slit_crossing(slit_width_arcsec, pixel_scale)
+    smear_shift_pixels = slit_width_arcsec / pixel_scale
 
     return SpectroscopyChannel(
         channel_name=channel_name,
@@ -146,7 +146,6 @@ def load_channel_config(path: Path, exposure_s: float, ctx, background: dict):
         slit_length_arcsec=slit_length_arcsec,
         slit_half_width_arcsec=0.5 * slit_width_arcsec,
         slit_half_length_arcsec=0.5 * slit_length_arcsec,
-        crossing_time_s=crossing_time_s,
         smear_shift_pixels=smear_shift_pixels,
         
         slope=slope,
@@ -234,11 +233,4 @@ def _compute_n_science_frames(channel_name: str, exposure_s: float) -> int:
     n_science_frames = int(cfg.orbit_total_duration_s / frame_time_s)
     logging.info("Channel %s science frame calculation: orbit_total_duration_s=%g exposure_s=%g readout_gap_s=%g frame_time=%g n_science_frames=%d", channel_name, cfg.orbit_total_duration_s, exposure_s, cfg.readout_gap_s, frame_time_s, n_science_frames)
     return n_science_frames
-
-def _compute_slit_crossing(slit_width_arcsec: float, pixel_scale: float):
-    cfg = get_global_config()
-
-    crossing_time_s = slit_width_arcsec / cfg.sky_sweep_arcsec_per_s
-    smear_shift_pixels = slit_width_arcsec / pixel_scale
-    return crossing_time_s, smear_shift_pixels
 

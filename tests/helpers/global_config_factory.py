@@ -15,7 +15,6 @@ BASE_GLOBAL_CFG = {
     "orbit_revolutions": 1.0,
     "orbit_total_duration_s": 6000.0,  # 100 min * 60 s/min * 1 rev
     "readout_gap_s": 0.0,
-    "sky_sweep_arcsec_per_s": 216.0,  # 360 deg / (100 min * 60) * 3600 arcsec/deg
     "mg2_col": None,
     "mg1_col": None,
     "fe2_col": None,

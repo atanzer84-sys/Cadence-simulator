@@ -38,7 +38,6 @@ def test_spectroscopy_channel_init():
         slit_length_arcsec=slit_l,
         slit_half_width_arcsec=0.5 * slit_w,
         slit_half_length_arcsec=0.5 * slit_l,
-        crossing_time_s=1.0,
         smear_shift_pixels=10.0,
         slope=0.0,
         intercept_pixels=0.0,
