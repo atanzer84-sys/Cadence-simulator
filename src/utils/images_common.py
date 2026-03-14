@@ -39,7 +39,6 @@ STATS_KEYS = {
 _WIDTH_IN = 10.0
 _TEXT_H_IN = 0.7
 _GAP_IN = 0.8
-_NIR_LABEL_FONTSIZE = 15
 _TITLE_FONTSIZE = 11
 _STATS_FONTSIZE = 10
 _FIGURE_DPI = 100
@@ -140,7 +139,41 @@ def _calculate_percentile_scales(array: np.ndarray, low_pct: float = 1, high_pct
     return vmin, vmax
 
 
-def save_single_frame_png(array: np.ndarray, filename: Path, title: str, stats_text: str,  channel_name:str) -> None:
+def save_single_frame_png_NIR(array: np.ndarray, filename: Path, title: str, stats_text: str,  channel_name:str) -> None:
+    STATS_FONTSIZE_NIR = 13
+    TITLE_FONTSIZE_NIR = 18
+    GAP_IN_NIR = 0.35
+    TEXT_H_IN_NIR = 0.45
+    NIR_LABEL_FONTSIZE = 16
+
+    ny, nx = array.shape
+    img_h_in = max(2.0, _WIDTH_IN * (ny / nx))
+
+    fig = plt.figure(figsize=(_WIDTH_IN, img_h_in + GAP_IN_NIR + TEXT_H_IN_NIR))
+    gs = fig.add_gridspec(nrows=3, ncols=1, height_ratios=[img_h_in, GAP_IN_NIR, TEXT_H_IN_NIR], hspace=0)
+
+    ax = fig.add_subplot(gs[0, 0])
+    vmin, vmax = _calculate_percentile_scales(array)
+    ax.imshow(array, origin="lower", aspect="equal", cmap="gray", vmin=vmin, vmax=vmax)
+    ax.set_xlim(-0.5, nx - 0.5)
+    ax.set_ylim(-0.5, ny - 0.5)
+
+    ax.set_xlabel("pixels", labelpad=8, fontsize=NIR_LABEL_FONTSIZE)
+    ax.set_ylabel("pixels", labelpad=8, fontsize=NIR_LABEL_FONTSIZE)
+    ax.tick_params(axis="both", which="both", labelsize=NIR_LABEL_FONTSIZE)
+    ax.set_title(title, fontsize=TITLE_FONTSIZE_NIR, pad = 10)
+
+    ax_txt = fig.add_subplot(gs[2, 0])
+    ax_txt.axis("off")
+    ax_txt.text(0.5, 0.5, stats_text, ha="center", va="center", fontsize=STATS_FONTSIZE_NIR, transform=ax_txt.transAxes)
+
+    fig.tight_layout()
+    fig.savefig(filename, dpi=_FIGURE_DPI, bbox_inches=_BBOX_INCHES)
+    plt.close(fig)
+    logging.debug("Wrote %s", filename)
+
+
+def save_single_frame_png_NUV(array: np.ndarray, filename: Path, title: str, stats_text: str,  channel_name:str) -> None:
     
     ny, nx = array.shape
     img_h_in = max(2.0, _WIDTH_IN * (ny / nx))
@@ -154,10 +187,36 @@ def save_single_frame_png(array: np.ndarray, filename: Path, title: str, stats_t
     ax.set_xlim(-0.5, nx - 0.5)
     ax.set_ylim(-0.5, ny - 0.5)
 
-    label_fontsize = _NIR_LABEL_FONTSIZE if (channel_name == "NIR") else None
-    ax.set_xlabel("pixels", labelpad=8, fontsize=label_fontsize)
-    ax.set_ylabel("pixels", labelpad=8, fontsize=label_fontsize)
-    ax.tick_params(axis="both", which="both", labelsize=label_fontsize)
+    ax.set_xlabel("pixels", labelpad=8)
+    ax.set_ylabel("pixels", labelpad=8)
+    ax.set_title(title, fontsize=_TITLE_FONTSIZE, pad = 10)
+
+    ax_txt = fig.add_subplot(gs[2, 0])
+    ax_txt.axis("off")
+    ax_txt.text(0.5, 0.5, stats_text, ha="center", va="center", fontsize=_STATS_FONTSIZE, transform=ax_txt.transAxes)
+
+    fig.subplots_adjust(left=0.10, right=0.98, top=0.92, bottom=0.10)
+    fig.savefig(filename, dpi=_FIGURE_DPI, bbox_inches=_BBOX_INCHES)
+    plt.close(fig)
+    logging.debug("Wrote %s", filename)
+
+
+def save_single_frame_png_VIS(array: np.ndarray, filename: Path, title: str, stats_text: str,  channel_name:str) -> None:
+    
+    ny, nx = array.shape
+    img_h_in = max(2.0, _WIDTH_IN * (ny / nx))
+
+    fig = plt.figure(figsize=(_WIDTH_IN, img_h_in + _GAP_IN + _TEXT_H_IN))
+    gs = fig.add_gridspec(nrows=3, ncols=1, height_ratios=[img_h_in, _GAP_IN, _TEXT_H_IN], hspace=0)
+
+    ax = fig.add_subplot(gs[0, 0])
+    vmin, vmax = _calculate_percentile_scales(array)
+    ax.imshow(array, origin="lower", aspect="equal", cmap="gray", vmin=vmin, vmax=vmax)
+    ax.set_xlim(-0.5, nx - 0.5)
+    ax.set_ylim(-0.5, ny - 0.5)
+
+    ax.set_xlabel("pixels", labelpad=8)
+    ax.set_ylabel("pixels", labelpad=8)
     ax.set_title(title, fontsize=_TITLE_FONTSIZE)
 
     ax_txt = fig.add_subplot(gs[2, 0])
