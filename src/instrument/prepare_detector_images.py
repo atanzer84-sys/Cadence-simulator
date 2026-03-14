@@ -38,7 +38,7 @@ def prepare_detector_image_spectroscopy(photons: np.ndarray, wavelengths: np.nda
     spectra_2d = spread_target_star_spectrum_to_2d(counts_s_px_convolved, channel)
 
     logging.info("Detector image prepared: channel=%s mode=spectroscopy shape=%s", channel.channel_name, spectra_2d.shape)
-    ctx.plot_target_star_counts_vs_noise_spectroscopy(channel.effective_area_wavelength, spectra_2d.max(axis=0), channel, ctx, title="Target star peak pixel counts", filename_tag="target_star_counts_vs_noise")
+    ctx.plot_star_counts_vs_noise_spectroscopy(channel.effective_area_wavelength, spectra_2d.max(axis=0), channel, ctx, filename_tag="target_star_counts_vs_noise", star=star)
 
     return spectra_2d
 
@@ -50,7 +50,7 @@ def prepare_detector_image_photometry(flux: np.ndarray, wavelengths: np.ndarray,
     rate_image_e_s = spread_1d_photometry_to_2d(counts_s_px_nir, channel, ctx)
     logging.info("Detector image prepared: channel=%s mode=photometry shape=%s", channel.channel_name, rate_image_e_s.shape)
 
-    ctx.plot_target_star_counts_vs_noise_photometry(rate_image_e_s, channel, ctx, title="Target star peak pixel counts", filename_tag="target_star_counts_vs_noise")
+    ctx.plot_star_counts_vs_noise_photometry(rate_image_e_s, channel, ctx, filename_tag="target_star_counts_vs_noise", star=star)
     return rate_image_e_s
 
 def compute_counts_per_s_px_one_channel(photons_star: np.ndarray, wavelengths: np.ndarray, channel: Channel, ctx: RunContext, star: Star):

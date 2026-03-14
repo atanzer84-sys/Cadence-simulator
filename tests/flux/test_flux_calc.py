@@ -123,7 +123,7 @@ def test_calculateFluxOnEarth_no_optional_steps_called(monkeypatch, tmp_path):
         spectral_type="G",
         name="TEST",
     )
-    ctx = SimpleNamespace(output_dir=tmp_path, dump_3d_array=_noop, dump_1d_array=_noop, dump_1d_for_channel=_noop, plot_1d_for_channel=_noop, plot_flux_and_photons_windows=_noop, plot_background_star_counts=_noop)
+    ctx = SimpleNamespace(output_dir=tmp_path, dump_3d_array=_noop, dump_1d_array=_noop, dump_1d_for_channel=_noop, plot_1d_for_channel=_noop, plot_flux_and_photons_windows=_noop)
 
     calculateFluxOnEarth(star, ctx, 3400.0, 18000.0)
 
@@ -182,7 +182,7 @@ def test_calculateFluxOnEarth_optional_steps_called(monkeypatch, tmp_path):
         spectral_type="G",
         name="TEST",
     )
-    ctx = SimpleNamespace(output_dir=tmp_path, dump_3d_array=_noop, dump_1d_array=_noop, dump_1d_for_channel=_noop, plot_1d_for_channel=_noop, plot_flux_and_photons_windows=_noop, plot_background_star_counts=_noop)
+    ctx = SimpleNamespace(output_dir=tmp_path, dump_3d_array=_noop, dump_1d_array=_noop, dump_1d_for_channel=_noop, plot_1d_for_channel=_noop, plot_flux_and_photons_windows=_noop)
 
     calculateFluxOnEarth(star, ctx, 3400.0, 18000.0)
 
@@ -217,7 +217,7 @@ def test_calculateFluxOnEarth_returns_photons_and_wavelengths_same_length(monkey
         spectral_type="G",
         name="TEST",
     )
-    ctx = SimpleNamespace(output_dir=tmp_path, dump_3d_array=_noop, dump_1d_array=_noop, dump_1d_for_channel=_noop, plot_1d_for_channel=_noop, plot_flux_and_photons_windows=_noop, plot_background_star_counts=_noop)
+    ctx = SimpleNamespace(output_dir=tmp_path, dump_3d_array=_noop, dump_1d_array=_noop, dump_1d_for_channel=_noop, plot_1d_for_channel=_noop, plot_flux_and_photons_windows=_noop)
 
     photons, wavelengths = calculateFluxOnEarth(star, ctx, 3400.0, 18000.0)
 
@@ -263,7 +263,7 @@ def test_calculateFluxOnEarth_executes_write_intermediate_arrays_instrumentation
         spectral_type="G2V",
         mass=1.0,
     )
-    ctx = SimpleNamespace(output_dir=tmp_path, dump_3d_array=fake_dump_3d_array, dump_1d_array=_noop, dump_1d_for_channel=_noop, plot_1d_for_channel=_noop, plot_flux_and_photons_windows=_noop, plot_background_star_counts=_noop)
+    ctx = SimpleNamespace(output_dir=tmp_path, dump_3d_array=fake_dump_3d_array, dump_1d_array=_noop, dump_1d_for_channel=_noop, plot_1d_for_channel=_noop, plot_flux_and_photons_windows=_noop)
 
     calculateFluxOnEarth(star, ctx, 3400.0, 18000.0)
 

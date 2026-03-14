@@ -25,8 +25,6 @@ def build_science_images(stellar_signal, channel: Channel, ctx: RunContext, star
     cfg = get_global_config()
     header = initialize_fits_header(star, ctx.timestamp)
 
-    ctx.plot_background_star_counts(background_stars_catalog, channel, ctx)
-
     _generate_channel_calibration_frames(channel, header, ctx, star, cfg)
 
     _create_channel_images(stellar_signal, channel, ctx, cfg, star, background_stars_catalog, header)
