@@ -41,12 +41,13 @@ def _generate_channel_calibration_frames(channel: Channel, header, ctx: RunConte
     for i in range(n_calibration_frames):
         bias_frame = generate_bias_frame_with_index(channel, i, header)
         write_fits_frame(bias_frame, ctx, i)
-        ctx.write_calibration_frame_png(bias_frame.data, bias_frame.frame_type, ctx, channel, star=star, index=i, inverted=cfg.invert_calibration_science_frame_component)
+        ctx.write_calibration_frame_png(bias_frame.data, bias_frame.frame_type, channel, ctx, cfg, star=star, index=i)
 
 
         dark_frame = generate_dark_frame_with_index(channel, i, header)
         write_fits_frame(dark_frame, ctx, i)
-        ctx.write_calibration_frame_png(dark_frame.data, dark_frame.frame_type, ctx, channel, star=star, index=i, inverted=cfg.invert_calibration_science_frame_component)
+        ctx.write_calibration_frame_png(dark_frame.data, dark_frame.frame_type, channel, ctx, cfg, star=star, index=i)
+
 
 def _create_channel_images(stellar_signal, channel: Channel, ctx: RunContext, cfg: GlobalConfig, star: Star, background_stars_catalog: StarCatalog, base_header) -> None:
     print(f"\n==== STARTING SCIENCE IMAGE GENERATION ({channel.channel_name}) =====")
@@ -75,7 +76,7 @@ def _create_channel_images(stellar_signal, channel: Channel, ctx: RunContext, cf
 
         frame = Frame(data=img, header=header, frame_type="science", channel_tag=channel.channel_name)
         write_fits_frame(frame, ctx, frame_index)
-        ctx.write_science_frame_png(frame.data, frame.header, frame.frame_type, channel.channel_name, ctx, star=star, show_stats=True, index=frame_index, inverted=cfg.invert_science_frames)
+        ctx.write_science_frame_png(frame.data, channel, ctx, cfg, star=star, index=frame_index)
             
     logging.info("Science image generation finished: channel=%s frames=%d exposure_s=%g orbit_duration_s=%g", channel.channel_name, n_science_frames, exposure, orbit_duration_s)
 
@@ -106,31 +107,34 @@ def _build_science_image_without_bg_stars(target_star_component, background_comp
     bias = generate_bias_image(channel)
     image += bias
     if frame_index < 1:
-        ctx.write_science_frame_component_png(image, "SCIENCE_BIAS_ONLY", ctx, channel, star=star, index=frame_index, inverted=cfg.invert_calibration_science_frame_component)
+        ctx.write_science_frame_component_png(image, "SCIENCE_BIAS_ONLY", channel=channel, ctx=ctx, cfg=cfg, star=star, index=frame_index)
 
     dark = generate_dark_image(channel)
     image += dark
     if frame_index < 1:
-        ctx.write_science_frame_component_png(image, "SCIENCE_DARK_ONLY", ctx, channel, star=star, index=frame_index, inverted=cfg.invert_calibration_science_frame_component)
+        ctx.write_science_frame_component_png(image, "SCIENCE_DARK_ONLY", channel=channel, ctx=ctx, cfg=cfg, star=star, index=frame_index)
+
 
     image += target_star_component
     if frame_index < 1:
-        ctx.write_science_frame_component_png(target_star_component, "SCIENCE_SIGNAL_ONLY", ctx, channel, star=star, index=frame_index, inverted=cfg.invert_calibration_science_frame_component)
-        ctx.write_science_frame_component_png(image, "SCIENCE_SPECTRA", ctx, channel, star=star, index=frame_index, inverted=cfg.invert_calibration_science_frame_component)
+        ctx.write_science_frame_component_png(target_star_component, "SCIENCE_SIGNAL_ONLY", channel=channel, ctx=ctx, cfg=cfg, star=star, index=frame_index)
+        ctx.write_science_frame_component_png(image, "SCIENCE_SPECTRA", channel=channel, ctx=ctx, cfg=cfg, star=star, index=frame_index)
 
     photon_noise = apply_photon_noise_gauss_from_spectra2d(target_star_component, channel, ctx, star)
     image += photon_noise
     if frame_index < 1:
-        ctx.write_science_frame_component_png(photon_noise, "SCIENCE_PHOTON_NOISE_ONLY", ctx, channel, star=star, index=frame_index, inverted=cfg.invert_calibration_science_frame_component)
+        ctx.write_science_frame_component_png(photon_noise, "SCIENCE_PHOTON_NOISE_ONLY", channel=channel, ctx=ctx, cfg=cfg, star=star, index=frame_index)
+
 
     image += background_component
     if frame_index < 1:
-        ctx.write_science_frame_component_png(background_component, "SCIENCE_BACKGROUND_ONLY", ctx, channel, index=frame_index, inverted=cfg.invert_calibration_science_frame_component)
+        ctx.write_science_frame_component_png(background_component, "SCIENCE_BACKGROUND_ONLY", channel=channel, ctx=ctx, cfg=cfg, star=star, index=frame_index)
+
 
     cosmic = generate_cosmic_rays(ctx, channel, cfg, star)
     image += cosmic
     if frame_index < 1:
-        ctx.write_science_frame_component_png(cosmic, "SCIENCE_COSMIC_ONLY", ctx, channel, star=star, index=frame_index, inverted=cfg.invert_calibration_science_frame_component)
+        ctx.write_science_frame_component_png(cosmic, "SCIENCE_COSMIC_ONLY", channel=channel, ctx=ctx, cfg=cfg, star=star, index=frame_index)
 
     return image
 
