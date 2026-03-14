@@ -34,7 +34,7 @@ def _generate_channel_calibration_frames(channel: Channel, header, ctx: RunConte
     n_calibration_frames = cfg.n_calibration_frames
 
     logging.info("FITS generation starting (n_calibration_frames=%d)", n_calibration_frames)
-    print(f"\n==== STARTING FITS GENERATION ({channel.channel_name}) =====")
+    print(f"\n==== STARTING FITS CALIBRATION FRAME GENERATION ({channel.channel_name}) =====")
 
     if n_calibration_frames > 0:
         bias_frames = generate_bias_frames(channel, n_calibration_frames, header)
@@ -44,7 +44,7 @@ def _generate_channel_calibration_frames(channel: Channel, header, ctx: RunConte
         _write_fits_for_all(calibration_frame_list, ctx, phase="calibration frames")
 
         if cfg.write_calibration_frames_png:
-            _write_png_for_all(calibration_frame_list, ctx, star, phase="calibration-frames", inverted=cfg.invert_calibration_science_frame_component)
+            _write_png_for_all(calibration_frame_list, ctx, star, phase="calibration frames", inverted=cfg.invert_calibration_science_frame_component)
         
     else:
         logging.info("Calibration Frames: n_calibration_frames=%d -> skipped.", n_calibration_frames)
@@ -65,12 +65,10 @@ def _create_channel_images(stellar_signal, channel: Channel, ctx: RunContext, cf
         roll_angle_start = 360.0 * (time_s / orbit_duration_s)
         roll_angle_end = 360.0 * ((time_s + exposure) / orbit_duration_s)
 
-        print(f"science exposure image {frame_index + 1}/{n_science_frames} (roll_angle_start={roll_angle_start:.2f}°, roll_angle_end={roll_angle_end:.2f}°)")
-
         img = _create_per_exposure(stellar_component, background_component, channel, ctx, cfg, star, background_stars_catalog, frame_index, roll_angle_start, roll_angle_end)
 
         logging.info("SCIENCE: generating frame %d/%d for %s (%d x %d), exptime_s=%g.", frame_index + 1, n_science_frames, channel.channel_name, channel.x_pixels, channel.y_pixels, exposure)
-        print(f"Creating SCIENCE frame {frame_index + 1}/{n_science_frames} for channel {channel.channel_name}.")
+        print(f"Creating SCIENCE frame {frame_index + 1}/{n_science_frames} (roll_angle_start={roll_angle_start:.2f}°, roll_angle_end={roll_angle_end:.2f}°) for {channel.channel_name}.")
         
         header = append_base_frame_header(base_header, filetype="SCIENCE", channel=channel, index0=frame_index)
         append_image_stats_header(header, img)
@@ -79,9 +77,9 @@ def _create_channel_images(stellar_signal, channel: Channel, ctx: RunContext, cf
         frame = Frame(data=img, header=header, frame_type="science", channel_tag=channel.channel_name)
         science_list = [frame]
 
-        _write_fits_for_all([science_list], ctx, phase="science", start_index=frame_index)
+        _write_fits_for_all([science_list], ctx, phase="science", start_index=frame_index, announce_to_user=False)
         if cfg.write_science_frames_png:
-            _write_png_for_all([science_list], ctx, star, phase="science", inverted=cfg.invert_science_frames, start_index=frame_index)
+            _write_png_for_all([science_list], ctx, star, phase="science", inverted=cfg.invert_science_frames, start_index=frame_index, announce_to_user=False)
             
     logging.info("Science image generation finished: channel=%s frames=%d exposure_s=%g orbit_duration_s=%g", channel.channel_name, n_science_frames, exposure, orbit_duration_s)
 
@@ -144,10 +142,11 @@ def _build_science_image_without_bg_stars(target_star_component, background_comp
     return image
 
 
-def _write_fits_for_all(frame_lists, ctx: RunContext, *, phase: str = "", start_index: int = 0) -> None:
-    phase_str = f" for {phase} frames" if phase else ""
+def _write_fits_for_all(frame_lists, ctx: RunContext, *, phase: str = "", start_index: int = 0, announce_to_user: bool = True) -> None:
+    phase_str = f" for {phase}" if phase else ""
     logging.info("Creating FITS files%s", phase_str)
-    print(f"Creating FITS files{phase_str}")
+    if announce_to_user:
+        print(f"Creating FITS files{phase_str}")
     for frames in frame_lists:
         if not frames:
             continue
@@ -161,10 +160,11 @@ def _write_fits_for_all(frame_lists, ctx: RunContext, *, phase: str = "", start_
         write_fits_frames(frames=data_list, headers=header_list, frame_type=frame_type, channel_tag=channel_tag, ctx=ctx, start_index=start_index)
 
 
-def _write_png_for_all(frame_lists, ctx: RunContext, star: Star, phase: str = "", inverted: bool = False, start_index: int = 0) -> None:
-    phase_str = f" for {phase} frames" if phase else ""
+def _write_png_for_all(frame_lists, ctx: RunContext, star: Star, phase: str = "", inverted: bool = False, start_index: int = 0, announce_to_user: bool = True) -> None:
+    phase_str = f" for {phase}" if phase else ""
     logging.info("Creating PNG files%s", phase_str)
-    print(f"Creating PNG files{phase_str}")
+    if announce_to_user:
+        print(f"Creating PNG files{phase_str}")
     for frames in frame_lists:
     
         if not frames:

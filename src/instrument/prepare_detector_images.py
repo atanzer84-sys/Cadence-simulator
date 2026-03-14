@@ -32,7 +32,7 @@ def prepare_star_photon_flux_in_range(star: Star, ctx: RunContext, wl_min_A: flo
 
 def prepare_detector_image_spectroscopy(photons: np.ndarray, wavelengths: np.ndarray, channel: SpectroscopyChannel, ctx: RunContext, star: Star):
     logging.info("Starting convolution to instrument: channel=%s mode=spectroscopy", channel.channel_name)
-    print(f"\n==== STARTING CONVOLUTION TO INSTRUMENT ({channel.channel_name})=====")
+    print(f"\n==== STARTING CONVOLUTION TO INSTRUMENT ({channel.channel_name}) =====")
 
     counts_s_px_convolved = compute_counts_per_s_px_one_channel(photons, wavelengths, channel, ctx, star)
     spectra_2d = spread_target_star_spectrum_to_2d(counts_s_px_convolved, channel)
@@ -43,7 +43,7 @@ def prepare_detector_image_spectroscopy(photons: np.ndarray, wavelengths: np.nda
     return spectra_2d
 
 def prepare_detector_image_photometry(flux: np.ndarray, wavelengths: np.ndarray, channel: PhotometryChannel, ctx: RunContext, star: Star):
-    print(f"\n==== STARTING CONVOLUTION TO INSTRUMENT ({channel.channel_name})=====")
+    print(f"\n==== STARTING CONVOLUTION TO INSTRUMENT ({channel.channel_name}) =====")
     logging.info("PHOTOMETRY START: channel=%s star=%s", channel.channel_name, star.name)
 
     counts_s_px_nir = compute_counts_per_s_px_one_channel(flux, wavelengths, channel, ctx, star)

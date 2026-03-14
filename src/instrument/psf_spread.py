@@ -3,11 +3,11 @@ import numpy as np
 # import scipy.interpolate as si
 from configs.channel_config import PhotometryChannel
 from loaders.run_waltzer_context import RunContext
+from utils.helpers import announce
 
 
-def spread_1d_photometry_to_2d(counts_s_px_nir: np.ndarray, channel: PhotometryChannel, ctx: RunContext) -> np.ndarray:
-    print(f"Spreading 1D photometry counts to 2D detector image for channel {channel.channel_name}.")
-    logging.info("Spreading 1D photometry counts to 2D detector image for channel %s.", channel.channel_name)
+def spread_1d_photometry_to_2d(counts_s_px_nir: np.ndarray, channel: PhotometryChannel, ctx: RunContext, announce_user: bool = True) -> np.ndarray:
+    announce(f"Spreading 1D photometry counts to 2D detector image for channel {channel.channel_name}.", to_user=announce_user)
 
     if channel.source_position_x_arcsec != 0.0 or channel.source_position_y_arcsec != 0.0:
         raise NotImplementedError(
