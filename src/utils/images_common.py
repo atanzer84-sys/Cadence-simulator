@@ -4,8 +4,6 @@ import numpy as np
 from pathlib import Path
 import logging
 import matplotlib.pyplot as plt
-from pathlib import Path
-from domain.star import Star
 
 
 STATS_KEY_FORMAT = {
@@ -39,6 +37,11 @@ STATS_KEYS = {
 _WIDTH_IN = 10.0
 _TEXT_H_IN = 0.7
 _GAP_IN = 0.8
+_NIR_LABEL_FONTSIZE = 15
+_TITLE_FONTSIZE = 11
+_STATS_FONTSIZE = 10
+_FIGURE_DPI = 200
+_BBOX_INCHES = "tight"
 
 
 def format_star_metadata(star: Star | None) -> str:
@@ -77,7 +80,6 @@ def build_stats_row(array: np.ndarray, channel: Channel, frame_type: str) -> tup
     }
     return stats_values, stats_keys
 
-
 def build_png_filename(output_dir: Path, target_name: str, channel_tag: str, frame_type: str, index: int | None = None, *, waltzer_prefix: bool = True) -> Path:
     safe = normalize_target_name(target_name)
     prefix = "WALTzER_" if waltzer_prefix else ""
@@ -114,7 +116,20 @@ def format_stats_text(values: dict, keys: list[str], *, use_scientific_for_small
     return "".join(parts)
 
 
-def save_single_frame_png(array: np.ndarray, filename: Path, title: str, stats_text: str | None = None, axis_label_fontsize: int | None = None, tick_label_fontsize: int | None = None) -> None:
+def _calculate_percentile_scales(array: np.ndarray, low_pct: float = 1, high_pct: float = 99.9) -> tuple[float, float]:
+    """Robust (vmin, vmax) for image display: percentiles with fallback for non-finite or flat arrays."""
+    vmin = float(np.percentile(array, low_pct))
+    vmax = float(np.percentile(array, high_pct))
+    if (not np.isfinite(vmin)) or (not np.isfinite(vmax)) or (vmax <= vmin):
+        vmin = float(np.min(array))
+        vmax = float(np.max(array))
+        if vmax <= vmin:
+            vmax = vmin + 1.0
+    return vmin, vmax
+
+
+def save_single_frame_png(array: np.ndarray, filename: Path, title: str, stats_text: str,  channel_name:str) -> None:
+    
     ny, nx = array.shape
     img_h_in = max(2.0, _WIDTH_IN * (ny / nx))
 
@@ -122,32 +137,21 @@ def save_single_frame_png(array: np.ndarray, filename: Path, title: str, stats_t
     gs = fig.add_gridspec(nrows=3, ncols=1, height_ratios=[img_h_in, _GAP_IN, _TEXT_H_IN], hspace=0)
 
     ax = fig.add_subplot(gs[0, 0])
-    vmin = np.percentile(array, 1)
-    vmax = np.percentile(array, 99.9)
-    # Fallback for sparse/flat images: scaling bounds can collapse
-    if (not np.isfinite(vmin)) or (not np.isfinite(vmax)) or (vmax <= vmin):
-        vmin = float(np.min(array))
-        vmax = float(np.max(array))
-        if vmax <= vmin:
-            vmax = vmin + 1.0
+    vmin, vmax = _calculate_percentile_scales(array)
     ax.imshow(array, origin="lower", aspect="equal", cmap="gray", vmin=vmin, vmax=vmax)
     ax.set_xlim(-0.5, nx - 0.5)
     ax.set_ylim(-0.5, ny - 0.5)
-    if axis_label_fontsize is None:
-        ax.set_xlabel("pixels", labelpad=8)
-        ax.set_ylabel("pixels", labelpad=8)
-    else:
-        ax.set_xlabel("pixels", labelpad=8, fontsize=axis_label_fontsize)
-        ax.set_ylabel("pixels", labelpad=8, fontsize=axis_label_fontsize)
-    if tick_label_fontsize is not None:
-        ax.tick_params(axis="both", which="both", labelsize=tick_label_fontsize)
-    ax.set_title(title, fontsize=11)
+
+    label_fontsize = _NIR_LABEL_FONTSIZE if (channel_name == "NIR") else None
+    ax.set_xlabel("pixels", labelpad=8, fontsize=label_fontsize)
+    ax.set_ylabel("pixels", labelpad=8, fontsize=label_fontsize)
+    ax.tick_params(axis="both", which="both", labelsize=label_fontsize)
+    ax.set_title(title, fontsize=_TITLE_FONTSIZE)
 
     ax_txt = fig.add_subplot(gs[2, 0])
     ax_txt.axis("off")
-    if stats_text:
-        ax_txt.text(0.5, 0.5, stats_text, ha="center", va="center", fontsize=10, transform=ax_txt.transAxes)
+    ax_txt.text(0.5, 0.5, stats_text, ha="center", va="center", fontsize=_STATS_FONTSIZE, transform=ax_txt.transAxes)
 
-    fig.savefig(filename, dpi=200, bbox_inches="tight")
+    fig.savefig(filename, dpi=_FIGURE_DPI, bbox_inches=_BBOX_INCHES)
     plt.close(fig)
     logging.debug("Wrote %s", filename)

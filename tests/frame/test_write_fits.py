@@ -21,7 +21,6 @@ def _frame(data, header, frame_type, channel_tag):
 
 def test_write_fits_empty_frames_returns_without_creating_files(tmp_path):
     """No frames written when none are passed (no call to write_fits_frame)."""
-    ctx = _ctx(tmp_path)
     # API is single-frame; "empty" means we never call write_fits_frame
     assert list(tmp_path.glob("*.fits")) == []
 

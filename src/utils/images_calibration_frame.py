@@ -13,8 +13,6 @@ def write_calibration_frame_png(detector_data, frame_type: str, channel: Channel
     logging.info("PNG calibration: channel=%s frame_type=%s index=%s", channel_name, frame_type, index)
 
     title = format_frame_title(ctx.target_name, channel_name, frame_type, star)
-    axis_label_fontsize = 15 if str(channel_name).upper() == "NIR" else None
-    tick_label_fontsize = 15 if str(channel_name).upper() == "NIR" else None
 
     frame_to_plot = (detector_data.max() - detector_data) if inverted else detector_data
 
@@ -22,5 +20,5 @@ def write_calibration_frame_png(detector_data, frame_type: str, channel: Channel
     stats_text = format_stats_text(stats_values, stats_keys) if (stats_values and stats_keys) else None
     filename = build_png_filename(ctx.output_dir, star.name, channel_name, frame_type, index, waltzer_prefix=False)
 
-    save_single_frame_png(frame_to_plot, filename, title, stats_text, axis_label_fontsize=axis_label_fontsize, tick_label_fontsize=tick_label_fontsize)
+    save_single_frame_png(frame_to_plot, filename, title, stats_text, channel_name=channel_name)
 
