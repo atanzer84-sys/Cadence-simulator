@@ -38,15 +38,15 @@ def compute_background_stars_counts(background_stars_catalog: StarCatalog, nuv: 
 
             if isinstance(channel, SpectroscopyChannel):
                 background_stars_catalog.counts_by_id_and_band[key] = counts_s_px.astype(np.float32)
-                _plot_background_star_visibility_spectroscopy(star_id, channel, counts_s_px, ctx, star=bg_star)
+                _plot_background_star_visibility_spectroscopy(channel, counts_s_px, ctx, star=bg_star)
 
             else:
                 background_stars_catalog.counts_by_id_and_band[key] = float(np.sum(counts_s_px))
-                _plot_background_star_visibility_photometry(star_id, channel, counts_s_px, ctx, star=bg_star)
+                _plot_background_star_visibility_photometry(channel, counts_s_px, ctx, star=bg_star)
 
     return background_stars_catalog  
 
-def _plot_background_star_visibility_spectroscopy(star_id: str, channel: SpectroscopyChannel, counts_s_px: np.ndarray, ctx: RunContext, *, star: Star | None = None) -> None:
+def _plot_background_star_visibility_spectroscopy(channel: SpectroscopyChannel, counts_s_px: np.ndarray, ctx: RunContext, star: Star | None = None) -> None:
     x0 = channel.x_pixels // 2
     y0 = channel.y_pixels // 2
     slope = 0.0
@@ -54,7 +54,7 @@ def _plot_background_star_visibility_spectroscopy(star_id: str, channel: Spectro
     detector_image = spread_1d_spectrum_to_2d(counts_s_px, channel, x0, y0, slope, intercept, announce_user=False)
     ctx.plot_star_counts_vs_noise_spectroscopy(channel.effective_area_wavelength, detector_image.max(axis=0), channel, ctx, star)
 
-def _plot_background_star_visibility_photometry(star_id: str, channel: PhotometryChannel, counts_s_px: np.ndarray, ctx: RunContext, *, star: Star | None = None) -> None:
+def _plot_background_star_visibility_photometry(channel: PhotometryChannel, counts_s_px: np.ndarray, ctx: RunContext, star: Star | None = None) -> None:
     detector_image = spread_1d_photometry_to_2d(counts_s_px, channel, ctx, announce_user=False)
     ctx.plot_star_counts_vs_noise_photometry(detector_image, channel, ctx, star)
     # TODO!!
