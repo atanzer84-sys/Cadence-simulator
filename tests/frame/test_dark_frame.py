@@ -1,7 +1,7 @@
 import numpy as np
 from astropy.io import fits
 from frame.bias_frame import generate_bias_frame
-from frame.dark_frame import generate_dark_frame, generate_dark_frames
+from frame.dark_frame import generate_dark_frame, generate_dark_frame_with_index
 from frame.frame_class import Frame
 
 
@@ -57,10 +57,10 @@ def test_dark_frame_mean_exceeds_bias_mean(channel_cfg):
 
 
 def test_generate_dark_frames_multiple(channel_cfg, base_header):
-    """generate_dark_frames creates the correct number of frames; each header has FILETYPE, CHANNEL, EXP_ID, OBS_ID."""
+    """generate_dark_frame_with_index creates the correct number of frames; each header has FILETYPE, CHANNEL, EXP_ID, OBS_ID."""
     np.random.seed(0)
 
-    frames = generate_dark_frames(channel_cfg, 3, base_header)
+    frames = [generate_dark_frame_with_index(channel_cfg, i, base_header) for i in range(3)]
 
     assert len(frames) == 3
     for frame in frames:
@@ -78,7 +78,7 @@ def test_two_dark_frames_have_different_statistics(channel_cfg, base_header):
     """Two independently generated dark frames have different mean/std, confirming noise is applied."""
     np.random.seed(42)
 
-    frames = generate_dark_frames(channel_cfg, 2, base_header)
+    frames = [generate_dark_frame_with_index(channel_cfg, i, base_header) for i in range(2)]
 
     mean1, mean2 = frames[0].data.mean(), frames[1].data.mean()
     std1, std2 = frames[0].data.std(), frames[1].data.std()

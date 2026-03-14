@@ -1,6 +1,6 @@
 import numpy as np
 from astropy.io import fits
-from frame.bias_frame import generate_bias_frame, generate_bias_frames
+from frame.bias_frame import generate_bias_frame, generate_bias_frame_with_index
 from frame.frame_class import Frame
 
 
@@ -35,11 +35,11 @@ def test_generate_bias_frame_header_fields(channel_cfg):
         assert key in keys
 
 def test_generate_bias_frames_multiple(channel_cfg, base_header):
-    # This test verifies that generate_bias_frames creates the correct number
+    # This test verifies that generate_bias_frame_with_index creates the correct number
     # of frames and headers, and that each header contains FILETYPE and CHANNEL.
     np.random.seed(0)
 
-    frames = generate_bias_frames(channel_cfg, n_frames=3, base_header=base_header)
+    frames = [generate_bias_frame_with_index(channel_cfg, i, base_header) for i in range(3)]
 
     assert len(frames) == 3
 
@@ -57,7 +57,7 @@ def test_two_bias_frames_have_different_statistics(channel_cfg, base_header):
     # have different mean and std values, confirming that noise is applied.
     np.random.seed(42)
 
-    frames = generate_bias_frames(channel_cfg, n_frames=2, base_header=base_header)
+    frames = [generate_bias_frame_with_index(channel_cfg, i, base_header) for i in range(2)]
 
     mean1, mean2 = frames[0].data.mean(), frames[1].data.mean()
     std1, std2 = frames[0].data.std(), frames[1].data.std()
