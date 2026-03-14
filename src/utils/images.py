@@ -91,7 +91,7 @@ def write_calibration_frame_png(array, frame_type: str, ctx: RunContext, channel
     _write_one_frame_png(array, ctx.output_dir, ctx.target_name, channel.channel_name, frame_type, title, stats_values, stats_keys, index=index, waltzer_prefix=False)
 
 
-def write_science_frames_png(frames, headers, frame_type, channel_tag, ctx: RunContext, star: Star, show_stats=False, inverted=False):
+def write_science_frames_png(frames, headers, frame_type, channel_tag, ctx: RunContext, star: Star, show_stats=False, inverted=False, start_index: int = 0):
 
     n_frames = len(frames)
     logging.info("PNG writing started: channel=%s frame_type=%s frames=%d", channel_tag, frame_type, n_frames)
@@ -104,7 +104,7 @@ def write_science_frames_png(frames, headers, frame_type, channel_tag, ctx: RunC
     axis_label_fontsize = 15 if str(channel_tag).upper() == "NIR" else None
     tick_label_fontsize = 15 if str(channel_tag).upper() == "NIR" else None
 
-    for k, (frame, header) in enumerate(zip(frames, headers)):
+    for k, (frame, header) in enumerate(zip(frames, headers), start=start_index):
         if inverted:
             frame_to_plot = frame.max() - frame
         else:

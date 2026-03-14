@@ -48,6 +48,7 @@ def _generate_channel_calibration_frames(channel: Channel, header, ctx: RunConte
 
         if cfg.write_calibration_frames_png:
             _write_png_for_all(calibration_frame_list, ctx, star, phase="calibration-frames", inverted=cfg.invert_calibration_frames)
+        
     else:
         logging.info("Calibration Frames: n_calibration_frames=%d -> skipped.", n_calibration_frames)
 
@@ -80,10 +81,11 @@ def _create_channel_images(stellar_signal, channel: Channel, ctx: RunContext, cf
 
         frame = Frame(data=img, header=header, frame_type="science", channel_tag=channel.channel_name)
         science_list = [frame]
-        _write_fits_for_all([science_list], ctx, phase="science")
-        if cfg.write_science_frames_png:
-            _write_png_for_all([science_list], ctx, star, phase="science", inverted=cfg.invert_science_frames)
 
+        _write_fits_for_all([science_list], ctx, phase="science", start_index=frame_index)
+        if cfg.write_science_frames_png:
+            _write_png_for_all([science_list], ctx, star, phase="science", inverted=cfg.invert_science_frames, start_index=frame_index)
+            
     logging.info("Science image generation finished: channel=%s frames=%d exposure_s=%g orbit_duration_s=%g", channel.channel_name, n_science_frames, exposure, orbit_duration_s)
 
 
@@ -145,7 +147,7 @@ def _build_science_image_without_bg_stars(target_star_component, background_comp
     return image
 
 
-def _write_fits_for_all(frame_lists, ctx: RunContext, *, phase: str = "") -> None:
+def _write_fits_for_all(frame_lists, ctx: RunContext, *, phase: str = "", start_index: int = 0) -> None:
     phase_str = f" for {phase} frames" if phase else ""
     logging.info("Creating FITS files%s", phase_str)
     print(f"Creating FITS files{phase_str}")
@@ -159,14 +161,15 @@ def _write_fits_for_all(frame_lists, ctx: RunContext, *, phase: str = "") -> Non
         data_list = [frame.data for frame in frames]
         header_list = [frame.header for frame in frames]
 
-        write_fits_frames(frames=data_list, headers=header_list, frame_type=frame_type, channel_tag=channel_tag, ctx=ctx)
+        write_fits_frames(frames=data_list, headers=header_list, frame_type=frame_type, channel_tag=channel_tag, ctx=ctx, start_index=start_index)
 
 
-def _write_png_for_all(frame_lists, ctx: RunContext, star: Star, phase: str = "", inverted: bool = False) -> None:
+def _write_png_for_all(frame_lists, ctx: RunContext, star: Star, phase: str = "", inverted: bool = False, start_index: int = 0) -> None:
     phase_str = f" for {phase} frames" if phase else ""
     logging.info("Creating PNG files%s", phase_str)
     print(f"Creating PNG files{phase_str}")
     for frames in frame_lists:
+    
         if not frames:
             continue
         
@@ -176,6 +179,5 @@ def _write_png_for_all(frame_lists, ctx: RunContext, star: Star, phase: str = ""
         data_list = [f.data for f in frames]
         header_list = [f.header for f in frames]
 
-        write_science_frames_png(frames=data_list, headers=header_list, frame_type=frame_type, channel_tag=channel_tag, ctx=ctx, star=star, show_stats=True, inverted=inverted)
-
+        write_science_frames_png(frames=data_list, headers=header_list, frame_type=frame_type, channel_tag=channel_tag, ctx=ctx, star=star, show_stats=True, inverted=inverted, start_index=start_index)
 
