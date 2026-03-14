@@ -5,7 +5,6 @@ from loaders.run_waltzer_context import initialize_waltzer_runtime_context
 from loaders.load_stellar_and_planetary_properties import load_stellar_and_planetary_properties
 from domain.star import Star
 from domain.planet import Planet
-from frame.frame_pipeline import generate_frames
 from instrument.prepare_detector_images import prepare_star_photon_flux_for_channels, prepare_detector_image_spectroscopy, prepare_detector_image_photometry
 from instrument.science_image import build_science_images
 from instrument.compute_background_stars_counts import compute_background_stars_counts

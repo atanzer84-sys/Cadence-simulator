@@ -30,7 +30,8 @@ class GlobalConfig:
     
     n_calibration_frames: int
     write_calibration_frames_png: bool
-    invert_calibration_frames: bool
+    write_science_frame_component_png: bool
+    invert_calibration_science_frame_component: bool
     invert_science_frames : bool
     write_science_frames_png: bool
     write_background_star_science_frames_png: bool
@@ -53,7 +54,7 @@ class GlobalConfig:
 
     write_intermediate_arrays: bool
     produce_flux_convolution_plots: bool
-    produce_background_star_counts_plot: bool
+    produce_target_background_star_noise_vs_counts_plot: bool
 
 _GLOBAL: GlobalConfig | None = None
 
@@ -108,7 +109,8 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
 
     n_calibration_frames = as_int(raw.get("n_calibration_frames", 0), key="n_calibration_frames")
     write_calibration_frames_png = as_bool(raw.get("write_calibration_frames_png", 0), key="write_calibration_frames_png")
-    invert_calibration_frames = as_bool(raw.get("invert_calibration_frames", 0), key="invert_calibration_frames")
+    write_science_frame_component_png = as_bool(raw.get("write_science_frame_component_png", 0), key="write_science_frame_component_png")
+    invert_calibration_science_frame_component = as_bool(raw.get("invert_calibration_science_frame_component", 0), key="invert_calibration_science_frame_component")
     invert_science_frames = as_bool(raw.get("invert_science_frames", 0), key="invert_science_frames")
     write_science_frames_png = as_bool(raw.get("write_science_frames_png", 0), key="write_science_frames_png")
     write_background_star_science_frames_png = as_bool(raw.get("write_background_star_science_frames_png", 0), key="write_background_star_science_frames_png")
@@ -131,7 +133,7 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
 
     write_intermediate_arrays = as_bool(raw.get("write_intermediate_arrays", 0), key="write_intermediate_arrays")
     produce_flux_convolution_plots = as_bool(raw.get("produce_flux_convolution_plots", raw.get("produce_flux_convolution_plots", 0)), key="produce_flux_convolution_plots")
-    produce_background_star_counts_plot = as_bool(raw.get("produce_background_star_counts_plot", 0), key="produce_background_star_counts_plot")
+    produce_target_background_star_noise_vs_counts_plot = as_bool(raw.get("produce_target_background_star_noise_vs_counts_plot", 0), key="produce_target_background_star_noise_vs_counts_plot")
 
     _ensure_at_least_one_channel_enabled(run_vis, run_nuv, run_nir)
     _ensure_non_negative(orbit_duration_minutes, key="orbit_duration_minutes")
@@ -170,9 +172,10 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
         log_r_hot_value=log_r_hot_value,
         log_r_cool_value=log_r_cool_value,
         n_calibration_frames=n_calibration_frames,
-        invert_calibration_frames=invert_calibration_frames,
+        invert_calibration_science_frame_component=invert_calibration_science_frame_component,
         invert_science_frames=invert_science_frames,
         write_calibration_frames_png=write_calibration_frames_png,
+        write_science_frame_component_png=write_science_frame_component_png,
         write_science_frames_png=write_science_frames_png,
         write_background_star_science_frames_png=write_background_star_science_frames_png,
         cosmic_rays_min=cosmic_rays_min,
@@ -190,7 +193,7 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
         zod_spectrum_file=zod_spectrum_file,
         write_intermediate_arrays=write_intermediate_arrays,
         produce_flux_convolution_plots=produce_flux_convolution_plots,
-        produce_background_star_counts_plot=produce_background_star_counts_plot,
+        produce_target_background_star_noise_vs_counts_plot=produce_target_background_star_noise_vs_counts_plot,
     )
 
     logging.info("Global config loaded: %s", cfg)

@@ -47,7 +47,7 @@ _GAP_IN = 0.8
 
 
 
-def generate_background_star_visibility_on_science_frame(merged_image: np.ndarray, spectra_bgstars_image: np.ndarray, frame_type: str, ctx: RunContext, channel: Channel, show_stats: bool = True, star: Star | None = None, index: int | None = None, background_star_bands: dict[str, dict[str, float]] | None = None, background_star_arcs: dict[str, list[tuple[int, int]]] | None = None) -> None:
+def generate_background_star_visibility_on_science_frame(merged_image: np.ndarray, spectra_bgstars_image: np.ndarray, frame_type: str, ctx: RunContext, channel: Channel, show_stats: bool = True, star: Star | None = None, index: int | None = None, background_star_bands: dict[str, dict[str, float]] | None = None, background_star_arcs: dict[str, list[tuple[int, int]]] | None = None, inverted: bool = False) -> None:
 
     title, per_panel_stats, layout = _build_background_visibility_context(merged_image, spectra_bgstars_image, frame_type, ctx, channel, show_stats, star)
     filename = _build_png_filename(ctx.output_dir, ctx.target_name, channel.channel_name, f"{frame_type}_PANEL", index=index, waltzer_prefix=True)
@@ -56,15 +56,19 @@ def generate_background_star_visibility_on_science_frame(merged_image: np.ndarra
     gs = fig.add_gridspec(nrows=11, ncols=1, height_ratios=layout["height_ratios"], hspace=0.0)
     stats_fontsize = 9
 
-    merged_vmin, merged_vmax = _compute_display_range(merged_image)
+    merged_display = (merged_image.max() - merged_image) if inverted else merged_image
+    merged_vmin, merged_vmax = _compute_display_range(merged_display)
     bg_arr_display, bg_vmin, bg_vmax = _compute_bg_display_range(spectra_bgstars_image)
+    if inverted:
+        bg_arr_display = bg_arr_display.max() - bg_arr_display
+        bg_vmin, bg_vmax = _compute_display_range(bg_arr_display)
 
     # mask_dilated, overlay, has_bg, use_band_overlay = _compute_bg_mask_overlay(spectra_bgstars_image, background_star_bands)
     mask_dilated, overlay, has_bg, use_band_overlay = _compute_bg_mask_overlay(spectra_bgstars_image, channel, background_star_bands, background_star_arcs)
     # Panel 1 : Science
 
     ax1 = fig.add_subplot(gs[0, 0])
-    ax1.imshow(merged_image, origin="lower", aspect="equal", cmap="gray", vmin=merged_vmin, vmax=merged_vmax)
+    ax1.imshow(merged_display, origin="lower", aspect="equal", cmap="gray", vmin=merged_vmin, vmax=merged_vmax)
     _style_detector_panel_axis(ax1, nx, ny, "Science Frame")
 
     # Panel 2 : Background Stars
@@ -74,7 +78,7 @@ def generate_background_star_visibility_on_science_frame(merged_image: np.ndarra
 
     # Panel 3 : Science + Background Stars
     # _science_frame_overlay_background_star_axis(fig, gs, merged_image, merged_vmin, merged_vmax, use_band_overlay, background_star_bands, ny, nx, mask_dilated, overlay)
-    _science_frame_overlay_background_star_axis(fig, gs, merged_image, merged_vmin, merged_vmax, use_band_overlay, background_star_bands, background_star_arcs, ny, nx, mask_dilated, overlay)
+    _science_frame_overlay_background_star_axis(fig, gs, merged_display, merged_vmin, merged_vmax, use_band_overlay, background_star_bands, background_star_arcs, ny, nx, mask_dilated, overlay)
     _render_panel_stats_rows(fig, gs, per_panel_stats, stats_fontsize)
 
     fig.suptitle(title, fontsize=12, y=0.90)
@@ -83,12 +87,13 @@ def generate_background_star_visibility_on_science_frame(merged_image: np.ndarra
     logging.debug("Wrote %s", filename)
 
 
-def write_calibration_frame_png(array, frame_type: str, ctx: RunContext, channel: Channel, show_stats: bool = True, star: Star | None = None, index: int | None = None) -> None:
+def write_calibration_frame_png(array, frame_type: str, ctx: RunContext, channel: Channel, show_stats: bool = True, star: Star | None = None, index: int | None = None, inverted: bool = False) -> None:
     """Write 2D array as PNG. Uses percentile scaling (1–99.9) like write_science_frames_png. Optional index for multi-frame output (e.g. frame_00042.png)."""
     logging.info("write_calibration_frame_png called | frame_type=%s | channel=%s | shape=%s | index=%s", frame_type, channel.channel_name, array.shape, index)
 
+    frame_to_plot = (array.max() - array) if inverted else array
     title, stats_values, stats_keys = _build_image_write_context(array, frame_type, ctx, channel, show_stats, star)
-    _write_one_frame_png(array, ctx.output_dir, ctx.target_name, channel.channel_name, frame_type, title, stats_values, stats_keys, index=index, waltzer_prefix=False)
+    _write_one_frame_png(frame_to_plot, ctx.output_dir, ctx.target_name, channel.channel_name, frame_type, title, stats_values, stats_keys, index=index, waltzer_prefix=False)
 
 
 def write_science_frames_png(frames, headers, frame_type, channel_tag, ctx: RunContext, star: Star, show_stats=False, inverted=False, start_index: int = 0):

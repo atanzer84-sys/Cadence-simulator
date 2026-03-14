@@ -33,7 +33,7 @@ def generate_frames(nuv_images, vis_images, nir_images, nuv: SpectroscopyChannel
         _write_fits_for_all(calibration_frame_list, ctx, phase="calibration frames")
 
         if global_cfg.write_calibration_frames_png:
-            _write_png_for_all(calibration_frame_list, ctx, star, phase="calibration-frames", inverted=global_cfg.invert_calibration_frames)
+            _write_png_for_all(calibration_frame_list, ctx, star, phase="calibration-frames", inverted=global_cfg.invert_calibration_science_frame_component)
     else:
         logging.info("Calibration Frames: n_calibration_frames=%d \u2192 skipped.", n_calibration_frames)
 

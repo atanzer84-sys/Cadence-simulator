@@ -26,9 +26,10 @@ BASE_GLOBAL_CFG = {
     "log_r_hot_value": 0.0,
     "log_r_cool_value": 0.0,
     "n_calibration_frames": 0,
-    "invert_calibration_frames": False,
+    "invert_calibration_science_frame_component": False,
     "invert_science_frames": False,
     "write_calibration_frames_png": False,
+    "write_science_frame_component_png": False,
     "write_science_frames_png": False,
     "write_background_star_science_frames_png": False,
     "cosmic_rays_min": 0,
@@ -45,7 +46,7 @@ BASE_GLOBAL_CFG = {
     "zod_spectrum_file": None,
     "write_intermediate_arrays": False,
     "produce_flux_convolution_plots": False,
-    "produce_background_star_counts_plot": False,
+    "produce_target_background_star_noise_vs_counts_plot": False,
     "gaia_conesearch_radius_arcsec": 500.0,
 }
 

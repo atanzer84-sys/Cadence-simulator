@@ -28,13 +28,17 @@ def initialize_waltzer_runtime_context():
     cfg = get_global_config()
     from utils import images
     from utils import flux_image_array
+    from utils import target_background_star_vs_noise
     dump_3d_array = _select(cfg.write_intermediate_arrays, debug_dumps.dump_3d_array)
     dump_1d_array = _select(cfg.write_intermediate_arrays, debug_dumps.dump_1d_array)
     dump_1d_for_channel = _select(cfg.write_intermediate_arrays, debug_dumps.dump_1d_for_channel)
     plot_1d_for_channel = _select(cfg.produce_flux_convolution_plots, flux_image_array.plot_1d_for_channel)
     plot_flux_and_photons_windows = _select(cfg.produce_flux_convolution_plots, flux_image_array.plot_flux_and_photons_windows)
-    plot_background_star_counts = _select(cfg.produce_background_star_counts_plot, flux_image_array.plot_background_star_counts)
-    write_calibration_frame_png = _select(cfg.write_calibration_frames_png, images.write_calibration_frame_png)
+    plot_target_star_counts_vs_noise_spectroscopy = _select(cfg.produce_target_background_star_noise_vs_counts_plot, target_background_star_vs_noise.plot_target_star_counts_vs_noise_spectroscopy)
+    plot_target_star_counts_vs_noise_photometry = _select(cfg.produce_target_background_star_noise_vs_counts_plot, target_background_star_vs_noise.plot_target_star_counts_vs_noise_photometry)
+    plot_background_star_counts = _select(cfg.produce_target_background_star_noise_vs_counts_plot, target_background_star_vs_noise.plot_background_star_counts)
+    write_calibration_frames_png = _select(cfg.write_calibration_frames_png, images.write_calibration_frame_png)
+    write_science_frame_component_png = _select(cfg.write_science_frame_component_png, images.write_calibration_frame_png)
     generate_background_star_visibility_on_science_frame = _select(cfg.write_background_star_science_frames_png, images.generate_background_star_visibility_on_science_frame)
 
     run_ctx = RunContext(
@@ -47,11 +51,14 @@ def initialize_waltzer_runtime_context():
         dump_1d_for_channel=dump_1d_for_channel,
         plot_1d_for_channel=plot_1d_for_channel,
         plot_flux_and_photons_windows=plot_flux_and_photons_windows,
+        plot_target_star_counts_vs_noise_spectroscopy=plot_target_star_counts_vs_noise_spectroscopy,
+        plot_target_star_counts_vs_noise_photometry=plot_target_star_counts_vs_noise_photometry,
         plot_background_star_counts=plot_background_star_counts,
-        write_calibration_frame_png=write_calibration_frame_png,
+        write_calibration_frames_png=write_calibration_frames_png,
+        write_science_frame_component_png=write_science_frame_component_png,
         generate_background_star_visibility_on_science_frame=generate_background_star_visibility_on_science_frame,
     )
-    logging.info("RunContext initialized: target=%s output_dir=%s write_intermediate_arrays=%s produce_flux_convolution_plots=%s write_calibration_frame_png=%s write_background_star_science_frames_png=%s", run_ctx.target_name, run_ctx.output_dir, cfg.write_intermediate_arrays, cfg.produce_flux_convolution_plots, cfg.write_calibration_frames_png, cfg.write_background_star_science_frames_png)
+    logging.info("RunContext initialized: target=%s output_dir=%s write_intermediate_arrays=%s produce_flux_convolution_plots=%s write_calibration_frame_png=%s write_science_frame_component_png=%s write_background_star_science_frames_png=%s", run_ctx.target_name, run_ctx.output_dir, cfg.write_intermediate_arrays, cfg.produce_flux_convolution_plots, cfg.write_calibration_frames_png, cfg.write_science_frame_component_png, cfg.write_background_star_science_frames_png)
     return run_ctx, user_cfg
 
 def load_global_and_user_config():
