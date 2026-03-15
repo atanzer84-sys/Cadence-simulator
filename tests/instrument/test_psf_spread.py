@@ -192,17 +192,10 @@ def test_compute_aperture_photometry_non_photometry_channel_returns_none():
 
 def test_compute_aperture_photometry_empty_annulus_returns_none():
     """When annulus has zero pixels (e.g. image too small or source off-frame), returns None."""
-    # Small image and PSF-sized circle/annulus so annulus can fall outside image
-    ch = photometry_channel(x_pixels=5, y_pixels=5, psf_shape=(3, 3))
-    image = np.zeros((5, 5))
-    # Center at (2,2); circle radius = 2*max(3,3)/2 = 3; annulus 3--6. Much of annulus outside 5x5
-    result = compute_aperture_photometry(image, ch)
-    # May be None if no annulus pixels, or a value; with 5x5 and inner R=3, annulus is thin and might be empty
-    # Use a tiny image so annulus is guaranteed empty
     tiny = np.zeros((2, 2))
     ch_tiny = photometry_channel(x_pixels=2, y_pixels=2, psf_shape=(2, 2))
-    result_tiny = compute_aperture_photometry(tiny, ch_tiny)
-    assert result_tiny is None
+    result = compute_aperture_photometry(tiny, ch_tiny)
+    assert result is None
 
 
 def test_compute_aperture_photometry_returns_five_tuple():
