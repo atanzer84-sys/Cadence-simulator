@@ -154,14 +154,14 @@ def map_to_planet_or_star_dictionary(planet_star_dictionary: PlanetStarDict, map
             canonical = reverse_planets[h]
             if canonical in planet_params:
                 collisions.append(f"planet:{canonical}")
-            planet_params[canonical] = value
+            planet_params[canonical] = _normalize_excel_value(value)
             continue
 
         if h in reverse_star:
             canonical = reverse_star[h]
             if canonical in star_params:
                 collisions.append(f"star:{canonical}")
-            star_params[canonical] = value
+            star_params[canonical] = _normalize_excel_value(value)
             continue
 
         unknown_headers.append(str(excel_header))
@@ -194,3 +194,18 @@ def _strip_hash_from_excel_column(name):
     if name.startswith("#"):
         name = name[1:]
     return name
+
+def _normalize_excel_value(value: Any) -> Any:
+    if isinstance(value, str):
+        value = value.strip()
+
+        if value == "":
+            return None
+
+        if "," in value and "." not in value:
+            try:
+                return float(value.replace(",", "."))
+            except ValueError:
+                return value
+
+    return value
