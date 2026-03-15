@@ -2,7 +2,8 @@ import logging
 from loaders.run_waltzer_context import RunContext
 from domain.star import Star
 from configs.channel_config import Channel
-from utils.images_common import format_frame_title, build_stats_row, build_png_filename, format_stats_text, save_single_frame_png_NIR, save_single_frame_png_NUV, save_single_frame_png_VIS_cropped
+from utils.images_common import format_frame_title, build_stats_row, build_png_filename, format_stats_text
+from utils.images_science_frame import save_single_frame_png_NIR, save_single_frame_png_NUV, save_single_frame_png_VIS_cropped
 from configs.global_config import GlobalConfig
 
 

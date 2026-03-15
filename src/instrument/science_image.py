@@ -79,7 +79,7 @@ def _create_channel_images(stellar_signal, channel: Channel, ctx: RunContext, cf
 
         frame = Frame(data=img, header=header, frame_type="science", channel_tag=channel.channel_name)
         write_fits_frame(frame, ctx, frame_index)
-        ctx.write_science_frame_png(frame.data, channel, ctx, cfg, star=star, index=frame_index)
+        ctx.write_science_frame_png(frame.data, channel, ctx, cfg, star=star, index=frame_index,phot=phot)
             
     logging.info("Science image generation finished: channel=%s frames=%d exposure_s=%g orbit_duration_s=%g", channel.channel_name, n_science_frames, exposure, orbit_duration_s)
 

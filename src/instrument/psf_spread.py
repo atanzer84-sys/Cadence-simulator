@@ -136,6 +136,6 @@ def compute_aperture_photometry(image: np.ndarray, channel: PhotometryChannel):
     # 7) finally, compute the background subtracted stellar counts as: C_star=Cc-Ca_background
     counts_star = counts_circle - counts_background_circle
 
-    logging.info("Aperture photometry (%s): Cc=%g Ca=%g Nc=%d Na=%d C_background=%g C_star=%g", channel.channel_name, counts_circle, counts_annulus, number_pixels_circle, number_pixels_annulus, counts_background_circle, counts_star)
+    logging.info("Aperture photometry (%s): psf_radius=%g radius_circle=%g radius_annulus_outer=%g Cc=%g Ca=%g Nc=%d Na=%d C_background=%g C_star=%g", channel.channel_name, psf_radius, radius_circle, radius_annulus_outer, counts_circle, counts_annulus, number_pixels_circle, number_pixels_annulus, counts_background_circle, counts_star)
 
     return counts_star, x0, y0, radius_annulus_inner, radius_annulus_outer

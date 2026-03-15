@@ -2,10 +2,6 @@ from domain.star import Star
 from configs.channel_config import Channel
 import numpy as np
 from pathlib import Path
-import logging
-import matplotlib
-matplotlib.use("Agg")  # non-interactive backend for fast batch PNG writing
-import matplotlib.pyplot as plt
 
 
 STATS_KEY_FORMAT = {
@@ -34,19 +30,6 @@ STATS_KEYS = {
     "SCIENCE":  ["MEAN", "MEDIAN", "STDDEV", "MIN", "MAX", "RNOISE", "B_OFFSET", "DARKVAL", "DARKSIG", "EXPTIME"],
     "BG_STARS": ["MEAN", "MEDIAN", "STDDEV", "MIN", "MAX", "EXPTIME"],
 }
-
-# Shared layout constants so single-image and multi-frame PNGs match.
-_WIDTH_IN = 10.0
-_TEXT_H_IN = 0.7
-_GAP_IN = 0.8
-_TITLE_FONTSIZE = 11
-_STATS_FONTSIZE = 10
-_FIGURE_DPI = 100
-# None avoids expensive tight-bbox computation; we use tight_layout() for spacing instead.
-_BBOX_INCHES = None
-# Max pixels used for percentile scaling; larger arrays are subsampled to reduce runtime.
-_PERCENTILE_MAX_PIXELS = 250_000
-
 
 def format_star_metadata(star: Star | None) -> str:
     """Format Teff, distance and Gaia G magnitude for titles. Returns empty string if star is None."""
@@ -108,150 +91,28 @@ def format_stats_text(values: dict, keys: list[str], *, use_scientific_for_small
             if use_scientific_for_small and isinstance(val, (int, float)) and val != 0:
                 if abs(val) < 1e-4 or abs(val) >= 1e6:
                     fmt = ".2e"
-            s = f"{key}={format(val, fmt)}" if fmt else f"{key}={val}"
+            if fmt:
+                formatted = format(val, fmt)
+                if "e" not in formatted and "E" not in formatted:
+                    if "." in formatted:
+                        left, right = formatted.split(".")
+                        left = f"{int(left):,}".replace(",", " ")
+                        formatted = f"{left}.{right}"
+                    else:
+                        formatted = f"{int(round(val)):,}".replace(",", " ")
+                s = f"{key}={formatted}"
+            else:
+                s = f"{key}={val}"
+
             unit = STATS_KEY_UNIT.get(key, "")
             if unit:
                 s += f" {unit}"
+
         parts.append(s)
         if (i + 1) % 5 == 0 and i + 1 < len(pairs):
             parts.append("\n")
         elif i + 1 < len(pairs):
-            parts.append("    ")
+            parts.append("  ")
     return "".join(parts)
 
 
-def _calculate_percentile_scales(array: np.ndarray, low_pct: float = 1, high_pct: float = 99.9) -> tuple[float, float]:
-    """Robust (vmin, vmax) for image display: percentiles with fallback for non-finite or flat arrays.
-    Large arrays are subsampled for percentile computation to reduce runtime."""
-    n = array.size
-    if n > _PERCENTILE_MAX_PIXELS:
-        step = max(1, int(np.ceil(np.sqrt(n / _PERCENTILE_MAX_PIXELS))))
-        arr = array[::step, ::step]
-    else:
-        arr = array
-    vmin = float(np.percentile(arr, low_pct))
-    vmax = float(np.percentile(arr, high_pct))
-    if (not np.isfinite(vmin)) or (not np.isfinite(vmax)) or (vmax <= vmin):
-        vmin = float(np.min(arr))
-        vmax = float(np.max(arr))
-        if vmax <= vmin:
-            vmax = vmin + 1.0
-    return vmin, vmax
-
-def save_single_frame_png_NIR(array: np.ndarray, filename: Path, title: str, stats_text: str,  channel_name:str) -> None:
-    STATS_FONTSIZE_NIR = 13
-    TITLE_FONTSIZE_NIR = 18
-    GAP_IN_NIR = 0.35
-    TEXT_H_IN_NIR = 0.45
-    NIR_LABEL_FONTSIZE = 16
-
-    ny, nx = array.shape
-    img_h_in = max(2.0, _WIDTH_IN * (ny / nx))
-
-    fig = plt.figure(figsize=(_WIDTH_IN, img_h_in + GAP_IN_NIR + TEXT_H_IN_NIR))
-    gs = fig.add_gridspec(nrows=3, ncols=1, height_ratios=[img_h_in, GAP_IN_NIR, TEXT_H_IN_NIR], hspace=0)
-
-    ax = fig.add_subplot(gs[0, 0])
-    vmin, vmax = _calculate_percentile_scales(array)
-    ax.imshow(array, origin="lower", aspect="equal", cmap="gray", vmin=vmin, vmax=vmax)
-    ax.set_xlim(-0.5, nx - 0.5)
-    ax.set_ylim(-0.5, ny - 0.5)
-
-    ax.set_xlabel("pixels", labelpad=8, fontsize=NIR_LABEL_FONTSIZE)
-    ax.set_ylabel("pixels", labelpad=8, fontsize=NIR_LABEL_FONTSIZE)
-    ax.tick_params(axis="both", which="both", labelsize=NIR_LABEL_FONTSIZE)
-    ax.set_title(title, fontsize=TITLE_FONTSIZE_NIR, pad = 10)
-
-    ax_txt = fig.add_subplot(gs[2, 0])
-    ax_txt.axis("off")
-    ax_txt.text(0.5, 0.5, stats_text, ha="center", va="center", fontsize=STATS_FONTSIZE_NIR, transform=ax_txt.transAxes)
-
-    fig.tight_layout()
-    fig.savefig(filename, dpi=_FIGURE_DPI, bbox_inches=_BBOX_INCHES)
-    plt.close(fig)
-    logging.debug("Wrote %s", filename)
-
-def save_single_frame_png_NUV(array: np.ndarray, filename: Path, title: str, stats_text: str,  channel_name:str) -> None:
-    FIGURE_DPI = 175
-    
-    ny, nx = array.shape
-    img_h_in = max(2.0, _WIDTH_IN * (ny / nx))
-
-    fig = plt.figure(figsize=(_WIDTH_IN, img_h_in + _GAP_IN + _TEXT_H_IN))
-    gs = fig.add_gridspec(nrows=3, ncols=1, height_ratios=[img_h_in, _GAP_IN, _TEXT_H_IN], hspace=0)
-
-    ax = fig.add_subplot(gs[0, 0])
-    vmin, vmax = _calculate_percentile_scales(array)
-    ax.imshow(array, origin="lower", aspect="equal", cmap="gray", vmin=vmin, vmax=vmax)
-    ax.set_xlim(-0.5, nx - 0.5)
-    ax.set_ylim(-0.5, ny - 0.5)
-
-    ax.set_xlabel("pixels", labelpad=8)
-    ax.set_ylabel("pixels", labelpad=8)
-    ax.set_title(title, fontsize=_TITLE_FONTSIZE, pad = 10)
-
-    ax_txt = fig.add_subplot(gs[2, 0])
-    ax_txt.axis("off")
-    ax_txt.text(0.5, 0.5, stats_text, ha="center", va="center", fontsize=_STATS_FONTSIZE, transform=ax_txt.transAxes)
-
-    fig.subplots_adjust(left=0.05, right=0.98, top=0.92, bottom=0.05)
-    fig.savefig(filename, dpi=FIGURE_DPI, bbox_inches=_BBOX_INCHES)
-    plt.close(fig)
-    logging.debug("Wrote %s", filename)
-
-def save_single_frame_png_VIS(array: np.ndarray, filename: Path, title: str, stats_text: str,  channel_name:str) -> None:
-    
-    ny, nx = array.shape
-    img_h_in = max(2.0, _WIDTH_IN * (ny / nx))
-
-    fig = plt.figure(figsize=(_WIDTH_IN, img_h_in + _GAP_IN + _TEXT_H_IN))
-    gs = fig.add_gridspec(nrows=3, ncols=1, height_ratios=[img_h_in, _GAP_IN, _TEXT_H_IN], hspace=0)
-
-    ax = fig.add_subplot(gs[0, 0])
-    vmin, vmax = _calculate_percentile_scales(array)
-    ax.imshow(array, origin="lower", aspect="equal", cmap="gray", vmin=vmin, vmax=vmax)
-    ax.set_xlim(-0.5, nx - 0.5)
-    ax.set_ylim(-0.5, ny - 0.5)
-
-    ax.set_xlabel("pixels", labelpad=8)
-    ax.set_ylabel("pixels", labelpad=8)
-    ax.set_title(title, fontsize=_TITLE_FONTSIZE)
-
-    ax_txt = fig.add_subplot(gs[2, 0])
-    ax_txt.axis("off")
-    ax_txt.text(0.5, 0.5, stats_text, ha="center", va="center", fontsize=_STATS_FONTSIZE, transform=ax_txt.transAxes)
-
-    fig.tight_layout()
-    fig.savefig(filename, dpi=_FIGURE_DPI, bbox_inches=_BBOX_INCHES)
-    plt.close(fig)
-    logging.debug("Wrote %s", filename)
-
-
-def save_single_frame_png_VIS_cropped(array: np.ndarray, filename: Path, title: str, stats_text: str, channel_name: str) -> None:
-    GAP_IN_VIS = 0.8
-    TEXT_H_IN_VIS = 0.28
-
-    ny, nx = array.shape
-    img_h_in = max(1.2, _WIDTH_IN * (ny / nx))
-
-    fig = plt.figure(figsize=(_WIDTH_IN, img_h_in + GAP_IN_VIS + TEXT_H_IN_VIS), facecolor="white")
-    gs = fig.add_gridspec(nrows=3, ncols=1, height_ratios=[img_h_in, GAP_IN_VIS, TEXT_H_IN_VIS], hspace=0)
-
-    ax = fig.add_subplot(gs[0, 0])
-    vmin, vmax = _calculate_percentile_scales(array)
-    ax.imshow(array, origin="lower", aspect="equal", cmap="gray", vmin=vmin, vmax=vmax)
-    ax.set_xlim(-0.5, nx - 0.5)
-    ax.set_ylim(-0.5, ny - 0.5)
-
-    ax.set_xlabel("pixels", labelpad=6)
-    ax.set_ylabel("pixels", labelpad=6)
-    ax.set_title(title, fontsize=_TITLE_FONTSIZE, pad=10)
-
-    ax_txt = fig.add_subplot(gs[2, 0])
-    ax_txt.axis("off")
-    ax_txt.text(0.5, 0.5, stats_text, ha="center", va="center", fontsize=_STATS_FONTSIZE, transform=ax_txt.transAxes)
-
-    fig.subplots_adjust(left=0.10, right=0.98, top=0.85, bottom=0.08)
-    fig.savefig(filename, dpi=_FIGURE_DPI, bbox_inches=_BBOX_INCHES)
-    plt.close(fig)
-    logging.debug("Wrote %s", filename)
