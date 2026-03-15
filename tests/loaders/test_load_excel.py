@@ -93,7 +93,7 @@ def test_map_to_planet_or_star_dictionary_inserts_star_name():
 
 
 def test_map_to_planet_or_star_dictionary_empty_string_treated_as_missing(caplog):
-    """is_missing treats empty string '' as missing for required stellar parameters."""
+    """Empty string '' is normalized to None and treated as missing for required stellar parameters."""
     from loaders.load_excel import map_to_planet_or_star_dictionary
 
     row = {
@@ -111,7 +111,7 @@ def test_map_to_planet_or_star_dictionary_empty_string_treated_as_missing(caplog
     with caplog.at_level("INFO"):
         _, star_params = map_to_planet_or_star_dictionary(row, mapping, "Star X")
 
-    assert star_params["effective_temperature"] == ""
+    assert star_params["effective_temperature"] is None
     assert any(
         "effective_temperature" in rec.message and "Missing required star" in rec.message
         for rec in caplog.records

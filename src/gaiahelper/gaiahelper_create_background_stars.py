@@ -5,8 +5,10 @@ from loaders.run_waltzer_context import setup_output_directory
 from pathlib import Path
 import pandas as pd
 
+
 def ts(*args):
     print(datetime.now().strftime('%H:%M:%S'), *args)
+
 
 def gaia_nearby_stars_with_params_by_name(target_name: str, radius_arcsec: float, mag_limit: float):
     ts("Resolving target name...")
@@ -16,7 +18,6 @@ def gaia_nearby_stars_with_params_by_name(target_name: str, radius_arcsec: float
     ts("Target DEC deg:", coord.dec.deg)
     # 1) fast: cone search in gaia_source
     radius_arcmin = radius_arcsec / 60
-
     ts(f"Running cone search on gaia_source ({radius_arcsec} arcsec = {radius_arcmin:.2f} arcmin)...")
 
     # job1 = Gaia.cone_search_async(coord, radius=radius_arcsec * u.arcsec)
@@ -31,17 +32,18 @@ def gaia_nearby_stars_with_params_by_name(target_name: str, radius_arcsec: float
     SELECT source_id, ra, dec, parallax, phot_g_mean_mag
     FROM gaiadr3.gaia_source
     WHERE 1 = CONTAINS(
-    POINT('ICRS', ra, dec),
-    CIRCLE('ICRS', {ra0}, {dec0}, {radius_deg})
+        POINT('ICRS', ra, dec),
+        CIRCLE('ICRS', {ra0}, {dec0}, {radius_deg})
     )
     AND phot_g_mean_mag < {mag_limit}
     """
 
     job1 = Gaia.launch_job_async(query_cone)
     cone = job1.get_results()
-    
+
     if len(cone) == 0:
         return cone, coord
+
     ts(f"Cone search done. Rows: {len(cone)}")
 
     # keep only what you need from gaia_source
@@ -74,6 +76,49 @@ def gaia_nearby_stars_with_params_by_name(target_name: str, radius_arcsec: float
     return out, coord
 
 
+def split_target_and_background(tbl, coord: SkyCoord):
+    if len(tbl) == 0:
+        return tbl, None
+
+    sources_coord = SkyCoord(ra=tbl["ra"], dec=tbl["dec"], unit="deg", frame="icrs")
+    separations = coord.separation(sources_coord)
+    tbl["sep_arcsec"] = separations.arcsec
+
+    idx_target = separations.argmin()
+
+    is_target = [False] * len(tbl)
+    is_target[idx_target] = True
+    tbl["is_target"] = is_target
+
+    target_row = tbl[idx_target:idx_target + 1].copy()
+    background_tbl = tbl[~tbl["is_target"]].copy()
+
+    return background_tbl, target_row
+
+
+def write_targets_excel(target_rows, output_dir):
+    if not target_rows:
+        print("No target rows collected for Excel export.")
+        return
+
+    all_target_dfs = []
+
+    for target_name, target_row in target_rows:
+        df = target_row.to_pandas()
+        df.insert(0, "target_star", target_name)
+
+        if "source_id" in df.columns:
+            df["source_id"] = df["source_id"].astype(str)
+
+        all_target_dfs.append(df)
+
+    target_df = pd.concat(all_target_dfs, ignore_index=True)
+
+    excel_path = Path(output_dir) / "all_target_stars.xlsx"
+    target_df.to_excel(excel_path, index=False, float_format="%.12f")
+
+    print(f"Saved target stars Excel file to {excel_path}")
+
 
 def build_master_excel_from_csvs(output_dir):
     csv_files = sorted(Path(output_dir).glob("*.csv"))
@@ -95,7 +140,6 @@ def build_master_excel_from_csvs(output_dir):
     if "sep_arcsec" in master_df.columns:
         master_df = master_df.sort_values(["target_star", "sep_arcsec"], ascending=[True, True])
 
-    # Ensure Gaia source IDs are preserved exactly when opened in Excel
     if "source_id" in master_df.columns:
         master_df["source_id"] = master_df["source_id"].astype(str)
 
@@ -105,99 +149,99 @@ def build_master_excel_from_csvs(output_dir):
     print(f"Saved master Excel file to {excel_path}")
 
 
-
 def main(existing_output_dir=None):
+    star_names = [
+        "HD 2685",
+        "KELT-9",
+        "TIC 393818343",
+        "WASP-189",
+        "WASP-69",
+        "HAT-P-1",
+        "HAT-P-14",
+        "HAT-P-2",
+        "HAT-P-22",
+        "HAT-P-60",
+        "HAT-P-69",
+        "HAT-P-70",
+        "HD 118203",
+        "HD 1397",
+        "HD 149026",
+        "HD 152843",
+        "HD 189733",
+        "HD 202772 A",
+        "HD 209458",
+        "HD 219666",
+        "HD 221416",
+        "HD 332231",
+        "HD 88133",
+        "HD 89345",
+        "K2-232",
+        "KELT-11",
+        "KELT-17",
+        "KELT-19 A",
+        "KELT-2 A",
+        "KELT-20",
+        "KELT-24",
+        "KELT-3",
+        "KELT-4 A",
+        "KELT-7",
+        "KOI-13",
+        "LTT 9779",
+        "MASCARA-1",
+        "MASCARA-4",
+        "TOI-1135",
+        "TOI-1136",
+        "TOI-1333",
+        "TOI-1408",
+        "TOI-1431",
+        "TOI-1518",
+        "TOI-1789",
+        "TOI-1842",
+        "TOI-2005",
+        "TOI-2145",
+        "TOI-2497",
+        "TOI-257",
+        "TOI-421",
+        "TOI-4551",
+        "TOI-4603",
+        "TOI-481",
+        "TOI-5108",
+        "TOI-5398",
+        "TOI-6038 A",
+        "TOI-622",
+        "TOI-677",
+        "TOI-778",
+        "WASP-131",
+        "WASP-136",
+        "WASP-14",
+        "WASP-166",
+        "WASP-178",
+        "WASP-18",
+        "WASP-33",
+        "WASP-38",
+        "WASP-7",
+        "WASP-74",
+        "WASP-76",
+        "WASP-79",
+        "WASP-8",
+        "WASP-82",
+        "WASP-94 A",
+        "WASP-95",
+        "WASP-99",
+        "XO-3",
+        "WASP-12",
+        "HAT-P-32",
+        "Kepler-13",
+        "TrES-4",
+        "HD 189733",
+        "HD 189733 B",
+        "HAT-P-7",
+    ]
 
-    # star_names = [
-    #     "HD 2685",
-    #     "KELT-9",
-    #     "TIC 393818343",
-    #     "WASP-189",
-    #     "WASP-69",
-    #     "HAT-P-1",
-    #     "HAT-P-14",
-    #     "HAT-P-2",
-    #     "HAT-P-22",
-    #     "HAT-P-60",
-    #     "HAT-P-69",
-    #     "HAT-P-70",
-    #     "HD 118203",
-    #     "HD 1397",
-    #     "HD 149026",
-    #     "HD 152843",
-    #     "HD 189733",
-    #     "HD 202772 A",
-    #     "HD 209458",
-    #     "HD 219666",
-    #     "HD 221416",
-    #     "HD 332231",
-    #     "HD 88133",
-    #     "HD 89345",
-    #     "K2-232",
-    #     "KELT-11",
-    #     "KELT-17",
-    #     "KELT-19 A",
-    #     "KELT-2 A",
-    #     "KELT-20",
-    #     "KELT-24",
-    #     "KELT-3",
-    #     "KELT-4 A",
-    #     "KELT-7",
-    #     "KOI-13",
-    #     "LTT 9779",
-    #     "MASCARA-1",
-    #     "MASCARA-4",
-    #     "TOI-1135",
-    #     "TOI-1136",
-    #     "TOI-1333",
-    #     "TOI-1408",
-    #     "TOI-1431",
-    #     "TOI-1518",
-    #     "TOI-1789",
-    #     "TOI-1842",
-    #     "TOI-2005",
-    #     "TOI-2145",
-    #     "TOI-2497",
-    #     "TOI-257",
-    #     "TOI-421",
-    #     "TOI-4551",
-    #     "TOI-4603",
-    #     "TOI-481",
-    #     "TOI-5108",
-    #     "TOI-5398",
-    #     "TOI-6038 A",
-    #     "TOI-622",
-    #     "TOI-677",
-    #     "TOI-778",
-    #     "WASP-131",
-    #     "WASP-136",
-    #     "WASP-14",
-    #     "WASP-166",
-    #     "WASP-178",
-    #     "WASP-18",
-    #     "WASP-33",
-    #     "WASP-38",
-    #     "WASP-7",
-    #     "WASP-74",
-    #     "WASP-76",
-    #     "WASP-79",
-    #     "WASP-8",
-    #     "WASP-82",
-    #     "WASP-94 A",
-    #     "WASP-95",
-    #     "WASP-99",
-    #     "XO-3",
-    #     "WASP-12",
-    #     "HAT-P-32",
-    #     "Kepler-13",
-    #     "TrES-4",
-    #     "HD 189733",
-    #     "HD 189733 B",
-    #     "HAT-P-7",
-    # ]
-    star_names = ["MCC 356"]
+    # star_names = ["KELT-20"]
     
-    RADIUS_ARCSEC = 500.0 # 10 arcmin
+    RADIUS_ARCSEC = 600.0 # 10 arcmin
+ 
     mag_limit = 20.0
 
     if existing_output_dir is None:
@@ -207,38 +251,35 @@ def main(existing_output_dir=None):
         output_dir = Path(existing_output_dir)
         run_queries = False
 
+    target_rows = []
+
     if run_queries:
         for name in star_names:
-
             print(f"Processing {name}")
 
             try:
                 tbl, coord = gaia_nearby_stars_with_params_by_name(name, radius_arcsec=RADIUS_ARCSEC, mag_limit=mag_limit)
 
-                if len(tbl) > 0:
-                    sources_coord = SkyCoord(ra=tbl["ra"], dec=tbl["dec"], frame="icrs")
-                    separations = coord.separation(sources_coord)
-                    tbl["sep_arcsec"] = separations.arcsec
-                    idx_target = separations.argmin()
+                background_tbl, target_row = split_target_and_background(tbl, coord)
 
-                    # mark target vs. background stars
-                    is_target = [False] * len(tbl)
-                    is_target[idx_target] = True
-                    tbl["is_target"] = is_target
+                if target_row is not None and len(target_row) > 0:
+                    target_rows.append((name, target_row))
 
                 filename = name.replace(" ", "_") + ".csv"
                 filepath = output_dir / filename
 
-                tbl.write(filepath, format="ascii.csv", overwrite=True)
+                background_tbl.write(filepath, format="ascii.csv", overwrite=True)
 
-                print(f"Saved {len(tbl)} rows to {filepath}")
+                print(f"Saved {len(background_tbl)} background rows to {filepath}")
 
             except Exception as e:
                 print(f"Failed for {name}: {e}")
+
+        write_targets_excel(target_rows, output_dir)
 
     build_master_excel_from_csvs(output_dir)
 
 
 if __name__ == "__main__":
-    # main()
-    main("/Users/andreatanzer/Documents/Space Science/MasterThesis/WALTzER-simulator/output/Faint")
+    main()
+    # main("/Users/andreatanzer/Documents/Space Science/MasterThesis/WALTzER-simulator/output/Faint")

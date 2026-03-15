@@ -29,7 +29,6 @@ def get_missing_properties(parameters: dict, required_keys: list[str], log_outpu
 def clean_and_cast_parameters(parameters: dict[str, Any], domain_class: type) -> dict[str, Any]:
     """
     Normalize parameters according to the dataclass schema of model_cls.
-
     Rules:
     - strip strings, empty -> None
     - cast to float if the dataclass field type is float or float | None
@@ -39,7 +38,6 @@ def clean_and_cast_parameters(parameters: dict[str, Any], domain_class: type) ->
     """
     # build a mapping based on the definition of our classes
     field_types = {f.name: f.type for f in fields(domain_class)}
-
     # force it to use the real type of a class property
     def base_type(tp: Any) -> Any:
         origin = get_origin(tp)
