@@ -240,5 +240,5 @@ def main(existing_output_dir=None):
 
 
 if __name__ == "__main__":
-    main()
-    # main("/Users/andreatanzer/Documents/Space Science/MasterThesis/waltzerclone/WALTzER-simulator/output/test/BackgroundStars")
+    # main()
+    main("/Users/andreatanzer/Documents/Space Science/MasterThesis/WALTzER-simulator/output/Faint")
