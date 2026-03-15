@@ -73,4 +73,4 @@ class PhotometryChannel(Channel):
     psf_center_y: int | None = None
     source_position_x_arcsec: float | None = None
     source_position_y_arcsec: float | None = None
-    write_aperture_photometry_overlay: bool = False
+    draw_aperture_photometry_overlay: bool = False
