@@ -85,3 +85,57 @@ def get_photometry_placement(channel: PhotometryChannel):
     source_pixel_y = int(round(detector_center_y + source_offset_y_pixels))
 
     return source_pixel_x, source_pixel_y
+
+
+def compute_aperture_photometry(image: np.ndarray, channel: PhotometryChannel):
+
+    if not isinstance(channel, PhotometryChannel):
+        return None
+
+    # 1) consider a circle twice larger than the size of the PSF and get the integral of the counts inside this circle centered at the position of the target (let's call this integral: Cc)
+    # get the center of the target
+    x0, y0 = get_photometry_placement(channel)
+    # determine the circle radius
+    psf_radius = max(channel.psf_image.shape) / 2
+    radius_circle = 2 * psf_radius
+    pixel_y, pixel_x = np.indices(image.shape, dtype=np.int32)
+    dx = pixel_x - x0
+    dy = pixel_y - y0
+    # faster method than sqrt or **2
+    distance_to_center_squared = dx*dx + dy*dy
+    circle_mask = distance_to_center_squared <= radius_circle*radius_circle
+    counts_circle = np.sum(image[circle_mask])
+
+    # 2) consider an annulus, centered on the target, having the inner radius equal to the radius you used above and the outer radius equal to twice that of the inner radius
+    radius_annulus_inner = radius_circle
+    radius_annulus_outer = 2 * radius_annulus_inner
+
+    # 3) integrate the counts inside the annulus (let's call this integral: Ca)
+    inner_radius_squared = radius_annulus_inner * radius_annulus_inner
+    outer_radius_squared = radius_annulus_outer * radius_annulus_outer
+
+    outside_circle = distance_to_center_squared > inner_radius_squared
+    inside_outer_radius = distance_to_center_squared <= outer_radius_squared
+
+    annulus_mask = outside_circle & inside_outer_radius
+    counts_annulus = np.sum(image[annulus_mask])
+
+    # 4) count the number of pixels inside the inner circle (let's call this Nc)
+    number_pixels_circle = np.sum(circle_mask)
+
+    # 5) count the number of pixels inside the annulus (let's call this Na)
+    number_pixels_annulus = np.sum(annulus_mask)
+
+    # guard against division by zero
+    if number_pixels_annulus == 0:
+        return None
+
+    # 6) rescale Ca so that it is for the same number of pixels as Cc, therefore compute: Ca_background=Ca*Nc/Na
+    counts_background_circle = counts_annulus * number_pixels_circle / number_pixels_annulus
+
+    # 7) finally, compute the background subtracted stellar counts as: C_star=Cc-Ca_background
+    counts_star = counts_circle - counts_background_circle
+
+    logging.info("Aperture photometry (%s): Cc=%g Ca=%g Nc=%d Na=%d C_background=%g C_star=%g", channel.channel_name, counts_circle, counts_annulus, number_pixels_circle, number_pixels_annulus, counts_background_circle, counts_star)
+
+    return counts_star, x0, y0, radius_annulus_inner, radius_annulus_outer

@@ -18,6 +18,7 @@ from frame.dark_frame import generate_dark_frame_with_index
 from frame.write_fits import write_fits_frame
 from frame.fits_header import append_image_stats_header, append_channel_frame_header, append_base_frame_header
 from frame.frame_class import Frame
+from instrument.psf_spread import compute_aperture_photometry
 
 def build_science_images(stellar_signal, channel: Channel, ctx: RunContext, star: Star, background_stars_catalog: StarCatalog):
     cfg = get_global_config()
@@ -66,6 +67,8 @@ def _create_channel_images(stellar_signal, channel: Channel, ctx: RunContext, cf
         roll_angle_end = 360.0 * ((time_s + exposure) / orbit_duration_s)
 
         img = _create_per_exposure(stellar_component, background_component, channel, ctx, cfg, star, background_stars_catalog, frame_index, roll_angle_start, roll_angle_end)
+        phot = compute_aperture_photometry(img, channel)
+
 
         logging.info("SCIENCE: generating frame %d/%d for %s (%d x %d), exptime_s=%g.", frame_index + 1, n_science_frames, channel.channel_name, channel.x_pixels, channel.y_pixels, exposure)
         print(f"Creating SCIENCE frame {frame_index + 1}/{n_science_frames} (roll_angle_start={roll_angle_start:.2f}°, roll_angle_end={roll_angle_end:.2f}°) for {channel.channel_name}.")

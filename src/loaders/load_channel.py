@@ -3,7 +3,7 @@ from pathlib import Path
 import logging
 from configs.channel_config import SpectroscopyChannel, PhotometryChannel
 from configs.user_config import UserConfig
-from configs.config_parsing import parse_simple_kv, as_int, as_float, as_optional_int
+from configs.config_parsing import parse_simple_kv, as_int, as_float, as_bool, as_optional_int
 from loaders.load_channel_files_common import load_effective_area_file, load_background_file, load_zod_dist_file, load_zod_spectrum_file
 from loaders.load_channel_files_spectroscopy import load_spread_profile_file_spectroscopy
 from loaders.load_channel_files_photometry import load_psf_image_file
@@ -55,7 +55,7 @@ def load_channel_config(path: Path, exposure_s: float, ctx, background: dict):
         psf_image, psf_center_y, psf_center_x = load_psf_image_file(psf_file, channel_name, ctx)
         source_position_x_arcsec = as_float(raw.get("source_position_x_arcsec", 0.0), key="source_position_x_arcsec")
         source_position_y_arcsec = as_float(raw.get("source_position_y_arcsec", 0.0), key="source_position_y_arcsec")
-        
+        write_aperture_photometry_overlay = as_bool(raw.get("write_aperture_photometry_overlay", 0), key="write_aperture_photometry_overlay")
         return PhotometryChannel(
             channel_name=channel_name,
             x_pixels=x_pixels,
@@ -79,6 +79,7 @@ def load_channel_config(path: Path, exposure_s: float, ctx, background: dict):
             psf_center_y=psf_center_y,
             source_position_x_arcsec=source_position_x_arcsec,
             source_position_y_arcsec=source_position_y_arcsec,
+            write_aperture_photometry_overlay=write_aperture_photometry_overlay,
             background_type=background["background_type"],
             background_wavelength=background["background_wavelength"],
             background_flux=background["background_flux"],
