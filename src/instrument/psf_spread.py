@@ -89,25 +89,28 @@ def get_photometry_placement(channel: PhotometryChannel):
 
 def compute_aperture_photometry(image: np.ndarray, channel: PhotometryChannel):
 
-    if not isinstance(channel, PhotometryChannel):
-        return None
-
-    # 1) consider a circle twice larger than the size of the PSF and get the integral of the counts inside this circle centered at the position of the target (let's call this integral: Cc)
+    # 1) determine the aperture radius from the PSF by finding the outermost pixel above the 1% intensity threshold and doubling that radius, then integrate the counts inside that circle centered at the target (Cc)
     # get the center of the target
     x0, y0 = get_photometry_placement(channel)
-    # determine the circle radius
-    psf_radius = max(channel.psf_image.shape) / 2
-    radius_circle = 2 * psf_radius
+    # determine the circle radius by determining the 1% intensity threshold in the PSF
+    psf = channel.psf_image
+    center_y, center_x = channel.psf_center_y, channel.psf_center_x
+    y_coord, x_coord = np.indices(psf.shape, dtype=np.int32)
+    r = np.sqrt((y_coord - center_y)*(y_coord - center_y) + (x_coord - center_x)*(x_coord - center_x))
+    threshold = 0.01 * psf.max()
+    mask = psf >= threshold
+    radius_psf_1_percent = r[mask].max()
+    psf_radius = 2 * radius_psf_1_percent
     pixel_y, pixel_x = np.indices(image.shape, dtype=np.int32)
     dx = pixel_x - x0
     dy = pixel_y - y0
     # faster method than sqrt or **2
     distance_to_center_squared = dx*dx + dy*dy
-    circle_mask = distance_to_center_squared <= radius_circle*radius_circle
+    circle_mask = distance_to_center_squared <= psf_radius*psf_radius
     counts_circle = np.sum(image[circle_mask])
 
     # 2) consider an annulus, centered on the target, having the inner radius equal to the radius you used above and the outer radius equal to twice that of the inner radius
-    radius_annulus_inner = radius_circle
+    radius_annulus_inner = psf_radius
     radius_annulus_outer = 2 * radius_annulus_inner
 
     # 3) integrate the counts inside the annulus (let's call this integral: Ca)
@@ -136,6 +139,9 @@ def compute_aperture_photometry(image: np.ndarray, channel: PhotometryChannel):
     # 7) finally, compute the background subtracted stellar counts as: C_star=Cc-Ca_background
     counts_star = counts_circle - counts_background_circle
 
-    logging.info("Aperture photometry (%s): psf_radius=%g radius_circle=%g radius_annulus_outer=%g Cc=%g Ca=%g Nc=%d Na=%d C_background=%g C_star=%g", channel.channel_name, psf_radius, radius_circle, radius_annulus_outer, counts_circle, counts_annulus, number_pixels_circle, number_pixels_annulus, counts_background_circle, counts_star)
+    #8) white noise uncertainty attached to C_star: C_star_noise = sqrt( ( sqrt(Cc) )^2 + ( sqrt(Ca_background) )^2 ) = sqrt( Cc + Ca_background )
+    counts_star_noise = np.sqrt(counts_circle + counts_background_circle)
 
-    return counts_star, x0, y0, radius_annulus_inner, radius_annulus_outer
+    logging.info("Aperture photometry (%s): radius_psf_1_percent=%g psf_radius=%g radius_annulus_outer=%g Cc=%g Ca=%g Nc=%d Na=%d C_background=%g C_star=%g C_star_noise=%g", channel.channel_name, radius_psf_1_percent, psf_radius, radius_annulus_outer, counts_circle, counts_annulus, number_pixels_circle, number_pixels_annulus, counts_background_circle, counts_star, counts_star_noise)
+
+    return counts_star, counts_star_noise, x0, y0, radius_annulus_inner, radius_annulus_outer
