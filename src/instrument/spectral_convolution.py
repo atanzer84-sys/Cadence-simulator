@@ -10,11 +10,11 @@ def compute_broadened_channel_flux(photon_flux_at_earth: np.ndarray, wavelengths
 
     # Cut up array to broaden with gauss later
     cut_photon_flux, wavelength = cut_wavelength_window_with_margin(photon_flux_at_earth, wavelengths_total, channel, output_dir, cfg, star, ctx)
-
+    logging.info("BG_FLUX_CUT star_id=%s channel=%s n=%d wl_min=%.1f wl_max=%.1f sum=%.6e mean=%.6e min=%.6e max=%.6e", star.name, channel.channel_name, wavelength.size, float(wavelength[0]), float(wavelength[-1]), float(np.sum(cut_photon_flux)), float(np.mean(cut_photon_flux)), float(np.min(cut_photon_flux)), float(np.max(cut_photon_flux)))
+    
     # Gaussian Broadening of flux over wavelengths
     photon_flux_smoothed =  gaussbroad(wavelength, cut_photon_flux, channel.pixel_scale)
-
-    logging.info("Channel %s photon_flux_smoothed sum=%g mean=%g min=%g max=%g", channel.channel_name, photon_flux_smoothed.sum(), photon_flux_smoothed.mean(), photon_flux_smoothed.min(), photon_flux_smoothed.max())
+    logging.info("BG_FLUX_SMOOTHED star_id=%s channel=%s n=%d wl_min=%.1f wl_max=%.1f sum=%.6e mean=%.6e min=%.6e max=%.6e", star.name, channel.channel_name, wavelength.size, float(wavelength[0]), float(wavelength[-1]), float(np.sum(photon_flux_smoothed)), float(np.mean(photon_flux_smoothed)), float(np.min(photon_flux_smoothed)), float(np.max(photon_flux_smoothed)))
 
     return photon_flux_smoothed, wavelength
 
