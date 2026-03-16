@@ -254,3 +254,45 @@ def test_gaia_cone_search_applies_magnitude_limit_and_async(monkeypatch):
     assert len(result) == 1
     assert int(result["source_id"][0]) == 101
 
+def test_get_gaia_stellar_properties_does_not_drop_radius_and_mass_for_cached_csv_columns():
+    row = {
+        "Teff": 4656.00146484375,
+        "radius_sun": 30.21190071105957,
+        "mass_sun": 4.80074405670166,
+        "mh_gspphot": 0.14090000092983246,
+        "logg_gspphot": 2.046299934387207,
+        "ra": 294.6925327559344,
+        "dec": 31.24936559398053,
+        "dist_pc": 2401.2685546875,
+        "phot_g_mean_mag": 11.795485496520996,
+        "parallax": 0.3549924624326295,
+    }
+
+    got = load_gaia.get_gaia_stellar_properties(row, log_output=False)
+
+
+    assert got["radius"] is not None
+    assert got["mass"] is not None
+
+def test_get_gaia_stellar_properties_reads_cached_csv_column_names():
+    row = {
+        "Teff": 4656.00146484375,
+        "radius_sun": 30.21190071105957,
+        "mass_sun": 4.80074405670166,
+        "mh_gspphot": 0.14090000092983246,
+        "logg_gspphot": 2.046299934387207,
+        "ra": 294.6925327559344,
+        "dec": 31.24936559398053,
+        "dist_pc": 2401.2685546875,
+        "phot_g_mean_mag": 11.795485496520996,
+        "parallax": 0.3549924624326295,
+    }
+
+    got = load_gaia.get_gaia_stellar_properties(row, log_output=False)
+
+
+    assert got["effective_temperature"] == 4656.00146484375
+    assert got["radius"] == 30.21190071105957
+    assert got["mass"] == 4.80074405670166
+    assert got["distance"] == 2401.2685546875
+    assert got["gaia_magnitude"] == 11.795485496520996
