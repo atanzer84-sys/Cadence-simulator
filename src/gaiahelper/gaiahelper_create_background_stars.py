@@ -1,6 +1,7 @@
 from astroquery.gaia import Gaia
 from astropy.coordinates import SkyCoord
 from datetime import datetime
+from loaders.load_gaia import _gaia_query_for_source_ids
 from loaders.run_waltzer_context import setup_output_directory
 from pathlib import Path
 import pandas as pd
@@ -49,24 +50,9 @@ def gaia_nearby_stars_with_params_by_name(target_name: str, radius_arcsec: float
     # keep only what you need from gaia_source
     cone_small = cone["source_id", "ra", "dec", "parallax", "phot_g_mean_mag"]
     # 2) pull only AP columns for these IDs (no spatial function)
-    ids = [str(int(x)) for x in cone_small["source_id"]]
+    ids = [int(x) for x in cone_small["source_id"]]
     ts("Querying astrophysical_parameters for", len(ids), "source_ids...")
-    ids_sql = ",".join(ids)
-
-    query = f"""
-    SELECT
-        gs.source_id,
-        gs.ra,
-        gs.dec,
-        gs.parallax,
-        gs.phot_g_mean_mag,
-        COALESCE(ap.teff_gspphot, ap.teff_gspspec, supp.teff_gspspec_ann, gs.rv_template_teff) AS Teff,
-        COALESCE(ap.distance_gspphot, supp.distance_gspphot_phoenix, supp.distance_gspphot_marcs) AS dist_pc
-    FROM gaiadr3.gaia_source AS gs
-    LEFT JOIN gaiadr3.astrophysical_parameters AS ap ON gs.source_id = ap.source_id
-    LEFT JOIN gaiadr3.astrophysical_parameters_supp AS supp ON gs.source_id = supp.source_id
-    WHERE gs.source_id IN ({ids_sql})
-    """
+    query = _gaia_query_for_source_ids(ids)
 
     job2 = Gaia.launch_job_async(query)
     out = job2.get_results()
@@ -147,6 +133,34 @@ def build_master_excel_from_csvs(output_dir):
     master_df.to_excel(excel_path, index=False)
 
     print(f"Saved master Excel file to {excel_path}")
+
+
+def report_saved_vs_missing(star_names, output_dir):
+    """Report which target stars have background CSVs and which do not."""
+    csv_files = sorted(Path(output_dir).glob("*.csv"))
+    have_files = set()
+    for csv_file in csv_files:
+        target_star = csv_file.stem.replace("_", " ")
+        have_files.add(target_star)
+
+    expected = set(star_names)
+    succeeded = sorted(expected & have_files)
+    missing = sorted(expected - have_files)
+
+    print("==== Gaia background CSV report ====")
+    print(f"Total targets: {len(expected)}")
+    print(f"With CSV: {len(succeeded)}")
+    print(f"Without CSV: {len(missing)}")
+
+    if succeeded:
+        print("Targets with CSV:")
+        for name in succeeded:
+            print(" -", name)
+
+    if missing:
+        print("Targets without CSV (likely Gaia failures or empty cones):")
+        for name in missing:
+            print(" -", name)
 
 
 def main(existing_output_dir=None):
@@ -240,7 +254,7 @@ def main(existing_output_dir=None):
 
     # star_names = ["KELT-20"]
     
-    RADIUS_ARCSEC = 600.0 # 10 arcmin
+    RADIUS_ARCSEC = 450.0 # 10 arcmin
  
     mag_limit = 20.0
 
@@ -277,6 +291,7 @@ def main(existing_output_dir=None):
 
         write_targets_excel(target_rows, output_dir)
 
+    report_saved_vs_missing(star_names, output_dir)
     build_master_excel_from_csvs(output_dir)
 
 
