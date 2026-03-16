@@ -118,7 +118,7 @@ def test_get_gaia_stellar_properties_converts_nan_to_none():
         "logg_gspphot": 4.5,
         "ra": 1.0,
         "dec": 2.0,
-        "distance_gspphot": float("nan"),
+        "dist_pc": float("nan"),
         "phot_g_mean_mag": 10.0,
     }
 
@@ -141,7 +141,7 @@ def test_lookup_target_star_gaia_returns_only_missing_keys(monkeypatch):
         "mass_sun": 1.0,
         "mh_gspphot": 0.1,
         "logg_gspphot": 4.4,
-        "distance_gspphot": 10.0,
+        "dist_pc": 10.0,
     }
 
     cone = _cone_table([(1.0, 2.0, 222)])
@@ -253,6 +253,40 @@ def test_gaia_cone_search_applies_magnitude_limit_and_async(monkeypatch):
     # Only the bright star (G=10) should remain
     assert len(result) == 1
     assert int(result["source_id"][0]) == 101
+
+
+def test_gaia_select_joined_base_has_expected_columns_and_aliases():
+    """_gaia_select_joined_base should define the exact joined schema we rely on."""
+    q = load_gaia._gaia_select_joined_base()
+
+    # Strong coupling to ADQL column aliases and join structure
+    assert "FROM gaiadr3.gaia_source AS gs" in q
+    assert "LEFT JOIN gaiadr3.astrophysical_parameters AS ap ON gs.source_id = ap.source_id" in q
+    assert "LEFT JOIN gaiadr3.astrophysical_parameters_supp AS supp ON gs.source_id = supp.source_id" in q
+
+    assert "gs.source_id" in q
+    assert "gs.ra" in q
+    assert "gs.dec" in q
+    assert "gs.parallax" in q
+    assert "gs.phot_g_mean_mag" in q
+
+    assert "COALESCE(ap.teff_gspphot, ap.teff_gspspec, supp.teff_gspspec_ann, gs.rv_template_teff) AS Teff" in q
+    assert "COALESCE(ap.distance_gspphot, supp.distance_gspphot_phoenix, supp.distance_gspphot_marcs) AS dist_pc" in q
+    assert "COALESCE(ap.radius_gspphot, ap.radius_flame, supp.radius_flame_spec, supp.radius_gspphot_a, supp.radius_gspphot_marcs, supp.radius_gspphot_phoenix) AS radius_sun" in q
+    assert "COALESCE(ap.mass_flame, supp.mass_flame_spec) AS mass_sun" in q
+    assert "ap.mh_gspphot" in q
+    assert "ap.logg_gspphot" in q
+
+
+def test_gaia_query_for_source_id_builds_expected_where_clause():
+    q = load_gaia._gaia_query_for_source_id(123456789)
+    assert "WHERE gs.source_id = 123456789" in q
+
+
+def test_gaia_query_for_source_ids_builds_expected_in_clause():
+    q = load_gaia._gaia_query_for_source_ids([1, 2, 3])
+    # exact formatting matters: no spaces inside the IN list
+    assert "WHERE gs.source_id IN (1,2,3)" in q
 
 def test_get_gaia_stellar_properties_does_not_drop_radius_and_mass_for_cached_csv_columns():
     row = {
