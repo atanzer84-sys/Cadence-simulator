@@ -73,6 +73,8 @@ def save_single_frame_png_NIR(array: np.ndarray, filename: Path, title: str, sta
     GAP_IN_NIR = 0.35
     TEXT_H_IN_NIR = 0.9
     NIR_LABEL_FONTSIZE = 16
+    BBOX_INCHES_NIR = 'tight'
+    FIGURE_DPI_NIR = 200
 
 
     ny, nx = array.shape
@@ -82,7 +84,11 @@ def save_single_frame_png_NIR(array: np.ndarray, filename: Path, title: str, sta
     gs = fig.add_gridspec(nrows=3, ncols=1, height_ratios=[img_h_in, GAP_IN_NIR, TEXT_H_IN_NIR], hspace=0)
 
     ax = fig.add_subplot(gs[0, 0])
-    vmin, vmax = _calculate_percentile_scales(array)
+    # vmin, vmax = _calculate_percentile_scales(array)
+    # vmin = float(np.min(array))
+    # vmax = float(np.max(array))
+    vmin = float(np.percentile(array, 1))
+    vmax = float(np.percentile(array, 99.9))
     ax.imshow(array, origin="lower", aspect="equal", cmap="gray", vmin=vmin, vmax=vmax)
 
     counts_star = None
@@ -134,7 +140,7 @@ def save_single_frame_png_NIR(array: np.ndarray, filename: Path, title: str, sta
         ax_txt.text(0.5, y, line, ha="center", va="center", fontsize=STATS_FONTSIZE_NIR, color=color, transform=ax_txt.transAxes)
         
     fig.tight_layout()
-    fig.savefig(filename, dpi=_FIGURE_DPI, bbox_inches=_BBOX_INCHES)
+    fig.savefig(filename, dpi=FIGURE_DPI_NIR, bbox_inches=BBOX_INCHES_NIR)
     plt.close(fig)
     logging.debug("Wrote %s", filename)
 
