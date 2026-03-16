@@ -73,8 +73,6 @@ def save_single_frame_png_NIR(array: np.ndarray, filename: Path, title: str, sta
     GAP_IN_NIR = 0.35
     TEXT_H_IN_NIR = 0.9
     NIR_LABEL_FONTSIZE = 16
-    BBOX_INCHES_NIR = 'tight'
-    FIGURE_DPI_NIR = 200
 
 
     ny, nx = array.shape
@@ -146,7 +144,7 @@ def save_single_frame_png_NIR(array: np.ndarray, filename: Path, title: str, sta
         ax_txt.text(0.5, y, line, ha="center", va="center", fontsize=STATS_FONTSIZE_NIR, color=color, transform=ax_txt.transAxes)
         
     fig.tight_layout()
-    fig.savefig(filename, dpi=FIGURE_DPI_NIR, bbox_inches=BBOX_INCHES_NIR)
+    fig.savefig(filename, dpi=_FIGURE_DPI, bbox_inches=_BBOX_INCHES)
     plt.close(fig)
     logging.debug("Wrote %s", filename)
 
