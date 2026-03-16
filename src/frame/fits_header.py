@@ -103,3 +103,18 @@ def append_base_frame_header(base_header, filetype: str, channel: SpectroscopyCh
     header.append(("OBS_ID",    f"Obs {filetype} {k}",  "Observation ID"))
 
     return header
+
+def append_photometry_header(header, phot) -> None:
+    if header is None or phot is None:
+        return
+
+    counts_star, counts_star_noise, x0, y0, radius_annulus_inner, radius_annulus_outer = phot
+
+    header.append(("CSTAR", float(counts_star), "Aperture stellar counts (e-)"))
+    header.append(("CSTNOISE", float(counts_star_noise), "Noise of CSTAR (e-)"))
+
+    header.append(("PHOTX0", int(x0), "Photometry center X (pix)"))
+    header.append(("PHOTY0", int(y0), "Photometry center Y (pix)"))
+
+    header.append(("PHOTINR", float(radius_annulus_inner), "BKG annulus inner radius (pix)"))
+    header.append(("PHOTOUTR", float(radius_annulus_outer), "BKG annulus outer radius (pix)"))

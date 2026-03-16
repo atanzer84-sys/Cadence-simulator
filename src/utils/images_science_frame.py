@@ -92,9 +92,10 @@ def save_single_frame_png_NIR(array: np.ndarray, filename: Path, title: str, sta
     ax.imshow(array, origin="lower", aspect="equal", cmap="gray", vmin=vmin, vmax=vmax)
 
     counts_star = None
+    counts_star_noise = None
 
     if phot is not None and draw_aperture_photometry_overlay:
-        counts_star, x0, y0, aperture_radius, annulus_outer_radius = phot
+        counts_star, counts_star_noise, x0, y0, aperture_radius, annulus_outer_radius = phot
 
         aperture_circle = plt.Circle((x0, y0), aperture_radius, fill=False, linewidth=1.0, color="#00ff00")
         annulus_outer_circle = plt.Circle((x0, y0), annulus_outer_radius, fill=False, linewidth=1.0, color="#ff0000")
@@ -123,8 +124,13 @@ def save_single_frame_png_NIR(array: np.ndarray, filename: Path, title: str, sta
     ax_txt.axis("off")
 
     stats_lines = stats_text.splitlines()
-    if counts_star is not None:
-        stats_lines.append(f"C_STAR={int(round(counts_star)):,}".replace(",", " ") + " e⁻")
+    if counts_star is not None and counts_star_noise is not None:
+        stats_lines.append(
+            f"C_STAR={int(round(counts_star)):,}".replace(",", " ")
+            + " e⁻  "
+            + f"C_STAR_NOISE={int(round(counts_star_noise)):,}".replace(",", " ")
+            + " e⁻"
+        )
 
     n_lines = len(stats_lines)
     y_top = 0.82

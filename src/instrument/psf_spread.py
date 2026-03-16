@@ -1,7 +1,7 @@
 import logging
 import numpy as np
 # import scipy.interpolate as si
-from configs.channel_config import PhotometryChannel
+from configs.channel_config import PhotometryChannel, Channel
 from loaders.run_waltzer_context import RunContext
 from utils.helpers import announce
 
@@ -87,7 +87,10 @@ def get_photometry_placement(channel: PhotometryChannel):
     return source_pixel_x, source_pixel_y
 
 
-def compute_aperture_photometry(image: np.ndarray, channel: PhotometryChannel):
+def compute_aperture_photometry(image: np.ndarray, channel: Channel):
+
+    if not isinstance(channel, PhotometryChannel):
+        return None
 
     # 1) determine the aperture radius from the PSF by finding the outermost pixel above the 1% intensity threshold and doubling that radius, then integrate the counts inside that circle centered at the target (Cc)
     # get the center of the target
@@ -97,7 +100,7 @@ def compute_aperture_photometry(image: np.ndarray, channel: PhotometryChannel):
     center_y, center_x = channel.psf_center_y, channel.psf_center_x
     y_coord, x_coord = np.indices(psf.shape, dtype=np.int32)
     r = np.sqrt((y_coord - center_y)*(y_coord - center_y) + (x_coord - center_x)*(x_coord - center_x))
-    threshold = 0.01 * psf.max()
+    threshold = 0.001 * psf.max()
     mask = psf >= threshold
     radius_psf_1_percent = r[mask].max()
     psf_radius = 2 * radius_psf_1_percent

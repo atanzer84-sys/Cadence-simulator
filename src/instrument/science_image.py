@@ -16,7 +16,7 @@ from frame.fits_header import initialize_fits_header
 from frame.bias_frame import generate_bias_frame_with_index
 from frame.dark_frame import generate_dark_frame_with_index
 from frame.write_fits import write_fits_frame
-from frame.fits_header import append_image_stats_header, append_channel_frame_header, append_base_frame_header
+from frame.fits_header import append_image_stats_header, append_channel_frame_header, append_base_frame_header, append_photometry_header
 from frame.frame_class import Frame
 from instrument.psf_spread import compute_aperture_photometry
 
@@ -76,6 +76,7 @@ def _create_channel_images(stellar_signal, channel: Channel, ctx: RunContext, cf
         header = append_base_frame_header(base_header, filetype="SCIENCE", channel=channel, index0=frame_index)
         append_image_stats_header(header, img)
         append_channel_frame_header(header, channel, exptime_s=exposure, include_bias=True, include_dark=True)
+        append_photometry_header(header, phot)
 
         frame = Frame(data=img, header=header, frame_type="science", channel_tag=channel.channel_name)
         write_fits_frame(frame, ctx, frame_index)

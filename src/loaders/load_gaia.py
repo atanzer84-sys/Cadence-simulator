@@ -68,33 +68,18 @@ def lookup_target_star_gaia(star_params: dict, missing_star, cfg: GlobalConfig) 
 
     except Exception as e:
         logging.error("Gaia lookup failed for %s: %s", target_name, str(e))
+        print(f"Gaia lookup failed for {target_name}: {e}")
         return {}
 
 def query_gaia(sourceID, GAIA_USE_ASYNC_JOBS):
-    query = f"""
-        SELECT
-            gs.source_id,
-            gs.ra,
-            gs.dec,
-            gs.parallax,
-            gs.phot_g_mean_mag,
-            COALESCE(ap.teff_gspphot, ap.teff_gspspec, supp.teff_gspspec_ann, gs.rv_template_teff) AS Teff,
-            COALESCE(ap.distance_gspphot, supp.distance_gspphot_phoenix, supp.distance_gspphot_marcs) AS dist_pc, 
-            COALESCE(ap.radius_gspphot, supp.radius_gspphot_a, supp.radius_gspphot_phoenix, supp.radius_gspphot_marcs) AS radius_sun, 
-            COALESCE(ap.mass_flame, supp.mass_flame_spec) AS mass_sun
-        FROM gaiadr3.gaia_source AS gs
-        LEFT JOIN gaiadr3.astrophysical_parameters AS ap ON gs.source_id = ap.source_id
-        LEFT JOIN gaiadr3.astrophysical_parameters_supp AS supp ON gs.source_id = supp.source_id
-        WHERE gs.source_id = {sourceID}
-        """
+    query = _gaia_query_for_source_id(sourceID)
     gaia_result_row = _run_gaia_job(query, GAIA_USE_ASYNC_JOBS)
 
     if len(gaia_result_row) == 0:
         logging.warning("No Gaia joined row returned for (source_id=%s)", sourceID)
         return {}
-    
-    logging.info("Gaia row for source_id=%s: %s", sourceID, {col: gaia_result_row[0][col] for col in gaia_result_row.colnames})
 
+    logging.info("Gaia row for source_id=%s: %s", sourceID, {col: gaia_result_row[0][col] for col in gaia_result_row.colnames})
     return gaia_result_row[0]
 
 def get_gaia_stellar_properties(gaia_row, log_output: bool = True):
@@ -105,19 +90,20 @@ def get_gaia_stellar_properties(gaia_row, log_output: bool = True):
             return None
         value = float(value)
         return None if math.isnan(value) else value
-    
+
+    # source_id,ra,dec,parallax,phot_g_mean_mag,Teff,dist_pc,radius_sun,mass_sun,mh_gspphot,logg_gspphot,sep_arcsec,is_target
     gaia_star_params = {
+        "right_ascension": _to_float(gaia_row.get("ra")),
+        "declination": _to_float(gaia_row.get("dec")),
+        "parallax": _to_float(gaia_row.get("parallax")),
+        "v_magnitude": _to_float(gaia_row.get("phot_g_mean_mag")),
+        "gaia_magnitude": _to_float(gaia_row.get("phot_g_mean_mag")),
         "effective_temperature": _to_float(gaia_row.get("Teff")),
+        "distance": _to_float(gaia_row.get("dist_pc")),
         "radius": _to_float(gaia_row.get("radius_sun")),
         "mass": _to_float(gaia_row.get("mass_sun")),
         "metallicity": _to_float(gaia_row.get("mh_gspphot")),
         "surface_gravity": _to_float(gaia_row.get("logg_gspphot")),
-        "right_ascension": _to_float(gaia_row.get("ra")),
-        "declination": _to_float(gaia_row.get("dec")),
-        "distance": _to_float(gaia_row.get("dist_pc")),
-        "v_magnitude": _to_float(gaia_row.get("phot_g_mean_mag")),
-        "gaia_magnitude": _to_float(gaia_row.get("phot_g_mean_mag")),
-        "parallax": _to_float(gaia_row.get("parallax")),
     }
     if log_output:
         logging.info("Gaia stellar parameters extracted: %s", gaia_star_params)    
@@ -145,7 +131,8 @@ def gaia_lookup_for_background_stars(star: Star, g_mag_limit, GAIA_USE_ASYNC_JOB
         no field after removing central, or on Gaia/TAP error.
     """
     print(f"==== Gaia background search: START (g_mag_limit={g_mag_limit}, GAIA_USE_ASYNC_JOBS={GAIA_USE_ASYNC_JOBS} , radius_arcsec={radius_arcsec}) =====")
-
+    logging.info("Gaia background search: START g_mag_limit=%s GAIA_USE_ASYNC_JOBS=%s radius_arcsec=%s", g_mag_limit, GAIA_USE_ASYNC_JOBS, radius_arcsec)
+    
     center = SkyCoord(ra=star.right_ascension * u.deg, dec=star.declination * u.deg, frame="icrs")
 
     cone_small = _gaia_cone_search(center, radius_arcsec, g_mag_limit=g_mag_limit, GAIA_USE_ASYNC_JOBS=GAIA_USE_ASYNC_JOBS)
@@ -160,10 +147,6 @@ def gaia_lookup_for_background_stars(star: Star, g_mag_limit, GAIA_USE_ASYNC_JOB
     field_joined = _gaia_fetch_ap_and_join(field_cone, GAIA_USE_ASYNC_JOBS=GAIA_USE_ASYNC_JOBS)
     if field_joined is None:
         return None
-
-    # ----------------------------
-    # 4) LOG central + field
-    # ----------------------------
 
     n_field = len(field_joined)
     g_mag_col = "phot_g_mean_mag"
@@ -225,6 +208,8 @@ def _gaia_cone_search(center: SkyCoord, radius_arcsec: float, g_mag_limit: float
         logging.info("Gaia background search: no sources found")
         return None
 
+    logging.info("Gaia background search: cone search returned rows=%d ", len(cone))
+
     cone_small = cone[["source_id", "ra", "dec", "parallax", "phot_g_mean_mag"]]
 
     if g_mag_limit is not None:
@@ -235,6 +220,8 @@ def _gaia_cone_search(center: SkyCoord, radius_arcsec: float, g_mag_limit: float
     if len(cone_small) == 0:
         logging.info("Gaia background search: no sources after magnitude filter")
         return None
+
+    logging.info("Gaia background search: cone_small rows=%d", len(cone_small))
 
     return cone_small
 
@@ -289,19 +276,8 @@ def _gaia_fetch_ap_and_join(field_cone: Table, GAIA_USE_ASYNC_JOBS, ap_batch_siz
     ap_tables: list[Table] = []
 
     for start in range(0, len(ids), ap_batch_size):
-        chunk = ids[start : start + ap_batch_size]
-        in_list = ",".join(str(x) for x in chunk)
-        ap_query = f"""
-            SELECT
-                source_id,
-                COALESCE(ap.teff_gspphot, ap.teff_gspspec, supp.teff_gspspec_ann) AS Teff,
-                COALESCE(ap.distance_gspphot, supp.distance_gspphot_phoenix, supp.distance_gspphot_marcs) AS dist_pc, 
-                COALESCE(ap.radius_gspphot, supp.radius_gspphot_a, supp.radius_gspphot_phoenix, supp.radius_gspphot_marcs) AS radius_sun, 
-                COALESCE(ap.mass_flame, supp.mass_flame_spec) AS mass_sun
-            FROM gaiadr3.astrophysical_parameters as ap
-            LEFT JOIN gaiadr3.astrophysical_parameters_supp AS supp ON ap.source_id = supp.source_id
-            WHERE source_id IN ({in_list})
-        """
+        chunk = ids[start:start + ap_batch_size]
+        ap_query = _gaia_query_for_source_ids(chunk)
         try:
             tbl = _run_gaia_job(ap_query, GAIA_USE_ASYNC_JOBS)
             if tbl is not None and len(tbl) > 0:
@@ -311,7 +287,7 @@ def _gaia_fetch_ap_and_join(field_cone: Table, GAIA_USE_ASYNC_JOBS, ap_batch_siz
             logging.exception(msg)
             print(msg)
             return None
-
+            
     if not ap_tables:
         logging.info("Gaia background search: after AP search rows=0 (no AP data)")
         return field_cone
@@ -322,3 +298,31 @@ def _gaia_fetch_ap_and_join(field_cone: Table, GAIA_USE_ASYNC_JOBS, ap_batch_siz
 
     field_joined = join(field_cone, ap_tbl, keys="source_id", join_type="left")
     return field_joined
+
+def _gaia_select_joined_base() -> str:
+    return """
+        SELECT
+            gs.source_id,
+            gs.ra,
+            gs.dec,
+            gs.parallax,
+            gs.phot_g_mean_mag,
+            COALESCE(ap.teff_gspphot, ap.teff_gspspec, supp.teff_gspspec_ann, gs.rv_template_teff) AS Teff,
+            COALESCE(ap.distance_gspphot, supp.distance_gspphot_phoenix, supp.distance_gspphot_marcs) AS dist_pc,
+            COALESCE(ap.radius_gspphot, ap.radius_flame, supp.radius_flame_spec, supp.radius_gspphot_a, supp.radius_gspphot_marcs, supp.radius_gspphot_phoenix) AS radius_sun, 
+            COALESCE(ap.mass_flame, supp.mass_flame_spec) AS mass_sun,
+            ap.mh_gspphot,
+            ap.logg_gspphot
+        FROM gaiadr3.gaia_source AS gs
+        LEFT JOIN gaiadr3.astrophysical_parameters AS ap ON gs.source_id = ap.source_id
+        LEFT JOIN gaiadr3.astrophysical_parameters_supp AS supp ON gs.source_id = supp.source_id
+    """
+
+def _gaia_query_for_source_id(source_id: int) -> str:
+    return f"{_gaia_select_joined_base()} WHERE gs.source_id = {int(source_id)}"
+
+def _gaia_query_for_source_ids(source_ids: list[int]) -> str:
+    in_list = ",".join(str(int(x)) for x in source_ids)
+    return f"{_gaia_select_joined_base()} WHERE gs.source_id IN ({in_list})"
+
+

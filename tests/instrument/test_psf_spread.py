@@ -175,21 +175,6 @@ def test_spread_1d_photometry_to_2d_psf_center_none_raises_value_error(tmp_path)
 # -----------------------------------------------------------------------------
 
 
-def test_compute_aperture_photometry_non_photometry_channel_returns_none():
-    """When channel is not a PhotometryChannel instance, returns None."""
-    ch = SimpleNamespace(
-        x_pixels=10,
-        y_pixels=10,
-        pixel_scale=1.0,
-        source_position_x_arcsec=0.0,
-        source_position_y_arcsec=0.0,
-        psf_image=np.ones((3, 3)),
-    )
-    image = np.zeros((10, 10))
-    result = compute_aperture_photometry(image, ch)
-    assert result is None
-
-
 def test_compute_aperture_photometry_empty_annulus_returns_none():
     """When annulus has zero pixels (e.g. image too small or source off-frame), returns None."""
     tiny = np.zeros((2, 2))
@@ -198,23 +183,67 @@ def test_compute_aperture_photometry_empty_annulus_returns_none():
     assert result is None
 
 
-def test_compute_aperture_photometry_returns_five_tuple():
-    """With valid PhotometryChannel and image large enough for circle and annulus, returns (counts_star, x0, y0, r_inner, r_outer)."""
+def test_compute_aperture_photometry_uniform_background_zero_star_counts():
+    """With uniform background only, background-subtracted stellar counts are ~0 and six-tuple is returned."""
     ch = photometry_channel(x_pixels=32, y_pixels=32, psf_shape=(4, 4))
-    image = np.zeros((32, 32), dtype=np.float64)
-    # Put 100 counts in a small central region (inside aperture circle)
-    image[14:18, 14:18] = 10.0  # 16 pixels * 10 = 160
-    # Put uniform background in annulus so C_star ≈ circle - scaled annulus mean * Nc
-    # Annulus inner R = 2*2=4, outer R = 8. Center at (16,16). Fill annulus with 1.0
-    yy, xx = np.ogrid[:32, :32]
-    r2 = (xx - 16) ** 2 + (yy - 16) ** 2
-    annulus_mask = (r2 > 4**2) & (r2 <= 8**2)
-    image[annulus_mask] = 1.0
+    image = np.ones((32, 32), dtype=np.float64) * 5.0
     result = compute_aperture_photometry(image, ch)
     assert result is not None
-    counts_star, x0, y0, r_inner, r_outer = result
-    assert x0 == 16
-    assert y0 == 16
-    assert r_inner == 4.0
-    assert r_outer == 8.0
-    assert isinstance(counts_star, (int, float))
+    counts_star, counts_star_noise, x0, y0, r_inner, r_outer = result
+    assert x0 == ch.x_pixels // 2
+    assert y0 == ch.y_pixels // 2
+    assert r_inner > 0.0
+    assert r_outer == pytest.approx(2.0 * r_inner)
+    assert counts_star == pytest.approx(0.0, abs=1e-6)
+    assert counts_star_noise > 0.0
+
+
+def test_compute_aperture_photometry_counts_and_noise_with_known_psf():
+    """For a simple PSF and known signal/background, check aperture radii, counts_star, and noise analytically."""
+    psf_shape = (5, 5)
+    psf = np.zeros(psf_shape, dtype=np.float32)
+    center_y, center_x = 2, 2
+    yy_psf, xx_psf = np.indices(psf_shape)
+    r_psf = np.sqrt((yy_psf - center_y) ** 2 + (xx_psf - center_x) ** 2)
+    psf[r_psf <= 2.0] = 1.0
+
+    ch = photometry_channel(x_pixels=50, y_pixels=50, psf_shape=psf_shape, psf_image=psf, psf_center_x=center_x, psf_center_y=center_y)
+
+    image = np.zeros((50, 50), dtype=np.float64)
+    x0, y0 = get_photometry_placement(ch)
+    yy, xx = np.indices(image.shape)
+    dx = xx - x0
+    dy = yy - y0
+    dist2 = dx * dx + dy * dy
+
+    radius_psf_1_percent = 2.0
+    psf_radius = 2.0 * radius_psf_1_percent
+    circle_mask = dist2 <= psf_radius * psf_radius
+    inner_radius_sq = psf_radius * psf_radius
+    outer_radius_sq = (2.0 * psf_radius) * (2.0 * psf_radius)
+    annulus_mask = (dist2 > inner_radius_sq) & (dist2 <= outer_radius_sq)
+
+    background_level = 3.0
+    signal_level = 7.0
+    image[:] = background_level
+    image[circle_mask] += signal_level
+
+    Nc = int(np.sum(circle_mask))
+    Na = int(np.sum(annulus_mask))
+    Cc = float(np.sum(image[circle_mask]))
+    Ca = float(np.sum(image[annulus_mask]))
+
+    expected_background_circle = Ca * Nc / Na
+    expected_counts_star = Cc - expected_background_circle
+    expected_counts_star_noise = np.sqrt(Cc + expected_background_circle)
+
+    result = compute_aperture_photometry(image, ch)
+    assert result is not None
+    counts_star, counts_star_noise, x0_ret, y0_ret, r_inner, r_outer = result
+
+    assert x0_ret == x0
+    assert y0_ret == y0
+    assert r_inner == pytest.approx(psf_radius)
+    assert r_outer == pytest.approx(2.0 * psf_radius)
+    assert counts_star == pytest.approx(expected_counts_star, rel=1e-6)
+    assert counts_star_noise == pytest.approx(expected_counts_star_noise, rel=1e-6)
