@@ -67,14 +67,21 @@ def build_stats_row(array: np.ndarray, channel: Channel, frame_type: str) -> tup
     }
     return stats_values, stats_keys
 
-def build_png_filename(output_dir: Path, target_name: str, channel_tag: str, frame_type: str, index: int | None = None, *, waltzer_prefix: bool = True) -> Path:
+def build_frame_path(output_dir: Path, target_name: str, channel_tag: str, frame_type: str, exposure: float, index: int, *, waltzer_prefix: bool = True, suffix: str = "") -> Path:
     safe = normalize_target_name(target_name)
+    exposure_int = int(exposure)
     prefix = "WALTzER_" if waltzer_prefix else ""
-    if index is not None:
-        return output_dir / f"{prefix}{safe}_{channel_tag}_{frame_type}_{index:05d}.png"
-    if waltzer_prefix:
-        return output_dir / f"{prefix}{safe}_{channel_tag}_{frame_type}.png"
-    return output_dir / f"{safe}_{channel_tag}_{frame_type}_image.png"
+    basename = f"{prefix}{safe}_{channel_tag}_{frame_type}_{exposure_int}s_{index:05d}"
+    return output_dir / f"{basename}{suffix}"
+
+
+def build_png_filename(output_dir: Path, target_name: str, channel_tag: str, frame_type: str, exposure: float, index: int | None = None, *, waltzer_prefix: bool = True) -> Path:
+    if index is None:
+        return output_dir
+    return build_frame_path(output_dir, target_name, channel_tag, frame_type, exposure, index, waltzer_prefix=waltzer_prefix, suffix=".png")
+
+
+
 
 def format_stats_text(values: dict, keys: list[str], *, use_scientific_for_small: bool = False) -> str:
     """Format key=value pairs. Use N/A for missing/None values. Add units for second-line items.
