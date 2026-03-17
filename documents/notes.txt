@@ -11,6 +11,9 @@ GAIA:
 cd src
 /Users/andreatanzer/.venvs/shared/bin/python -m gaiahelper.gaiahelper_create_background_stars
 
+grep "Aperture photometry (NIR)" waltzer_simulator_20260317_095556_304226.log > photometry.log
+
+
 
 git switch -c feature/next-thing
 git switch main
