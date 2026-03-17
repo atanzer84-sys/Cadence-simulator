@@ -2,10 +2,10 @@ import logging
 from astropy.io import fits
 from loaders.run_waltzer_context import RunContext
 from frame.frame_class import Frame
-from utils.images_common import build_frame_path
+from utils.images_common import build_base_output_path
 
 def write_fits_frame(frame: Frame, ctx: RunContext, index: int, exposure: float):
-    filename = build_frame_path(ctx.output_dir, ctx.target_name, frame.channel_tag, frame.frame_type, exposure, index, suffix=".fits")
+    filename = build_base_output_path(ctx.output_dir, ctx.target_name, frame.channel_tag, frame.frame_type, exposure, index, suffix=".fits")
     fname = filename.name
     frame.header.append(("FILENAME", fname, "Output FITS filename"))
     # _log_oversized_header_cards(frame.header, frame.data.shape)
