@@ -252,7 +252,7 @@ def main(existing_output_dir=None):
     #     "HAT-P-7",
     # ]
 
-    star_names = ["KELT-20"]
+    star_names = ["eps boo"]
     
     RADIUS_ARCSEC = 450.0 # 10 arcmin
  
@@ -296,5 +296,5 @@ def main(existing_output_dir=None):
 
 
 if __name__ == "__main__":
-    # main()
-    main("/Users/andreatanzer/Documents/Space Science/MasterThesis/WALTzER-simulator/output/all")
+    main()
+    # main("/Users/andreatanzer/Documents/Space Science/MasterThesis/WALTzER-simulator/output/all")
