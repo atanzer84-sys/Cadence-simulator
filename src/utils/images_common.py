@@ -67,7 +67,7 @@ def build_stats_row(array: np.ndarray, channel: Channel, frame_type: str) -> tup
     }
     return stats_values, stats_keys
 
-def build_frame_path(output_dir: Path, target_name: str, channel_tag: str, frame_type: str, exposure: float, index: int, *, waltzer_prefix: bool = True, suffix: str = "") -> Path:
+def build_base_output_path(output_dir: Path, target_name: str, channel_tag: str, frame_type: str, exposure: float, index: int, *, waltzer_prefix: bool = True, suffix: str = "") -> Path:
     safe = normalize_target_name(target_name)
     exposure_int = int(exposure)
     prefix = "WALTzER_" if waltzer_prefix else ""
@@ -78,7 +78,7 @@ def build_frame_path(output_dir: Path, target_name: str, channel_tag: str, frame
 def build_png_filename(output_dir: Path, target_name: str, channel_tag: str, frame_type: str, exposure: float, index: int | None = None, *, waltzer_prefix: bool = True) -> Path:
     if index is None:
         return output_dir
-    return build_frame_path(output_dir, target_name, channel_tag, frame_type, exposure, index, waltzer_prefix=waltzer_prefix, suffix=".png")
+    return build_base_output_path(output_dir, target_name, channel_tag, frame_type, exposure, index, waltzer_prefix=waltzer_prefix, suffix=".png")
 
 
 
