@@ -33,11 +33,11 @@ def initialize_fits_header(star: Star, timestamp: datetime):
     header.append(("TARGT_D",   star.distance_pc ,                  "Target distance in pc"))
     header.append(("TARGT_MS",  star.effective_temperature ,        "Target effective temperature"))
     header.append(("VMAG",      star.v_magnitude ,                  "V magnitude of the target"))
-    header.append(("RA",        star.right_ascension,               "Right ascension in degrees"))
-    header.append(("DEC",       star.declination,                   "Declination in degrees"))
-    header.append(("GLAT",      glat,                               "Galactic latitude of the target"))
-    header.append(("GLON",      glon,                               "Galactic longitude of the target"))
-    header.append(("RA_HEX",    ra_hex,                             "Right ascension in hh:mm:ss.sss"))
+    header.append(("RA",        float(round(star.right_ascension, 4)), "Right ascension (deg)"))
+    header.append(("DEC",       float(round(star.declination, 4)),     "Declination (deg)"))
+    header.append(("GLAT",      float(round(glat, 4)),                 "Galactic latitude (deg)"))
+    header.append(("GLON",      float(round(glon, 4)),                 "Galactic longitude (deg)"))
+    header.append(("RA_HEX",    ra_hex,                                "RA in hh:mm:ss.sss"))
     header.append(("GEO_LAT",   0,                                  "Geocentric latitude"))
     header.append(("GEO_LON",   0,                                  "Geocentric longitude"))
     header.append(("DEC_HEX",   dec_hex,                            "Declination in dd:mm:ss.sss"))
@@ -54,11 +54,12 @@ def append_image_stats_header(header, image) -> None:
     if header is None:
         return
 
-    header.append(("MEAN",   float(image.mean()),      "Mean value of the frame"))
-    header.append(("MEDIAN", float(np.median(image)),  "Median value of the frame"))
-    header.append(("STDDEV", float(image.std()),       "Standard deviation of the frame"))
-    header.append(("MAX",    float(image.max()),       "Maximum value of the frame"))
-    header.append(("MIN",    float(image.min()),       "Minimum value of the frame"))
+    # Use limited precision so FITS cards stay within 80 characters.
+    header.append(("MEAN",   float(round(image.mean(), 2)),      "Mean value of the frame"))
+    header.append(("MEDIAN", float(round(np.median(image), 2)),  "Median value of the frame"))
+    header.append(("STDDEV", float(round(image.std(), 2)),       "Standard deviation of the frame"))
+    header.append(("MAX",    float(round(image.max(), 2)),       "Maximum value of the frame"))
+    header.append(("MIN",    float(round(image.min(), 2)),       "Minimum value of the frame"))
 
 
 def append_channel_frame_header(header, channel: SpectroscopyChannel, exptime_s: float, include_bias: bool = True, include_dark: bool = True) -> None:
@@ -110,11 +111,12 @@ def append_photometry_header(header, phot) -> None:
 
     counts_star, counts_star_noise, x0, y0, radius_annulus_inner, radius_annulus_outer = phot
 
-    header.append(("CSTAR", float(counts_star), "Aperture stellar counts (e-)"))
-    header.append(("CSTNOISE", float(counts_star_noise), "Noise of CSTAR (e-)"))
+    # Limit precision to keep FITS cards within 80 characters.
+    header.append(("CSTAR", float(round(counts_star, 2)), "Aperture stellar counts (e-)"))
+    header.append(("CSTNOISE", float(round(counts_star_noise, 2)), "Noise of CSTAR (e-)"))
 
     header.append(("PHOTX0", int(x0), "Photometry center X (pix)"))
     header.append(("PHOTY0", int(y0), "Photometry center Y (pix)"))
 
-    header.append(("PHOTINR", float(radius_annulus_inner), "BKG annulus inner radius (pix)"))
-    header.append(("PHOTOUTR", float(radius_annulus_outer), "BKG annulus outer radius (pix)"))
+    header.append(("PHOTINR", float(round(radius_annulus_inner, 2)), "BKG annulus inner radius"))
+    header.append(("PHOTOUTR", float(round(radius_annulus_outer, 2)), "BKG annulus outer radius"))
