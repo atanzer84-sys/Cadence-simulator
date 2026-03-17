@@ -9,6 +9,7 @@ from tests.helpers.channel_factory import channel
 from tests.helpers.star_factory import star
 from tests.helpers.run_context_factory import run_context
 from utils import target_background_star_vs_noise
+from utils.images_common import build_base_output_path
 
 
 def test_plot_star_counts_vs_noise_spectroscopy_writes_png(tmp_path):
@@ -22,7 +23,7 @@ def test_plot_star_counts_vs_noise_spectroscopy_writes_png(tmp_path):
         wavelength, counts_s_px, ch, ctx, None
     )
 
-    out = Path(tmp_path) / "HD_2685_target_star_counts_vs_noise_VIS.png"
+    out = build_base_output_path(Path(tmp_path), ctx.target_name, ch.channel_name, target_background_star_vs_noise._COUNTS_VS_NOISE_FILENAME_TAG, ch.exposure_s, 0, waltzer_prefix=True, suffix=".png")
     assert out.exists()
     assert out.stat().st_size > 0
 
@@ -39,7 +40,7 @@ def test_plot_star_counts_vs_noise_spectroscopy_with_star_writes_png(tmp_path):
         wavelength, counts_s_px, ch, ctx, s
     )
 
-    out = Path(tmp_path) / "HD_2685_target_star_counts_vs_noise_NUV.png"
+    out = build_base_output_path(Path(tmp_path), ctx.target_name, ch.channel_name, target_background_star_vs_noise._COUNTS_VS_NOISE_FILENAME_TAG, ch.exposure_s, 0, waltzer_prefix=True, suffix=".png")
     assert out.exists()
     assert out.stat().st_size > 0
 
@@ -54,7 +55,7 @@ def test_plot_star_counts_vs_noise_photometry_writes_png(tmp_path):
         rate_image_e_s, ch, ctx, None
     )
 
-    out = Path(tmp_path) / "HD_2685_target_star_counts_vs_noise_NIR.png"
+    out = build_base_output_path(Path(tmp_path), ctx.target_name, ch.channel_name, target_background_star_vs_noise._COUNTS_VS_NOISE_FILENAME_TAG, ch.exposure_s, 0, waltzer_prefix=True, suffix=".png")
     assert out.exists()
     assert out.stat().st_size > 0
 
@@ -70,6 +71,6 @@ def test_plot_star_counts_vs_noise_photometry_with_star_writes_png(tmp_path):
         rate_image_e_s, ch, ctx, s
     )
 
-    out = Path(tmp_path) / "HD_2685_target_star_counts_vs_noise_NIR.png"
+    out = build_base_output_path(Path(tmp_path), ctx.target_name, ch.channel_name, target_background_star_vs_noise._COUNTS_VS_NOISE_FILENAME_TAG, ch.exposure_s, 0, waltzer_prefix=True, suffix=".png")
     assert out.exists()
     assert out.stat().st_size > 0
