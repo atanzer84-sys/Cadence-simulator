@@ -4,7 +4,14 @@ set -u
 PYTHON="/Users/andreatanzer/.venvs/shared/bin/python"
 SCRIPT="/Users/andreatanzer/Documents/Space Science/MasterThesis/WALTzER-simulator/src/waltzer_simulator.py"
 
-for dir in */; do
+# if argument given → only that dir, else all dirs
+if [ $# -ge 1 ]; then
+    DIRS=("$1")
+else
+    DIRS=(*/)
+fi
+
+for dir in "${DIRS[@]}"; do
     [ -d "$dir" ] || continue
 
     for file in "$dir"/*.txt; do
@@ -28,3 +35,7 @@ for dir in */; do
         echo
     done
 done
+
+
+#./script.sh              # all folders
+# ./script.sh 5800_11_G/  # just one folder
