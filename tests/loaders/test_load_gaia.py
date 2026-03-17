@@ -2,7 +2,7 @@ from astropy.coordinates import SkyCoord
 from astropy.table import Table
 import astropy.units as u
 from types import SimpleNamespace
-
+import numpy as np
 from loaders import load_gaia
 
 
@@ -330,3 +330,75 @@ def test_get_gaia_stellar_properties_reads_cached_csv_column_names():
     assert got["mass"] == 4.80074405670166
     assert got["distance"] == 2401.2685546875
     assert got["gaia_magnitude"] == 11.795485496520996
+
+
+
+def test_get_gaia_stellar_properties_handles_empty_strings_from_gaia():
+    """
+    Testet den Bug, bei dem Gaia leere Strings ('') für numerische Felder liefert
+    und der Code früher mit float('') gecrasht ist.
+
+    Erwartung:
+    - leere Strings werden zu None
+    - keine Exception wird geworfen
+    """
+
+    gaia_row = {
+        "ra": 286.97138676797084,
+        "dec": 46.86824405830706,
+        "parallax": 2.031923106187413,
+        "phot_g_mean_mag": 10.38234,
+        "Teff": "",
+        "dist_pc": "",
+        "radius_sun": "",
+        "mass_sun": "",
+        "mh_gspphot": np.ma.masked,
+        "logg_gspphot": np.ma.masked,
+    }
+
+    result = load_gaia.get_gaia_stellar_properties(gaia_row, log_output=False)
+
+    # sanity checks: gültige Werte bleiben erhalten
+    assert result["parallax"] == 2.031923106187413
+    assert result["gaia_magnitude"] == 10.38234
+
+    # kritischer Teil: vorher Crash → jetzt None
+    assert result["effective_temperature"] is None
+    assert result["distance"] is None
+    assert result["radius"] is None
+    assert result["mass"] is None
+    assert result["metallicity"] is None
+    assert result["surface_gravity"] is None
+
+
+def test_get_gaia_stellar_properties_handles_whitespace_strings():
+    """
+    Testet den Fall, dass Gaia oder ein Join keine '' liefert,
+    sondern Strings mit nur Whitespace ('   ').
+
+    Das ist ein typischer Real-World-Fall und würde ohne strip()
+    ebenfalls zu float() Fehlern führen.
+    """
+
+    gaia_row = {
+        "ra": 1.0,
+        "dec": 2.0,
+        "parallax": 3.0,
+        "phot_g_mean_mag": 4.0,
+        "Teff": "   ",
+        "dist_pc": "   ",
+        "radius_sun": "   ",
+        "mass_sun": "   ",
+        "mh_gspphot": "   ",
+        "logg_gspphot": "   ",
+    }
+
+    result = load_gaia.get_gaia_stellar_properties(gaia_row, log_output=False)
+
+    # alles was "leer" ist → None
+    assert result["effective_temperature"] is None
+    assert result["distance"] is None
+    assert result["radius"] is None
+    assert result["mass"] is None
+    assert result["metallicity"] is None
+    assert result["surface_gravity"] is None

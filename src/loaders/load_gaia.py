@@ -82,14 +82,26 @@ def query_gaia(sourceID, GAIA_USE_ASYNC_JOBS):
     logging.info("Gaia row for source_id=%s: %s", sourceID, {col: gaia_result_row[0][col] for col in gaia_result_row.colnames})
     return gaia_result_row[0]
 
-def get_gaia_stellar_properties(gaia_row, log_output: bool = True):
-    def _to_float(value):
-        if value is None:
+
+def _to_float(value):
+    if value is None:
+        return None
+    if np.ma.is_masked(value):
+        return None
+    if isinstance(value, str):
+        value = value.strip()
+        if value == "":
             return None
-        if np.ma.is_masked(value):
-            return None
+    try:
         value = float(value)
-        return None if math.isnan(value) else value
+    except (ValueError, TypeError):
+        return None
+
+    if math.isnan(value):
+        return None
+    return value
+
+def get_gaia_stellar_properties(gaia_row, log_output: bool = True):
 
     # source_id,ra,dec,parallax,phot_g_mean_mag,Teff,dist_pc,radius_sun,mass_sun,mh_gspphot,logg_gspphot,sep_arcsec,is_target
     gaia_star_params = {
