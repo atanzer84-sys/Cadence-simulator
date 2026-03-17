@@ -42,15 +42,16 @@ def test_write_fits_single_frame_writes_one_file(tmp_path):
     hdr = fits.Header()
     hdr["FILETYPE"] = "BIAS"
     f = _frame(data, hdr, "BIAS", "NUV")
-    write_fits_frame(f, ctx, 0)
+    exposure = 10.0
+    write_fits_frame(f, ctx, 0, exposure)
 
-    out = tmp_path / "WALTzER_TestStar_NUV_BIAS_00000.fits"
+    out = tmp_path / "WALTzER_TestStar_NUV_BIAS_10s_00000.fits"
     assert out.exists()
     with fits.open(out) as hdul:
         assert hdul[0].data.shape == (2, 3)
         assert np.allclose(hdul[0].data, data)
         assert hdul[0].header["FILETYPE"] == "BIAS"
-        assert hdul[0].header["FILENAME"] == "WALTzER_TestStar_NUV_BIAS_00000.fits"
+        assert hdul[0].header["FILENAME"] == "WALTzER_TestStar_NUV_BIAS_10s_00000.fits"
 
 
 def test_write_fits_appends_filename_to_header(tmp_path):
@@ -59,11 +60,12 @@ def test_write_fits_appends_filename_to_header(tmp_path):
     data = np.ones((1, 1))
     hdr = fits.Header([("ORIG", "x", "")])
     f = _frame(data, hdr, "science", "VIS")
-    write_fits_frame(f, ctx, 0)
+    exposure = 20.0
+    write_fits_frame(f, ctx, 0, exposure)
 
-    with fits.open(tmp_path / "WALTzER_TestStar_VIS_science_00000.fits") as hdul:
+    with fits.open(tmp_path / "WALTzER_TestStar_VIS_science_20s_00000.fits") as hdul:
         assert hdul[0].header["ORIG"] == "x"
-        assert hdul[0].header["FILENAME"] == "WALTzER_TestStar_VIS_science_00000.fits"
+        assert hdul[0].header["FILENAME"] == "WALTzER_TestStar_VIS_science_20s_00000.fits"
 
 
 # --- Multiple frames ---
@@ -78,13 +80,14 @@ def test_write_fits_multiple_frames_writes_all(tmp_path):
         np.full((2, 2), 3.0),
     ]
     headers = [fits.Header([("IDX", i, "")]) for i in range(3)]
+    exposure = 30.0
 
     for k in range(3):
         f = _frame(data_list[k], headers[k], "DARK", "NUV")
-        write_fits_frame(f, ctx, k)
+        write_fits_frame(f, ctx, k, exposure)
 
     for k in range(3):
-        path = tmp_path / f"WALTzER_TestStar_NUV_DARK_{k:05d}.fits"
+        path = tmp_path / f"WALTzER_TestStar_NUV_DARK_30s_{k:05d}.fits"
         assert path.exists()
         with fits.open(path) as hdul:
             assert np.allclose(hdul[0].data, data_list[k])
@@ -98,20 +101,22 @@ def test_write_fits_more_frames_than_headers_truncates(tmp_path):
     """When writing only one frame (one header), only one file is created."""
     ctx = _ctx(tmp_path)
     f = _frame(np.ones((2, 2)), fits.Header([("K", "1", "")]), "BIAS", "VIS")
-    write_fits_frame(f, ctx, 0)
+    exposure = 40.0
+    write_fits_frame(f, ctx, 0, exposure)
 
-    assert (tmp_path / "WALTzER_TestStar_VIS_BIAS_00000.fits").exists()
-    assert not (tmp_path / "WALTzER_TestStar_VIS_BIAS_00001.fits").exists()
+    assert (tmp_path / "WALTzER_TestStar_VIS_BIAS_40s_00000.fits").exists()
+    assert not (tmp_path / "WALTzER_TestStar_VIS_BIAS_40s_00001.fits").exists()
 
 
 def test_write_fits_more_headers_than_frames_truncates(tmp_path):
     """When writing only one frame, only one file is created."""
     ctx = _ctx(tmp_path)
     f = _frame(np.ones((2, 2)), fits.Header([("A", "1", "")]), "DARK", "NIR")
-    write_fits_frame(f, ctx, 0)
+    exposure = 50.0
+    write_fits_frame(f, ctx, 0, exposure)
 
-    assert (tmp_path / "WALTzER_TestStar_NIR_DARK_00000.fits").exists()
-    assert not (tmp_path / "WALTzER_TestStar_NIR_DARK_00001.fits").exists()
+    assert (tmp_path / "WALTzER_TestStar_NIR_DARK_50s_00000.fits").exists()
+    assert not (tmp_path / "WALTzER_TestStar_NIR_DARK_50s_00001.fits").exists()
 
 
 # --- Overwrite ---
@@ -123,11 +128,12 @@ def test_write_fits_overwrites_existing_file(tmp_path):
     frame1 = np.ones((2, 2))
     frame2 = np.full((2, 2), 99.0)
     hdr = fits.Header()
+    exposure = 60.0
 
-    write_fits_frame(_frame(frame1, hdr, "BIAS", "NUV"), ctx, 0)
-    write_fits_frame(_frame(frame2, hdr.copy(), "BIAS", "NUV"), ctx, 0)
+    write_fits_frame(_frame(frame1, hdr, "BIAS", "NUV"), ctx, 0, exposure)
+    write_fits_frame(_frame(frame2, hdr.copy(), "BIAS", "NUV"), ctx, 0, exposure)
 
-    with fits.open(tmp_path / "WALTzER_TestStar_NUV_BIAS_00000.fits") as hdul:
+    with fits.open(tmp_path / "WALTzER_TestStar_NUV_BIAS_60s_00000.fits") as hdul:
         assert np.allclose(hdul[0].data, frame2)
 
 
@@ -139,14 +145,15 @@ def test_write_fits_channel_tags_nuv_vis_ir(tmp_path):
     ctx = _ctx(tmp_path)
     data = np.zeros((1, 1))
     hdr = fits.Header()
+    exposure = 70.0
 
     for tag in ("NUV", "VIS", "NIR"):
         f = _frame(data, hdr.copy(), "bias", tag)
-        write_fits_frame(f, ctx, 0)
+        write_fits_frame(f, ctx, 0, exposure)
 
-    assert (tmp_path / "WALTzER_TestStar_NUV_bias_00000.fits").exists()
-    assert (tmp_path / "WALTzER_TestStar_VIS_bias_00000.fits").exists()
-    assert (tmp_path / "WALTzER_TestStar_NIR_bias_00000.fits").exists()
+    assert (tmp_path / "WALTzER_TestStar_NUV_bias_70s_00000.fits").exists()
+    assert (tmp_path / "WALTzER_TestStar_VIS_bias_70s_00000.fits").exists()
+    assert (tmp_path / "WALTzER_TestStar_NIR_bias_70s_00000.fits").exists()
 
 
 def test_write_fits_frame_types_bias_dark_science(tmp_path):
@@ -154,14 +161,15 @@ def test_write_fits_frame_types_bias_dark_science(tmp_path):
     ctx = _ctx(tmp_path)
     data = np.zeros((1, 1))
     hdr = fits.Header()
+    exposure = 80.0
 
     for ftype in ("bias", "dark", "science"):
         f = _frame(data, hdr.copy(), ftype, "NUV")
-        write_fits_frame(f, ctx, 0)
+        write_fits_frame(f, ctx, 0, exposure)
 
-    assert (tmp_path / "WALTzER_TestStar_NUV_bias_00000.fits").exists()
-    assert (tmp_path / "WALTzER_TestStar_NUV_dark_00000.fits").exists()
-    assert (tmp_path / "WALTzER_TestStar_NUV_science_00000.fits").exists()
+    assert (tmp_path / "WALTzER_TestStar_NUV_bias_80s_00000.fits").exists()
+    assert (tmp_path / "WALTzER_TestStar_NUV_dark_80s_00000.fits").exists()
+    assert (tmp_path / "WALTzER_TestStar_NUV_science_80s_00000.fits").exists()
 
 
 # --- Data preservation ---
@@ -172,9 +180,10 @@ def test_write_fits_preserves_float_dtype(tmp_path):
     ctx = _ctx(tmp_path)
     data = np.array([[1.5, 2.5], [3.5, 4.5]], dtype=float)
     hdr = fits.Header()
-    write_fits_frame(_frame(data, hdr, "BIAS", "NUV"), ctx, 0)
+    exposure = 90.0
+    write_fits_frame(_frame(data, hdr, "BIAS", "NUV"), ctx, 0, exposure)
 
-    with fits.open(tmp_path / "WALTzER_TestStar_NUV_BIAS_00000.fits") as hdul:
+    with fits.open(tmp_path / "WALTzER_TestStar_NUV_BIAS_90s_00000.fits") as hdul:
         assert np.allclose(hdul[0].data, data)
 
 
@@ -183,7 +192,8 @@ def test_write_fits_preserves_header_with_comment(tmp_path):
     ctx = _ctx(tmp_path)
     data = np.zeros((1, 1))
     hdr = fits.Header([("EXPTIME", 10.0, "Exposure time [s]")])
-    write_fits_frame(_frame(data, hdr, "DARK", "NUV"), ctx, 0)
+    exposure = 10.0
+    write_fits_frame(_frame(data, hdr, "DARK", "NUV"), ctx, 0, exposure)
 
-    with fits.open(tmp_path / "WALTzER_TestStar_NUV_DARK_00000.fits") as hdul:
+    with fits.open(tmp_path / "WALTzER_TestStar_NUV_DARK_10s_00000.fits") as hdul:
         assert hdul[0].header["EXPTIME"] == 10.0
