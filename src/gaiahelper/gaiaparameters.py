@@ -230,9 +230,8 @@ def main():
     print("repo_root =", repo_root)
 
     star_names = [
-        "TrES-4",
-        "HD 189733 B",
-        "HD 189733",
+        "HD 84979",
+        "HD 118886",
     ]
 
     star_ids = [

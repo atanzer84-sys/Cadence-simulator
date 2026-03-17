@@ -252,7 +252,7 @@ def main(existing_output_dir=None):
     #     "HAT-P-7",
     # ]
 
-    star_names = ["eps boo"]
+    star_names = ["HD 84979"]
     
     RADIUS_ARCSEC = 450.0 # 10 arcmin
  
