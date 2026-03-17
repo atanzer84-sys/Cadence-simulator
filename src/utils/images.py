@@ -15,7 +15,7 @@ from utils.images_common import format_frame_title, build_stats_row, build_png_f
 def generate_background_star_visibility_on_science_frame(merged_image: np.ndarray, spectra_bgstars_image: np.ndarray, frame_type: str, ctx: RunContext, channel: Channel, show_stats: bool = True, star: Star | None = None, index: int | None = None, background_star_bands: dict[str, dict[str, float]] | None = None, background_star_arcs: dict[str, list[tuple[int, int]]] | None = None, inverted: bool = False) -> None:
 
     title, per_panel_stats, layout = _build_background_visibility_context(merged_image, spectra_bgstars_image, frame_type, ctx, channel, show_stats, star)
-    filename = build_png_filename(ctx.output_dir, ctx.target_name, channel.channel_name, f"{frame_type}_PANEL", index=index, waltzer_prefix=True)
+    filename = build_png_filename(ctx.output_dir, ctx.target_name, channel.channel_name, f"{frame_type}_PANEL", channel.exposure_s, index=index, waltzer_prefix=True)
     ny, nx = merged_image.shape
     fig = plt.figure(figsize=(layout["fig_w"], layout["fig_h"]))
     gs = fig.add_gridspec(nrows=11, ncols=1, height_ratios=layout["height_ratios"], hspace=0.0)

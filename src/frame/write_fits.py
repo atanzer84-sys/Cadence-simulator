@@ -3,7 +3,7 @@ from astropy.io import fits
 from loaders.run_waltzer_context import RunContext
 from frame.frame_class import Frame
 
-def write_fits_frame(frame: Frame, ctx: RunContext, index: int):
+def write_fits_frame(frame: Frame, ctx: RunContext, index: int, exposure: float):
     star_name = str(ctx.target_name).replace(" ", "_")
     fname = f"WALTzER_{star_name}_{frame.channel_tag}_{frame.frame_type}_{index:05d}.fits"
     filename = ctx.output_dir / fname

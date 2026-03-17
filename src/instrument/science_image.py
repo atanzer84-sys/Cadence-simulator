@@ -31,7 +31,7 @@ def build_science_images(stellar_signal, channel: Channel, ctx: RunContext, star
 
 def _generate_channel_calibration_frames(channel: Channel, header, ctx: RunContext, star: Star, cfg: GlobalConfig):
     n_calibration_frames = cfg.n_calibration_frames
-
+    exposure = channel.exposure_s
     logging.info("FITS generation starting (n_calibration_frames=%d)", n_calibration_frames)
     print(f"\n==== STARTING FITS CALIBRATION FRAME GENERATION ({channel.channel_name}) =====")
 
@@ -41,12 +41,12 @@ def _generate_channel_calibration_frames(channel: Channel, header, ctx: RunConte
 
     for i in range(n_calibration_frames):
         bias_frame = generate_bias_frame_with_index(channel, i, header)
-        write_fits_frame(bias_frame, ctx, i)
+        write_fits_frame(bias_frame, ctx, i, exposure)
         ctx.write_calibration_frame_png(bias_frame.data, bias_frame.frame_type, channel, ctx, cfg, star=star, index=i)
 
 
         dark_frame = generate_dark_frame_with_index(channel, i, header)
-        write_fits_frame(dark_frame, ctx, i)
+        write_fits_frame(dark_frame, ctx, i, exposure)
         ctx.write_calibration_frame_png(dark_frame.data, dark_frame.frame_type, channel, ctx, cfg, star=star, index=i)
 
 
@@ -79,7 +79,7 @@ def _create_channel_images(stellar_signal, channel: Channel, ctx: RunContext, cf
         append_photometry_header(header, phot)
 
         frame = Frame(data=img, header=header, frame_type="science", channel_tag=channel.channel_name)
-        write_fits_frame(frame, ctx, frame_index)
+        write_fits_frame(frame, ctx, frame_index, exposure)
         ctx.write_science_frame_png(frame.data, channel, ctx, cfg, star=star, index=frame_index,phot=phot)
             
     logging.info("Science image generation finished: channel=%s frames=%d exposure_s=%g orbit_duration_s=%g", channel.channel_name, n_science_frames, exposure, orbit_duration_s)

@@ -11,6 +11,7 @@ def write_calibration_frame_png(detector_data, frame_type: str, channel: Channel
 
     inverted = cfg.invert_science_frames
     channel_name = channel.channel_name
+    exposure = channel.exposure_s
     logging.info("PNG calibration: channel=%s frame_type=%s index=%s", channel_name, frame_type, index)
 
     title = format_frame_title(ctx.target_name, channel_name, frame_type, star)
@@ -19,7 +20,7 @@ def write_calibration_frame_png(detector_data, frame_type: str, channel: Channel
 
     stats_values, stats_keys = build_stats_row(detector_data, channel, frame_type)
     stats_text = format_stats_text(stats_values, stats_keys) if (stats_values and stats_keys) else None
-    filename = build_png_filename(ctx.output_dir, star.name, channel_name, frame_type, index, waltzer_prefix=False)
+    filename = build_png_filename(ctx.output_dir, star.name, channel_name, frame_type, exposure, index, waltzer_prefix=False)
 
     save_fn = {"NIR": save_single_frame_png_NIR, "NUV": save_single_frame_png_NUV, "VIS": save_single_frame_png_VIS_cropped}.get(channel_name, save_single_frame_png_VIS_cropped)
     save_fn(frame_to_plot, filename, title, stats_text, channel_name=channel_name)

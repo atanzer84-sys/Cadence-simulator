@@ -51,7 +51,7 @@ def write_science_frame_png(detector_data, channel: Channel, ctx: RunContext, cf
 
     stats_values, stats_keys = build_stats_row(detector_data, channel, filetype)
     stats_text = format_stats_text(stats_values, stats_keys) if (stats_values and stats_keys) else None
-    filename = build_png_filename(ctx.output_dir, star.name, channel_name, filetype, index, waltzer_prefix=True)
+    filename = build_png_filename(ctx.output_dir, star.name, channel_name, filetype, channel.exposure_s, index, waltzer_prefix=True)
 
     if channel_name == "VIS":
         if cfg.science_frame_png_crop_spectrum_region:
@@ -123,12 +123,8 @@ def save_single_frame_png_NIR(array: np.ndarray, filename: Path, title: str, sta
 
     stats_lines = stats_text.splitlines()
     if counts_star is not None and counts_star_noise is not None:
-        stats_lines.append(
-            f"C_STAR={int(round(counts_star)):,}".replace(",", " ")
-            + " e⁻  "
-            + f"C_STAR_NOISE={int(round(counts_star_noise)):,}".replace(",", " ")
-            + " e⁻"
-        )
+        stats_lines.append(f"C_STAR={int(round(counts_star)):,}".replace(",", " ") + " e⁻")
+        stats_lines.append(f"C_STAR_NOISE={int(round(counts_star_noise)):,}".replace(",", " ") + " e⁻")
 
     n_lines = len(stats_lines)
     y_top = 0.82
@@ -140,7 +136,7 @@ def save_single_frame_png_NIR(array: np.ndarray, filename: Path, title: str, sta
         y_positions = np.linspace(y_top, y_bottom, n_lines)
 
     for line, y in zip(stats_lines, y_positions):
-        color = "#ff0000" if (line.startswith("C_STAR=") and counts_star < 5000) else "black"
+        color = "#ff0000" if (line.startswith("C_STAR=") and not line.startswith("C_STAR_NOISE=") and counts_star < 5000) else "black"
         ax_txt.text(0.5, y, line, ha="center", va="center", fontsize=STATS_FONTSIZE_NIR, color=color, transform=ax_txt.transAxes)
         
     fig.tight_layout()
