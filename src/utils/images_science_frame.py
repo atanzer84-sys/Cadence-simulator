@@ -121,10 +121,9 @@ def save_single_frame_png_NIR(array: np.ndarray, filename: Path, title: str, sta
     ax_txt = fig.add_subplot(gs[2, 0])
     ax_txt.axis("off")
 
-    stats_lines = stats_text.splitlines()
+    stats_lines = stats_text.splitlines(); 
     if counts_star is not None and counts_star_noise is not None:
-        stats_lines.append(f"C_STAR={int(round(counts_star)):,}".replace(",", " ") + " e⁻")
-        stats_lines.append(f"C_STAR_NOISE={int(round(counts_star_noise)):,}".replace(",", " ") + " e⁻")
+        stats_lines.append(f"C_STAR={int(round(counts_star)):,}".replace(",", " ") + " e⁻ | " + f"C_STAR_NOISE={int(round(counts_star_noise)):,}".replace(",", " ") + " e⁻")
 
     n_lines = len(stats_lines)
     y_top = 0.82
