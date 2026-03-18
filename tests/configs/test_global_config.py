@@ -352,17 +352,17 @@ def test_invalid_sky_pixel_area_arcsec2_raises(tmp_path):
 # Tests: _ensure_non_negative
 # Behavior: returns value unchanged when >= 0
 def test_ensure_non_negative_valid():
-    from configs.global_config import _ensure_non_negative
-    assert _ensure_non_negative(0, key="x") == 0
-    assert _ensure_non_negative(5, key="x") == 5
+    from configs.config_parsing import ensure_non_negative
+    assert ensure_non_negative(0, key="x") == 0
+    assert ensure_non_negative(5, key="x") == 5
 
 
 # Tests: _ensure_non_negative
 # Behavior: raises ValueError when value < 0 and message contains key
 def test_ensure_non_negative_invalid():
-    from configs.global_config import _ensure_non_negative
+    from configs.config_parsing import ensure_non_negative
     with pytest.raises(ValueError) as exc:
-        _ensure_non_negative(-1, key="exposure")
+        ensure_non_negative(-1, key="exposure")
     assert "exposure" in str(exc.value)
     assert ">=" in str(exc.value)
 

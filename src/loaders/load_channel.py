@@ -3,7 +3,7 @@ from pathlib import Path
 import logging
 from configs.channel_config import SpectroscopyChannel, PhotometryChannel
 from configs.user_config import UserConfig
-from configs.config_parsing import parse_simple_kv, as_int, as_float, as_bool, as_optional_int
+from configs.config_parsing import parse_simple_kv, as_int, as_float, as_bool, as_optional_int, ensure_non_negative
 from loaders.load_channel_files_common import load_effective_area_file, load_background_file, load_zod_dist_file, load_zod_spectrum_file
 from loaders.load_channel_files_spectroscopy import load_spread_profile_file_spectroscopy
 from loaders.load_channel_files_photometry import load_psf_image_file
@@ -104,8 +104,14 @@ def load_channel_config(path: Path, exposure_s: float, ctx, background: dict):
     slope = as_float(raw.get("slope", 0.0), key="slope")
     intercept_pixels = as_float(raw.get("intercept_pixels", 0.0), key="intercept_pixels")
 
-    slit_width_arcsec = _ensure_positive(as_float(raw["slit_width_arcsec"], key="slit_width_arcsec"), "slit_width_arcsec", channel_name)
-    slit_length_arcsec = _ensure_positive(as_float(raw["slit_length_arcsec"], key="slit_length_arcsec"), "slit_length_arcsec", channel_name)
+    slit_width_arcsec = ensure_non_negative(
+        as_float(raw["slit_width_arcsec"], key="slit_width_arcsec"),
+        key=f"{channel_name}: slit_width_arcsec",
+    )
+    slit_length_arcsec = ensure_non_negative(
+        as_float(raw["slit_length_arcsec"], key="slit_length_arcsec"),
+        key=f"{channel_name}: slit_length_arcsec",
+    )
 
     smear_shift_pixels = slit_width_arcsec / pixel_scale
 
@@ -221,12 +227,6 @@ def _ensure_effective_area_matches_x_pixels(channel_name: str, effective_area_fi
     if len(effective_area_wavelength) != x_pixels:
         logging.error("%s: effective_area_file=%s len(wavelength)=%d != x_pixels=%d source_file=%s", channel_name, effective_area_file, len(effective_area_wavelength), x_pixels, source_file)
         raise ValueError(f"{channel_name}: effective_area_file={effective_area_file} len(wavelength)={len(effective_area_wavelength)} != x_pixels={x_pixels} source_file={source_file}")
-
-def _ensure_positive(value: float, name: str, channel_name: str) -> float:
-
-    if value <= 0.0:
-        raise ValueError(f"{channel_name}: {name} must be > 0, got {value}")
-    return float(value)
 
 def _compute_n_science_frames(channel_name: str, exposure_s: float) -> int:
     cfg = get_global_config()

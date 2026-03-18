@@ -351,17 +351,17 @@ def test_sanitize_target_name_mismatched_quotes(raw, expected):
 # Tests: _ensure_min_le_max
 # Behavior: does nothing when min_val <= max_val
 def test_ensure_min_le_max_valid():
-    from configs.global_config import _ensure_min_le_max
+    from configs.config_parsing import ensure_min_le_max
     # Should not raise
-    _ensure_min_le_max(1, 2, key_min="a", key_max="b")
-    _ensure_min_le_max(5, 5, key_min="a", key_max="b")
+    ensure_min_le_max(1, 2, key_min="a", key_max="b")
+    ensure_min_le_max(5, 5, key_min="a", key_max="b")
 
 # Tests: _ensure_min_le_max
 # Behavior: raises ValueError when min_val > max_val and message contains both keys
 def test_ensure_min_le_max_invalid():
-    from configs.global_config import _ensure_min_le_max
+    from configs.config_parsing import ensure_min_le_max
     with pytest.raises(ValueError) as exc:
-        _ensure_min_le_max(10, 5, key_min="minExp", key_max="maxExp")
+        ensure_min_le_max(10, 5, key_min="minExp", key_max="maxExp")
     msg = str(exc.value)
     assert "minExp" in msg
     assert "maxExp" in msg

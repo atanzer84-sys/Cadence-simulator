@@ -2,7 +2,17 @@ from dataclasses import dataclass
 from pathlib import Path
 import logging
 
-from configs.config_parsing import (parse_simple_kv, as_bool, as_optional_float, as_float, as_int, as_optional_lower_str, as_optional_str)
+from configs.config_parsing import (
+    parse_simple_kv,
+    as_bool,
+    as_optional_float,
+    as_float,
+    as_int,
+    as_optional_lower_str,
+    as_optional_str,
+    ensure_non_negative,
+    ensure_min_le_max,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -136,20 +146,20 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
     produce_target_background_star_noise_vs_counts_plot = as_bool(raw.get("produce_target_background_star_noise_vs_counts_plot", 0), key="produce_target_background_star_noise_vs_counts_plot")
 
     _ensure_at_least_one_channel_enabled(run_vis, run_nuv, run_nir)
-    _ensure_non_negative(orbit_duration_minutes, key="orbit_duration_minutes")
-    _ensure_non_negative(orbit_revolutions, key="orbit_revolutions")
-    _ensure_non_negative(readout_gap_s, key="readout_gap_s")
-    _ensure_non_negative(log_r_teff_threshold, key="log_r_teff_threshold")
-    _ensure_non_negative(n_calibration_frames, key="n_calibration_frames")
-    _ensure_non_negative(cosmic_rays_min, key="cosmic_rays_min")
-    _ensure_non_negative(cosmic_rays_max, key="cosmic_rays_max")
-    _ensure_non_negative(cosmic_ray_length_min_px, key="cosmic_ray_length_min_px")
-    _ensure_non_negative(cosmic_ray_length_max_px, key="cosmic_ray_length_max_px")
-    _ensure_non_negative(gaia_conesearch_radius_arcsec, key="gaia_conesearch_radius_arcsec")
-    _ensure_non_negative(magnitude_cutoff, key="magnitude_cutoff")
-    _ensure_min_le_max(cosmic_rays_min, cosmic_rays_max, key_min="cosmic_rays_min", key_max="cosmic_rays_max")
-    _ensure_min_le_max(cosmic_ray_length_min_px, cosmic_ray_length_max_px, key_min="cosmic_ray_length_min_px", key_max="cosmic_ray_length_max_px")
-    _ensure_min_le_max(log_r_hot_value, log_r_cool_value, key_min="log_r_hot_value", key_max="log_r_cool_value")
+    ensure_non_negative(orbit_duration_minutes, key="orbit_duration_minutes")
+    ensure_non_negative(orbit_revolutions, key="orbit_revolutions")
+    ensure_non_negative(readout_gap_s, key="readout_gap_s")
+    ensure_non_negative(log_r_teff_threshold, key="log_r_teff_threshold")
+    ensure_non_negative(n_calibration_frames, key="n_calibration_frames")
+    ensure_non_negative(cosmic_rays_min, key="cosmic_rays_min")
+    ensure_non_negative(cosmic_rays_max, key="cosmic_rays_max")
+    ensure_non_negative(cosmic_ray_length_min_px, key="cosmic_ray_length_min_px")
+    ensure_non_negative(cosmic_ray_length_max_px, key="cosmic_ray_length_max_px")
+    ensure_non_negative(gaia_conesearch_radius_arcsec, key="gaia_conesearch_radius_arcsec")
+    ensure_non_negative(magnitude_cutoff, key="magnitude_cutoff")
+    ensure_min_le_max(cosmic_rays_min, cosmic_rays_max, key_min="cosmic_rays_min", key_max="cosmic_rays_max")
+    ensure_min_le_max(cosmic_ray_length_min_px, cosmic_ray_length_max_px, key_min="cosmic_ray_length_min_px", key_max="cosmic_ray_length_max_px")
+    ensure_min_le_max(log_r_hot_value, log_r_cool_value, key_min="log_r_hot_value", key_max="log_r_cool_value")
 
     cfg = GlobalConfig(
         run_vis=run_vis,
@@ -207,16 +217,6 @@ def _ensure_at_least_one_channel_enabled(run_vis: bool, run_nuv: bool, run_nir: 
 def _warn_default_used(raw: dict, key: str, default, *, path: Path) -> None:
     if key not in raw:
         logging.warning("%s not provided in %s, using default value %s", key, path, default)
-
-def _ensure_non_negative(value: float | int, *, key: str) -> float | int:
-    if value < 0:
-        raise ValueError(f"{key} must be >= 0")
-    return value
-
-
-def _ensure_min_le_max(min_val: float | int, max_val: float | int, *, key_min: str, key_max: str) -> None:
-    if min_val > max_val:
-        raise ValueError(f"{key_min} must be <= {key_max}")
 
 def _compute_total_simulation_time_s(orbit_duration_minutes: float, orbit_revolutions: float) -> float:
     return float(orbit_duration_minutes) * 60.0 * float(orbit_revolutions)

@@ -103,3 +103,14 @@ def sanitize_target_name(v: str) -> str:
     if (s.startswith("'") and s.endswith("'")) or (s.startswith('"') and s.endswith('"')):
         s = s[1:-1].strip()
     return s
+
+
+def ensure_non_negative(value: float | int, *, key: str) -> float | int:
+    if value < 0:
+        raise ValueError(f"{key} must be >= 0")
+    return value
+
+
+def ensure_min_le_max(min_val: float | int, max_val: float | int, *, key_min: str, key_max: str) -> None:
+    if min_val > max_val:
+        raise ValueError(f"{key_min} must be <= {key_max}")
