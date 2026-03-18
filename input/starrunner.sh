@@ -4,9 +4,10 @@ set -u
 PYTHON="/Users/andreatanzer/.venvs/shared/bin/python"
 SCRIPT="/Users/andreatanzer/Documents/Space Science/MasterThesis/WALTzER-simulator/src/waltzer_simulator.py"
 
-# if argument given → only that dir, else all dirs
+# if argument given → all subdirs of that dir, else all top-level dirs
 if [ $# -ge 1 ]; then
-    DIRS=("$1")
+    BASE_DIR="$1"
+    DIRS=("$BASE_DIR"/*/)
 else
     DIRS=(*/)
 fi

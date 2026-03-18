@@ -2,6 +2,10 @@ import re
 import csv
 from pathlib import Path
 from loaders.run_waltzer_context import setup_output_directory
+from openpyxl import Workbook
+from openpyxl.utils import get_column_letter
+
+
 
 photometry_pattern = re.compile(
     r"Aperture photometry \((?P<channel>[^)]+)\):.*?"
@@ -26,16 +30,62 @@ parameter_file_pattern = re.compile(
     r"User parameter file loaded: (?P<parameter_file>.+)"
 )
 
+def format_value_for_csv(v):
+    if isinstance(v, float):
+        return str(v).replace(".", ",")
+    return v
+
+def csv_to_excel(csv_path, xlsx_path):
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "photometry_summary"
+
+    with csv_path.open("r", encoding="utf-8", newline="") as f:
+        reader = csv.reader(f, delimiter=";")
+        for row_idx, row in enumerate(reader, start=1):
+            for col_idx, value in enumerate(row, start=1):
+                cell = ws.cell(row=row_idx, column=col_idx)
+
+                if row_idx == 1:
+                    cell.value = value
+                    continue
+
+                if isinstance(value, str):
+                    stripped = value.strip()
+                    try:
+                        if "," in stripped:
+                            number = float(stripped.replace(",", "."))
+                            cell.value = number
+                        else:
+                            number = int(stripped)
+                            cell.value = number
+                    except ValueError:
+                        cell.value = value
+                else:
+                    cell.value = value
+
+    for column_cells in ws.columns:
+        max_length = 0
+        column_letter = get_column_letter(column_cells[0].column)
+        for cell in column_cells:
+            cell_str = "" if cell.value is None else str(cell.value)
+            if len(cell_str) > max_length:
+                max_length = len(cell_str)
+        ws.column_dimensions[column_letter].width = max_length + 2
+
+    wb.save(xlsx_path)
+
+
 
 def main(existing_output_dir=None):
 
-    # --- setup output directory ---
     if existing_output_dir is None:
         log_dir, _, _ = setup_output_directory()
     else:
         log_dir = Path(existing_output_dir)
 
     out_csv = log_dir / "photometry_summary.csv"
+    out_xlsx = log_dir / "photometry_summary.xlsx"
 
     rows = []
 
@@ -55,7 +105,6 @@ def main(existing_output_dir=None):
                 e = exposure_pattern.search(line)
                 if e:
                     exposures[e.group("channel")] = float(e.group("exposure"))
-
 
                 m = photometry_pattern.search(line)
                 if not m:
@@ -78,44 +127,42 @@ def main(existing_output_dir=None):
                     "channel": channel,
                     "exposure_s": exposures.get(channel),
                     "frame": frame_index,
-                    "C_background": m.group("C_background"),
-                    "C_star": float(m.group("C_star")),
-                    "C_star_noise": float(m.group("C_star_noise")),
                     "Cc": float(m.group("Cc")),
                     "Ca": float(m.group("Ca")),
                     "Nc": int(m.group("Nc")),
                     "Na": int(m.group("Na")),
                     "C_background": float(m.group("C_background")),
+                    "C_star": float(m.group("C_star")),
+                    "C_star_noise": float(m.group("C_star_noise")),
                 })
 
+    fieldnames = [
+        "run_folder",
+        "target",
+        "line_number",
+        "channel",
+        "exposure_s",
+        "frame",
+        "Cc",
+        "Ca",
+        "Nc",
+        "Na",
+        "C_background",
+        "C_star",
+        "C_star_noise",
+    ]
+
     with out_csv.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(
-            f,
-            fieldnames=[
-                "run_folder",
-                "target",
-                "line_number",
-                "channel",
-                "exposure_s",
-                "frame",
-                "Cc",
-                "Ca",
-                "Nc",
-                "Na",
-                "C_background",
-                "C_star",
-                "C_star_noise",
-            ]
-        )
+        writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter=";")
         writer.writeheader()
-        writer.writerows(rows)
+        for row in rows:
+            writer.writerow({k: format_value_for_csv(v) for k, v in row.items()})
+
+    csv_to_excel(out_csv, out_xlsx)
 
     print(f"Wrote {len(rows)} rows to {out_csv}")
+    print(f"Wrote Excel file to {out_xlsx}")
 
 
 if __name__ == "__main__":
-    # use existing logs
     main("/Users/andreatanzer/Documents/Space Science/MasterThesis/WALTzER-simulator/output")
-
-    # OR fresh run dir
-    # main()

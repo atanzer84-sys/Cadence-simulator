@@ -102,8 +102,8 @@ def compute_aperture_photometry(image: np.ndarray, channel: Channel):
     r = np.sqrt((y_coord - center_y)*(y_coord - center_y) + (x_coord - center_x)*(x_coord - center_x))
     threshold = 0.001 * psf.max()
     mask = psf >= threshold
-    radius_psf_1_percent = r[mask].max()
-    psf_radius = 2 * radius_psf_1_percent
+    radius_psf_0_point_1_percent = r[mask].max()
+    psf_radius = 2 * radius_psf_0_point_1_percent
     pixel_y, pixel_x = np.indices(image.shape, dtype=np.int32)
     dx = pixel_x - x0
     dy = pixel_y - y0
@@ -146,7 +146,7 @@ def compute_aperture_photometry(image: np.ndarray, channel: Channel):
     counts_star_noise = np.sqrt(counts_circle + counts_background_circle)
 
 
-    logging.info("Aperture photometry (%s): radius_psf_01_percent=%g psf_radius=%g radius_annulus_outer=%g Cc=%g Ca=%g Nc=%d Na=%d C_background=%g C_star=%g C_star_noise=%g x0=%.2f y0=%.2f core_r5_sum=%g core_r01_psf_sum=%g r_psf_sum=%g", channel.channel_name, radius_psf_1_percent, psf_radius, radius_annulus_outer, counts_circle, counts_annulus, number_pixels_circle, number_pixels_annulus, counts_background_circle, counts_star, counts_star_noise, x0, y0, float(np.sum(image[(distance_to_center_squared <= 25)])), float(np.sum(image[(distance_to_center_squared <= radius_psf_1_percent*radius_psf_1_percent)])), float(np.sum(image[(distance_to_center_squared <= psf_radius*psf_radius)])))
+    logging.info("Aperture photometry (%s): radius_psf_01_percent=%g psf_radius=%g radius_annulus_outer=%g Cc=%g Ca=%g Nc=%d Na=%d C_background=%g C_star=%g C_star_noise=%g x0=%.2f y0=%.2f core_r5_sum=%g core_r01_psf_sum=%g r_psf_sum=%g", channel.channel_name, radius_psf_0_point_1_percent, psf_radius, radius_annulus_outer, counts_circle, counts_annulus, number_pixels_circle, number_pixels_annulus, counts_background_circle, counts_star, counts_star_noise, x0, y0, float(np.sum(image[(distance_to_center_squared <= 25)])), float(np.sum(image[(distance_to_center_squared <= radius_psf_0_point_1_percent*radius_psf_0_point_1_percent)])), float(np.sum(image[(distance_to_center_squared <= psf_radius*psf_radius)])))
 
     
     return counts_star, counts_star_noise, x0, y0, radius_annulus_inner, radius_annulus_outer
