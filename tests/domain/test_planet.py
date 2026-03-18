@@ -47,3 +47,35 @@ def test_planet_is_frozen():
 
     with pytest.raises(Exception):
         planet.name = "NewName"
+
+# Tests: Planet.from_params
+# Behavior: required_keys empty → no validation → Planet created successfully
+def test_planet_required_keys_empty():
+    params = {
+        "name": "HD 1234 b",
+        "orbital_period": 3.5,
+    }
+
+    planet = Planet.from_params(params, required_keys=[])
+
+    assert planet.name == "HD 1234 b"
+    assert planet.orbital_period == 3.5
+
+
+# Tests: Planet.from_params
+# Behavior: required key present but is_missing() returns True → raises ValueError
+def test_planet_required_key_present_but_is_missing(monkeypatch):
+    # Patch the reference actually used inside Planet.from_params
+    monkeypatch.setattr("domain.planet.is_missing", lambda v: True)
+
+    params = {
+        "name": "HD 1234 b",
+        "orbital_period": 3.5,
+    }
+
+    with pytest.raises(ValueError) as exc:
+        Planet.from_params(params, required_keys=["name", "orbital_period"])
+
+    msg = str(exc.value)
+    assert "orbital_period" in msg
+    assert "missing" in msg.lower()
