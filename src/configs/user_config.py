@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from pathlib import Path
 import logging
 
-from configs.config_parsing import parse_simple_kv, as_float
+from configs.config_parsing import parse_simple_kv, as_float, sanitize_target_name
 
 @dataclass(frozen=True, slots=True)
 class UserConfig:
@@ -38,7 +38,7 @@ def _read_user_cfg(path: Path) -> UserConfig:
     raw = parse_simple_kv(path)
     try:
         cfg = UserConfig(
-            target_name=_sanitize_target_name(raw["target_name"]),
+            target_name=sanitize_target_name(raw["target_name"]),
             total_observation_length_h=as_float(raw["total_observation_length_h"], key="total_observation_length_h"),
             exposure_NUV_s=as_float(raw["exposure_NUV_s"], key="exposure_NUV_s"),
             exposure_VIS_s=as_float(raw["exposure_VIS_s"], key="exposure_VIS_s"),
@@ -53,12 +53,4 @@ def _read_user_cfg(path: Path) -> UserConfig:
         raise ValueError(
             f"The parameter '{missing}' is missing in the parameter file at {full_path}"
         )
-
-
-def _sanitize_target_name(v: str) -> str:
-    s = str(v).strip()
-    # remove quotes if present
-    if (s.startswith("'") and s.endswith("'")) or (s.startswith('"') and s.endswith('"')):
-        s = s[1:-1].strip()
-    return s
 

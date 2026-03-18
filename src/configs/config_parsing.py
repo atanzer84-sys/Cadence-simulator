@@ -90,3 +90,16 @@ def as_optional_lower_str(v: object | None) -> str | None:
     if s is None:
         return None
     return s.casefold()
+
+
+def sanitize_target_name(v: str) -> str:
+    """Sanitize a target name value read from a config file.
+
+    Currently:
+    - trims whitespace
+    - strips wrapping single/double quotes if present
+    """
+    s = str(v).strip()
+    if (s.startswith("'") and s.endswith("'")) or (s.startswith('"') and s.endswith('"')):
+        s = s[1:-1].strip()
+    return s
