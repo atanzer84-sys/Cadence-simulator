@@ -1,0 +1,21 @@
+SELECT TOP 10 
+
+    gs.source_id,
+    phot.v_jkc_mag,
+    gs.ra,
+    gs.dec,
+    gs.parallax,
+    gs.phot_g_mean_mag,
+    COALESCE(ap.teff_gspphot, ap.teff_gspspec, supp.teff_gspspec_ann, gs.rv_template_teff) AS Teff,
+    COALESCE(ap.distance_gspphot, supp.distance_gspphot_phoenix, supp.distance_gspphot_marcs) AS dist_pc,
+    COALESCE(ap.radius_gspphot, ap.radius_flame, supp.radius_flame_spec, supp.radius_gspphot_a, supp.radius_gspphot_marcs, supp.radius_gspphot_phoenix) AS radius_sun, 
+    COALESCE(ap.mass_flame, supp.mass_flame_spec) AS mass_sun,
+    ap.mh_gspphot,
+    ap.logg_gspphot
+FROM gaiadr3.gaia_source AS gs
+LEFT JOIN gaiadr3.astrophysical_parameters AS ap ON gs.source_id = ap.source_id
+LEFT JOIN gaiadr3.astrophysical_parameters_supp AS supp ON gs.source_id = supp.source_id
+LEFT JOIN gaiadr3.synthetic_photometry_gspc AS phot ON gs.source_id = phot.source_id
+where phot.v_jkc_mag is not null,
+    and Teff is not null,
+    and dist_pc is not null
