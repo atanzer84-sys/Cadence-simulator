@@ -1,6 +1,6 @@
 # Name of the target star. Its properties are read from the Excel file in the project root.
 # If a property is missing there, it will be retrieved from GAIA.
-target_name = 4037578191010248064
+target_name = 4236349174325957504
 
 # Total duration of the simulated observation, in hours.
 # The transit is centered in this window, with half of the time before and half after the transit.
@@ -10,4 +10,4 @@ total_observation_length_h = 11.11
 # Exposure time of the Channels in seconds
 exposure_NUV_s = 300.0
 exposure_VIS_s = 60.0
-exposure_IR_s = 60.0
+exposure_IR_s = 2.0
