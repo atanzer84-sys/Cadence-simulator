@@ -8,7 +8,11 @@ CountsPerPixel = np.ndarray
 @dataclass
 class StarCatalog:
     stars_by_id: Dict[str, Star] = field(default_factory=dict)
+    
+    # spectroscopy: store per-pixel counts array
+    # photometry: store total counts as scalar
     counts_by_id_and_band: Dict[Tuple[str, str], CountsPerPixel] = field(default_factory=dict)
+    
     offsets_arcsec_by_id: Dict[str, Tuple[float, float]] = field(default_factory=dict)
     
     def add_star(self, star_id: str, star: Star) -> None:

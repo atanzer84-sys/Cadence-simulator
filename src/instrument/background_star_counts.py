@@ -1,4 +1,4 @@
-from domain.star import Star
+# from domain.star import Star
 from domain.star_catalog import StarCatalog
 from loaders.run_waltzer_context import RunContext
 import logging
@@ -7,10 +7,10 @@ from instrument.prepare_detector_images import compute_counts_per_s_px_one_chann
 import numpy as np
 from instrument.wavelength_range import get_required_wavelength_range
 from instrument.prepare_detector_images import prepare_star_photon_flux_in_range
-from instrument.spectrum_spread import spread_1d_spectrum_to_2d
-from instrument.psf_spread import spread_1d_photometry_to_2d
+# from instrument.spectrum_spread import spread_1d_spectrum_to_2d
+# from instrument.psf_spread import spread_1d_photometry_to_2d
 
-def compute_background_stars_counts(background_stars_catalog: StarCatalog, nuv: SpectroscopyChannel | None, vis: SpectroscopyChannel | None, nir: PhotometryChannel | None, ctx: RunContext) -> StarCatalog:
+def populate_background_star_counts(background_stars_catalog: StarCatalog, nuv: SpectroscopyChannel | None, vis: SpectroscopyChannel | None, nir: PhotometryChannel | None, ctx: RunContext) -> StarCatalog:
 
     wl_min_A, wl_max_A = get_required_wavelength_range(nuv, vis, nir)
     enabled_channels = [c for c in (nuv, vis, nir) if c is not None]
@@ -32,29 +32,29 @@ def compute_background_stars_counts(background_stars_catalog: StarCatalog, nuv: 
         for channel in enabled_channels:
             key = (star_id, channel.channel_name)
             if key in background_stars_catalog.counts_by_id_and_band:
+                logging.info("BG STAR skip existing counts: star_id=%s channel=%s", star_id, channel.channel_name)
                 continue
 
             counts_s_px = compute_counts_per_s_px_one_channel(photons_star, wavelengths, channel, ctx, bg_star)
 
             if isinstance(channel, SpectroscopyChannel):
                 background_stars_catalog.counts_by_id_and_band[key] = counts_s_px.astype(np.float32)
-                _plot_background_star_visibility_spectroscopy(channel, counts_s_px, ctx, star=bg_star)
+                # _plot_background_star_visibility_spectroscopy(channel, counts_s_px, ctx, star=bg_star)
 
             else:
                 background_stars_catalog.counts_by_id_and_band[key] = float(np.sum(counts_s_px))
-                _plot_background_star_visibility_photometry(channel, counts_s_px, ctx, star=bg_star)
+                # _plot_background_star_visibility_photometry(channel, counts_s_px, ctx, star=bg_star)
 
     return background_stars_catalog  
 
-def _plot_background_star_visibility_spectroscopy(channel: SpectroscopyChannel, counts_s_px: np.ndarray, ctx: RunContext, star: Star | None = None) -> None:
-    x0 = channel.x_pixels // 2
-    y0 = channel.y_pixels // 2
-    slope = 0.0
-    intercept = 0.0
-    detector_image = spread_1d_spectrum_to_2d(counts_s_px, channel, x0, y0, slope, intercept, announce_user=False)
-    ctx.plot_star_counts_vs_noise_spectroscopy(channel.effective_area_wavelength, detector_image.max(axis=0), channel, ctx, star)
+# def _plot_background_star_visibility_spectroscopy(channel: SpectroscopyChannel, counts_s_px: np.ndarray, ctx: RunContext, star: Star | None = None) -> None:
+#     x0 = channel.x_pixels // 2
+#     y0 = channel.y_pixels // 2
+#     slope = 0.0
+#     intercept = 0.0
+#     detector_image = spread_1d_spectrum_to_2d(counts_s_px, channel, x0, y0, slope, intercept, announce_user=False)
+#     ctx.plot_star_counts_vs_noise_spectroscopy(channel.effective_area_wavelength, detector_image.max(axis=0), channel, ctx, star)
 
-def _plot_background_star_visibility_photometry(channel: PhotometryChannel, counts_s_px: np.ndarray, ctx: RunContext, star: Star | None = None) -> None:
-    detector_image = spread_1d_photometry_to_2d(counts_s_px, channel, ctx, announce_user=False)
-    ctx.plot_star_counts_vs_noise_photometry(detector_image, channel, ctx, star)
-    # TODO!!
+# def _plot_background_star_visibility_photometry(channel: PhotometryChannel, counts_s_px: np.ndarray, ctx: RunContext, star: Star | None = None) -> None:
+#     detector_image = spread_1d_photometry_to_2d(counts_s_px, channel, ctx, announce_user=False)
+#     ctx.plot_star_counts_vs_noise_photometry(detector_image, channel, ctx, star)

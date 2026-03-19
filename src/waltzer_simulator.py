@@ -7,7 +7,7 @@ from domain.star import Star
 from domain.planet import Planet
 from instrument.prepare_detector_images import prepare_star_photon_flux_for_channels, prepare_detector_image_spectroscopy, prepare_detector_image_photometry
 from instrument.science_image import build_science_images
-from instrument.compute_background_stars_counts import compute_background_stars_counts
+from instrument.background_star_counts import populate_background_star_counts
 from loaders.load_background_stars import lookup_background_stars
 
 
@@ -32,7 +32,7 @@ def main():
 
         # lookup background stars and populate a star catalog with the background stars and convolved counts
         background_stars_catalog = lookup_background_stars(nuv_channel, vis_channel, nir_channel, run_ctx, star)
-        background_stars_catalog = compute_background_stars_counts(background_stars_catalog, nuv_channel, vis_channel, nir_channel, run_ctx)
+        background_stars_catalog = populate_background_star_counts(background_stars_catalog, nuv_channel, vis_channel, nir_channel, run_ctx)
         
         # Build and write science frames immediately per channel (streaming)
         build_science_images(spectra_2d_nuv, nuv_channel, run_ctx, star, background_stars_catalog) if nuv_channel is not None else None
