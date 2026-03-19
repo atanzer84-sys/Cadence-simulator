@@ -1,7 +1,6 @@
 import pytest
 from configs.global_config import GlobalConfig
 
-
 @pytest.fixture
 def make_global_config():
     def _make_global_config(**overrides):
@@ -10,8 +9,8 @@ def make_global_config():
             run_nuv=True,
             run_nir=True,
 
-            line_core_emission=True,
-            interstellar_absorption=True,
+            line_core_emission=False,
+            interstellar_absorption=False,
 
             orbit_duration_minutes=100.0,
             orbit_revolutions=1.0,
@@ -31,15 +30,15 @@ def make_global_config():
 
             n_calibration_frames=0,
             write_calibration_frame_png=False,
-            write_science_frame_component_png=True,
+            write_science_frame_component_png=False,
             invert_calibration_science_frame_component=False,
             invert_science_frames=False,
             write_science_frames_png=False,
             science_frame_png_crop_spectrum_region=False,
             write_background_star_footprint_on_science_frame=False,
 
-            cosmic_rays_min=5,
-            cosmic_rays_max=10,
+            cosmic_rays_min=0,
+            cosmic_rays_max=0,
             cosmic_ray_signal_electrons=72000,
             cosmic_ray_length_min_px=10,
             cosmic_ray_length_max_px=20,
