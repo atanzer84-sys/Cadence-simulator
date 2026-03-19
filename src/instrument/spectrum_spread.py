@@ -6,6 +6,16 @@ from configs.channel_config import SpectroscopyChannel
 from utils.helpers import announce
 
 
+
+
+def spread_target_star_spectrum_to_2d(counts_s_pixel_convolved, channel: SpectroscopyChannel):
+    """Entry point for target star: derive spatial info and spread 1D spectrum to 2D."""
+    x0, y0, slope, intercept = get_spectrum_placement(channel)
+
+    spread_spectra = spread_1d_spectrum_to_2d(counts_s_pixel_convolved, channel, x0, y0, slope, intercept)
+    
+    return spread_spectra
+
 def get_spectrum_placement(channel: SpectroscopyChannel) -> tuple[int, float, float, float]:
     """Return (x0, y0, slope, intercept_pixels) for target star. For background stars: use x0, slope, intercept; supply y0 per star."""
     x0, y0 = get_target_star_detector_position(channel)
@@ -14,33 +24,6 @@ def get_spectrum_placement(channel: SpectroscopyChannel) -> tuple[int, float, fl
         logging.error("SPREAD PLACEMENT ERROR: channel=%s slope=%g intercept=%g not supported", channel.channel_name, slope, intercept)
         raise ValueError("slope and intercept_pixels must be 0 (not yet supported)")
     return x0, float(y0), slope, intercept
-
-
-def smear_1d_spectrum_dispersion(counts_s_px: np.ndarray, channel: SpectroscopyChannel) -> np.ndarray:
-    """Apply dispersion smear while preserving total counts."""
-    n_smear_steps = int(round(channel.smear_shift_pixels))
-
-    if n_smear_steps <= 1:
-        return counts_s_px.copy()
-
-    counts_smeared_px = np.zeros_like(counts_s_px)
-    counts_smear_step_px = counts_s_px / n_smear_steps
-
-    half = n_smear_steps // 2
-    for x_shift in range(-half, -half + n_smear_steps):
-        if x_shift == 0:
-            counts_smeared_px += counts_smear_step_px
-        elif x_shift > 0:
-            counts_smeared_px[x_shift:] += counts_smear_step_px[:-x_shift]
-        else:
-            counts_smeared_px[:x_shift] += counts_smear_step_px[-x_shift:]
-    return counts_smeared_px
-
-
-def spread_target_star_spectrum_to_2d(counts_s_pixel_convolved, channel: SpectroscopyChannel):
-    """Entry point for target star: derive spatial info and spread 1D spectrum to 2D."""
-    x0, y0, slope, intercept = get_spectrum_placement(channel)
-    return spread_1d_spectrum_to_2d(counts_s_pixel_convolved, channel, x0, y0, slope, intercept)
 
 
 def spread_1d_spectrum_to_2d(counts_s_pixel_convolved, channel: SpectroscopyChannel, x0: int, y0: float, slope: float, intercept: float, announce_user: bool = True):
@@ -85,8 +68,9 @@ def _spread_1d_to_2d_gaussian(counts_s_pixel_convolved, channel: SpectroscopyCha
 
     # case if slope and intercept are 0, then this doesn't have to be calculated in a for loop - performance increase!
     if slope == 0.0 and intercept == 0.0:
-        w = _gaussian_vertical_profile(ny, y0, spatial_sigma_pix)
-        image = np.outer(w, counts_s_pixel_convolved)
+        counts = counts_s_pixel_convolved.astype(np.float32, copy=False)
+        w = _gaussian_vertical_profile(ny, y0, spatial_sigma_pix).astype(np.float32, copy=False)
+        image = np.outer(w, counts).astype(np.float32)
     else:
         image = np.zeros((ny, nx), dtype=np.float32)
         for i in range(nx):
@@ -132,7 +116,6 @@ def _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel: SpectroscopyChan
 
     dy = np.round(spread_y_pos).astype(np.int64)
 
-
     image = np.zeros((ny, nx), dtype=np.float32)
 
     x_indices = np.arange(nx, dtype=np.int64)
@@ -148,6 +131,10 @@ def _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel: SpectroscopyChan
 
     col_sums = image.sum(axis=0)
 
+    if not np.allclose(col_sums, counts_s_pixel_convolved, rtol=1e-6, atol=1e-7):
+        logging.error("PROFILE SPREAD CHECK FAILED: channel=%s column sums do not match input counts", channel.channel_name)
+        raise ValueError("Profile spread column sum mismatch")
+    
     logging.info("Profile spectrum spread applied: channel=%s nx=%d ny=%d profile_rows=%d profile_cols=%d input_sum=%g image_sum=%g max_abs_diff=%g", channel.channel_name, nx, ny, spread_weights.shape[0], spread_weights.shape[1], float(np.sum(counts_s_pixel_convolved)), float(np.sum(image)), float(np.max(np.abs(col_sums - counts_s_pixel_convolved))))
     return image
 
@@ -168,3 +155,24 @@ def get_target_star_detector_position(channel: SpectroscopyChannel):
         raise ValueError("slit_position_y_arcsec places spectrum outside detector")
 
     return x0, y0
+
+
+def smear_1d_spectrum_dispersion(counts_s_px: np.ndarray, channel: SpectroscopyChannel) -> np.ndarray:
+    """Apply dispersion smear while preserving total counts."""
+    n_smear_steps = int(round(channel.smear_shift_pixels))
+
+    if n_smear_steps <= 1:
+        return counts_s_px.copy()
+
+    counts_smeared_px = np.zeros_like(counts_s_px)
+    counts_smear_step_px = counts_s_px / n_smear_steps
+
+    half = n_smear_steps // 2
+    for x_shift in range(-half, -half + n_smear_steps):
+        if x_shift == 0:
+            counts_smeared_px += counts_smear_step_px
+        elif x_shift > 0:
+            counts_smeared_px[x_shift:] += counts_smear_step_px[:-x_shift]
+        else:
+            counts_smeared_px[:x_shift] += counts_smear_step_px[-x_shift:]
+    return counts_smeared_px
