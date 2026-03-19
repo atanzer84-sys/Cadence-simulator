@@ -65,3 +65,56 @@ def test_generate_cosmic_rays_small_detector_edge_case(make_spectroscopy_channel
 
     assert image.shape == (1, 1)
     assert image[0, 0] in (0.0, cfg.cosmic_ray_signal_electrons)
+
+# Tests: test_generate_cosmic_rays_two_calls_different
+# Behavior: Two generated cosmic-ray images are not identical
+def test_generate_cosmic_rays_two_calls_different(make_spectroscopy_channel, make_global_config):
+    ch = make_spectroscopy_channel(x_pixels=8, y_pixels=6)
+    cfg = make_global_config(
+        cosmic_rays_min=3,
+        cosmic_rays_max=3,
+        cosmic_ray_signal_electrons=50,
+        cosmic_ray_length_min_px=2,
+        cosmic_ray_length_max_px=4,
+    )
+
+    image1 = generate_cosmic_rays(ch, cfg)
+    image2 = generate_cosmic_rays(ch, cfg)
+
+    assert not np.array_equal(image1, image2)
+
+# Tests: test_generate_cosmic_rays_two_calls_different
+# Behavior: Two generated cosmic-ray images are not identical
+def test_generate_cosmic_rays_two_calls_different(make_spectroscopy_channel, make_global_config):
+    ch = make_spectroscopy_channel(x_pixels=8, y_pixels=6)
+    cfg = make_global_config(
+        cosmic_rays_min=3,
+        cosmic_rays_max=3,
+        cosmic_ray_signal_electrons=50,
+        cosmic_ray_length_min_px=2,
+        cosmic_ray_length_max_px=4,
+    )
+
+    image1 = generate_cosmic_rays(ch, cfg)
+    image2 = generate_cosmic_rays(ch, cfg)
+
+    assert not np.array_equal(image1, image2)
+
+
+# Tests: test_generate_cosmic_rays_dtype_and_finite
+# Behavior: Output dtype is float32 and values are finite
+def test_generate_cosmic_rays_dtype_and_finite(make_spectroscopy_channel, make_global_config):
+    ch = make_spectroscopy_channel(x_pixels=8, y_pixels=6)
+    cfg = make_global_config(
+        cosmic_rays_min=3,
+        cosmic_rays_max=3,
+        cosmic_ray_signal_electrons=50,
+        cosmic_ray_length_min_px=2,
+        cosmic_ray_length_max_px=4,
+    )
+
+    with patch('instrument.cosmic_image._rng', np.random.default_rng(42)):
+        image = generate_cosmic_rays(ch, cfg)
+
+    assert image.dtype == np.float32
+    assert np.isfinite(image).all()
