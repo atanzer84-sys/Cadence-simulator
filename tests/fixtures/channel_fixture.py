@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-
+from dataclasses import replace
 from configs.channel_config import SpectroscopyChannel, PhotometryChannel
 
 
@@ -104,3 +104,24 @@ def make_spectroscopy_channel():
         return SpectroscopyChannel(**base)
 
     return _make_spectroscopy_channel
+
+@pytest.fixture
+def realistic_photometry_channel(make_photometry_channel):
+    base = make_photometry_channel()
+    return replace(
+        base,
+        bias_offset=200.0,
+        read_noise=3.0,
+        ccd_gain=1.0,
+    )
+
+@pytest.fixture
+def realistic_spectroscopy_channel(make_spectroscopy_channel):
+    base = make_spectroscopy_channel()
+    return replace(
+        base,
+        bias_offset=200.0,
+        dark_current=0.02,
+        dark_noise=1.0,
+        ccd_gain=1.0,
+    )

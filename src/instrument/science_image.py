@@ -75,7 +75,7 @@ def _create_channel_images(stellar_signal, channel: Channel, ctx: RunContext, cf
         
         header = append_base_frame_header(base_header, filetype="SCIENCE", channel=channel, index0=frame_index)
         append_image_stats_header(header, img)
-        append_channel_frame_header(header, channel, exptime_s=exposure, include_bias=True, include_dark=True)
+        append_channel_frame_header(header, channel, exptime_s=exposure)
         append_photometry_header(header, phot)
 
         frame = Frame(data=img, header=header, frame_type="science", channel_tag=channel.channel_name)

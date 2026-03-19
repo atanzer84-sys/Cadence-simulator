@@ -21,7 +21,7 @@ def generate_bias_frame(channel: Channel, header=None):
 
     if header is not None:
         append_image_stats_header(header, bias)
-        append_channel_frame_header(header, channel, exptime_s=0.0, include_bias=True, include_dark=False)
+        append_channel_frame_header(header, channel, exptime_s=0.0, include_dark=False)
 
     logging.info("BIAS STATS %s mean=%g std=%g min=%g max=%g", channel.channel_name, bias.mean(), bias.std(), bias.min(), bias.max())
     return Frame(data=bias, header=header, frame_type="bias", channel_tag=channel.channel_name)

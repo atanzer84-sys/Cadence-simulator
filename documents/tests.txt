@@ -1,62 +1,106 @@
-You are assisting with a Python project that has strict testing rules.
+We now have working fixtures and domain tests.
 
-## CORE GOAL
-Each test file must ONLY test the functionality that exists in its corresponding production file.
-No helper-function tests leaking into higher-level modules.
-No accidental tests.
-No duplicated tests.
-No tests for behavior that is not implemented in the production file.
+Next step is to refactor logic and integration tests to use these fixtures consistently.
 
-## TEST STRUCTURE RULE
-Every test must begin with two comment lines:
+Rules:
 
-# Tests: <name of the production function being tested>
-# Behavior: <short description of what the test verifies>
+never introduce strings or config text unless the test explicitly tests parsing
 
-This ensures tests never drift into the wrong file.
+always prefer real objects via fixtures
 
-## FILE-TO-FILE MAPPING RULE
-- test_user_config.py → tests ONLY functions in user_config.py
-- test_config_parsing.py → tests ONLY functions in config_parsing.py
-- test_global_config.py → tests ONLY functions in global_config.py
-- test_channel_config.py → tests ONLY functions in channel_config.py
-- etc.
+no SimpleNamespace, no monkeypatch unless strictly necessary
 
-If a test verifies behavior of a helper function (e.g., parse_simple_kv, as_float, as_bool, _sanitize_target_name), it MUST be moved to test_config_parsing.py.
+keep existing comments above tests
 
-If a test verifies behavior of user_config’s own logic (caching, required keys, integration with helpers), it stays in test_user_config.py.
+minimal changes, only what is needed
 
-## SANITIZATION RULE
-Only ONE integration test in user_config may verify that sanitization is applied.
-All detailed sanitization tests belong in test_config_parsing.py.
+tell me explicitly what to remove, what to replace, and what to keep
 
-## LOGGING RULE
-Tests must NOT depend on full log message strings.
-They may only check:
-- log level (e.g., ERROR)
-- presence of key names
-- presence of filenames
+if fixture usage does not make sense for a test, say so clearly
 
-## ERROR MESSAGE RULE
-Tests must NOT depend on full error messages.
-They may only check:
-- the key name
-- the exception type
+ask for production code if needed before making assumptions
 
-## NO CODE RULE
-The AI must NOT output code unless the user explicitly says:
-“give me the code”
+Goal:
 
-## WORKFLOW
-1. User pastes a production file.
-2. AI analyzes it.
-3. User pastes the test file.
-4. AI classifies each test:
-   - KEEP (belongs here)
-   - MOVE (belongs in another test file)
-   - REMOVE (duplicate or irrelevant)
-5. AI explains WHY each test belongs where.
-6. When the user says “give me the code,” the AI produces the rewritten test files.
+eliminate fragile test setup
 
-## TONE
-Be precise, structured, and direct. No fluff.
+make tests refactor-safe
+
+use domain-consistent objects everywhere
+
+Also:
+
+introduce testfixtures where it actually adds value
+
+do not use testfixtures blindly
+
+Start with this file:
+[paste next test file]
+
+About testfixtures, because this is where people mess it up:
+
+Use it for:
+
+1
+Replacing external dependencies cleanly
+instead of monkeypatch
+
+2
+Capturing logs
+instead of caplog if you want stricter control
+
+3
+Temporary directory and file comparisons
+when you care about exact output
+
+4
+Comparing complex structures
+when plain assert gets messy
+
+Do NOT use it for:
+
+building domain objects
+→ that is what your fixtures are for
+
+replacing simple values
+→ overrides in fixture factories are cleaner
+
+anything that makes tests less readable
+
+Your current architecture is:
+
+fixtures = object creation
+testfixtures = environment control
+
+Keep that separation.
+
+We now continue refactoring test files.
+
+Context:
+
+fixtures are the single source of truth for domain objects
+no SimpleNamespace
+no ad-hoc object construction
+snapshot tests stay untouched except for minimal fixes
+orchestration tests may mock internal steps
+unit tests stay simple and use raw data when appropriate
+
+Rules:
+
+never introduce strings or config text unless testing parsing
+always prefer fixtures for domain objects
+use testfixtures only for environment control, not object creation
+keep existing comments above tests
+minimal changes only
+do not rewrite tests unnecessarily
+do not change working logic
+if something is unclear, ask before changing
+
+Output format:
+
+what to remove
+what to replace
+what to keep
+exact code only where needed
+
+If fixture usage does not make sense, say so clearly

@@ -15,3 +15,8 @@ from tests.fixtures.run_context_fixture import *
 from tests.fixtures.star_catalog_fixture import *
 from tests.fixtures.star_fixture import *
 from tests.fixtures.user_config_fixture import *
+from datetime import datetime
+
+@pytest.fixture
+def fixed_timestamp():
+    return datetime(2024, 1, 1, 12, 0, 0)
