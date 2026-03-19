@@ -8,7 +8,6 @@ BASE_GLOBAL_CFG = {
     "run_vis": True,
     "run_nuv": True,
     "run_nir": True,
-    # Existing defaults
     "line_core_emission": False,
     "interstellar_absorption": False,
     "orbit_duration_minutes": 100.0,

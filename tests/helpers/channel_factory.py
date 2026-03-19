@@ -3,31 +3,9 @@
 from types import SimpleNamespace
 
 import numpy as np
+import pytest
 
 from configs.channel_config import PhotometryChannel
-
-# Superset of attributes used by frame, instrument, and utils tests. Override in tests as needed.
-BASE_CHANNEL = {
-    "channel_name": "NUV",
-    "x_pixels": 10,
-    "y_pixels": 8,
-    "read_noise": 5.0,
-    "bias_offset": 100.0,
-    "dark_noise": 0.5,
-    "dark_current_sigma": 2.0,
-    "ccd_gain": 2.0,
-    "exposure_s": 10.0,
-    "spread_half_height_pix": 1,
-    "mode": 1,
-    "spread_profile_file": "dummy.fits",
-}
-
-
-def channel(**overrides):
-    """Channel-like SimpleNamespace. Override any key from BASE_CHANNEL (e.g. channel_name, exposure_s)."""
-    d = dict(BASE_CHANNEL)
-    d.update(overrides)
-    return SimpleNamespace(**d)
 
 
 # Defaults for a real PhotometryChannel when tests need isinstance(ch, PhotometryChannel).
@@ -61,3 +39,27 @@ def photometry_channel(**overrides):
     opts["psf_center_y"] = psf_shape[0] // 2
     opts.update(overrides)
     return PhotometryChannel(**opts)
+
+
+@pytest.fixture
+def make_channel():
+    """Factory fixture for channel-like objects with optional overrides."""
+    def _make_channel(**overrides):
+        opts = dict(
+            channel_name="NUV",
+            x_pixels=10,
+            y_pixels=8,
+            read_noise=5.0,
+            bias_offset=100.0,
+            dark_noise=0.5,
+            dark_current_sigma=2.0,
+            ccd_gain=2.0,
+            exposure_s=10.0,
+            spread_half_height_pix=1,
+            mode=1,
+            spread_profile_file="dummy.fits",
+        )
+        opts.update(overrides)
+        return SimpleNamespace(**opts)
+
+    return _make_channel

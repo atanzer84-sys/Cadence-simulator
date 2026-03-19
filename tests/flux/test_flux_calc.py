@@ -4,6 +4,7 @@ from types import SimpleNamespace
 from flux.flux_calc import (
     convertStellarModelToFlux,
     compute_flux_at_earth,
+    compute_ebv_av,
     apply_unred,
     calculateFluxOnEarth,
 )
@@ -68,6 +69,36 @@ def test_apply_unred_flips_ebv(monkeypatch):
 
     assert called["ebv"] == -0.2
     assert np.allclose(out, flux)
+
+
+# Tests: compute_ebv_av
+# Behavior: converts pc->kpc and forwards galactic coords to extinction_amores
+def test_compute_ebv_av_converts_distance_and_forwards_coords(monkeypatch):
+    called = {}
+
+    def fake_calc_glon_glat(ra, dec):
+        called["ra"] = ra
+        called["dec"] = dec
+        return 123.4, -56.7
+
+    def fake_extinction_amores(glon, glat, distance_kpc):
+        called["glon"] = glon
+        called["glat"] = glat
+        called["distance_kpc"] = distance_kpc
+        return 0.12, 0.34
+
+    monkeypatch.setattr("flux.flux_calc.calculate_glon_glat", fake_calc_glon_glat)
+    monkeypatch.setattr("flux.flux_calc.extinction_amores", fake_extinction_amores)
+
+    ebv, av = compute_ebv_av(10.0, 20.0, 2500.0)
+
+    assert ebv == 0.12
+    assert av == 0.34
+    assert called["ra"] == 10.0
+    assert called["dec"] == 20.0
+    assert called["glon"] == 123.4
+    assert called["glat"] == -56.7
+    assert called["distance_kpc"] == 2.5
 
 
 # Tests: calculateFluxOnEarth

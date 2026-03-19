@@ -7,11 +7,10 @@ matplotlib.use("Agg")
 import numpy as np
 from pathlib import Path
 
-from tests.helpers.star_factory import star
 from utils import flux_image_array
 
 
-def test_plot_flux_and_photons_windows_respects_enabled_channels(monkeypatch, tmp_path):
+def test_plot_flux_and_photons_windows_respects_enabled_channels(monkeypatch, tmp_path, make_star):
     """plot_flux_and_photons_windows only writes PNGs for enabled channels."""
 
     class _Cfg:
@@ -25,7 +24,7 @@ def test_plot_flux_and_photons_windows_respects_enabled_channels(monkeypatch, tm
 
     wavelengths = np.linspace(1000.0, 2000.0, 128, dtype=float)
     values = np.ones_like(wavelengths)
-    s = star()
+    s = make_star(name="HD 2685")
 
     flux_image_array.plot_flux_and_photons_windows(
         wavelengths,
@@ -56,7 +55,7 @@ def test_plot_flux_and_photons_windows_respects_enabled_channels(monkeypatch, tm
     assert not _exists("VIS_zoom")
 
 
-def test_plot_flux_and_photons_windows_full_writes_full_range_png(monkeypatch, tmp_path):
+def test_plot_flux_and_photons_windows_full_writes_full_range_png(monkeypatch, tmp_path, make_star):
     """plot_flux_and_photons_windows with full=True writes the full-range PNG (wavelength min–max)."""
     class _Cfg:
         run_nuv = True
@@ -68,7 +67,7 @@ def test_plot_flux_and_photons_windows_full_writes_full_range_png(monkeypatch, t
 
     wavelengths = np.linspace(2000.0, 15000.0, 128, dtype=float)
     values = np.ones_like(wavelengths)
-    s = star()
+    s = make_star(name="HD 2685")
 
     flux_image_array.plot_flux_and_photons_windows(
         wavelengths,
@@ -88,11 +87,11 @@ def test_plot_flux_and_photons_windows_full_writes_full_range_png(monkeypatch, t
     assert full_path.stat().st_size > 0
 
 
-def test_plot_1d_for_channel_writes_expected_files(tmp_path):
+def test_plot_1d_for_channel_writes_expected_files(tmp_path, make_star):
     """plot_1d_for_channel writes full and zoom PNGs for a single channel."""
     wavelengths = np.linspace(1000.0, 3000.0, 256, dtype=float)
     values = np.linspace(0.0, 1.0, 256, dtype=float)
-    s = star()
+    s = make_star(name="HD 2685")
 
     flux_image_array.plot_1d_for_channel(
         wavelengths,

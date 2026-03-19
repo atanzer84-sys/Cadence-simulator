@@ -1,12 +1,11 @@
 import numpy as np
 
 from instrument.dark_image import generate_dark_image
-from tests.helpers.channel_factory import channel
 
 
-def test_generate_dark_image_shape_and_mean_positive():
+def test_generate_dark_image_shape_and_mean_positive(make_channel):
     np.random.seed(0)
-    ch = channel()
+    ch = make_channel()
 
     dark = generate_dark_image(ch)
 

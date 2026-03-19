@@ -1,12 +1,11 @@
 import numpy as np
 
 from instrument.bias_image import generate_bias_image
-from tests.helpers.channel_factory import channel
 
 
-def test_generate_bias_image_shape_and_mean():
+def test_generate_bias_image_shape_and_mean(make_channel):
     np.random.seed(0)
-    ch = channel()
+    ch = make_channel()
 
     bias = generate_bias_image(ch)
 

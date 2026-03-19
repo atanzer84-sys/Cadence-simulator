@@ -68,14 +68,14 @@ def test_load_user_config_success(monkeypatch):
 
 # Tests: _read_user_cfg
 # Behavior: parses all required fields correctly
-def test_load_user_config_valid_full(tmp_path):
-    content = """
-    target_name = HD 202772 A
-    total_observation_length_h = 20.5
-    exposure_NUV_s = 3
-    exposure_VIS_s = 4.25
-    exposure_IR_s = 10
-    """
+def test_load_user_config_valid_full(tmp_path, make_user_cfg):
+    content = make_user_cfg(
+        target_name="HD 202772 A",
+        total_observation_length_h="20.5",
+        exposure_NUV_s="3",
+        exposure_VIS_s="4.25",
+        exposure_IR_s="10",
+    )
     path = _write_params(tmp_path, content)
 
     load_user_config(path)
@@ -101,17 +101,10 @@ def test_load_user_config_valid_full(tmp_path):
     "exposure_VIS_s",
     "exposure_IR_s",
 ])
-def test_load_user_config_missing_required_raises(tmp_path, missing_key):
-    base = {
-        "target_name": "HD 202772 A",
-        "total_observation_length_h": "20.5",
-        "exposure_NUV_s": "3",
-        "exposure_VIS_s": "4.25",
-        "exposure_IR_s": "10",
-    }
-    del base[missing_key]
-
-    content = "\n".join(f"{k} = {v}" for k, v in base.items())
+def test_load_user_config_missing_required_raises(tmp_path, missing_key, make_user_cfg):
+    base = make_user_cfg().splitlines()
+    base = [line for line in base if not line.strip().startswith(f"{missing_key} =")]
+    content = "\n".join(base)
     path = _write_params(tmp_path, content)
 
     with pytest.raises(ValueError) as exc:
@@ -150,17 +143,16 @@ def test_missing_required_key_hits_keyerror_block(tmp_path):
     "exposure_VIS_s",
     "exposure_IR_s",
 ])
-def test_load_user_config_invalid_number_raises(tmp_path, bad_key):
-    base = {
+def test_load_user_config_invalid_number_raises(tmp_path, bad_key, make_user_cfg):
+    overrides = {
         "target_name": "Star",
         "total_observation_length_h": "1",
         "exposure_NUV_s": "1",
         "exposure_VIS_s": "1",
         "exposure_IR_s": "1",
     }
-    base[bad_key] = "not_a_number"
-
-    content = "\n".join(f"{k} = {v}" for k, v in base.items())
+    overrides[bad_key] = "not_a_number"
+    content = make_user_cfg(**overrides)
     path = _write_params(tmp_path, content)
 
     with pytest.raises(ValueError) as exc:

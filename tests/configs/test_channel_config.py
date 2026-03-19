@@ -2,7 +2,8 @@ import numpy as np
 import pytest
 from dataclasses import FrozenInstanceError
 
-from configs.channel_config import SpectroscopyChannel, PhotometryChannel
+from configs.channel_config import SpectroscopyChannel
+from tests.helpers.channel_factory import photometry_channel
 from tests.loaders._load_channel_test_helpers import _SHARED_CFG
 
 
@@ -50,25 +51,22 @@ def test_spectroscopy_channel_init():
 
 
 def test_photometry_channel_init():
-    n_science_frames = _SHARED_CFG["n_science_frames"]
-    ch = PhotometryChannel(
+    ch = photometry_channel(
         channel_name="NIR",
         x_pixels=100,
         y_pixels=100,
-        resolution_factor=1.0,
-        dark_noise=0.0,
-        dark_current_sigma=0.0,
-        read_noise=1.0,
-        bias_offset=0.0,
-        ccd_gain=1.0,
         exposure_s=5.0,
         source_file="cfg",
         effective_area_file="ea_ir.txt",
         effective_area_wavelength=np.array([1000.0, 1001.0]),
         effective_area=np.array([0.1, 0.2]),
-        pixel_scale=1.0,
         psf_file="nir_psf.txt",
-        n_science_frames=n_science_frames,
+        n_science_frames=_SHARED_CFG["n_science_frames"],
+        psf_image=None,
+        psf_center_x=None,
+        psf_center_y=None,
+        source_position_x_arcsec=None,
+        source_position_y_arcsec=None,
     )
 
     assert ch.channel_name == "NIR"
@@ -82,25 +80,17 @@ def test_photometry_channel_init():
 
 
 def test_photometry_channel_is_frozen():
-    n_science_frames = _SHARED_CFG["n_science_frames"]
-    ch = PhotometryChannel(
+    ch = photometry_channel(
         channel_name="NIR",
         x_pixels=10,
         y_pixels=10,
-        resolution_factor=1.0,
-        dark_noise=0.0,
-        dark_current_sigma=0.0,
-        read_noise=1.0,
-        bias_offset=0.0,
-        ccd_gain=1.0,
         exposure_s=5.0,
         source_file="cfg",
         effective_area_file="ea_ir.txt",
         effective_area_wavelength=np.array([1000.0]),
         effective_area=np.array([0.1]),
-        pixel_scale=1.0,
         psf_file="nir_psf.txt",
-        n_science_frames=n_science_frames,
+        n_science_frames=_SHARED_CFG["n_science_frames"],
     )
 
     with pytest.raises(FrozenInstanceError):
