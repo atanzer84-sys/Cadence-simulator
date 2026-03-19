@@ -18,11 +18,6 @@ def extinction_amores(glong,glat,distance):
     #glat=0.0            #galactic latitude
     #dist = 20.0       #distance of the point to which we will calculate the extinction in kpc
 
-    #print,'Interstellar Extinction in the Galaxy (Amores & L�pine - 2005, AJ, 130, 679)'
-    #
-    #read,glong,glat,PROMPT='Give the galactic longitude & latitude (Degrees,Degrees)....:  '
-    #read,dist,PROMPT='Distance [kpc](positive value)...�
-
     dist=distance
     nstep=int(dist/step)
 
@@ -34,7 +29,7 @@ def extinction_amores(glong,glat,distance):
     xproj=np.sin(glong*conv)
     bproj=np.sin(glat*conv)
     dproj=np.cos(glat*conv)
-    av=0.0                  #for the integration of the colunar density
+    av=0.0 #for the integration of the colunar density
 
     #declaring & puting values in the variables. The arrays will contain the
     #value of quantities like galactic radius | gas density for each step along the line-of sight
@@ -80,13 +75,10 @@ def extinction_amores(glong,glat,distance):
         if r[i] > 9.0:  zmet[i] = (r0/r[i])**0.1
 
     # this defines the metallicity correction, see section 3 of the paper
-    
-        
     gam1=1.0
     gam2=2.0
     
     #See the final tuning (section 4.1) correction factor for interval l=120-200
-    
     tune=1.
     if 120 <= glong <= 200  : tune=2.
     agas=gam1*(ah1*zmet*np.exp(-0.5*((z-zc)/zH)**2))+gam2*aco*np.exp(-0.5*((z-zc)/zCO)**2)
@@ -99,12 +91,6 @@ def extinction_amores(glong,glat,distance):
 
     rs = 3.05  #ratio between total to selective extinction
     ebv = av/rs
-    #print('Ebv')
-    #print(ebv)
-   
-    #status = Check_Math()         # Get status & reset accumulated math error register.
-    #IF(status AND NOT floating_point_underflow) NE 0 THEN $
-    #  Message, 'IDL Check_Math() error: ' + StrTrim(status, 2)
 
     logging.info("Extinction calculation: distance_kpc=%s glong=%s glat=%s E(B-V)=%s A_V=%s", distance, glong, glat, ebv, av)
     return ebv,av

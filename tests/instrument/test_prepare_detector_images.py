@@ -38,6 +38,34 @@ def _star():
     return SimpleNamespace(name="TESTSTAR")
 
 
+def test_convert_flux_to_photons():
+    """convert_flux_to_photons uses the same conversion constant as the production code."""
+    from utils.constants import PHOTON_ENERGY_CONVERSION_A
+
+    flux = np.array([1.0, 2.0])
+    wavelengths = np.array([100.0, 200.0])
+    out = convert_flux_to_photons(flux, wavelengths)
+    assert np.allclose(out, flux * PHOTON_ENERGY_CONVERSION_A * wavelengths)
+
+def test_apply_unred_flips_ebv(monkeypatch):
+    """apply_unred flips the sign of EBV before calling unred."""
+    called = {}
+
+    def fake_unred(w, f, ebv, R_V):
+        called["ebv"] = ebv
+        return f
+
+    monkeypatch.setattr("flux.flux_calc.unred", fake_unred)
+
+    wavelengths = np.array([100.0])
+    flux = np.array([1.0])
+    ebv = 0.2
+
+    out = apply_unred(wavelengths, flux, ebv)
+
+    assert called["ebv"] == -0.2
+    assert np.allclose(out, flux)
+    
 def test_prepare_detector_image_flow_calls_dependencies_and_returns_shapes(tmp_path):
     star = _star()
     ctx = _ctx(tmp_path)
