@@ -11,7 +11,7 @@ from domain.star import Star
 from domain.star_catalog import StarCatalog
 from instrument.background_star_spectroscopy import generate_background_star_spectroscopy_image
 from instrument.background_star_photometry import generate_background_star_photometry_image
-from instrument.photon_noise import apply_photon_noise_gauss_from_spectra2d
+from instrument.photon_noise import generate_photon_noise_from_spectra2d
 from frame.fits_header import initialize_fits_header
 from frame.bias_frame import generate_bias_frame_with_index
 from frame.dark_frame import generate_dark_frame_with_index
@@ -124,7 +124,7 @@ def _build_science_image_without_bg_stars(target_star_component, background_comp
         ctx.write_science_frame_component_png(target_star_component, "SCIENCE_SIGNAL_ONLY", channel=channel, ctx=ctx, cfg=cfg, star=star, index=frame_index)
         ctx.write_science_frame_component_png(image, "SCIENCE_SPECTRA", channel=channel, ctx=ctx, cfg=cfg, star=star, index=frame_index)
 
-    photon_noise = apply_photon_noise_gauss_from_spectra2d(target_star_component, channel, ctx, star)
+    photon_noise = generate_photon_noise_from_spectra2d(target_star_component)
     image += photon_noise
     if frame_index < 1:
         ctx.write_science_frame_component_png(photon_noise, "SCIENCE_PHOTON_NOISE_ONLY", channel=channel, ctx=ctx, cfg=cfg, star=star, index=frame_index)
