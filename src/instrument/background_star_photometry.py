@@ -1,16 +1,13 @@
 import numpy as np
-from loaders.run_waltzer_context import RunContext
 from configs.channel_config import PhotometryChannel
-from domain.star import Star
 from domain.star_catalog import StarCatalog
 from instrument.psf_spread import get_photometry_placement, paste_psf_stamp
 import logging
 
-def generate_background_star_photometry_image(channel: PhotometryChannel, ctx: RunContext, star: Star, background_stars_catalog: StarCatalog, roll_angle_start: float, roll_angle_stop: float, frame_index: int) -> tuple[np.ndarray, dict[str, dict[str, float]]]:
+def generate_background_star_photometry_image(channel: PhotometryChannel, background_stars_catalog: StarCatalog, roll_angle_start: float, roll_angle_stop: float, frame_index: int) -> tuple[np.ndarray, dict[str, dict[str, float]]]:
     
     image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
     background_star_arcs: dict[str, list[tuple[int, int]]] = {}
-
     
     target_star_placement = get_photometry_placement(channel)
     total = len(background_stars_catalog.stars_by_id)

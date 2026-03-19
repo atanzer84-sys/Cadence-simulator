@@ -90,10 +90,10 @@ def _create_per_exposure(stellar_component, background_component, channel: Chann
     image = _build_science_image_without_bg_stars(stellar_component, background_component, channel, ctx, cfg, star, frame_index)
 
     if isinstance(channel, SpectroscopyChannel):
-        bg_stars, background_star_visibility = generate_background_star_spectroscopy_image(channel, ctx, star, background_stars_catalog, roll_angle_start, roll_angle_end, frame_index)
+        bg_stars, background_star_visibility = generate_background_star_spectroscopy_image(channel, background_stars_catalog, roll_angle_start, roll_angle_end, frame_index)
         visibility_kwargs = {"background_star_bands": background_star_visibility}
     elif isinstance(channel, PhotometryChannel):
-        bg_stars, background_star_visibility = generate_background_star_photometry_image(channel, ctx, star, background_stars_catalog, roll_angle_start, roll_angle_end, frame_index)
+        bg_stars, background_star_visibility = generate_background_star_photometry_image(channel, background_stars_catalog, roll_angle_start, roll_angle_end, frame_index)
         visibility_kwargs = {"background_star_arcs": background_star_visibility}
     else:
         raise TypeError(f"Unsupported channel type: {type(channel)}")

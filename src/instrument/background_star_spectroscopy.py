@@ -1,13 +1,11 @@
 import logging
 import numpy as np
-from loaders.run_waltzer_context import RunContext
 from configs.channel_config import SpectroscopyChannel
-from domain.star import Star
 from domain.star_catalog import StarCatalog
 from instrument.spectrum_spread import get_spectrum_placement, smear_1d_spectrum_dispersion, spread_1d_spectrum_to_2d
 
 
-def generate_background_star_spectroscopy_image(channel: SpectroscopyChannel, ctx: RunContext, star: Star, background_stars_catalog: StarCatalog, roll_angle_start: float, roll_angle_stop: float, frame_index: int) -> tuple[np.ndarray, dict[str, dict[str, float]]]:
+def generate_background_star_spectroscopy_image(channel: SpectroscopyChannel, background_stars_catalog: StarCatalog, roll_angle_start: float, roll_angle_stop: float, frame_index: int) -> tuple[np.ndarray, dict[str, dict[str, float]]]:
 
     image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
     background_star_bands: dict[str, dict[str, float]] = {}
