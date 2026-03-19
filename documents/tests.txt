@@ -104,3 +104,19 @@ what to keep
 exact code only where needed
 
 If fixture usage does not make sense, say so clearly
+
+Write or refactor tests using this exact comment style:
+
+Tests: <function_name>
+Behavior: <what is being tested in one short sentence>
+
+Rules:
+keep comments short, max two lines
+no explanations, no essays
+no mention of fixtures or setup
+only describe observable behavior
+keep existing comments unless wrong
+fix only incorrect comments
+no extra commentary in output
+
+i will start now giving you the testfixtures.. read them. NO SUMMARY. ONLY EVER MANAGEMENT SUMMARIES. no extensive explanations unless i ask. no code unless i ask

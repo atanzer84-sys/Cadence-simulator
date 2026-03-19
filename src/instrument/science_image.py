@@ -58,7 +58,7 @@ def _create_channel_images(stellar_signal, channel: Channel, ctx: RunContext, cf
     readout_gap_s = cfg.readout_gap_s
     orbit_duration_s = cfg.orbit_duration_minutes * 60.0
     stellar_component = stellar_signal * exposure
-    background_component = generate_background_image(channel, ctx, star)
+    background_component = generate_background_image(channel, star)
     n_science_frames = channel.n_science_frames
 
     for frame_index in range(n_science_frames):

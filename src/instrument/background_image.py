@@ -1,6 +1,5 @@
 import logging
 import numpy as np
-from loaders.run_waltzer_context import RunContext
 from configs.channel_config import SpectroscopyChannel
 from domain.star import Star
 from instrument.prepare_detector_images import convert_flux_to_photons
@@ -11,7 +10,7 @@ from scipy.interpolate import CubicSpline
 from astropy.time import Time
 
 
-def generate_background_image(channel: SpectroscopyChannel, ctx: RunContext, star: Star ) -> np.ndarray:
+def generate_background_image(channel: SpectroscopyChannel, star: Star ) -> np.ndarray:
 
     nx = channel.x_pixels
     ny = channel.y_pixels
@@ -27,6 +26,8 @@ def generate_background_image(channel: SpectroscopyChannel, ctx: RunContext, sta
         background = generate_background_default_image(channel)
     elif channel.background_type == "calc":
         background = generate_background_calculated_image(channel, star)
+    else:
+        raise ValueError(f"Unsupported background_type: {channel.background_type}")
 
     background *= channel.effective_area
     if len(background) != nx:
