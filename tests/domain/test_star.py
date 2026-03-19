@@ -1,9 +1,8 @@
 import pytest
+from dataclasses import FrozenInstanceError
+
 from domain.star import Star
 from utils.constants import R_SUN_cm, M_SUN_kg
-
-import pytest
-from domain.star import Star
 
 
 def test_star_from_params_ok_and_unit_conversion():
@@ -56,11 +55,10 @@ def test_star_missing_effective_temperature_raises():
             required_keys=["name", "radius", "effective_temperature"],
         )
 
+
 # Tests: Star dataclass
 # Behavior: modifying a frozen dataclass raises FrozenInstanceError
 def test_star_is_frozen():
-    from dataclasses import FrozenInstanceError
-
     params = {
         "name": "HD 1234",
         "radius": 1.0,
@@ -87,6 +85,7 @@ def test_star_required_keys_empty():
     assert star.name == "HD 1234"
     assert star.radius == 2.0
     assert star.mass == 3.0
+
 
 # Tests: Star.from_params
 # Behavior: required key present but is_missing() returns True → raises ValueError
@@ -124,6 +123,7 @@ def test_star_log_output_false(capsys, caplog):
     assert not caplog.records
 
     assert star.name == "HD 1234"
+
 
 # Tests: Star.from_params
 # Behavior: radius=None triggers second-stage radius check → raises ValueError
@@ -203,4 +203,3 @@ def test_star_radius_none_raises_even_if_radius_not_in_required_keys():
             required_keys=["name", "mass"],
             log_output=False,
         )
-

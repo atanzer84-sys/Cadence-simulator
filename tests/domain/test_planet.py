@@ -1,4 +1,6 @@
 import pytest
+from dataclasses import FrozenInstanceError
+
 from domain.planet import Planet
 
 
@@ -35,8 +37,9 @@ def test_planet_is_frozen(make_planet):
 
     planet = Planet.from_params(params, required_keys=["name", "orbital_period"])
 
-    with pytest.raises(Exception):
+    with pytest.raises(FrozenInstanceError):
         planet.name = "NewName"
+
 
 # Tests: Planet.from_params
 # Behavior: required_keys empty → no validation → Planet created successfully

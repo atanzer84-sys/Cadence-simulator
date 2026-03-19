@@ -1,9 +1,17 @@
-"""Pytest conftest: add repo src to path so imports work when run from repo root."""
 import sys
 from pathlib import Path
+
 _repo_root = Path(__file__).resolve().parents[1]
 _src = _repo_root / "src"
+
 if str(_src) not in sys.path:
     sys.path.insert(0, str(_src))
 
-pytest_plugins = ["tests.helpers.pytest_fixtures"]
+from tests.fixtures.channel_fixture import *
+from tests.fixtures.frame_fixture import *
+from tests.fixtures.global_config_fixture import *
+from tests.fixtures.planet_fixture import *
+from tests.fixtures.run_context_fixture import *
+from tests.fixtures.star_catalog_fixture import *
+from tests.fixtures.star_fixture import *
+from tests.fixtures.user_config_fixture import *
