@@ -135,7 +135,7 @@ def _build_science_image_without_bg_stars(target_star_component, background_comp
         ctx.write_science_frame_component_png(background_component, "SCIENCE_BACKGROUND_ONLY", channel=channel, ctx=ctx, cfg=cfg, star=star, index=frame_index)
 
 
-    cosmic = generate_cosmic_rays(ctx, channel, cfg, star)
+    cosmic = generate_cosmic_rays(channel, cfg)
     image += cosmic
     if frame_index < 1:
         ctx.write_science_frame_component_png(cosmic, "SCIENCE_COSMIC_ONLY", channel=channel, ctx=ctx, cfg=cfg, star=star, index=frame_index)

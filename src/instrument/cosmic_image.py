@@ -1,11 +1,11 @@
 import logging
 import numpy as np
-from configs.channel_config import SpectroscopyChannel
-from loaders.run_waltzer_context import RunContext
+from configs.channel_config import Channel
 from configs.global_config import GlobalConfig
 
+_rng = np.random.default_rng()
 
-def generate_cosmic_rays(ctx: RunContext, channel: SpectroscopyChannel, cfg: GlobalConfig, star=None):
+def generate_cosmic_rays(channel: Channel, cfg: GlobalConfig):
 
     nx = channel.x_pixels
     ny = channel.y_pixels
@@ -15,19 +15,17 @@ def generate_cosmic_rays(ctx: RunContext, channel: SpectroscopyChannel, cfg: Glo
     cosmic_ray_length_min_px = cfg.cosmic_ray_length_min_px
     cosmic_ray_length_max_px = cfg.cosmic_ray_length_max_px
 
-    rng = np.random.default_rng()
-    cosmic_rays = rng.integers(min_rays, max_rays + 1)
+    cosmic_rays = _rng.integers(min_rays, max_rays + 1)
     image = np.zeros((ny, nx), dtype=np.float32)
 
     # IDL: x_val=(nx-1)*randomu(seed,number) etc.
-    x_val = (nx - 1) * rng.random(cosmic_rays)
-    y_val = (ny - 1) * rng.random(cosmic_rays)
+    x_val = (nx - 1) * _rng.random(cosmic_rays)
+    y_val = (ny - 1) * _rng.random(cosmic_rays)
 
-
-    direction = np.deg2rad(360.0 * rng.random(cosmic_rays))
+    direction = np.deg2rad(360.0 * _rng.random(cosmic_rays))
 
     for i in range(cosmic_rays):
-        length_cosmic_ray = rng.integers(cosmic_ray_length_min_px, cosmic_ray_length_max_px + 1)
+        length_cosmic_ray = _rng.integers(cosmic_ray_length_min_px, cosmic_ray_length_max_px + 1)
 
         x = int(np.trunc(x_val[i]))
         y = int(np.trunc(y_val[i]))
