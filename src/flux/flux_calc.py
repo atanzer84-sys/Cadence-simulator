@@ -103,7 +103,9 @@ def apply_ism_absorption(data, ebv, cfg, announce_user: bool = False):
         nh = 5.8e21 * ebv  # The Mg2 column density is
         fractionMg2 = 0.825  # (Frisch & Slavin 2003; this is the fraction of Mg in the ISM that is singly ionised)
         Mg_abn = -5.33  # (Frisch & Slavin 2003; this is the ISM abundance of Mg)
-        nmg2 = np.log10(nh * fractionMg2 * 10.0**Mg_abn)
+        # Safe runtime path: keep physically correct -inf for zero columns without triggering log10(0) warnings.
+        mg2_col_linear = nh * fractionMg2 * 10.0**Mg_abn
+        nmg2 = -np.inf if mg2_col_linear <= 0.0 else np.log10(mg2_col_linear)
         logging.info("ISM MgII column computed: nmg2=%s", nmg2)
     else:
         nmg2 = float(cfg.mg2_col)
@@ -113,7 +115,8 @@ def apply_ism_absorption(data, ebv, cfg, announce_user: bool = False):
         nh = 5.8e21 * ebv  # The Mg1 column density is
         fractionMg1 = 0.00214  # (Frisch & Slavin 2003; this is the fraction of Mg in the ISM that is singly ionised)
         Mg_abn = -5.33  # (Frisch & Slavin 2003; this is the ISM abundance of Mg)
-        nmg1 = np.log10(nh * fractionMg1 * 10.0**Mg_abn)
+        mg1_col_linear = nh * fractionMg1 * 10.0**Mg_abn
+        nmg1 = -np.inf if mg1_col_linear <= 0.0 else np.log10(mg1_col_linear)
         logging.info("ISM MgI column computed: nmg1=%s", nmg1)
     else:
         nmg1 = float(cfg.mg1_col)
@@ -123,7 +126,8 @@ def apply_ism_absorption(data, ebv, cfg, announce_user: bool = False):
         nh = 5.8e21 * ebv  # The Fe2 column density is
         fractionFe2 = 0.967  # (Frisch & Slavin 2003; this is the fraction of Fe in the ISM that is singly ionised)
         Fe_abn = -5.73  # (Frisch & Slavin 2003; this is the ISM abundance of Fe)
-        nfe2 = np.log10(nh * fractionFe2 * 10.0**Fe_abn)
+        fe2_col_linear = nh * fractionFe2 * 10.0**Fe_abn
+        nfe2 = -np.inf if fe2_col_linear <= 0.0 else np.log10(fe2_col_linear)
         logging.info("ISM FeII column computed: nfe2=%s", nfe2)
     else:
         nfe2 = float(cfg.fe2_col)
