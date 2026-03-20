@@ -8,12 +8,12 @@ from loaders.load_channel_files_common import (
     read_text_lines_with_fallback,
 )
 
-
-def load_spread_profile_file_spectroscopy(spread_filename: str, channel_name: str) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+def load_spread_profile_file_spectroscopy(spread_filename: str, channel_name: str) -> tuple[np.ndarray | None, np.ndarray | None, np.ndarray | None]:
     repo_root = get_repo_root()
     
-    if not spread_filename or spread_filename.strip() == "":
-        raise ValueError("Spread profile file not configured.")
+    if not spread_filename or spread_filename.strip() == "": 
+        logging.info("Channel %s: no spread profile configured.", channel_name)
+        return None, None, None
 
     path = resolve_path_under(repo_root, "data", spread_filename)
     if not path.exists():
