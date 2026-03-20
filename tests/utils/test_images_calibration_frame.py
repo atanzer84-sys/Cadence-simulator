@@ -70,7 +70,6 @@ def test_write_calibration_frame_png_vis_uses_vis_writer(
 
     call = save_call_recorder["VIS"]
     np.testing.assert_array_equal(call["frame_to_plot"], detector_data)
-    assert call["channel_name"] == "VIS"
     assert call["filename"] is not None
     assert call["title"] is not None
 
@@ -104,6 +103,5 @@ def test_write_calibration_frame_png_nir_applies_inversion_and_uses_nir_writer(
     call = save_call_recorder["NIR"]
     expected = detector_data.max() - detector_data
     np.testing.assert_array_equal(call["frame_to_plot"], expected)
-    assert call["channel_name"] == "NIR"
     assert call["filename"] is not None
     assert call["title"] is not None

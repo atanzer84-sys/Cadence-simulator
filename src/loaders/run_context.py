@@ -9,7 +9,6 @@ class RunContext:
     target_name: str
     output_dir: Path
     timestamp: datetime
-    timestamp_str: str
     dump_3d_array: Callable[..., Any]
     dump_1d_array: Callable[..., Any]
     dump_1d_for_channel: Callable[..., Any]

@@ -15,7 +15,6 @@ def make_run_context(tmp_path):
             target_name="HD_2685",
             output_dir=tmp_path,
             timestamp=datetime(2026, 1, 1, 12, 0, 0),
-            timestamp_str="20260101_120000_000000",
             dump_3d_array=_noop,
             dump_1d_array=_noop,
             dump_1d_for_channel=_noop,

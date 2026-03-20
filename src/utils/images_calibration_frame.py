@@ -23,5 +23,5 @@ def write_calibration_frame_png(detector_data, frame_type: str, channel: Channel
     filename = build_png_filename(ctx.output_dir, star.name, channel_name, frame_type, exposure, index, waltzer_prefix=False)
 
     save_fn = {"NIR": save_single_frame_png_NIR, "NUV": save_single_frame_png_NUV, "VIS": save_single_frame_png_VIS_cropped}.get(channel_name, save_single_frame_png_VIS_cropped)
-    save_fn(frame_to_plot, filename, title, stats_text, channel_name=channel_name)
+    save_fn(frame_to_plot, filename, title, stats_text)
 

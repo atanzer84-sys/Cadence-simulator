@@ -50,7 +50,6 @@ def initialize_waltzer_runtime_context():
         target_name=user_cfg.target_name,
         output_dir=output_dir,
         timestamp=timestamp,
-        timestamp_str=timestamp_str,
         dump_3d_array=dump_3d_array,
         dump_1d_array=dump_1d_array,
         dump_1d_for_channel=dump_1d_for_channel,
