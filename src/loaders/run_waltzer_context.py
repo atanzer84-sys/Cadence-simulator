@@ -26,7 +26,7 @@ def initialize_waltzer_runtime_context():
     setup_logger(output_dir, timestamp_str)
     user_cfg = load_global_and_user_config()
     cfg = get_global_config()
-    from utils import images
+    from utils import images_backgroundstar_science_panel
     from utils import images_calibration_frame
     from utils import images_science_frame
     from utils import flux_image_array
@@ -41,7 +41,10 @@ def initialize_waltzer_runtime_context():
     write_calibration_frame_png = _select(cfg.write_calibration_frame_png, images_calibration_frame.write_calibration_frame_png)
     write_science_frame_png = _select(cfg.write_science_frames_png, images_science_frame.write_science_frame_png)
     write_science_frame_component_png = _select(cfg.write_science_frame_component_png, images_calibration_frame.write_calibration_frame_png)
-    generate_background_star_visibility_on_science_frame = _select(cfg.write_background_star_footprint_on_science_frame, images.generate_background_star_visibility_on_science_frame)
+    generate_background_star_visibility_on_science_frame = _select(
+        cfg.write_background_star_footprint_on_science_frame,
+        images_backgroundstar_science_panel.generate_background_star_visibility_on_science_frame,
+    )
 
     run_ctx = RunContext(
         target_name=user_cfg.target_name,
