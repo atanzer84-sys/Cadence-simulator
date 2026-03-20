@@ -7,7 +7,6 @@ import pytest
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from tests.helpers.channel_factory import photometry_channel
 from instrument.psf_spread import (
     get_photometry_placement,
     paste_psf_stamp,
@@ -175,17 +174,29 @@ def test_spread_1d_photometry_to_2d_psf_center_none_raises_value_error(tmp_path)
 # -----------------------------------------------------------------------------
 
 
-def test_compute_aperture_photometry_empty_annulus_returns_none():
+def test_compute_aperture_photometry_empty_annulus_returns_none(make_photometry_channel):
     """When annulus has zero pixels (e.g. image too small or source off-frame), returns None."""
     tiny = np.zeros((2, 2))
-    ch_tiny = photometry_channel(x_pixels=2, y_pixels=2, psf_shape=(2, 2))
+    ch_tiny = make_photometry_channel(
+        x_pixels=2,
+        y_pixels=2,
+        psf_image=np.ones((2, 2), dtype=float),
+        psf_center_x=1,
+        psf_center_y=1,
+    )
     result = compute_aperture_photometry(tiny, ch_tiny)
     assert result is None
 
 
-def test_compute_aperture_photometry_uniform_background_zero_star_counts():
+def test_compute_aperture_photometry_uniform_background_zero_star_counts(make_photometry_channel):
     """With uniform background only, background-subtracted stellar counts are ~0 and six-tuple is returned."""
-    ch = photometry_channel(x_pixels=32, y_pixels=32, psf_shape=(4, 4))
+    ch = make_photometry_channel(
+        x_pixels=32,
+        y_pixels=32,
+        psf_image=np.ones((4, 4), dtype=float),
+        psf_center_x=2,
+        psf_center_y=2,
+    )
     image = np.ones((32, 32), dtype=np.float64) * 5.0
     result = compute_aperture_photometry(image, ch)
     assert result is not None
@@ -198,7 +209,7 @@ def test_compute_aperture_photometry_uniform_background_zero_star_counts():
     assert counts_star_noise > 0.0
 
 
-def test_compute_aperture_photometry_counts_and_noise_with_known_psf():
+def test_compute_aperture_photometry_counts_and_noise_with_known_psf(make_photometry_channel):
     """For a simple PSF and known signal/background, check aperture radii, counts_star, and noise analytically."""
     psf_shape = (5, 5)
     psf = np.zeros(psf_shape, dtype=np.float32)
@@ -207,7 +218,13 @@ def test_compute_aperture_photometry_counts_and_noise_with_known_psf():
     r_psf = np.sqrt((yy_psf - center_y) ** 2 + (xx_psf - center_x) ** 2)
     psf[r_psf <= 2.0] = 1.0
 
-    ch = photometry_channel(x_pixels=50, y_pixels=50, psf_shape=psf_shape, psf_image=psf, psf_center_x=center_x, psf_center_y=center_y)
+    ch = make_photometry_channel(
+        x_pixels=50,
+        y_pixels=50,
+        psf_image=psf,
+        psf_center_x=center_x,
+        psf_center_y=center_y,
+    )
 
     image = np.zeros((50, 50), dtype=np.float64)
     x0, y0 = get_photometry_placement(ch)
