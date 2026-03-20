@@ -6,24 +6,23 @@ from loaders.run_waltzer_context import RunContext
 from instrument.wavelength_range import compute_extended_wavelength_range
 
 
-def compute_broadened_channel_flux(photon_flux_at_earth: np.ndarray, wavelengths_total: np.ndarray, channel: Channel, output_dir, cfg, star: Star, ctx: RunContext):
+def compute_broadened_channel_flux(photon_flux_at_earth: np.ndarray, wavelengths_total: np.ndarray, channel: Channel, star: Star):
 
     # Cut up array to broaden with gauss later
-    cut_photon_flux, wavelength = cut_wavelength_window_with_margin(photon_flux_at_earth, wavelengths_total, channel, output_dir, cfg, star, ctx)
-    logging.info("BG_FLUX_CUT star_id=%s channel=%s n=%d wl_min=%.1f wl_max=%.1f sum=%.6e mean=%.6e min=%.6e max=%.6e", star.name, channel.channel_name, wavelength.size, float(wavelength[0]), float(wavelength[-1]), float(np.sum(cut_photon_flux)), float(np.mean(cut_photon_flux)), float(np.min(cut_photon_flux)), float(np.max(cut_photon_flux)))
-    
+    cut_photon_flux, wavelength = cut_wavelength_window_with_margin(photon_flux_at_earth, wavelengths_total, channel)
+    logging.info("BG_FLUX_CUT star_id=%s channel=%s n=%d wl_min=%.1f wl_max=%.1f", star.name, channel.channel_name, wavelength.size, float(wavelength[0]), float(wavelength[-1]))
+
     # Gaussian Broadening of flux over wavelengths
     photon_flux_smoothed =  gaussbroad(wavelength, cut_photon_flux, channel.pixel_scale)
-    logging.info("BG_FLUX_SMOOTHED star_id=%s channel=%s n=%d wl_min=%.1f wl_max=%.1f sum=%.6e mean=%.6e min=%.6e max=%.6e", star.name, channel.channel_name, wavelength.size, float(wavelength[0]), float(wavelength[-1]), float(np.sum(photon_flux_smoothed)), float(np.mean(photon_flux_smoothed)), float(np.min(photon_flux_smoothed)), float(np.max(photon_flux_smoothed)))
-
+    logging.info("BG_FLUX_SMOOTHED star_id=%s channel=%s n=%d wl_min=%.1f wl_max=%.1f", star.name, channel.channel_name, wavelength.size, float(wavelength[0]), float(wavelength[-1]))
     return photon_flux_smoothed, wavelength
 
 
-def cut_wavelength_window_with_margin(photon_flux_at_earth: np.ndarray, wavelengths_total: np.ndarray, channel: Channel, output_dir, cfg, star: Star, ctx: RunContext, margin_A: float = 200.0):
+def cut_wavelength_window_with_margin(photon_flux_at_earth: np.ndarray, wavelengths_total: np.ndarray, channel: Channel, margin_A: float = 200.0):
     wl_min_ext, wl_max_ext = compute_extended_wavelength_range([channel], margin_A)
 
     i0_raw = np.searchsorted(wavelengths_total, wl_min_ext)
-    i1_raw = np.searchsorted(wavelengths_total, wl_max_ext)
+    i1_raw = np.searchsorted(wavelengths_total, wl_max_ext, side="right")
 
     i0 = max(i0_raw, 0)
     i1 = min(i1_raw, len(wavelengths_total))
@@ -32,66 +31,68 @@ def cut_wavelength_window_with_margin(photon_flux_at_earth: np.ndarray, waveleng
     flux_cut = photon_flux_at_earth[i0:i1]
 
     if len(wavelength_cut) == 0:
-        raise ValueError(
-            f"Channel wavelength range [{channel.effective_area_wavelength[0]}, {channel.effective_area_wavelength[-1]}] (extended by margin {margin_A} Å) "
-            f"does not overlap wavelengths_total [{wavelengths_total[0]}, {wavelengths_total[-1]}]"
-        )
+        raise ValueError(f"Channel range [{channel.effective_area_wavelength[0]}, {channel.effective_area_wavelength[-1]}] with margin {margin_A} does not overlap total wavelengths.")
 
-    logging.info("Cut window: indices [%d:%d] → wl=%g-%g Å (n=%d), flux n=%d [%g, %g]", i0, i1, wavelength_cut[0], wavelength_cut[-1], len(wavelength_cut), len(flux_cut), flux_cut[0], flux_cut[-1])
+    logging.info("BG_FLUX_CUT_WINDOW indices=[%d:%d] wl=%.1f-%.1f n=%d", i0, i1, float(wavelength_cut[0]), float(wavelength_cut[-1]), len(wavelength_cut))
 
     return flux_cut, wavelength_cut
 
 def gaussbroad(wavelength, spectra, hwhm):
-    #Smooths a spectrum by convolution with a gaussian of specified hwhm.
-    # w (input vector) wavelength scale of spectrum to be smoothed
-    # s (input vector) spectrum to be smoothed
-    # hwhm (input scalar) half width at half maximum of smoothing gaussian.
-        #Returns a vector containing the gaussian-smoothed spectrum.
-        #Edit History:
-        #  -Dec-90 GB,GM Rewrote with fourier convolution algorithm.
-        #  -Jul-91 AL	Translated from ANA to IDL.
-        #22-Sep-91 JAV	Relaxed constant dispersion check# vectorized, 50% faster.
-       #05-Jul-92 JAV	Converted to function, handle nonpositive hwhm.
+    # Smooth a spectrum by convolution with a Gaussian of specified HWHM.
+    # wavelength (input vector): wavelength scale of spectrum to be smoothed
+    # spectra    (input vector): spectrum to be smoothed
+    # hwhm      (input scalar): half width at half maximum of smoothing Gaussian
+    # Returns a vector containing the Gaussian-smoothed spectrum.
+    #
+    # Edit History:
+    # - Dec-90 GB,GM: Rewrote with Fourier convolution algorithm.
+    # - Jul-91 AL: Translated from ANA to IDL.
+    # - 22-Sep-91 JAV: Relaxed constant dispersion check; vectorized, 50% faster.
+    # - 05-Jul-92 JAV: Converted to function, handle nonpositive HWHM.
 
-    #Warn user if hwhm is negative.
-    #  if hwhm lt 0.0 then $
-    #    message,/info,'Warning! Forcing negative smoothing width to zero.'
-        #
-        ##Return input argument if half-width is nonpositive.
-        #  if hwhm le 0.0 then return,s			#true: no broadening
+    # Return input spectrum if half-width is nonpositive:
+    if hwhm <= 0 or len(wavelength) < 2:
+            return spectra
 
-    #Calculate (uniform) dispersion.
-    #wavelength change per pixel
+    # Calculate (uniform) dispersion (wavelength per pixel)
     dw = (wavelength[-1] - wavelength[0]) / (len(wavelength) - 1)
-
         
-    #Make smoothing gaussian# extend to 4 sigma.
-    #Note: 4.0 / sqrt(2.0*numpy.log(2.0)) = 3.3972872 & sqrt(numpy.log(2.0))=0.83255461
-    #  sqrt(numpy.log(2.0)/pi)=0.46971864 (*1.0000632 to correct for >4 sigma wings)
-    if(hwhm > 5*(wavelength[-1] - wavelength[0])): 
-        return np.full(len(wavelength),np.sum(spectra)/len(wavelength))
-    
-    nhalf = int(3.3972872*hwhm/dw)		## points in half gaussian
-    ng = 2 * nhalf + 1				## points in gaussian (odd!)
-    wg = dw * (np.arange(ng) - (ng-1)/2.0)	#wavelength scale of gaussian
-    xg = ( (0.83255461) / hwhm) * wg 		#convenient absisca
-    gpro = ( (0.46974832) * dw / hwhm) * np.exp(-xg*xg)#unit area gaussian w/ FWHM
-    gpro=gpro/np.sum(gpro)
+    # Make smoothing gaussian# extend to 4 sigma.
+    # Note: 4.0 / sqrt(2.0*numpy.log(2.0)) = 3.3972872 & sqrt(numpy.log(2.0))=0.83255461
+    # sqrt(numpy.log(2.0)/pi)=0.46971864 (*1.0000632 to correct for >4 sigma wings)
+    # Guard for extreme broadening: if width > 5x the total range, 
+    # the result is essentially a flat line of the average flux.
+    if hwhm > 5 * (wavelength[-1] - wavelength[0]): 
+        # Using np.mean() is more numerically stable than sum/len and 
+        # ensures we average based only on the flux data points present.
+        return np.full(len(wavelength), np.mean(spectra))
 
-    # if _ % 1000 == 0:
-    #     sigma = float(hwhm) / float(np.sqrt(2.0 * np.log(2.0)))
-    #     fwhm = 2.0 * float(hwhm)
-    #     half_width = float(nhalf) * float(dw)
-        # logging.info("GAUSS PARAMS: wave0=%g wave-1=%g len(wl)=%d hwhm=%g fwhm=%g sigma=%g dw=%g nhalf=%d ng=%d half_width=%g halfwidth_sigma=%g wg0=%g wgmid=%g wglast=%g xg0=%g g0=%g gsum=%g",float(wavelength[0]), float(wavelength[-1]), int(len(wavelength)),float(hwhm), float(fwhm), float(sigma), float(dw), int(nhalf), int(ng), float(half_width), float(half_width / sigma), float(wg[0]), float(wg[len(wg)//2]), float(wg[-1]), float(xg[0]), float(gpro[0]), float(np.sum(gpro)))
+    # Points in half gaussian
+    nhalf = int(3.3972872*hwhm/dw)      
+    # Points in gaussian (odd!)
+    ng = 2 * nhalf + 1              
+    # Wavelength scale of gaussian
+    wg = dw * (np.arange(ng) - (ng-1)/2.0)  
+    # Convenient absisca
+    xg = ( (0.83255461) / hwhm) * wg        
+    # Unit area gaussian w/ FWHM
+    gpro = ( (0.46974832) * dw / hwhm) * np.exp(-xg*xg)
+    # Force normalization to ensure flux conservation
+    gpro = gpro / np.sum(gpro)
 
-    #Pad spectrum ends to minimize impact of Fourier ringing.
-    npad = nhalf + 2				## pad pixels on each end
+    # Pad pixels on each end to minimize impact of Fourier ringing and edge drop-off.
+    # This repeats the edge values so the Gaussian doesn't "see" zeros at the boundaries.
+    npad = nhalf + 2                
+    # Concatenate the padded ends with the original spectra
     spad = np.concatenate((np.full(npad,spectra[0]),spectra,np.full(npad,spectra[-1])))
-    #Convolve & trim.
     
-    sout = np.convolve(spad,gpro,mode='full')			#convolve with gaussian
-    sout = sout[npad:npad+len(wavelength)]			#trim to original data/length
-    return sout					#return broadened spectrum.
+    # Convolve with gaussian
+    sout = np.convolve(spad,gpro,mode='full')           
+    # Trim to original data/length
+    sout = sout[npad : npad + len(wavelength)]          
+    
+    # Return broadened spectrum
+    return sout
 
 def counts_per_s_px_conv_per_channel(broadened_photon_flux: np.ndarray, wavelength: np.ndarray, channel: Channel, star: Star, ctx: RunContext, filename_suffix: str | None = None):
     """

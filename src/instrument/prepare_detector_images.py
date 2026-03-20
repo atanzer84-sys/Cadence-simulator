@@ -56,10 +56,9 @@ def prepare_detector_image_photometry(flux: np.ndarray, wavelengths: np.ndarray,
 def compute_counts_per_s_px_one_channel(photons_star: np.ndarray, wavelengths: np.ndarray, channel: Channel, ctx: RunContext, star: Star):
 
     logging.info("Computing counts per second per pixel for channel %s", channel.channel_name)
-    cfg = get_global_config()
 
     # 2) photons -> broadened -> counts/s/pixel (single channel path, reusing existing pieces)
-    broadened_flux, wavelength = compute_broadened_channel_flux(photons_star, wavelengths, channel, ctx.output_dir, cfg, star, ctx)
+    broadened_flux, wavelength = compute_broadened_channel_flux(photons_star, wavelengths, channel, star)
     counts_s_px_convolved = counts_per_s_px_conv_per_channel(broadened_flux, wavelength, channel, star, ctx)
 
     return counts_s_px_convolved
