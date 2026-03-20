@@ -1,6 +1,5 @@
 import numpy as np
 from astropy.io import fits
-import pytest
 from frame.bias_frame import generate_bias_frame
 from frame.dark_frame import generate_dark_frame, generate_dark_frame_with_index
 from frame.frame_class import Frame

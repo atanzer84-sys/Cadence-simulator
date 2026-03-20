@@ -6,7 +6,6 @@ from loaders.run_waltzer_context import RunContext
 from configs.channel_config import PhotometryChannel, SpectroscopyChannel, Channel
 from instrument.spectrum_spread import spread_target_star_spectrum_to_2d
 from instrument.spectral_convolution import counts_per_s_px_conv_per_channel, compute_broadened_channel_flux
-from configs.global_config import get_global_config
 from utils.constants import PHOTON_ENERGY_CONVERSION_A
 from instrument.psf_spread import spread_1d_photometry_to_2d
 from instrument.wavelength_range import get_required_wavelength_range
@@ -42,11 +41,11 @@ def prepare_detector_image_spectroscopy(photons: np.ndarray, wavelengths: np.nda
 
     return spectra_2d
 
-def prepare_detector_image_photometry(flux: np.ndarray, wavelengths: np.ndarray, channel: PhotometryChannel, ctx: RunContext, star: Star):
+def prepare_detector_image_photometry(photons: np.ndarray, wavelengths: np.ndarray, channel: PhotometryChannel, ctx: RunContext, star: Star):
     print(f"\n==== STARTING CONVOLUTION TO INSTRUMENT ({channel.channel_name}) =====")
     logging.info("PHOTOMETRY START: channel=%s star=%s", channel.channel_name, star.name)
 
-    counts_s_px_nir = compute_counts_per_s_px_one_channel(flux, wavelengths, channel, ctx, star)
+    counts_s_px_nir = compute_counts_per_s_px_one_channel(photons, wavelengths, channel, ctx, star)
     rate_image_e_s = spread_1d_photometry_to_2d(counts_s_px_nir, channel, ctx)
     logging.info("Detector image prepared: channel=%s mode=photometry shape=%s", channel.channel_name, rate_image_e_s.shape)
 

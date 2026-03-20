@@ -13,13 +13,6 @@ from instrument.psf_spread import (
     spread_1d_photometry_to_2d,
     compute_aperture_photometry,
 )
-
-
-# -----------------------------------------------------------------------------
-# get_photometry_placement
-# -----------------------------------------------------------------------------
-
-
 def test_get_photometry_placement_center_on_axis():
     """With source at (0,0) arcsec, placement is the detector center (x_pixels//2, y_pixels//2)."""
     ch = SimpleNamespace(

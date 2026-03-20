@@ -1,4 +1,5 @@
 import numpy as np
+from unittest.mock import patch
 from instrument.science_image import _build_science_image_without_bg_stars, _generate_channel_calibration_frames
 
 # Tests: _build_science_image_without_bg_stars
@@ -89,9 +90,9 @@ def test_generate_calibration_frames_realistic(realistic_spectroscopy_channel, m
     _generate_channel_calibration_frames(channel, header, ctx, star, cfg)
 
 # Tests: _build_science_image_without_bg_stars
-# Behavior: Verifies that target, background, and dark components are correctly summed.
+# Behavior: Verifies deterministic additive composition with stochastic terms patched out.
 def test_build_science_image_additive_correctness(make_spectroscopy_channel, make_run_context, make_global_config, make_star):
-    # Setup channel with 0 noise to make math deterministic
+    # Setup channel with 0 read/dark noise. Patch stochastic terms below.
     channel = make_spectroscopy_channel(
         read_noise=0.0,
         dark_noise=0.0,
@@ -110,7 +111,9 @@ def test_build_science_image_additive_correctness(make_spectroscopy_channel, mak
     # Expected = Bias (100) + Target (50) + Background (10) = 160.0
     expected_value = 160.0
 
-    result = _build_science_image_without_bg_stars(target_signal, bg_comp, channel, ctx, cfg, star, frame_index=0)
+    with patch("instrument.science_image.generate_photon_noise_from_spectra2d", return_value=np.zeros_like(target_signal)), \
+         patch("instrument.science_image.generate_cosmic_rays", return_value=np.zeros_like(target_signal)):
+        result = _build_science_image_without_bg_stars(target_signal, bg_comp, channel, ctx, cfg, star, frame_index=0)
 
     # Validate the sum
     np.testing.assert_allclose(result, expected_value, atol=1e-5)
