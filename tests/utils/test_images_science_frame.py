@@ -1,7 +1,13 @@
 import numpy as np
 import pytest
 
-from utils.images_science_frame import write_science_frame_png
+from utils.images_science_frame import (
+    save_single_frame_png_NIR,
+    save_single_frame_png_NUV,
+    save_single_frame_png_VIS,
+    save_single_frame_png_VIS_cropped,
+    write_science_frame_png,
+)
 
 
 @pytest.fixture
@@ -237,3 +243,82 @@ def test_write_science_frame_png_nuv_uses_nuv_writer(
     assert call["filename"] is not None
     assert call["title"] is not None
     assert call["stats_text"] is not None
+
+
+# Tests: save_single_frame_png_NIR
+# Behavior: writes PNG and supports aperture overlay with photometry tuple.
+def test_save_single_frame_png_nir_writes_png_with_aperture_overlay(tmp_path):
+    array = np.arange(100, dtype=float).reshape(10, 10)
+    filename = tmp_path / "nir_science.png"
+    title = "NIR Science"
+    stats_text = "MEDIAN=10.0\nSTD=2.0"
+    phot = (1200.0, 35.0, 5.0, 5.0, 2.0, 3.0)
+
+    save_single_frame_png_NIR(
+        array=array,
+        filename=filename,
+        title=title,
+        stats_text=stats_text,
+        phot=phot,
+        draw_aperture_photometry_overlay=True,
+    )
+
+    assert filename.exists()
+    assert filename.stat().st_size > 0
+
+
+# Tests: save_single_frame_png_NUV
+# Behavior: writes a PNG with title and stats text for NUV frames.
+def test_save_single_frame_png_nuv_writes_png(tmp_path):
+    array = np.arange(64, dtype=float).reshape(8, 8)
+    filename = tmp_path / "nuv_science.png"
+    title = "NUV Science"
+    stats_text = "MEAN=8.0\nSTD=1.2"
+
+    save_single_frame_png_NUV(
+        array=array,
+        filename=filename,
+        title=title,
+        stats_text=stats_text,
+    )
+
+    assert filename.exists()
+    assert filename.stat().st_size > 0
+
+
+# Tests: save_single_frame_png_VIS
+# Behavior: writes a PNG with title and stats text for VIS frames.
+def test_save_single_frame_png_vis_writes_png(tmp_path):
+    array = np.arange(81, dtype=float).reshape(9, 9)
+    filename = tmp_path / "vis_science.png"
+    title = "VIS Science"
+    stats_text = "MEAN=9.0\nSTD=1.5"
+
+    save_single_frame_png_VIS(
+        array=array,
+        filename=filename,
+        title=title,
+        stats_text=stats_text,
+    )
+
+    assert filename.exists()
+    assert filename.stat().st_size > 0
+
+
+# Tests: save_single_frame_png_VIS_cropped
+# Behavior: writes a PNG for cropped VIS frame rendering.
+def test_save_single_frame_png_vis_cropped_writes_png(tmp_path):
+    array = np.arange(30, dtype=float).reshape(5, 6)
+    filename = tmp_path / "vis_science_cropped.png"
+    title = "VIS Cropped"
+    stats_text = "MED=4.0\nSTD=0.9"
+
+    save_single_frame_png_VIS_cropped(
+        array=array,
+        filename=filename,
+        title=title,
+        stats_text=stats_text,
+    )
+
+    assert filename.exists()
+    assert filename.stat().st_size > 0

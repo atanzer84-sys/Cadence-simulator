@@ -45,6 +45,9 @@ def cut_model_wavelength_range(model_data: np.ndarray, wl_min_A: float, wl_max_A
     return model_data[mask]
     
 def _get_available_models(models_dir: Path) -> list[tuple[int, Path]]:
+    if not models_dir.is_dir():
+        return []
+
     models = []
     for p in models_dir.iterdir():
         if not p.is_dir():

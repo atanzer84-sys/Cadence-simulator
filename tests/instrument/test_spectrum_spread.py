@@ -298,6 +298,34 @@ def test_spread_1d_to_2d_gaussian_column_sum_mismatch_raises(make_spectroscopy_c
             _spread_1d_to_2d_gaussian(counts, channel, x0, y0, slope, intercept)
 
 
+# Tests: test_spread_1d_to_2d_gaussian_nonzero_slope_path
+# Behavior: Nonzero slope/intercept uses per-column y-center branch.
+def test_spread_1d_to_2d_gaussian_nonzero_slope_path(make_spectroscopy_channel):
+    channel = make_spectroscopy_channel(
+        x_pixels=5,
+        y_pixels=11,
+        spread_half_height_pix=1,
+        spread_y_positions=None,
+        spread_y_weights=None,
+        spread_y_wavelengths=None,
+    )
+    counts = np.array([1, 2, 3, 4, 5], dtype=np.float32)
+
+    image = _spread_1d_to_2d_gaussian(
+        counts,
+        channel,
+        x0=0,
+        y0=4.0,
+        slope=0.5,
+        intercept=0.0,
+    )
+
+    assert image.shape == (channel.y_pixels, channel.x_pixels)
+    assert np.allclose(image.sum(axis=0), counts)
+    peak_rows = np.argmax(image, axis=0)
+    assert np.array_equal(peak_rows, np.array([4, 4, 5, 5, 6]))
+
+
 # Tests: test_spread_1d_to_2d_profile_basic
 # Behavior: Profile spread preserves column counts and returns finite float32 image
 def test_spread_1d_to_2d_profile_basic(make_spectroscopy_channel):

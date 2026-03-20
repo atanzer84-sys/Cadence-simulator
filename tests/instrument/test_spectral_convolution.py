@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from instrument.spectral_convolution import counts_per_s_px_conv_per_channel, cut_wavelength_window_with_margin
+from instrument.spectral_convolution import counts_per_s_px_conv_per_channel, cut_wavelength_window_with_margin, gaussbroad
 
 # Tests: counts_per_s_px_conv_per_channel
 # Behavior: Interpolates broadened flux onto channel wavelengths and applies scale factors.
@@ -102,8 +102,6 @@ def test_compute_broadened_channel_flux_nonpositive_hwhm(hwhm_val, make_star, ma
 # Tests: gaussbroad
 # Behavior: Handles single-pixel wavelength arrays without division by zero in dispersion calculation.
 def test_gaussbroad_single_pixel_input():
-    from instrument.spectral_convolution import gaussbroad
-    
     wavelength = np.array([100.0])
     spectra = np.array([10.0])
     
@@ -112,3 +110,17 @@ def test_gaussbroad_single_pixel_input():
     
     assert len(result) == 1
     assert result[0] == 10.0
+
+
+# Tests: gaussbroad
+# Behavior: Preserves a constant spectrum in the interior for positive broadening width.
+def test_gaussbroad_constant_spectrum_preserved():
+    wavelength = np.linspace(100.0, 110.0, 200)
+    spectra = np.full_like(wavelength, 42.0)
+
+    result = gaussbroad(wavelength, spectra, hwhm=0.8)
+
+    assert result.shape == spectra.shape
+    nhalf = int(3.3972872 * 0.8 / ((wavelength[-1] - wavelength[0]) / (len(wavelength) - 1)))
+    interior = slice(nhalf + 2, -(nhalf + 2))
+    np.testing.assert_allclose(result[interior], spectra[interior], rtol=0, atol=1e-10)
