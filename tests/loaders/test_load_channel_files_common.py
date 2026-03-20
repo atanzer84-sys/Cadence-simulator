@@ -496,3 +496,63 @@ def test_load_zod_spectrum_file_blank_lines_and_whitespace_ok(data_dir):
 
     assert np.allclose(wl, [1000.0, 1100.0, 1200.0])
     assert np.allclose(spec, [0.5, 0.6, 0.7])
+
+# Tests: load_zod_spectrum_file
+# Behavior: single-row two-column table raises ValueError
+def test_load_zod_spectrum_file_single_row_two_columns_raises(data_dir):
+    _write(data_dir / "zod_spec.txt", "1000  0.5\n")
+
+    with pytest.raises(ValueError):
+        load_zod_spectrum_file("zod_spec.txt")
+
+# Tests: load_background_file
+# Behavior: single-row two-column table raises ValueError
+def test_load_background_file_single_row_two_columns_raises(data_dir):
+    _write(data_dir / "bg.txt", "1000  0.1\n")
+
+    with pytest.raises(ValueError):
+        load_background_file("bg.txt")
+
+# Tests: parse_spread_header_wavelengths
+# Behavior: malformed wavelength token raises ValueError
+def test_parse_spread_header_wavelengths_malformed_wavelength_token_raises():
+    lines = [
+        "# comment",
+        "",
+        "pixels 1000 BAD 1200",
+    ]
+
+    with pytest.raises(ValueError):
+        parse_spread_header_wavelengths(lines, Path("spread.txt"), "VIS")
+
+# Tests: parse_spread_header_wavelengths
+# Behavior: pixels header without wavelength columns raises ValueError
+def test_parse_spread_header_wavelengths_no_wavelength_columns_raises():
+    lines = [
+        "# comment",
+        "",
+        "pixels",
+    ]
+
+    with pytest.raises(ValueError):
+        parse_spread_header_wavelengths(lines, Path("spread.txt"), "VIS")
+
+# Tests: read_text_lines_with_fallback
+# Behavior: utf-8-sig encoded file is read successfully
+def test_read_text_lines_with_fallback_utf8_sig_success(tmp_path):
+    path = tmp_path / "utf8sig.txt"
+    path.write_text("alpha\nbeta\n", encoding="utf-8-sig")
+
+    lines = read_text_lines_with_fallback(path, ("utf-8", "utf-8-sig"), "test")
+
+    assert lines[0].lstrip("\ufeff") == "alpha"
+    assert lines[1] == "beta"
+
+# Tests: read_text_lines_with_fallback
+# Behavior: all encoding attempts failing raises ValueError
+def test_read_text_lines_with_fallback_all_encodings_fail_raises(tmp_path):
+    path = tmp_path / "bad.bin"
+    path.write_bytes(b"\xff\xfe\xfa\xfb")
+
+    with pytest.raises(ValueError):
+        read_text_lines_with_fallback(path, ("utf-8", "ascii"), "test")
