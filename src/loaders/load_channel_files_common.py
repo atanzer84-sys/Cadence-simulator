@@ -1,5 +1,6 @@
 from pathlib import Path
 import logging
+import warnings
 import numpy as np
 from loaders.run_waltzer_context import get_repo_root
 from utils.helpers import resolve_path_under
@@ -50,13 +51,17 @@ def load_effective_area_file(effective_area_filename: str) -> tuple[np.ndarray, 
         logging.error(msg)
         raise ValueError(msg)
 
-    text = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    text = read_text_lines_with_fallback(
+        path,
+        encodings=("utf-8", "utf-8-sig", "utf-16"),
+        context="Effective area",
+    )
 
     pixel_scale = _parse_pixel_scale(text, path)
     skiprows = find_first_numeric_row_index(text, path)
 
     try:
-        data = np.loadtxt(path, comments="#", skiprows=skiprows)
+        data = np.loadtxt(text[skiprows:], comments="#")
     except Exception as exc:
         msg = f"Failed to parse numeric data from effective area file: {path}"
         logging.error(msg)
@@ -124,7 +129,9 @@ def load_background_file(background_filename: str) -> tuple[np.ndarray | None, n
         raise ValueError(msg)
 
     try:
-        data = np.loadtxt(path)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message="loadtxt: input contained no data")
+            data = np.loadtxt(path)
     except Exception as exc:
         msg = f"Failed to parse numeric data from background file: {path}"
         logging.error(msg)
@@ -235,7 +242,9 @@ def load_zod_dist_file(filename: str) -> np.ndarray | None:
         raise ValueError(msg)
 
     try:
-        data = np.loadtxt(path).T
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message="loadtxt: input contained no data")
+            data = np.loadtxt(path).T
     except Exception as exc:
         msg = f"Failed to parse zodiacal distribution file: {path}"
         logging.error(msg)
@@ -261,7 +270,9 @@ def load_zod_spectrum_file(filename: str) -> tuple[np.ndarray | None, np.ndarray
         raise ValueError(msg)
 
     try:
-        data = np.loadtxt(path)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message="loadtxt: input contained no data")
+            data = np.loadtxt(path)
     except Exception as exc:
         msg = f"Failed to parse zodiacal spectrum file: {path}"
         logging.error(msg)
