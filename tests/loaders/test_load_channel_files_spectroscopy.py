@@ -52,15 +52,12 @@ def test_load_spread_profile_file_spectroscopy_missing_file_raises(monkeypatch, 
 
 
 # Tests: load_spread_profile_file_spectroscopy
-# Behavior: empty spread filename raises ValueError
-def test_load_spread_profile_file_spectroscopy_empty_filename_raises(monkeypatch, tmp_path):
+# Behavior: empty spread filename is a valid Gaussian-fallback case and returns all None
+def test_load_spread_profile_file_spectroscopy_empty_filename_returns_none_triplet(monkeypatch, tmp_path):
     monkeypatch.setattr(_REPO_ROOT_SPEC, lambda: tmp_path)
 
-    with pytest.raises(ValueError):
-        load_spread_profile_file_spectroscopy("", "NUV")
-
-    with pytest.raises(ValueError):
-        load_spread_profile_file_spectroscopy("   ", "NUV")
+    assert load_spread_profile_file_spectroscopy("", "NUV") == (None, None, None)
+    assert load_spread_profile_file_spectroscopy("   ", "NUV") == (None, None, None)
 
 
 # Tests: load_spread_profile_file_spectroscopy
