@@ -39,8 +39,8 @@ def lookup_background_stars(nuv: SpectroscopyChannel | None, vis: SpectroscopyCh
 
     return catalog
 
-def load_background_csv_if_exists(star: Star) -> Table | None:
-    repo_root = get_repo_root()
+def load_background_csv_if_exists(star: Star, repo_root=None) -> Table | None:
+    repo_root = get_repo_root() if repo_root is None else repo_root
     csv_name = star.name.replace(" ", "_")
     csv_path = resolve_path_under(repo_root, "data", "BackgroundStars", f"{csv_name}.csv")
 
@@ -48,6 +48,12 @@ def load_background_csv_if_exists(star: Star) -> Table | None:
         return None
 
     table = Table.read(csv_path, format="csv")
+    required_columns = {"ra", "dec"}
+    missing_columns = sorted(required_columns - set(table.colnames))
+    if missing_columns:
+        raise ValueError(
+            f"Background CSV missing required columns {missing_columns}: {csv_path}"
+        )
 
     logging.info("Background stars: loading cached CSV: %s", csv_path)
     logging.info("Loaded background CSV for %s: rows=%d, columns=%s", star.name, len(table), list(table.colnames))
@@ -121,7 +127,7 @@ def _photometry_radius_arcsec(channel: PhotometryChannel) -> float:
     half_height_arcsec = 0.5 * float(channel.y_pixels) * float(channel.pixel_scale)
     return (half_width_arcsec * half_width_arcsec + half_height_arcsec * half_height_arcsec) ** 0.5
 
-def create_background_star_catalog(table, cfg:GlobalConfig):
+def create_background_star_catalog(table: Table, cfg: GlobalConfig):
     catalog = StarCatalog()
     required_keys = load_required_stellar_parameters()
 
@@ -191,13 +197,11 @@ def _set_background_star_name(star_params: dict, row) -> None:
 
 
 def _ensure_required_properties(star_params: dict, required_keys: list[str]) -> bool:
-    """Return False if any required keys are missing (logs and skip). Otherwise normalize distance key and return True."""
+    """Return False if any required keys are missing (logs and skip). Otherwise return True."""
     missing = get_missing_properties(star_params, required_keys, log_output=False)
     if missing:
         logging.info("Background star %s skipped. Missing: %s", star_params.get("name"), missing)
         return False
-    if "distance" in star_params:
-        star_params["distance"] = star_params.pop("distance")
     return True
 
 
