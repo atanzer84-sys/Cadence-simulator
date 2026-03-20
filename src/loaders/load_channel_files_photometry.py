@@ -1,9 +1,11 @@
-from loaders.run_waltzer_context import get_repo_root, RunContext
+from loaders.run_waltzer_context import get_repo_root
 from utils.helpers import resolve_path_under
 import logging
 import numpy as np
+from loaders.load_channel_files_common import read_text_lines_with_fallback
 
-def load_psf_image_file(filename: str, channel_name: str, ctx: RunContext, min_cols: int = 20, stability_rows: int = 3, ) -> tuple[np.ndarray, int, int]:
+
+def load_psf_image_file(filename: str, channel_name: str, min_cols: int = 20, stability_rows: int = 3) -> tuple[np.ndarray, int, int]:
 
     repo_root = get_repo_root()
 
@@ -15,7 +17,11 @@ def load_psf_image_file(filename: str, channel_name: str, ctx: RunContext, min_c
     if not path.exists():
         raise ValueError(f"PSF image file not found: {path}")
 
-    text_lines = path.read_text(encoding="utf-16", errors="replace").splitlines()
+    text_lines = read_text_lines_with_fallback(
+        path,
+        encodings=("utf-16", "utf-8-sig", "utf-8"),
+        context=f"Channel {channel_name} PSF",
+    )
 
     def _try_parse_row(raw: str) -> list[float] | None:
         parts = raw.strip().split()

@@ -52,7 +52,7 @@ def load_channel_config(path: Path, exposure_s: float, ctx, background: dict):
 
     if channel_name == "NIR":
         psf_file = str(raw.get("psf_file", "")).strip()
-        psf_image, psf_center_y, psf_center_x = load_psf_image_file(psf_file, channel_name, ctx)
+        psf_image, psf_center_y, psf_center_x = load_psf_image_file(psf_file, channel_name)
         source_position_x_arcsec = as_float(raw.get("source_position_x_arcsec", 0.0), key="source_position_x_arcsec")
         source_position_y_arcsec = as_float(raw.get("source_position_y_arcsec", 0.0), key="source_position_y_arcsec")
         draw_aperture_photometry_overlay = as_bool(raw.get("draw_aperture_photometry_overlay", 0), key="draw_aperture_photometry_overlay")

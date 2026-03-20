@@ -4,6 +4,21 @@ import numpy as np
 from loaders.run_waltzer_context import get_repo_root
 from utils.helpers import resolve_path_under
 
+def read_text_lines_with_fallback(path: Path, encodings: tuple[str, ...], context: str) -> list[str]:
+    last_exc: Exception | None = None
+
+    for enc in encodings:
+        try:
+            lines = path.read_text(encoding=enc).splitlines()
+            logging.info("%s read: file=%s encoding=%s", context, path, enc)
+            return lines
+        except UnicodeError as exc:
+            last_exc = exc
+
+    raise ValueError(
+        f"{context}: could not decode file with supported encodings {encodings}: {path}"
+    ) from last_exc
+
 def load_effective_area_file(effective_area_filename: str) -> tuple[np.ndarray, np.ndarray, float]:
     """
     Load effective area calibration table.

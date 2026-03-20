@@ -1,27 +1,35 @@
-from loaders.run_waltzer_context import get_repo_root
 import logging
 import numpy as np
+from loaders.run_waltzer_context import get_repo_root
 from utils.helpers import resolve_path_under
-from loaders.load_channel_files_common import parse_spread_header_wavelengths, find_first_numeric_row_index
+from loaders.load_channel_files_common import (
+    parse_spread_header_wavelengths,
+    find_first_numeric_row_index,
+    read_text_lines_with_fallback,
+)
 
-def load_spread_profile_file_spectroscopy(spread_filename: str, channel_name: str) -> tuple[np.ndarray | None, np.ndarray | None, np.ndarray | None]:
+
+def load_spread_profile_file_spectroscopy(spread_filename: str, channel_name: str) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     repo_root = get_repo_root()
     
-    if not spread_filename or spread_filename.strip() == "": 
-        logging.info("Channel %s: no spread profile configured.", channel_name)
-        return None, None, None
+    if not spread_filename or spread_filename.strip() == "":
+        raise ValueError("Spread profile file not configured.")
 
     path = resolve_path_under(repo_root, "data", spread_filename)
     if not path.exists():
         logging.error("Channel %s: spread profile file not found: %s", channel_name, path)
         raise ValueError(f"Spread profile file not found: {path}")
 
-    lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    lines = read_text_lines_with_fallback(
+        path,
+        encodings=("utf-8", "utf-8-sig", "utf-16"),
+        context=f"Channel {channel_name} spread profile",
+    )
     wavelength_header = parse_spread_header_wavelengths(lines, path, channel_name)
     skiprows = find_first_numeric_row_index(lines, path)
 
     try:
-        data = np.loadtxt(path, skiprows=skiprows)
+        data = np.loadtxt(lines[skiprows:])
     except Exception as exc:
         logging.error("Channel %s: failed to parse numeric spread table from %s", channel_name, path)
         raise ValueError(f"Failed to parse numeric spread table from file: {path}") from exc
