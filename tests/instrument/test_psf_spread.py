@@ -167,6 +167,16 @@ def test_spread_1d_photometry_to_2d_psf_center_none_raises_value_error(tmp_path)
 # -----------------------------------------------------------------------------
 
 
+def test_compute_aperture_photometry_non_photometry_channel_returns_none(make_spectroscopy_channel):
+    """Non-photometry channels short-circuit and return None."""
+    image = np.zeros((8, 8), dtype=np.float32)
+    channel = make_spectroscopy_channel(x_pixels=8, y_pixels=8)
+
+    result = compute_aperture_photometry(image, channel)
+
+    assert result is None
+
+
 def test_compute_aperture_photometry_empty_annulus_returns_none(make_photometry_channel):
     """When annulus has zero pixels (e.g. image too small or source off-frame), returns None."""
     tiny = np.zeros((2, 2))
