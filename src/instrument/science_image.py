@@ -106,10 +106,8 @@ def _create_per_exposure(stellar_component, background_component, channel: Chann
     return image
 
 def _build_science_image_without_bg_stars(target_star_component, background_component, channel: Channel, ctx: RunContext, cfg: GlobalConfig, star: Star, frame_index: int):
-    image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
-
-    bias = generate_bias_image(channel)
-    image += bias
+    
+    image = generate_bias_image(channel).astype(np.float32)
     if frame_index < 1:
         ctx.write_science_frame_component_png(image, "SCIENCE_BIAS_ONLY", channel=channel, ctx=ctx, cfg=cfg, star=star, index=frame_index)
 

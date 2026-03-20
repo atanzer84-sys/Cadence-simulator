@@ -121,7 +121,7 @@ def realistic_spectroscopy_channel(make_spectroscopy_channel):
     return replace(
         base,
         bias_offset=200.0,
-        dark_current=0.02,
+        dark_current_sigma=0.02,
         dark_noise=1.0,
         ccd_gain=1.0,
     )

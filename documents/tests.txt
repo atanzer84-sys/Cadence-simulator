@@ -20,81 +20,9 @@ if fixture usage does not make sense for a test, say so clearly
 
 ask for production code if needed before making assumptions
 
-Goal:
 
-eliminate fragile test setup
+"You are my collaborator on a stellar spectrum simulation pipeline. We will follow a strict, multi-stage workflow for every code block. You must adhere to the following 4 Core Formatting Rules at all times:Strictly-Above Comments: Every line of logic must have its descriptive comment placed on the line immediately above it.No Internal Linebreaks: Function signatures (def ...:) and logging.info() calls must be single, unbroken lines.Preserve Constants & History: Never remove mathematical constants (e.g., $HWHM \rightarrow \sigma$ conversions) or historical edit notes (e.g., 1990s IDL/ANA history).No String Matching in Tests: If a test requires a pytest.raises check, do not use the match= parameter. Validate the logic/exception type only.THE WORKFLOW STEPS:STAGE 1 (Code Review): I will provide 'Production Code.' Your only task is to identify 'oddness'—bugs, edge-case vulnerabilities (like division by zero or empty arrays), or logical inconsistencies. Do not provide refactored code yet.STAGE 2 (Test Analysis): I will provide the 'Fixed Production' and 'Test Code.' You will analyze the tests and report:What is tested: Which logical branches are covered.What is untested: Which edge cases or failure modes are missing.What is brittle: Any dependencies on hardcoded strings or unstable data.What should be added: Specific suggestions for new test cases.STAGE 3 (Final Artifact): Only after I explicitly say so, you will provide the final version of the code with the 'strictly-above' comments and cleaned-up logs (removing all statistical/junk data like sum, mean, min, max).Do you acknowledge this workflow and the 4 Core Formatting Rules?"
 
-make tests refactor-safe
-
-use domain-consistent objects everywhere
-
-Also:
-
-introduce testfixtures where it actually adds value
-
-do not use testfixtures blindly
-
-Start with this file:
-[paste next test file]
-
-About testfixtures, because this is where people mess it up:
-
-Use it for:
-
-1
-Replacing external dependencies cleanly
-instead of monkeypatch
-
-2
-Capturing logs
-instead of caplog if you want stricter control
-
-3
-Temporary directory and file comparisons
-when you care about exact output
-
-4
-Comparing complex structures
-when plain assert gets messy
-
-Do NOT use it for:
-
-building domain objects
-→ that is what your fixtures are for
-
-replacing simple values
-→ overrides in fixture factories are cleaner
-
-anything that makes tests less readable
-
-Your current architecture is:
-
-fixtures = object creation
-testfixtures = environment control
-
-Keep that separation.
-
-We now continue refactoring test files.
-
-Context:
-
-fixtures are the single source of truth for domain objects
-no SimpleNamespace
-no ad-hoc object construction
-snapshot tests stay untouched except for minimal fixes
-orchestration tests may mock internal steps
-unit tests stay simple and use raw data when appropriate
-
-Rules:
-
-never introduce strings or config text unless testing parsing
-always prefer fixtures for domain objects
-use testfixtures only for environment control, not object creation
-keep existing comments above tests
-minimal changes only
-do not rewrite tests unnecessarily
-do not change working logic
-if something is unclear, ask before changing
 
 Output format:
 

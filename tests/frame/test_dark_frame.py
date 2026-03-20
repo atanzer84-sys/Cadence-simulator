@@ -6,9 +6,14 @@ from frame.dark_frame import generate_dark_frame, generate_dark_frame_with_index
 from frame.frame_class import Frame
 
 
-@pytest.fixture
-def realistic_spectroscopy_channel(make_spectroscopy_channel):
-    return make_spectroscopy_channel(
+
+# Tests: generate_dark_frame
+# Use the factory directly
+def test_generate_dark_frame_properties(make_spectroscopy_channel):
+    np.random.seed(0)
+    
+    # Create the channel with the values previously in the fixture
+    channel = make_spectroscopy_channel(
         bias_offset=200.0,
         dark_current_sigma=0.02,
         dark_noise=1.0,
@@ -16,29 +21,25 @@ def realistic_spectroscopy_channel(make_spectroscopy_channel):
         ccd_gain=1.0,
     )
 
-
-# Tests: generate_dark_frame
-# Behavior: returns a Frame with correct shape and reasonable mean value
-def test_generate_dark_frame_properties(realistic_spectroscopy_channel):
-    np.random.seed(0)
-
-    frame = generate_dark_frame(realistic_spectroscopy_channel, header=None)
+    frame = generate_dark_frame(channel, header=None)
 
     assert isinstance(frame, Frame)
-    assert frame.data.shape == (
-        realistic_spectroscopy_channel.y_pixels,
-        realistic_spectroscopy_channel.x_pixels,
-    )
+    assert frame.data.shape == (channel.y_pixels, channel.x_pixels)
     assert frame.data.mean() > 0
 
 
 # Tests: generate_dark_frame
 # Behavior: populates header with expected dark-related metadata fields
-def test_generate_dark_frame_header_content(realistic_spectroscopy_channel):
+def test_generate_dark_frame_header_content(make_spectroscopy_channel):
     np.random.seed(0)
 
+    ch = make_spectroscopy_channel(
+        bias_offset=200.0,
+        dark_current_sigma=0.02,
+    )
+
     header = fits.Header()
-    frame = generate_dark_frame(realistic_spectroscopy_channel, header)
+    frame = generate_dark_frame(ch, header)
 
     assert isinstance(frame, Frame)
     keys = list(frame.header.keys())
@@ -51,7 +52,6 @@ def test_generate_dark_frame_header_content(realistic_spectroscopy_channel):
 
     for key in expected:
         assert key in keys
-
 
 # Tests: generate_dark_frame
 # Behavior: when header=None, returned Frame.header remains None
