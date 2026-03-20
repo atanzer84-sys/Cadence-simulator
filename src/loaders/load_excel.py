@@ -31,7 +31,7 @@ def load_matching_excel_row_from_excel(excel_path, target_name_user_input):
 
         # Find matching row by pl_name
         pl_name_index = column_headers.index("pl_name")
-        target_name_normalized = str(target_name_user_input).casefold()
+        target_name_normalized = str(target_name_user_input).casefold().strip()
         logging.info("Searching for target: '%s'", target_name_user_input)
 
 
@@ -56,7 +56,7 @@ def load_matching_excel_row_from_excel(excel_path, target_name_user_input):
 
             if pl_base == target_name_normalized:
                 matching_row_dict = {
-                    header: value
+                    header: _normalize_excel_value(value)
                     for header, value in zip(column_headers, row)
                     if header is not None
                 }
