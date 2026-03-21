@@ -64,7 +64,7 @@ def run_snapshot_convolved_counts_full_spectroscopy(star_name: str, channel: str
     np.testing.assert_allclose(got_counts, snap["counts_s_px_convolved"], rtol=1e-7, atol=0.0)
 
 
-def run_snapshot_spread_image_2d_nuv_profile(star_name: str, tmp_path: Path, make_spectroscopy_channel, make_run_context):
+def run_snapshot_spread_image_2d_nuv_profile(star_name: str, make_spectroscopy_channel):
     convolved = _load_npz(SNAPSHOT_BASE / f"{star_name}_NUV_convolved_counts_full.npz")
     spread_image = _load_npz(SNAPSHOT_BASE / f"{star_name}_NUV_spread_image_2d.npz")
     spread_profile = _load_npz(SNAPSHOT_BASE / "NUV_spread_profile_full.npz")
@@ -75,15 +75,14 @@ def run_snapshot_spread_image_2d_nuv_profile(star_name: str, tmp_path: Path, mak
     y_max = int(spread_image["y_max"])
 
     nuv_channel = make_spectroscopy_channel(channel_name="NUV", mode=1, x_pixels=NUV_X_PIXELS, y_pixels=NUV_Y_PIXELS, effective_area_wavelength=effective_area_wavelength, spread_y_positions=spread_profile["spread_y_positions"], spread_y_weights=spread_profile["spread_y_weights"], spread_y_wavelengths=spread_profile["spread_y_wavelengths"])
-    ctx = make_run_context(output_dir=tmp_path)
 
-    image_full = spread_1d_spectrum_to_2d(convolved["counts_s_px_convolved"], nuv_channel, 0, float(y0), 0.0, 0.0, announce_user=False, ctx=ctx)
+    image_full = spread_1d_spectrum_to_2d(convolved["counts_s_px_convolved"], nuv_channel, (0, float(y0), 0.0, 0.0), announce_user=False)
     image_crop = image_full[y_min:y_max, :]
 
     np.testing.assert_allclose(image_crop, spread_image["image"], rtol=1e-3, atol=1e-2)
 
 
-def run_snapshot_spread_image_2d_vis_gaussian(star_name: str, tmp_path: Path, make_spectroscopy_channel, make_run_context):
+def run_snapshot_spread_image_2d_vis_gaussian(star_name: str, make_spectroscopy_channel):
     convolved = _load_npz(SNAPSHOT_BASE / f"{star_name}_VIS_convolved_counts_full.npz")
     spread_image = _load_npz(SNAPSHOT_BASE / f"{star_name}_VIS_spread_image_2d.npz")
 
@@ -92,15 +91,14 @@ def run_snapshot_spread_image_2d_vis_gaussian(star_name: str, tmp_path: Path, ma
     y_max = int(spread_image["y_max"])
 
     vis_channel = make_spectroscopy_channel(channel_name="VIS", mode=1, x_pixels=VIS_X_PIXELS, y_pixels=VIS_Y_PIXELS, spread_y_positions=None, spread_y_weights=None, spread_y_wavelengths=None, spread_half_height_pix=10)
-    ctx = make_run_context(output_dir=tmp_path)
 
-    image_full = spread_1d_spectrum_to_2d(convolved["counts_s_px_convolved"], vis_channel, 0, float(y0), 0.0, 0.0, announce_user=False, ctx=ctx)
+    image_full = spread_1d_spectrum_to_2d(convolved["counts_s_px_convolved"], vis_channel, (0, float(y0), 0.0, 0.0), announce_user=False)
     image_crop = image_full[y_min:y_max, :]
 
     np.testing.assert_allclose(image_crop, spread_image["image"], rtol=1e-6, atol=1e-6)
 
 
-def run_snapshot_spread_image_2d_nir_psf(star_name: str, tmp_path: Path, make_photometry_channel, make_run_context):
+def run_snapshot_spread_image_2d_nir_psf(star_name: str, make_photometry_channel):
     convolved = _load_npz(SNAPSHOT_BASE / f"{star_name}_NIR_convolved_counts_full.npz")
     spread_image = _load_npz(SNAPSHOT_BASE / f"{star_name}_NIR_spread_image.npz")
     spread_profile = _load_npz(SNAPSHOT_BASE / "NIR_psf_profile_full.npz")
@@ -109,9 +107,8 @@ def run_snapshot_spread_image_2d_nir_psf(star_name: str, tmp_path: Path, make_ph
     y_max = int(spread_image["y_max"])
 
     nir_channel = make_photometry_channel(channel_name="NIR", x_pixels=NIR_X_PIXELS, y_pixels=NIR_Y_PIXELS, psf_image=spread_profile["psf_image"], psf_center_x=int(spread_profile["psf_center_x"]), psf_center_y=int(spread_profile["psf_center_y"]), source_position_x_arcsec=float(spread_profile["source_position_x_arcsec"]), source_position_y_arcsec=float(spread_profile["source_position_y_arcsec"]))
-    ctx = make_run_context(output_dir=tmp_path)
 
-    image_full = spread_1d_photometry_to_2d(convolved["counts_s_px_convolved"], nir_channel, ctx, announce_user=False)
+    image_full = spread_1d_photometry_to_2d(convolved["counts_s_px_convolved"], nir_channel, announce_user=False)
     image_crop = image_full[y_min:y_max, :]
 
     np.testing.assert_allclose(image_crop, spread_image["image"], rtol=1e-6, atol=1e-6)
@@ -143,20 +140,20 @@ def test_HD2685_convolved_counts_full_VIS(tmp_path, monkeypatch, make_global_con
 
 # Tests: spread image 2d snapshots
 # Behavior: NUV profile spread from convolved counts matches snapshot image
-def test_HD2685_spread_image_2d_NUV_profile_pipeline(tmp_path, make_spectroscopy_channel, make_run_context):
-    run_snapshot_spread_image_2d_nuv_profile("HD 2685", tmp_path, make_spectroscopy_channel, make_run_context)
+def test_HD2685_spread_image_2d_NUV_profile_pipeline(make_spectroscopy_channel):
+    run_snapshot_spread_image_2d_nuv_profile("HD 2685", make_spectroscopy_channel)
 
 
 # Tests: spread image 2d snapshots
 # Behavior: VIS Gaussian spread from convolved counts matches snapshot image
-def test_HD2685_spread_image_2d_VIS_gaussian_pipeline(tmp_path, make_spectroscopy_channel, make_run_context):
-    run_snapshot_spread_image_2d_vis_gaussian("HD 2685", tmp_path, make_spectroscopy_channel, make_run_context)
+def test_HD2685_spread_image_2d_VIS_gaussian_pipeline(make_spectroscopy_channel):
+    run_snapshot_spread_image_2d_vis_gaussian("HD 2685", make_spectroscopy_channel)
 
 
 # Tests: spread image 2d snapshots
 # Behavior: NIR photometry PSF spread from convolved counts matches snapshot image
-def test_HD2685_spread_image_2d_NIR_psf_pipeline(tmp_path, make_photometry_channel, make_run_context):
-    run_snapshot_spread_image_2d_nir_psf("HD 2685", tmp_path, make_photometry_channel, make_run_context)
+def test_HD2685_spread_image_2d_NIR_psf_pipeline(make_photometry_channel):
+    run_snapshot_spread_image_2d_nir_psf("HD 2685", make_photometry_channel)
 
 
 # Tests: convolved counts full snapshots
@@ -185,18 +182,18 @@ def test_KELT9_convolved_counts_full_VIS(tmp_path, monkeypatch, make_global_conf
 
 # Tests: spread image 2d snapshots
 # Behavior: NUV profile spread from convolved counts matches snapshot image
-def test_KELT9_spread_image_2d_NUV_profile_pipeline(tmp_path, make_spectroscopy_channel, make_run_context):
-    run_snapshot_spread_image_2d_nuv_profile("KELT-9", tmp_path, make_spectroscopy_channel, make_run_context)
+def test_KELT9_spread_image_2d_NUV_profile_pipeline(make_spectroscopy_channel):
+    run_snapshot_spread_image_2d_nuv_profile("KELT-9", make_spectroscopy_channel)
 
 
 # Tests: spread image 2d snapshots
 # Behavior: VIS Gaussian spread from convolved counts matches snapshot image
-def test_KELT9_spread_image_2d_VIS_gaussian_pipeline(tmp_path, make_spectroscopy_channel, make_run_context):
-    run_snapshot_spread_image_2d_vis_gaussian("KELT-9", tmp_path, make_spectroscopy_channel, make_run_context)
+def test_KELT9_spread_image_2d_VIS_gaussian_pipeline(make_spectroscopy_channel):
+    run_snapshot_spread_image_2d_vis_gaussian("KELT-9", make_spectroscopy_channel)
 
 
 # Tests: spread image 2d snapshots
 # Behavior: NIR photometry PSF spread from convolved counts matches snapshot image
-def test_KELT9_spread_image_2d_NIR_psf_pipeline(tmp_path, make_photometry_channel, make_run_context):
-    run_snapshot_spread_image_2d_nir_psf("KELT-9", tmp_path, make_photometry_channel, make_run_context)
+def test_KELT9_spread_image_2d_NIR_psf_pipeline(make_photometry_channel):
+    run_snapshot_spread_image_2d_nir_psf("KELT-9", make_photometry_channel)
 

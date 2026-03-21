@@ -107,7 +107,7 @@ def test_paste_psf_stamp_adds_to_existing_values():
 # -----------------------------------------------------------------------------
 
 
-def test_spread_1d_photometry_to_2d_success(make_photometry_channel, make_run_context):
+def test_spread_1d_photometry_to_2d_success(make_photometry_channel):
     """With valid channel and 1D counts, returns 2D detector image with correct shape and non-zero sum."""
     psf = np.ones((5, 5), dtype=np.float32) / 25.0  # normalized-like
     ch = make_photometry_channel(
@@ -121,15 +121,14 @@ def test_spread_1d_photometry_to_2d_success(make_photometry_channel, make_run_co
         psf_center_x=2,
         psf_center_y=2,
     )
-    ctx = make_run_context()
     counts_1d = np.array([10.0, 20.0, 30.0], dtype=np.float32)  # total 60 e/s
     with patch("instrument.psf_spread.announce"):
-        out = spread_1d_photometry_to_2d(counts_1d, ch, ctx, announce_user=False)
+        out = spread_1d_photometry_to_2d(counts_1d, ch, announce_user=False)
     assert out.shape == (20, 20)
     assert np.sum(out) == pytest.approx(60.0)
 
 
-def test_spread_1d_photometry_to_2d_off_axis_raises_not_implemented_error(make_photometry_channel, make_run_context):
+def test_spread_1d_photometry_to_2d_off_axis_raises_not_implemented_error(make_photometry_channel):
     """Off-axis source (non-zero source_position_*_arcsec) raises NotImplementedError."""
     ch = make_photometry_channel(
         channel_name="NIR",
@@ -141,13 +140,12 @@ def test_spread_1d_photometry_to_2d_off_axis_raises_not_implemented_error(make_p
         source_position_x_arcsec=1.0,
         source_position_y_arcsec=0.0,
     )
-    ctx = make_run_context()
     with patch("instrument.psf_spread.announce"):
         with pytest.raises(NotImplementedError, match="off-axis photometry"):
-            spread_1d_photometry_to_2d(np.array([1.0]), ch, ctx, announce_user=False)
+            spread_1d_photometry_to_2d(np.array([1.0]), ch, announce_user=False)
 
 
-def test_spread_1d_photometry_to_2d_psf_image_none_raises_value_error(make_photometry_channel, make_run_context):
+def test_spread_1d_photometry_to_2d_psf_image_none_raises_value_error(make_photometry_channel):
     """Channel with psf_image=None raises ValueError('PSF image not loaded')."""
     ch = make_photometry_channel(
         channel_name="NIR",
@@ -157,13 +155,12 @@ def test_spread_1d_photometry_to_2d_psf_image_none_raises_value_error(make_photo
         psf_center_x=1,
         psf_center_y=1,
     )
-    ctx = make_run_context()
     with patch("instrument.psf_spread.announce"):
         with pytest.raises(ValueError, match="PSF image not loaded"):
-            spread_1d_photometry_to_2d(np.array([1.0]), ch, ctx, announce_user=False)
+            spread_1d_photometry_to_2d(np.array([1.0]), ch, announce_user=False)
 
 
-def test_spread_1d_photometry_to_2d_psf_center_none_raises_value_error(make_photometry_channel, make_run_context):
+def test_spread_1d_photometry_to_2d_psf_center_none_raises_value_error(make_photometry_channel):
     """Channel with psf_center_x or psf_center_y None raises ValueError('PSF center not loaded')."""
     ch = make_photometry_channel(
         channel_name="NIR",
@@ -173,10 +170,9 @@ def test_spread_1d_photometry_to_2d_psf_center_none_raises_value_error(make_phot
         psf_center_x=None,
         psf_center_y=1,
     )
-    ctx = make_run_context()
     with patch("instrument.psf_spread.announce"):
         with pytest.raises(ValueError, match="PSF center not loaded"):
-            spread_1d_photometry_to_2d(np.array([1.0]), ch, ctx, announce_user=False)
+            spread_1d_photometry_to_2d(np.array([1.0]), ch, announce_user=False)
 
 
 # -----------------------------------------------------------------------------

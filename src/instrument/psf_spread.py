@@ -2,11 +2,10 @@ import logging
 import numpy as np
 # import scipy.interpolate as si
 from configs.channel_config import PhotometryChannel, Channel
-from loaders.run_waltzer_context import RunContext
 from utils.helpers import announce
 
 
-def spread_1d_photometry_to_2d(counts_s_px_nir: np.ndarray, channel: PhotometryChannel, ctx: RunContext, announce_user: bool = True) -> np.ndarray:
+def spread_1d_photometry_to_2d(counts_s_px_nir: np.ndarray, channel: PhotometryChannel, announce_user: bool = True) -> np.ndarray:
     announce(f"Spreading 1D photometry counts to 2D detector image for channel {channel.channel_name}.", to_user=announce_user)
 
     if channel.source_position_x_arcsec != 0.0 or channel.source_position_y_arcsec != 0.0:
@@ -38,6 +37,7 @@ def spread_1d_photometry_to_2d(counts_s_px_nir: np.ndarray, channel: PhotometryC
         logging.info("Channel %s: detector_image stats shape=%s nonzero=0 min=%e max=%e bbox_y=none bbox_x=none", channel.channel_name, detector_image.shape, float(np.min(detector_image)), float(np.max(detector_image)))
 
     logging.info("Photometry PSF spread applied: channel=%s detector_shape=(%d,%d) source_pixel=(%d,%d summed NIR flux = %e electrons/s frame_sum=%e", channel.channel_name, channel.y_pixels, channel.x_pixels, source_pixel_x, source_pixel_y, total_flux_electrons_per_second, float(np.sum(detector_image)))
+
     return detector_image
 
 def paste_psf_stamp(frame: np.ndarray, psf_stamp: np.ndarray, detector_center_x: int, detector_center_y: int, psf_center_x: int, psf_center_y: int) -> None:

@@ -209,8 +209,11 @@ def test_create_channel_images_roll_angle_progression(make_spectroscopy_channel,
 def test_create_per_exposure_spectroscopy_branch(make_spectroscopy_channel, make_run_context, make_global_config, make_star):
     channel = make_spectroscopy_channel(x_pixels=3, y_pixels=2, ccd_gain=2.0)
     visibility_mock = Mock()
-    ctx = make_run_context(generate_background_star_visibility_on_science_frame=visibility_mock)
-    cfg = make_global_config(invert_calibration_science_frame_component=False)
+    ctx = make_run_context()
+    cfg = make_global_config(
+        invert_calibration_science_frame_component=False,
+        write_background_star_footprint_on_science_frame=True,
+    )
     star = make_star()
 
     base_img = np.full((2, 3), 10.0, dtype=np.float32)
@@ -220,7 +223,8 @@ def test_create_per_exposure_spectroscopy_branch(make_spectroscopy_channel, make
 
     with patch("instrument.science_image._build_science_image_without_bg_stars", return_value=base_img) as mock_build, \
          patch("instrument.science_image.generate_background_star_spectroscopy_image", return_value=(bg_stars, bands)) as mock_bg_spec, \
-         patch("instrument.science_image.generate_background_star_photometry_image") as mock_bg_phot:
+         patch("instrument.science_image.generate_background_star_photometry_image") as mock_bg_phot, \
+         patch("instrument.science_image.generate_background_star_visibility_on_science_frame", visibility_mock):
         result = _create_per_exposure(
             stellar_component=np.zeros_like(base_img),
             background_component=np.zeros_like(base_img),
@@ -255,8 +259,11 @@ def test_create_per_exposure_spectroscopy_branch(make_spectroscopy_channel, make
 def test_create_per_exposure_photometry_branch(make_photometry_channel, make_run_context, make_global_config, make_star):
     channel = make_photometry_channel(x_pixels=3, y_pixels=2, ccd_gain=1.0)
     visibility_mock = Mock()
-    ctx = make_run_context(generate_background_star_visibility_on_science_frame=visibility_mock)
-    cfg = make_global_config(invert_calibration_science_frame_component=True)
+    ctx = make_run_context()
+    cfg = make_global_config(
+        invert_calibration_science_frame_component=True,
+        write_background_star_footprint_on_science_frame=True,
+    )
     star = make_star()
 
     base_img = np.full((2, 3), 5.0, dtype=np.float32)
@@ -266,7 +273,8 @@ def test_create_per_exposure_photometry_branch(make_photometry_channel, make_run
 
     with patch("instrument.science_image._build_science_image_without_bg_stars", return_value=base_img), \
          patch("instrument.science_image.generate_background_star_photometry_image", return_value=(bg_stars, arcs)) as mock_bg_phot, \
-         patch("instrument.science_image.generate_background_star_spectroscopy_image") as mock_bg_spec:
+         patch("instrument.science_image.generate_background_star_spectroscopy_image") as mock_bg_spec, \
+         patch("instrument.science_image.generate_background_star_visibility_on_science_frame", visibility_mock):
         result = _create_per_exposure(
             stellar_component=np.zeros_like(base_img),
             background_component=np.zeros_like(base_img),

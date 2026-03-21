@@ -2,9 +2,13 @@ import numpy as np
 import pytest
 from instrument.spectral_convolution import counts_per_s_px_conv_per_channel, cut_wavelength_window_with_margin, gaussbroad
 
+
 # Tests: counts_per_s_px_conv_per_channel
 # Behavior: Interpolates broadened flux onto channel wavelengths and applies scale factors.
-def test_single_channel_counts_identity_gaussbroad(make_star, make_run_context, make_spectroscopy_channel):
+def test_single_channel_counts_identity_gaussbroad(monkeypatch, make_star, make_run_context, make_spectroscopy_channel, make_global_config):
+    cfg = make_global_config()
+    monkeypatch.setattr("instrument.spectral_convolution.get_global_config", lambda: cfg)
+
     wavelength = np.array([100.0, 101.0, 102.0], dtype=float)
     broadened_flux = np.array([10.0, 20.0, 30.0], dtype=float)
     channel = make_spectroscopy_channel(effective_area_wavelength=np.array([100.0, 100.5, 101.0], dtype=float), effective_area=np.array([2.0, 2.0, 2.0], dtype=float), pixel_scale=0.01)
@@ -15,7 +19,10 @@ def test_single_channel_counts_identity_gaussbroad(make_star, make_run_context, 
 
 # Tests: counts_per_s_px_conv_per_channel
 # Behavior: Processes multiple channels independently with matching array lengths to prevent broadcast errors.
-def test_all_channels_counts_identity_gaussbroad(make_star, make_run_context, make_spectroscopy_channel):
+def test_all_channels_counts_identity_gaussbroad(monkeypatch, make_star, make_run_context, make_spectroscopy_channel, make_global_config):
+    cfg = make_global_config()
+    monkeypatch.setattr("instrument.spectral_convolution.get_global_config", lambda: cfg)
+
     wavelengths_total = np.array([100.0, 101.0, 102.0], dtype=float)
     photon_flux = np.array([10.0, 20.0, 30.0], dtype=float)
     star, ctx = make_star(), make_run_context(output_dir="OUTDIR")

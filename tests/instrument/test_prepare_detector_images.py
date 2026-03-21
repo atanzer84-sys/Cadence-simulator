@@ -1,5 +1,6 @@
 import numpy as np
-from unittest.mock import Mock, patch
+from datetime import datetime
+from unittest.mock import MagicMock, Mock, patch
 import pytest
 from instrument.prepare_detector_images import prepare_star_photon_flux_for_channels
 from instrument.prepare_detector_images import prepare_star_photon_flux_in_range
@@ -33,20 +34,18 @@ def test_prepare_star_photon_flux_for_channels_uses_required_range(make_star, ma
 
 # Tests: prepare_star_photon_flux_in_range
 # Behavior: converts outputs to float32 and writes diagnostic outputs
-def test_prepare_star_photon_flux_in_range_converts_and_calls_outputs(make_star, make_run_context):
+def test_prepare_star_photon_flux_in_range_converts_and_calls_outputs(make_star, make_run_context, make_global_config):
     plot_mock = Mock()
-    dump_mock = Mock()
+    dump_1d_mock = Mock()
+    cfg = make_global_config(write_intermediate_arrays=True, produce_flux_convolution_plots=True)
 
     star = make_star(name="TestStar")
-    ctx = make_run_context(
-        plot_flux_and_photons_windows=plot_mock,
-        dump_1d_array=dump_mock,
-    )
+    ctx = make_run_context()
 
     flux = np.array([2.0, 4.0, 6.0], dtype=np.float64)
     wavelengths = np.array([100.0, 200.0, 300.0], dtype=np.float64)
 
-    with patch("instrument.prepare_detector_images.calculateFluxOnEarth", return_value=(flux, wavelengths)):
+    with patch("instrument.prepare_detector_images.calculateFluxOnEarth", return_value=(flux, wavelengths)), patch("instrument.prepare_detector_images.get_global_config", return_value=cfg), patch("instrument.prepare_detector_images.plot_flux_and_photons_windows", plot_mock), patch("instrument.prepare_detector_images.dump_1d_array", dump_1d_mock):
         photons_star, wavelengths_total = prepare_star_photon_flux_in_range(star, ctx, 100.0, 300.0, announce_user=False)
 
     expected_photons = (flux * PHOTON_ENERGY_CONVERSION_A * wavelengths).astype(np.float32)
@@ -57,16 +56,14 @@ def test_prepare_star_photon_flux_in_range_converts_and_calls_outputs(make_star,
     assert np.allclose(wavelengths_total, wavelengths.astype(np.float32))
 
     plot_mock.assert_called_once()
-    dump_mock.assert_called_once()
+    dump_1d_mock.assert_called_once()
 
 
 # Tests: prepare_detector_image_spectroscopy
-# Behavior: returns spread image and plots detector profile
-def test_prepare_detector_image_spectroscopy_returns_image_and_plots(make_star, make_run_context, make_spectroscopy_channel):
-    plot_mock = Mock()
-
+# Behavior: returns spread image from compute + spread
+def test_prepare_detector_image_spectroscopy_returns_image(make_star, make_run_context, make_spectroscopy_channel, make_global_config):
     star = make_star(name="TestStar")
-    ctx = make_run_context(plot_star_counts_vs_noise_spectroscopy=plot_mock)
+    ctx = make_run_context()
     channel = make_spectroscopy_channel(
         x_pixels=4,
         y_pixels=3,
@@ -85,22 +82,15 @@ def test_prepare_detector_image_spectroscopy_returns_image_and_plots(make_star, 
         dtype=np.float32,
     )
 
-    with patch("instrument.prepare_detector_images.compute_counts_per_s_px_one_channel", return_value=counts) as mock_compute, patch("instrument.prepare_detector_images.spread_target_star_spectrum_to_2d", return_value=spectra_2d) as mock_spread:
+    cfg = make_global_config(write_intermediate_arrays=False)
+    with patch("instrument.prepare_detector_images.compute_counts_per_s_px_one_channel", return_value=counts) as mock_compute, patch("instrument.prepare_detector_images.spread_target_star_spectrum_to_2d", return_value=spectra_2d) as mock_spread, patch("instrument.prepare_detector_images.get_global_config", return_value=cfg):
         result = prepare_detector_image_spectroscopy(photons, wavelengths, channel, ctx, star)
 
     assert np.array_equal(result, spectra_2d)
     mock_compute.assert_called_once_with(photons, wavelengths, channel, ctx, star)
-    mock_spread.assert_called_once_with(counts, channel, ctx=ctx)
-    plot_mock.assert_called_once()
-    plot_args = plot_mock.call_args.args
+    mock_spread.assert_called_once_with(counts, channel)
 
-    assert np.array_equal(plot_args[0], channel.effective_area_wavelength)
-    assert np.array_equal(plot_args[1], spectra_2d.max(axis=0))
-    assert plot_args[2] is channel
-    assert plot_args[3] is ctx
-    assert plot_args[4] is star
-
-def test_prepare_detector_image_spectroscopy_conservation(make_star, make_run_context, make_spectroscopy_channel):
+def test_prepare_detector_image_spectroscopy_conservation(make_star, make_run_context, make_spectroscopy_channel, make_global_config):
     """
     Validates 2D image preparation using the exact production signature.
     Tests float32 flux conservation with a 0.01 tolerance to handle NUV drift.
@@ -122,7 +112,8 @@ def test_prepare_detector_image_spectroscopy_conservation(make_star, make_run_co
 
     counts = np.random.rand(channel.x_pixels).astype(np.float32) * 50.0
 
-    with patch("instrument.prepare_detector_images.compute_counts_per_s_px_one_channel", return_value=counts):
+    cfg = make_global_config(write_intermediate_arrays=False)
+    with patch("instrument.prepare_detector_images.compute_counts_per_s_px_one_channel", return_value=counts), patch("instrument.prepare_detector_images.get_global_config", return_value=cfg):
         spectra_2d = prepare_detector_image_spectroscopy(photons, wavelengths, channel, ctx, star)
 
     col_sums = spectra_2d.sum(axis=0)
@@ -135,7 +126,7 @@ def test_prepare_detector_image_spectroscopy_conservation(make_star, make_run_co
 
 # Tests: prepare_detector_image_spectroscopy
 # Behavior: handles zero counts without changing detector shape
-def test_prepare_detector_image_spectroscopy_zero_counts(make_star, make_run_context, make_spectroscopy_channel):
+def test_prepare_detector_image_spectroscopy_zero_counts(make_star, make_run_context, make_spectroscopy_channel, make_global_config):
     star = make_star()
     ctx = make_run_context()
     channel = make_spectroscopy_channel(
@@ -149,7 +140,8 @@ def test_prepare_detector_image_spectroscopy_zero_counts(make_star, make_run_con
     counts = np.zeros(4, dtype=np.float32)
     spectra_2d = np.zeros((3, 4), dtype=np.float32)
 
-    with patch("instrument.prepare_detector_images.compute_counts_per_s_px_one_channel", return_value=counts), patch("instrument.prepare_detector_images.spread_target_star_spectrum_to_2d", return_value=spectra_2d):
+    cfg = make_global_config(write_intermediate_arrays=False)
+    with patch("instrument.prepare_detector_images.compute_counts_per_s_px_one_channel", return_value=counts), patch("instrument.prepare_detector_images.spread_target_star_spectrum_to_2d", return_value=spectra_2d), patch("instrument.prepare_detector_images.get_global_config", return_value=cfg):
         result = prepare_detector_image_spectroscopy(photons, wavelengths, channel, ctx, star)
 
     assert result.shape == (channel.y_pixels, channel.x_pixels)
@@ -158,7 +150,7 @@ def test_prepare_detector_image_spectroscopy_zero_counts(make_star, make_run_con
 
 # Tests: prepare_detector_image_spectroscopy
 # Behavior: handles single pixel detector input
-def test_prepare_detector_image_spectroscopy_minimal_size(make_star, make_run_context, make_spectroscopy_channel):
+def test_prepare_detector_image_spectroscopy_minimal_size(make_star, make_run_context, make_spectroscopy_channel, make_global_config):
     star = make_star()
     ctx = make_run_context()
     channel = make_spectroscopy_channel(
@@ -172,7 +164,8 @@ def test_prepare_detector_image_spectroscopy_minimal_size(make_star, make_run_co
     counts = np.array([7.0], dtype=np.float32)
     spectra_2d = np.array([[7.0]], dtype=np.float32)
 
-    with patch("instrument.prepare_detector_images.compute_counts_per_s_px_one_channel", return_value=counts), patch("instrument.prepare_detector_images.spread_target_star_spectrum_to_2d", return_value=spectra_2d):
+    cfg = make_global_config(write_intermediate_arrays=False)
+    with patch("instrument.prepare_detector_images.compute_counts_per_s_px_one_channel", return_value=counts), patch("instrument.prepare_detector_images.spread_target_star_spectrum_to_2d", return_value=spectra_2d), patch("instrument.prepare_detector_images.get_global_config", return_value=cfg):
         result = prepare_detector_image_spectroscopy(photons, wavelengths, channel, ctx, star)
 
     assert result.shape == (1, 1)
@@ -195,12 +188,14 @@ def test_prepare_detector_image_spectroscopy_propagates_compute_error(make_star,
 
 
 # Tests: prepare_detector_image_photometry
-# Behavior: returns spread image and plots detector image
-def test_prepare_detector_image_photometry_returns_image_and_plots(make_star, make_run_context, make_photometry_channel):
-    plot_mock = Mock()
-
+# Behavior: returns spread image from compute + spread
+def test_prepare_detector_image_photometry_returns_image(make_star, make_run_context, make_photometry_channel, make_global_config, tmp_path):
     star = make_star(name="TestStar")
-    ctx = make_run_context(plot_star_counts_vs_noise_photometry=plot_mock)
+    ctx = MagicMock()
+    ctx.target_name = "HD_2685"
+    ctx.output_dir = tmp_path
+    ctx.timestamp = datetime(2026, 1, 1, 12, 0, 0)
+    ctx.plot_star_counts_vs_noise_photometry = Mock()
     channel = make_photometry_channel(x_pixels=4, y_pixels=4)
 
     flux = np.array([1.0, 2.0, 3.0, 4.0], dtype=np.float32)
@@ -208,13 +203,13 @@ def test_prepare_detector_image_photometry_returns_image_and_plots(make_star, ma
     counts = np.array([10.0, 20.0, 30.0, 40.0], dtype=np.float32)
     rate_image = np.ones((4, 4), dtype=np.float32)
 
-    with patch("instrument.prepare_detector_images.compute_counts_per_s_px_one_channel", return_value=counts) as mock_compute, patch("instrument.prepare_detector_images.spread_1d_photometry_to_2d", return_value=rate_image) as mock_spread:
+    cfg = make_global_config(write_intermediate_arrays=False)
+    with patch("instrument.prepare_detector_images.compute_counts_per_s_px_one_channel", return_value=counts) as mock_compute, patch("instrument.prepare_detector_images.spread_1d_photometry_to_2d", return_value=rate_image) as mock_spread, patch("instrument.prepare_detector_images.get_global_config", return_value=cfg):
         result = prepare_detector_image_photometry(flux, wavelengths, channel, ctx, star)
 
     assert np.array_equal(result, rate_image)
     mock_compute.assert_called_once_with(flux, wavelengths, channel, ctx, star)
-    mock_spread.assert_called_once_with(counts, channel, ctx)
-    plot_mock.assert_called_once_with(rate_image, channel, ctx, star)
+    mock_spread.assert_called_once_with(counts, channel)
 
 
 # Tests: prepare_detector_image_photometry

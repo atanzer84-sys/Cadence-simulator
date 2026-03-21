@@ -116,7 +116,7 @@ def _detector_row(y_target: float, v_arcsec: float, channel: SpectroscopyChannel
 
 def _render_spectrum_to_2d(counts_px: np.ndarray, channel: SpectroscopyChannel, x_target: int, y_row: int, slope: float, intercept: float) -> np.ndarray:
     counts_smeared = smear_1d_spectrum_dispersion(counts_px, channel)
-    return spread_1d_spectrum_to_2d(counts_smeared, channel, x_target, float(y_row), slope, intercept, announce_user=False)
+    return spread_1d_spectrum_to_2d(counts_smeared, channel, (x_target, float(y_row), slope, intercept), announce_user=False)
 
 
 def _compute_roll_angle_samples(dx: float, dy: float, channel: SpectroscopyChannel, roll_angle_start: float, roll_angle_stop: float, max_motion_per_step_px: float = 0.25) -> np.ndarray:
