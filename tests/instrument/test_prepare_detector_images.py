@@ -90,7 +90,7 @@ def test_prepare_detector_image_spectroscopy_returns_image_and_plots(make_star, 
 
     assert np.array_equal(result, spectra_2d)
     mock_compute.assert_called_once_with(photons, wavelengths, channel, ctx, star)
-    mock_spread.assert_called_once_with(counts, channel)
+    mock_spread.assert_called_once_with(counts, channel, ctx=ctx)
     plot_mock.assert_called_once()
     plot_args = plot_mock.call_args.args
 

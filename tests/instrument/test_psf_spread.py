@@ -4,7 +4,6 @@ spread_1d_photometry_to_2d, and aperture photometry.
 """
 import numpy as np
 import pytest
-from types import SimpleNamespace
 from unittest.mock import patch
 
 from instrument.psf_spread import (
@@ -13,9 +12,9 @@ from instrument.psf_spread import (
     spread_1d_photometry_to_2d,
     compute_aperture_photometry,
 )
-def test_get_photometry_placement_center_on_axis():
+def test_get_photometry_placement_center_on_axis(make_photometry_channel):
     """With source at (0,0) arcsec, placement is the detector center (x_pixels//2, y_pixels//2)."""
-    ch = SimpleNamespace(
+    ch = make_photometry_channel(
         x_pixels=10,
         y_pixels=8,
         pixel_scale=1.0,
@@ -27,9 +26,9 @@ def test_get_photometry_placement_center_on_axis():
     assert y == 4
 
 
-def test_get_photometry_placement_with_offset_arcsec():
+def test_get_photometry_placement_with_offset_arcsec(make_photometry_channel):
     """Source offset in arcsec is converted to pixels using pixel_scale and added to center."""
-    ch = SimpleNamespace(
+    ch = make_photometry_channel(
         x_pixels=100,
         y_pixels=100,
         pixel_scale=0.5,
@@ -42,9 +41,9 @@ def test_get_photometry_placement_with_offset_arcsec():
     assert y == 47
 
 
-def test_get_photometry_placement_none_offset_treated_as_zero():
+def test_get_photometry_placement_none_offset_treated_as_zero(make_photometry_channel):
     """When source_position_*_arcsec is None, it is treated as 0.0."""
-    ch = SimpleNamespace(
+    ch = make_photometry_channel(
         x_pixels=6,
         y_pixels=4,
         pixel_scale=1.0,
@@ -108,26 +107,21 @@ def test_paste_psf_stamp_adds_to_existing_values():
 # -----------------------------------------------------------------------------
 
 
-def _channel_for_spread(psf_image=None, psf_center_x=None, psf_center_y=None, source_x=0.0, source_y=0.0):
-    """Minimal channel-like object for spread_1d_photometry_to_2d (SimpleNamespace)."""
-    return SimpleNamespace(
+def test_spread_1d_photometry_to_2d_success(make_photometry_channel, make_run_context):
+    """With valid channel and 1D counts, returns 2D detector image with correct shape and non-zero sum."""
+    psf = np.ones((5, 5), dtype=np.float32) / 25.0  # normalized-like
+    ch = make_photometry_channel(
         channel_name="NIR",
         x_pixels=20,
         y_pixels=20,
         pixel_scale=1.0,
-        source_position_x_arcsec=source_x,
-        source_position_y_arcsec=source_y,
-        psf_image=psf_image,
-        psf_center_x=psf_center_x,
-        psf_center_y=psf_center_y,
+        source_position_x_arcsec=0.0,
+        source_position_y_arcsec=0.0,
+        psf_image=psf,
+        psf_center_x=2,
+        psf_center_y=2,
     )
-
-
-def test_spread_1d_photometry_to_2d_success(tmp_path):
-    """With valid channel and 1D counts, returns 2D detector image with correct shape and non-zero sum."""
-    psf = np.ones((5, 5), dtype=np.float32) / 25.0  # normalized-like
-    ch = _channel_for_spread(psf_image=psf, psf_center_x=2, psf_center_y=2)
-    ctx = SimpleNamespace(output_dir=tmp_path)
+    ctx = make_run_context()
     counts_1d = np.array([10.0, 20.0, 30.0], dtype=np.float32)  # total 60 e/s
     with patch("instrument.psf_spread.announce"):
         out = spread_1d_photometry_to_2d(counts_1d, ch, ctx, announce_user=False)
@@ -135,28 +129,51 @@ def test_spread_1d_photometry_to_2d_success(tmp_path):
     assert np.sum(out) == pytest.approx(60.0)
 
 
-def test_spread_1d_photometry_to_2d_off_axis_raises_not_implemented_error(tmp_path):
+def test_spread_1d_photometry_to_2d_off_axis_raises_not_implemented_error(make_photometry_channel, make_run_context):
     """Off-axis source (non-zero source_position_*_arcsec) raises NotImplementedError."""
-    ch = _channel_for_spread(psf_image=np.ones((3, 3)), psf_center_x=1, psf_center_y=1, source_x=1.0, source_y=0.0)
-    ctx = SimpleNamespace(output_dir=tmp_path)
+    ch = make_photometry_channel(
+        channel_name="NIR",
+        x_pixels=20,
+        y_pixels=20,
+        psf_image=np.ones((3, 3)),
+        psf_center_x=1,
+        psf_center_y=1,
+        source_position_x_arcsec=1.0,
+        source_position_y_arcsec=0.0,
+    )
+    ctx = make_run_context()
     with patch("instrument.psf_spread.announce"):
         with pytest.raises(NotImplementedError, match="off-axis photometry"):
             spread_1d_photometry_to_2d(np.array([1.0]), ch, ctx, announce_user=False)
 
 
-def test_spread_1d_photometry_to_2d_psf_image_none_raises_value_error(tmp_path):
+def test_spread_1d_photometry_to_2d_psf_image_none_raises_value_error(make_photometry_channel, make_run_context):
     """Channel with psf_image=None raises ValueError('PSF image not loaded')."""
-    ch = _channel_for_spread(psf_image=None, psf_center_x=1, psf_center_y=1)
-    ctx = SimpleNamespace(output_dir=tmp_path)
+    ch = make_photometry_channel(
+        channel_name="NIR",
+        x_pixels=20,
+        y_pixels=20,
+        psf_image=None,
+        psf_center_x=1,
+        psf_center_y=1,
+    )
+    ctx = make_run_context()
     with patch("instrument.psf_spread.announce"):
         with pytest.raises(ValueError, match="PSF image not loaded"):
             spread_1d_photometry_to_2d(np.array([1.0]), ch, ctx, announce_user=False)
 
 
-def test_spread_1d_photometry_to_2d_psf_center_none_raises_value_error(tmp_path):
+def test_spread_1d_photometry_to_2d_psf_center_none_raises_value_error(make_photometry_channel, make_run_context):
     """Channel with psf_center_x or psf_center_y None raises ValueError('PSF center not loaded')."""
-    ch = _channel_for_spread(psf_image=np.ones((3, 3)), psf_center_x=None, psf_center_y=1)
-    ctx = SimpleNamespace(output_dir=tmp_path)
+    ch = make_photometry_channel(
+        channel_name="NIR",
+        x_pixels=20,
+        y_pixels=20,
+        psf_image=np.ones((3, 3)),
+        psf_center_x=None,
+        psf_center_y=1,
+    )
+    ctx = make_run_context()
     with patch("instrument.psf_spread.announce"):
         with pytest.raises(ValueError, match="PSF center not loaded"):
             spread_1d_photometry_to_2d(np.array([1.0]), ch, ctx, announce_user=False)

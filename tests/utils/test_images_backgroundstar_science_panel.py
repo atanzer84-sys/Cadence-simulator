@@ -1,6 +1,5 @@
 """Rudimentary tests for utils.images_backgroundstar_science_panel."""
 
-from types import SimpleNamespace
 import matplotlib
 import numpy as np
 
@@ -47,12 +46,12 @@ def test_compute_bg_mask_overlay_with_arcs_uses_arc_mask(monkeypatch, make_photo
 
 
 def test_generate_background_star_visibility_on_science_frame_writes_png(
-    tmp_path, make_spectroscopy_channel, make_star, monkeypatch
+    make_spectroscopy_channel, make_star, make_run_context, monkeypatch
 ):
     merged = np.ones((8, 8), dtype=np.float32)
     bg = np.zeros((8, 8), dtype=np.float32)
     ch = make_spectroscopy_channel(channel_name="NUV", x_pixels=8, y_pixels=8, exposure_s=12.0)
-    ctx = SimpleNamespace(output_dir=tmp_path, target_name="TargetA")
+    ctx = make_run_context(target_name="TargetA")
     star = make_star(name="StarA")
     out = tmp_path / "panel.png"
 
