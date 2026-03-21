@@ -99,3 +99,34 @@ def dump_1d_for_channel(wave, array, output_dir, star_name: str, tag: str, chann
 
     if zoom:
         dump_masked_1d(wave, array, output_dir, f"{star_name}_{tag}_{channel_name}_zoom.txt", zoom_range[0], zoom_range[1], fmt)
+
+
+def dump_npz_snapshot(output_dir, filename, **arrays):
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    out_file = output_dir / filename
+    converted = {}
+    for key, value in arrays.items():
+        if np.isscalar(value):
+            converted[key] = np.asarray(value, dtype=np.float64)
+        else:
+            converted[key] = np.asarray(value, dtype=np.float64)
+    np.savez_compressed(out_file, **converted)
+    return out_file
+
+
+def dump_cropped_image_npz(output_dir, filename, image, y_center, half_height=500):
+    y_center_i = int(round(y_center))
+    y_min = max(0, y_center_i - int(half_height))
+    y_max = min(image.shape[0], y_center_i + int(half_height) + 1)
+    image_cropped = image[y_min:y_max, :].astype(np.float32, copy=False)
+    return dump_npz_snapshot(output_dir, filename, image=image_cropped, y0=np.int32(y_center_i), y_min=np.int32(y_min), y_max=np.int32(y_max))
+
+
+def dump_effective_area_txt(output_dir, channel_name, effective_area_wavelength, effective_area, pixel_scale):
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    table = np.column_stack((effective_area_wavelength, effective_area))
+    out_file = output_dir / f"{channel_name}_effective_area.txt"
+    np.savetxt(out_file, table, fmt="%.18e", header="pixel_scale=" + f"{float(pixel_scale):.18e}" + "\n" + "effective_area_wavelength effective_area")
+    return out_file

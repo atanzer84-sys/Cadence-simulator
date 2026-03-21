@@ -1,68 +1,26 @@
 import sys
 import logging
 from pathlib import Path
-from typing import Callable, Any
 from utils.helpers import ensure_path_under, resolve_path_under
 from datetime import datetime
 from configs.user_config import load_user_config, get_user_config
-from configs.global_config import load_global_config, get_global_config
-from utils import debug_dumps
+from configs.global_config import load_global_config
 from loaders.run_context import RunContext
 
 
-def _noop(*args, **kwargs):
-    pass
-
-
-def _select(enabled: bool, fn: Callable[..., Any]) -> Callable[..., Any]:
-    return fn if enabled else _noop
-
-
 def initialize_waltzer_runtime_context():
-
     print("\n==== LOADING AND INITIALIZING WALTzER SIMULATOR =====")
 
     output_dir, timestamp_str, timestamp = setup_output_directory()
     setup_logger(output_dir, timestamp_str)
     user_cfg = load_global_and_user_config()
-    cfg = get_global_config()
-    from utils import images_backgroundstar_science_panel
-    from utils import images_calibration_frame
-    from utils import images_science_frame
-    from utils import flux_image_array
-    from utils import target_background_star_vs_noise
-    dump_3d_array = _select(cfg.write_intermediate_arrays, debug_dumps.dump_3d_array)
-    dump_1d_array = _select(cfg.write_intermediate_arrays, debug_dumps.dump_1d_array)
-    dump_1d_for_channel = _select(cfg.write_intermediate_arrays, debug_dumps.dump_1d_for_channel)
-    plot_1d_for_channel = _select(cfg.produce_flux_convolution_plots, flux_image_array.plot_1d_for_channel)
-    plot_flux_and_photons_windows = _select(cfg.produce_flux_convolution_plots, flux_image_array.plot_flux_and_photons_windows)
-    plot_star_counts_vs_noise_spectroscopy = _select(cfg.produce_target_background_star_noise_vs_counts_plot, target_background_star_vs_noise.plot_star_counts_vs_noise_spectroscopy)
-    plot_star_counts_vs_noise_photometry = _select(cfg.produce_target_background_star_noise_vs_counts_plot, target_background_star_vs_noise.plot_star_counts_vs_noise_photometry)
-    write_calibration_frame_png = _select(cfg.write_calibration_frame_png, images_calibration_frame.write_calibration_frame_png)
-    write_science_frame_png = _select(cfg.write_science_frames_png, images_science_frame.write_science_frame_png)
-    write_science_frame_component_png = _select(cfg.write_science_frame_component_png, images_calibration_frame.write_calibration_frame_png)
-    generate_background_star_visibility_on_science_frame = _select(
-        cfg.write_background_star_footprint_on_science_frame,
-        images_backgroundstar_science_panel.generate_background_star_visibility_on_science_frame,
-    )
 
     run_ctx = RunContext(
         target_name=user_cfg.target_name,
         output_dir=output_dir,
         timestamp=timestamp,
-        dump_3d_array=dump_3d_array,
-        dump_1d_array=dump_1d_array,
-        dump_1d_for_channel=dump_1d_for_channel,
-        plot_1d_for_channel=plot_1d_for_channel,
-        plot_flux_and_photons_windows=plot_flux_and_photons_windows,
-        plot_star_counts_vs_noise_spectroscopy=plot_star_counts_vs_noise_spectroscopy,
-        plot_star_counts_vs_noise_photometry=plot_star_counts_vs_noise_photometry,
-        write_calibration_frame_png=write_calibration_frame_png,
-        write_science_frame_png=write_science_frame_png,
-        write_science_frame_component_png=write_science_frame_component_png,
-        generate_background_star_visibility_on_science_frame=generate_background_star_visibility_on_science_frame,
     )
-    logging.info("RunContext initialized: target=%s output_dir=%s write_intermediate_arrays=%s produce_flux_convolution_plots=%s write_calibration_frame_png=%s write_science_frames_png=%s write_science_frame_component_png=%s write_background_star_footprint_on_science_frame=%s", run_ctx.target_name, run_ctx.output_dir, cfg.write_intermediate_arrays, cfg.produce_flux_convolution_plots, cfg.write_calibration_frame_png, cfg.write_science_frames_png, cfg.write_science_frame_component_png, cfg.write_background_star_footprint_on_science_frame)
+    logging.info("RunContext initialized: target=%s output_dir=%s timestamp=%s", run_ctx.target_name, run_ctx.output_dir, run_ctx.timestamp)
     return run_ctx, user_cfg
 
 def load_global_and_user_config():
