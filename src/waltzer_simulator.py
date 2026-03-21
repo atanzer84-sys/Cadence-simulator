@@ -34,7 +34,7 @@ def main():
         background_stars_catalog = lookup_background_stars(nuv_channel, vis_channel, nir_channel, run_ctx, star)
         background_stars_catalog = populate_background_star_counts(background_stars_catalog, nuv_channel, vis_channel, nir_channel, run_ctx)
         
-        # Build and write science frames immediately per channel (streaming)
+        # Build and write science frames immediately
         build_science_images(spectra_2d_nuv, nuv_channel, run_ctx, star, background_stars_catalog) if nuv_channel is not None else None
         build_science_images(spectra_2d_vis, vis_channel, run_ctx, star, background_stars_catalog) if vis_channel is not None else None
         build_science_images(rate_nir, nir_channel, run_ctx, star, background_stars_catalog) if nir_channel is not None else None        

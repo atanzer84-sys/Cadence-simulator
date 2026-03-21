@@ -9,6 +9,7 @@ from types import SimpleNamespace
 SIGMA_MG22 = 0.257
 SIGMA_MG21 = 0.288
 
+
 def make_cfg_for_ism_absorption():
     return SimpleNamespace(
         mg2_col=None,
@@ -17,6 +18,8 @@ def make_cfg_for_ism_absorption():
         sigmaMg22=SIGMA_MG22,
         sigmaMg21=SIGMA_MG21,
     )
+
+
 SNAPSHOT_BASE = Path(__file__).parent / "snapshots"
 
 STARS = {
@@ -58,7 +61,7 @@ STARS = {
         "EBV": 0.0,
         "AV": 0.0,
     },
-        "HD 2685" : {
+    "HD 2685": {
         "name": "HD 2685",
         "spectral_type": "F2V",
         "effective_temperature": 6801.0,
@@ -76,7 +79,7 @@ STARS = {
         "mass_sun_kg": 2.8435121e+30,
         "EBV": 0.017036739005112034,
         "AV": 0.0519620539655917,
-    }
+    },
 }
 
 
@@ -90,6 +93,7 @@ def run_snapshot_convertIntensityToLuminosity(star_name, radius_rsun, band):
     assert got.shape == expected.shape
     np.testing.assert_allclose(got, expected, rtol=1e-6, atol=0.0)
 
+
 def run_snapshot_apply_line_core_emission(star_name, band, sigmaMg22, sigmaMg21, log_r, spectral_type):
     base = SNAPSHOT_BASE
     before_file = base / f"{star_name}_FluxCalc_2_convertIntensityToLuminosity_snapshot_{band}_zoom.txt"
@@ -99,6 +103,7 @@ def run_snapshot_apply_line_core_emission(star_name, band, sigmaMg22, sigmaMg21,
     got = apply_line_core_emission(before, sigmaMg22, sigmaMg21, log_r, spectral_type)
     assert got.shape == expected.shape
     np.testing.assert_allclose(got, expected, rtol=1e-6, atol=0.0)
+
 
 def run_snapshot_apply_ism_absorption(star_name, band, EBV):
     base = SNAPSHOT_BASE
@@ -110,6 +115,7 @@ def run_snapshot_apply_ism_absorption(star_name, band, EBV):
     got = apply_ism_absorption(before, EBV, cfg)
     assert got.shape == expected.shape
     np.testing.assert_allclose(got, expected, rtol=1e-6, atol=0.0)
+
 
 def run_snapshot_compute_flux_at_earth(star_name, band, distance_pc):
     base = SNAPSHOT_BASE
@@ -137,6 +143,7 @@ def run_snapshot_apply_unred(star_name, band):
     assert out.shape == expected.shape
     np.testing.assert_allclose(out, expected, rtol=1e-6, atol=0.0)
 
+
 def run_snapshot_convert_flux_to_photons(star_name, band):
     # Verifies convert_flux_to_photons produces the expected photon flux snapshot from after_unred input.
     base = SNAPSHOT_BASE
@@ -155,110 +162,146 @@ def run_snapshot_convert_flux_to_photons(star_name, band):
     assert out.shape == expected.shape
     np.testing.assert_allclose(out, expected, rtol=1e-6, atol=0.0)
 
+
 def test_WASP189_convertIntensityToLuminosity_IR():
     run_snapshot_convertIntensityToLuminosity("WASP-189", STARS["WASP-189"]["radius_rsun"], "IR")
+
 
 def test_WASP189_convertIntensityToLuminosity_NUV():
     run_snapshot_convertIntensityToLuminosity("WASP-189", STARS["WASP-189"]["radius_rsun"], "NUV")
 
+
 def test_WASP189_convertIntensityToLuminosity_VIS():
     run_snapshot_convertIntensityToLuminosity("WASP-189", STARS["WASP-189"]["radius_rsun"], "VIS")
+
 
 def test_WASP69_convertIntensityToLuminosity_IR():
     run_snapshot_convertIntensityToLuminosity("WASP-69", STARS["WASP-69"]["radius_rsun"], "IR")
 
+
 def test_WASP69_convertIntensityToLuminosity_NUV():
     run_snapshot_convertIntensityToLuminosity("WASP-69", STARS["WASP-69"]["radius_rsun"], "NUV")
+
 
 def test_WASP69_convertIntensityToLuminosity_VIS():
     run_snapshot_convertIntensityToLuminosity("WASP-69", STARS["WASP-69"]["radius_rsun"], "VIS")
 
+
 def test_WASP189_apply_line_core_emission_IR():
     run_snapshot_apply_line_core_emission("WASP-189", "IR", SIGMA_MG22, SIGMA_MG21, STARS["WASP-189"]["log_r"], STARS["WASP-189"]["spectral_type"])
+
 
 def test_WASP189_apply_line_core_emission_NUV():
     run_snapshot_apply_line_core_emission("WASP-189", "NUV", SIGMA_MG22, SIGMA_MG21, STARS["WASP-189"]["log_r"], STARS["WASP-189"]["spectral_type"])
 
+
 def test_WASP189_apply_line_core_emission_VIS():
     run_snapshot_apply_line_core_emission("WASP-189", "VIS", SIGMA_MG22, SIGMA_MG21, STARS["WASP-189"]["log_r"], STARS["WASP-189"]["spectral_type"])
+
 
 def test_WASP69_apply_line_core_emission_IR():
     run_snapshot_apply_line_core_emission("WASP-69", "IR", SIGMA_MG22, SIGMA_MG21, STARS["WASP-69"]["log_r"], STARS["WASP-69"]["spectral_type"])
 
+
 def test_WASP69_apply_line_core_emission_NUV():
     run_snapshot_apply_line_core_emission("WASP-69", "NUV", SIGMA_MG22, SIGMA_MG21, STARS["WASP-69"]["log_r"], STARS["WASP-69"]["spectral_type"])
+
 
 def test_WASP69_apply_line_core_emission_VIS():
     run_snapshot_apply_line_core_emission("WASP-69", "VIS", SIGMA_MG22, SIGMA_MG21, STARS["WASP-69"]["log_r"], STARS["WASP-69"]["spectral_type"])
 
+
 def test_WASP69_apply_ism_absorption_IR():
     run_snapshot_apply_ism_absorption("WASP-69", "IR", STARS["WASP-69"]["EBV"])
+
 
 def test_WASP69_apply_ism_absorption_NUV():
     run_snapshot_apply_ism_absorption("WASP-69", "NUV", STARS["WASP-69"]["EBV"])
 
+
 def test_WASP69_apply_ism_absorption_VIS():
     run_snapshot_apply_ism_absorption("WASP-69", "VIS", STARS["WASP-69"]["EBV"])
+
 
 def test_HD2685_apply_ism_absorption_IR():
     run_snapshot_apply_ism_absorption("HD 2685", "IR", STARS["HD 2685"]["EBV"])
 
+
 def test_HD2685_apply_ism_absorption_NUV():
     run_snapshot_apply_ism_absorption("HD 2685", "NUV", STARS["HD 2685"]["EBV"])
+
 
 def test_HD2685_apply_ism_absorption_VIS():
     run_snapshot_apply_ism_absorption("HD 2685", "VIS", STARS["HD 2685"]["EBV"])
 
+
 def test_WASP69_compute_flux_at_earth_IR():
     run_snapshot_compute_flux_at_earth("WASP-69", "IR", STARS["WASP-69"]["distance_pc"])
+
 
 def test_WASP69_compute_flux_at_earth_NUV():
     run_snapshot_compute_flux_at_earth("WASP-69", "NUV", STARS["WASP-69"]["distance_pc"])
 
+
 def test_WASP69_compute_flux_at_earth_VIS():
     run_snapshot_compute_flux_at_earth("WASP-69", "VIS", STARS["WASP-69"]["distance_pc"])
+
 
 def test_WASP189_compute_flux_at_earth_IR():
     run_snapshot_compute_flux_at_earth("WASP-189", "IR", STARS["WASP-189"]["distance_pc"])
 
+
 def test_WASP189_compute_flux_at_earth_NUV():
     run_snapshot_compute_flux_at_earth("WASP-189", "NUV", STARS["WASP-189"]["distance_pc"])
+
 
 def test_WASP189_compute_flux_at_earth_VIS():
     run_snapshot_compute_flux_at_earth("WASP-189", "VIS", STARS["WASP-189"]["distance_pc"])
 
+
 def test_WASP69_apply_unred_IR():
     run_snapshot_apply_unred("WASP-69", "IR")
+
 
 def test_WASP69_apply_unred_NUV():
     run_snapshot_apply_unred("WASP-69", "NUV")
 
+
 def test_WASP69_apply_unred_VIS():
     run_snapshot_apply_unred("WASP-69", "VIS")
+
 
 def test_HD2685_apply_unred_IR():
     run_snapshot_apply_unred("HD 2685", "IR")
 
+
 def test_HD2685_apply_unred_NUV():
     run_snapshot_apply_unred("HD 2685", "NUV")
+
 
 def test_HD2685_apply_unred_VIS():
     run_snapshot_apply_unred("HD 2685", "VIS")
 
+
 def test_HD2685_convert_flux_to_photons_NUV():
     run_snapshot_convert_flux_to_photons("HD 2685", "NUV")
+
 
 def test_HD2685_convert_flux_to_photons_VIS():
     run_snapshot_convert_flux_to_photons("HD 2685", "VIS")
 
+
 def test_HD2685_convert_flux_to_photons_IR():
     run_snapshot_convert_flux_to_photons("HD 2685", "IR")
+
 
 def test_WASP69_convert_flux_to_photons_NUV():
     run_snapshot_convert_flux_to_photons("WASP-69", "NUV")
 
+
 def test_WASP69_convert_flux_to_photons_VIS():
     run_snapshot_convert_flux_to_photons("WASP-69", "VIS")
+
 
 def test_WASP69_convert_flux_to_photons_IR():
     run_snapshot_convert_flux_to_photons("WASP-69", "IR")
