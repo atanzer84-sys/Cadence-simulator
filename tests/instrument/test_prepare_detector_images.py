@@ -1,6 +1,5 @@
 import numpy as np
-from datetime import datetime
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 import pytest
 from instrument.prepare_detector_images import prepare_star_photon_flux_for_channels
 from instrument.prepare_detector_images import prepare_star_photon_flux_in_range
@@ -189,13 +188,9 @@ def test_prepare_detector_image_spectroscopy_propagates_compute_error(make_star,
 
 # Tests: prepare_detector_image_photometry
 # Behavior: returns spread image from compute + spread
-def test_prepare_detector_image_photometry_returns_image(make_star, make_run_context, make_photometry_channel, make_global_config, tmp_path):
+def test_prepare_detector_image_photometry_returns_image(make_star, make_run_context, make_photometry_channel, make_global_config):
     star = make_star(name="TestStar")
-    ctx = MagicMock()
-    ctx.target_name = "HD_2685"
-    ctx.output_dir = tmp_path
-    ctx.timestamp = datetime(2026, 1, 1, 12, 0, 0)
-    ctx.plot_star_counts_vs_noise_photometry = Mock()
+    ctx = make_run_context()
     channel = make_photometry_channel(x_pixels=4, y_pixels=4)
 
     flux = np.array([1.0, 2.0, 3.0, 4.0], dtype=np.float32)
@@ -229,7 +224,7 @@ def test_prepare_detector_image_photometry_propagates_compute_error(make_star, m
 
 # Tests: compute_counts_per_s_px_one_channel
 # Behavior: passes broadened flux into count convolution
-def test_compute_counts_per_s_px_one_channel_calls_dependencies(make_star, make_run_context, make_spectroscopy_channel):
+def test_compute_counts_per_s_px_one_channel_calls_dependencies(make_star, make_run_context, make_spectroscopy_channel, make_global_config):
     star = make_star()
     ctx = make_run_context()
     channel = make_spectroscopy_channel()
@@ -239,13 +234,14 @@ def test_compute_counts_per_s_px_one_channel_calls_dependencies(make_star, make_
     broadened_flux = np.array([4.0, 5.0, 6.0], dtype=np.float32)
     broadened_wavelength = np.array([110.0, 210.0, 310.0], dtype=np.float32)
     counts = np.array([7.0, 8.0, 9.0], dtype=np.float32)
+    cfg = make_global_config(write_intermediate_arrays=False, produce_flux_convolution_plots=False)
 
-    with patch("instrument.prepare_detector_images.compute_broadened_channel_flux", return_value=(broadened_flux, broadened_wavelength)) as mock_broaden, patch("instrument.prepare_detector_images.counts_per_s_px_conv_per_channel", return_value=counts) as mock_counts:
+    with patch("instrument.prepare_detector_images.compute_broadened_channel_flux", return_value=(broadened_flux, broadened_wavelength)) as mock_broaden, patch("instrument.prepare_detector_images.counts_per_s_px_conv_per_channel", return_value=counts) as mock_counts, patch("instrument.prepare_detector_images.get_global_config", return_value=cfg):
         result = compute_counts_per_s_px_one_channel(photons_star, wavelengths, channel, ctx, star)
 
     assert np.array_equal(result, counts)
     mock_broaden.assert_called_once_with(photons_star, wavelengths, channel, star)
-    mock_counts.assert_called_once_with(broadened_flux, broadened_wavelength, channel, star, ctx)
+    mock_counts.assert_called_once_with(broadened_flux, broadened_wavelength, channel)
 
 
 # Tests: convert_flux_to_photons

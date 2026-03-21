@@ -118,7 +118,7 @@ def run_snapshot_spread_image_2d_nir_psf(star_name: str, make_photometry_channel
 # Behavior: NIR full photons -> Gaussian broadening -> detector convolution matches snapshot
 def test_HD2685_convolved_counts_full_NIR(tmp_path, monkeypatch, make_global_config, make_photometry_channel, make_star, make_run_context):
     cfg = make_global_config()
-    monkeypatch.setattr("instrument.spectral_convolution.get_global_config", lambda: cfg)
+    monkeypatch.setattr("instrument.prepare_detector_images.get_global_config", lambda: cfg)
     run_snapshot_convolved_counts_full_photometry("HD 2685", "NIR", tmp_path, make_photometry_channel, make_star, make_run_context)
 
 
@@ -126,7 +126,7 @@ def test_HD2685_convolved_counts_full_NIR(tmp_path, monkeypatch, make_global_con
 # Behavior: NUV full photons -> Gaussian broadening -> detector convolution matches snapshot
 def test_HD2685_convolved_counts_full_NUV(tmp_path, monkeypatch, make_global_config, make_spectroscopy_channel, make_star, make_run_context):
     cfg = make_global_config()
-    monkeypatch.setattr("instrument.spectral_convolution.get_global_config", lambda: cfg)
+    monkeypatch.setattr("instrument.prepare_detector_images.get_global_config", lambda: cfg)
     run_snapshot_convolved_counts_full_spectroscopy("HD 2685", "NUV", tmp_path, make_spectroscopy_channel, make_star, make_run_context)
 
 
@@ -134,7 +134,7 @@ def test_HD2685_convolved_counts_full_NUV(tmp_path, monkeypatch, make_global_con
 # Behavior: VIS full photons -> Gaussian broadening -> detector convolution matches snapshot
 def test_HD2685_convolved_counts_full_VIS(tmp_path, monkeypatch, make_global_config, make_spectroscopy_channel, make_star, make_run_context):
     cfg = make_global_config()
-    monkeypatch.setattr("instrument.spectral_convolution.get_global_config", lambda: cfg)
+    monkeypatch.setattr("instrument.prepare_detector_images.get_global_config", lambda: cfg)
     run_snapshot_convolved_counts_full_spectroscopy("HD 2685", "VIS", tmp_path, make_spectroscopy_channel, make_star, make_run_context)
 
 
@@ -160,7 +160,7 @@ def test_HD2685_spread_image_2d_NIR_psf_pipeline(make_photometry_channel):
 # Behavior: NIR full photons -> Gaussian broadening -> detector convolution matches snapshot
 def test_KELT9_convolved_counts_full_NIR(tmp_path, monkeypatch, make_global_config, make_photometry_channel, make_star, make_run_context):
     cfg = make_global_config()
-    monkeypatch.setattr("instrument.spectral_convolution.get_global_config", lambda: cfg)
+    monkeypatch.setattr("instrument.prepare_detector_images.get_global_config", lambda: cfg)
     run_snapshot_convolved_counts_full_photometry("KELT-9", "NIR", tmp_path, make_photometry_channel, make_star, make_run_context)
 
 
@@ -168,7 +168,7 @@ def test_KELT9_convolved_counts_full_NIR(tmp_path, monkeypatch, make_global_conf
 # Behavior: NUV full photons -> Gaussian broadening -> detector convolution matches snapshot
 def test_KELT9_convolved_counts_full_NUV(tmp_path, monkeypatch, make_global_config, make_spectroscopy_channel, make_star, make_run_context):
     cfg = make_global_config()
-    monkeypatch.setattr("instrument.spectral_convolution.get_global_config", lambda: cfg)
+    monkeypatch.setattr("instrument.prepare_detector_images.get_global_config", lambda: cfg)
     run_snapshot_convolved_counts_full_spectroscopy("KELT-9", "NUV", tmp_path, make_spectroscopy_channel, make_star, make_run_context)
 
 
@@ -176,7 +176,7 @@ def test_KELT9_convolved_counts_full_NUV(tmp_path, monkeypatch, make_global_conf
 # Behavior: VIS full photons -> Gaussian broadening -> detector convolution matches snapshot
 def test_KELT9_convolved_counts_full_VIS(tmp_path, monkeypatch, make_global_config, make_spectroscopy_channel, make_star, make_run_context):
     cfg = make_global_config()
-    monkeypatch.setattr("instrument.spectral_convolution.get_global_config", lambda: cfg)
+    monkeypatch.setattr("instrument.prepare_detector_images.get_global_config", lambda: cfg)
     run_snapshot_convolved_counts_full_spectroscopy("KELT-9", "VIS", tmp_path, make_spectroscopy_channel, make_star, make_run_context)
 
 

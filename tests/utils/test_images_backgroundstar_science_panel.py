@@ -46,7 +46,7 @@ def test_compute_bg_mask_overlay_with_arcs_uses_arc_mask(monkeypatch, make_photo
 
 
 def test_generate_background_star_visibility_on_science_frame_writes_png(
-    make_spectroscopy_channel, make_star, make_run_context, monkeypatch
+    tmp_path, make_spectroscopy_channel, make_star, make_run_context, monkeypatch
 ):
     merged = np.ones((8, 8), dtype=np.float32)
     bg = np.zeros((8, 8), dtype=np.float32)

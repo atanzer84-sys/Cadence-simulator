@@ -10,8 +10,8 @@ from instrument.spectral_convolution import counts_per_s_px_conv_per_channel, co
 from utils.constants import PHOTON_ENERGY_CONVERSION_A
 from instrument.psf_spread import spread_1d_photometry_to_2d, get_photometry_placement
 from instrument.wavelength_range import get_required_wavelength_range
-from utils.debug_dumps import dump_npz_snapshot, dump_cropped_image_npz, dump_1d_array
-from utils.flux_image_array import plot_flux_and_photons_windows
+from utils.debug_dumps import dump_1d_for_channel, dump_effective_area_txt, dump_npz_snapshot, dump_cropped_image_npz, dump_1d_array
+from utils.flux_image_array import plot_flux_and_photons_windows, plot_1d_for_channel
 
 def prepare_star_photon_flux_for_channels(star: Star, ctx: RunContext, nuv: SpectroscopyChannel | None, vis: SpectroscopyChannel | None, nir: PhotometryChannel | None):
     print("\n==== STARTING CALCULATION FOR FLUX TO INSTRUMENT =====")
@@ -19,18 +19,18 @@ def prepare_star_photon_flux_for_channels(star: Star, ctx: RunContext, nuv: Spec
     photons_star, wavelengths_total = prepare_star_photon_flux_in_range(star, ctx, wl_min_A, wl_max_A, announce_user=True)
     return photons_star, wavelengths_total
 
-def prepare_star_photon_flux_in_range(star: Star, ctx: RunContext, wl_min_A: float, wl_max_A: float, announce_user: bool = True):
+def prepare_star_photon_flux_in_range(star: Star, ctx: RunContext, wl_min_A: float, wl_max_A: float, announce_user: bool = True, background_star: bool = False):
     logging.info("Calculating flux on Earth and converting to photons for star %s", star.name)
 
-    flux, wavelengths = calculateFluxOnEarth(star, ctx, wl_min_A, wl_max_A, announce_user=announce_user)
+    flux, wavelengths = calculateFluxOnEarth(star, ctx, wl_min_A, wl_max_A, announce_user=announce_user, background_star=background_star)
     photons_star = convert_flux_to_photons(flux, wavelengths)
     photons_star = np.asarray(photons_star, dtype=np.float32)
     wavelengths = np.asarray(wavelengths, dtype=np.float32)
 
     cfg = get_global_config()
-    if cfg.write_intermediate_arrays:
+    if cfg.write_intermediate_arrays and not background_star:
         dump_1d_array(wavelengths, photons_star, ctx.output_dir, star.name, "FluxCalc_8_photons_star", perChannel=True, zoom=True)
-    if cfg.produce_flux_convolution_plots:
+    if cfg.produce_flux_convolution_plots and not background_star:
         plot_flux_and_photons_windows(wavelengths, photons_star, ctx.output_dir, star, "FluxCalc_photons", "Photon Flux", "Photon flux [photons s⁻¹ cm⁻² Å⁻¹]")
 
     return photons_star, wavelengths
@@ -71,17 +71,16 @@ def prepare_detector_image_photometry(photons: np.ndarray, wavelengths: np.ndarr
 
     logging.info("Detector image prepared: channel=%s mode=photometry shape=%s", channel.channel_name, rate_image_e_s.shape)
 
-    ctx.plot_star_counts_vs_noise_photometry(rate_image_e_s, channel, ctx, star)
     return rate_image_e_s
 
-def compute_counts_per_s_px_one_channel(photons_star: np.ndarray, wavelengths: np.ndarray, channel: Channel, ctx: RunContext, star: Star):
+def compute_counts_per_s_px_one_channel(photons_star: np.ndarray, wavelengths: np.ndarray, channel: Channel, ctx: RunContext, star: Star, background_star: bool = False):
 
     logging.info("Computing counts per second per pixel for channel %s", channel.channel_name)
 
     # 2) photons -> broadened -> counts/s/pixel (single channel path, reusing existing pieces)
     broadened_flux, wavelength = compute_broadened_channel_flux(photons_star, wavelengths, channel, star)
-    counts_s_px_convolved = counts_per_s_px_conv_per_channel(broadened_flux, wavelength, channel, star, ctx)
-
+    counts_s_px_convolved = counts_per_s_px_conv_per_channel(broadened_flux, wavelength, channel)
+    _dump_convolved_counts(ctx, star, channel, counts_s_px_convolved, background_star=background_star)
     return counts_s_px_convolved
 
 def convert_flux_to_photons(flux_unred, wavelengths):
@@ -90,3 +89,16 @@ def convert_flux_to_photons(flux_unred, wavelengths):
 
     logging.info(f"photon_flux_at_earth_A shape: {photon_flux.shape}")
     return photon_flux
+
+
+
+def _dump_convolved_counts(ctx: RunContext, star: Star, channel: Channel, counts_s_px_convolved: np.ndarray, background_star: bool = False) -> None:
+    cfg = get_global_config()
+    dump_arrays = cfg.write_intermediate_arrays and not background_star
+    dump_plots = cfg.produce_flux_convolution_plots and not background_star
+    if dump_arrays:
+        dump_1d_for_channel(channel.effective_area_wavelength, counts_s_px_convolved, ctx.output_dir, star.name, "Detector_counts_s_px_convolved", channel.channel_name, full=True, zoom=True)
+        dump_effective_area_txt(ctx.output_dir, channel.channel_name, channel.effective_area_wavelength, channel.effective_area, channel.pixel_scale)
+        dump_npz_snapshot(ctx.output_dir, f"{star.name}_{channel.channel_name}_convolved_counts_full.npz", counts_s_px_convolved=counts_s_px_convolved)
+    if dump_plots:
+        plot_1d_for_channel(channel.effective_area_wavelength, counts_s_px_convolved, ctx.output_dir, star, filename_tag="Detector_counts_s_px_convolved", title_text="Convolved Counts", y_label="Counts s⁻¹ pixel⁻¹", channel_name=channel.channel_name, full=True)

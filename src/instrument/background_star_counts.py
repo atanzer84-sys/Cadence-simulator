@@ -24,7 +24,7 @@ def populate_background_star_counts(background_stars_catalog: StarCatalog, nuv: 
         if i == 1 or i == total or i % 10 == 0:
             print(f"Flux Calculation and Detector Convolution for Star: {i}/{total} for {star_id}")
 
-        photons_star, wavelengths = prepare_star_photon_flux_in_range(bg_star, ctx, wl_min_A, wl_max_A, announce_user=False)
+        photons_star, wavelengths = prepare_star_photon_flux_in_range(bg_star, ctx, wl_min_A, wl_max_A, announce_user=False, background_star=True)
 
         for channel in enabled_channels:
             key = (star_id, channel.channel_name)
@@ -32,7 +32,7 @@ def populate_background_star_counts(background_stars_catalog: StarCatalog, nuv: 
                 logging.info("BG STAR skip existing counts: star_id=%s channel=%s", star_id, channel.channel_name)
                 continue
 
-            counts_s_px = compute_counts_per_s_px_one_channel(photons_star, wavelengths, channel, ctx, bg_star)
+            counts_s_px = compute_counts_per_s_px_one_channel(photons_star, wavelengths, channel, ctx, bg_star, background_star=True)
 
             if isinstance(channel, SpectroscopyChannel):
                 background_stars_catalog.counts_by_id_and_band[key] = counts_s_px.astype(np.float32)

@@ -74,7 +74,8 @@ def test_populate_background_star_counts_processes_multiple_channels(make_star_c
     vis = make_spectroscopy_channel(channel_name="VIS")
     nir = make_photometry_channel(channel_name="NIR")
 
-    def _fake_counts(photons_star, wavelengths, channel, ctx, bg_star):
+    def _fake_counts(photons_star, wavelengths, channel, ctx, bg_star, background_star=False):
+        assert background_star is True
         if channel.channel_name == "NIR":
             return np.array([4.0, 5.0], dtype=float)
         return np.array([1.0, 2.0, 3.0], dtype=float)
@@ -111,7 +112,8 @@ def test_populate_background_star_counts_skips_existing_counts(make_star_catalog
     existing = np.array([42.0], dtype=np.float32)
     catalog = make_star_catalog(stars={"star_1": star}, counts={("star_1", nuv.channel_name): existing})
 
-    def _fake_counts(photons_star, wavelengths, channel, ctx, bg_star):
+    def _fake_counts(photons_star, wavelengths, channel, ctx, bg_star, background_star=False):
+        assert background_star is True
         assert channel.channel_name == "NIR"
         return np.array([1.0, 2.0, 3.0], dtype=float)
 

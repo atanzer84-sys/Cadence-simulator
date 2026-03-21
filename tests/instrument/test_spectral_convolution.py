@@ -5,33 +5,26 @@ from instrument.spectral_convolution import counts_per_s_px_conv_per_channel, cu
 
 # Tests: counts_per_s_px_conv_per_channel
 # Behavior: Interpolates broadened flux onto channel wavelengths and applies scale factors.
-def test_single_channel_counts_identity_gaussbroad(monkeypatch, make_star, make_run_context, make_spectroscopy_channel, make_global_config):
-    cfg = make_global_config()
-    monkeypatch.setattr("instrument.spectral_convolution.get_global_config", lambda: cfg)
-
+def test_single_channel_counts_identity_gaussbroad(make_spectroscopy_channel):
     wavelength = np.array([100.0, 101.0, 102.0], dtype=float)
     broadened_flux = np.array([10.0, 20.0, 30.0], dtype=float)
     channel = make_spectroscopy_channel(effective_area_wavelength=np.array([100.0, 100.5, 101.0], dtype=float), effective_area=np.array([2.0, 2.0, 2.0], dtype=float), pixel_scale=0.01)
 
-    counts = counts_per_s_px_conv_per_channel(broadened_flux, wavelength, channel, star=make_star(), ctx=make_run_context(output_dir="OUTDIR"))
+    counts = counts_per_s_px_conv_per_channel(broadened_flux, wavelength, channel)
 
     assert np.allclose(counts, np.array([0.20, 0.30, 0.40], dtype=float))
 
 # Tests: counts_per_s_px_conv_per_channel
 # Behavior: Processes multiple channels independently with matching array lengths to prevent broadcast errors.
-def test_all_channels_counts_identity_gaussbroad(monkeypatch, make_star, make_run_context, make_spectroscopy_channel, make_global_config):
-    cfg = make_global_config()
-    monkeypatch.setattr("instrument.spectral_convolution.get_global_config", lambda: cfg)
-
+def test_all_channels_counts_identity_gaussbroad(make_spectroscopy_channel):
     wavelengths_total = np.array([100.0, 101.0, 102.0], dtype=float)
     photon_flux = np.array([10.0, 20.0, 30.0], dtype=float)
-    star, ctx = make_star(), make_run_context(output_dir="OUTDIR")
 
     nuv = make_spectroscopy_channel(channel_name="NUV", effective_area_wavelength=np.array([100.0, 100.5], dtype=float), effective_area=np.array([2.0, 2.0], dtype=float), pixel_scale=0.01)
     vis = make_spectroscopy_channel(channel_name="VIS", effective_area_wavelength=np.array([101.0, 102.0], dtype=float), effective_area=np.array([1.0, 1.0], dtype=float), pixel_scale=0.01)
 
-    nuv_counts = counts_per_s_px_conv_per_channel(photon_flux, wavelengths_total, nuv, star=star, ctx=ctx)
-    vis_counts = counts_per_s_px_conv_per_channel(photon_flux, wavelengths_total, vis, star=star, ctx=ctx)
+    nuv_counts = counts_per_s_px_conv_per_channel(photon_flux, wavelengths_total, nuv)
+    vis_counts = counts_per_s_px_conv_per_channel(photon_flux, wavelengths_total, vis)
 
     assert np.allclose(nuv_counts, np.array([0.20, 0.30]))
     assert np.allclose(vis_counts, np.array([0.20, 0.30]))
