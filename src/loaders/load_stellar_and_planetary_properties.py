@@ -12,8 +12,8 @@ from loaders.run_waltzer_context import get_repo_root
 from utils.constants import MAG_G_SUN, TEMP_SUN
 
 
-# Module-level cache (process lifetime) for Mamajek table arrays.
-_MAMAJEK_CACHE: tuple[np.ndarray, np.ndarray] | None = None
+# Module-level cache (process lifetime) for Mamajek table arrays keyed by path.
+_MAMAJEK_CACHE: tuple[str, np.ndarray, np.ndarray] | None = None
 
 def load_stellar_and_planetary_properties(target_name_user_input):
     cfg = get_global_config()
@@ -76,7 +76,7 @@ def infer_mamajek(star_params, log_output: bool = True):
     mamajek_path = repo_root / "data" / "stellar_param_mamjeck.txt"
     return infer_mamajek_spectral_type(star_params, mamajek_path, log_output)
 
-def apply_radius_from_teff_mag_distance_if_missing(star_params: dict) -> None:
+def apply_radius_from_teff_mag_distance_if_missing(star_params: dict) -> dict:
     """
     If radius is missing, estimate it from Gaia G magnitude, distance, and Teff.
 
@@ -186,17 +186,17 @@ def infer_mamajek_spectral_type(star_params, mamajek_path, log_output: bool = Tr
     mamajek_path = str(mamajek_path)
     global _MAMAJEK_CACHE
 
-    if _MAMAJEK_CACHE is None:
+    if _MAMAJEK_CACHE is None or _MAMAJEK_CACHE[0] != mamajek_path:
         if log_output:
             logging.info("Loading Mamajek table from %s", mamajek_path)
         data = ascii.read(mamajek_path, comment="#")
         Sp = np.array(data["col1"])
         T_book = np.array(data["col2"], dtype=float)
-        _MAMAJEK_CACHE = (Sp, T_book)
+        _MAMAJEK_CACHE = (mamajek_path, Sp, T_book)
         if log_output:
             logging.info("Mamajek table loaded successfully (%d rows)", len(data))
     else:
-        Sp, T_book = _MAMAJEK_CACHE
+        _, Sp, T_book = _MAMAJEK_CACHE
         if log_output:
             logging.info("Using cached Mamajek table")
 
