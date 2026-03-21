@@ -41,26 +41,38 @@ def lookup_target_star_gaia(star_params: dict, missing_star, cfg: GlobalConfig) 
 
         cone_table = _gaia_cone_search(center, radius_arcsec=2.0, g_mag_limit=None, GAIA_USE_ASYNC_JOBS=cfg.GAIA_USE_ASYNC_JOBS)
         if cone_table is None or len(cone_table) == 0:
-            logging.warning("No Gaia cone result found for %s", target_name)
-            return {}
+            msg = f"No Gaia cone result found for {target_name}"
+            logging.error(msg)
+            print(msg)
+            raise RuntimeError(msg)
 
         central_row, central_sep = _find_central_row(cone_table, center)
         if central_row is None:
-            logging.warning("No Gaia central match found for %s", target_name)
-            return {}
+            msg = f"No Gaia central match found for {target_name}"
+            logging.error(msg)
+            print(msg)
+            raise RuntimeError(msg)
 
         source_id = int(central_row["source_id"])
         print("source id (nearest):", source_id, "| sep_arcsec=", central_sep)
 
         gaia_row = query_gaia(source_id, cfg.GAIA_USE_ASYNC_JOBS)
         if not gaia_row:
-            return {}
+            msg = f"No Gaia row returned for {target_name} (source_id={source_id})"
+            logging.error(msg)
+            print(msg)
+            raise RuntimeError(msg)
 
         # map Gaia columns to internal keys
         gaia_star_params = get_gaia_stellar_properties(gaia_row)
 
         # return only missing keys
         gaia_filtered = {k: gaia_star_params.get(k) for k in missing_star if k in gaia_star_params}
+        if missing_star and not gaia_filtered:
+            msg = f"Gaia lookup for {target_name} did not return requested missing keys: {missing_star}"
+            logging.error(msg)
+            print(msg)
+            raise RuntimeError(msg)
 
         logging.info("Gaia parameters to merge: %s", gaia_filtered)
 
@@ -69,7 +81,7 @@ def lookup_target_star_gaia(star_params: dict, missing_star, cfg: GlobalConfig) 
     except Exception as e:
         logging.error("Gaia lookup failed for %s: %s", target_name, str(e))
         print(f"Gaia lookup failed for {target_name}: {e}")
-        return {}
+        raise
 
 def query_gaia(sourceID, GAIA_USE_ASYNC_JOBS):
     query = _gaia_query_for_source_id(sourceID)
@@ -144,7 +156,12 @@ def gaia_lookup_for_background_stars(star: Star, g_mag_limit, GAIA_USE_ASYNC_JOB
     """
     print(f"==== Gaia background search: START (g_mag_limit={g_mag_limit}, GAIA_USE_ASYNC_JOBS={GAIA_USE_ASYNC_JOBS} , radius_arcsec={radius_arcsec}) =====")
     logging.info("Gaia background search: START g_mag_limit=%s GAIA_USE_ASYNC_JOBS=%s radius_arcsec=%s", g_mag_limit, GAIA_USE_ASYNC_JOBS, radius_arcsec)
-    
+
+    if star.right_ascension is None or star.declination is None:
+        logging.warning("Gaia background search: missing target coordinates (ra=%s dec=%s) for star=%s",
+            star.right_ascension, star.declination, star.name)
+        return None
+
     center = SkyCoord(ra=star.right_ascension * u.deg, dec=star.declination * u.deg, frame="icrs")
 
     cone_small = _gaia_cone_search(center, radius_arcsec, g_mag_limit=g_mag_limit, GAIA_USE_ASYNC_JOBS=GAIA_USE_ASYNC_JOBS)
