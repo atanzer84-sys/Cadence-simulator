@@ -85,8 +85,8 @@ def test_setup_output_directory_raises_after_many_collisions(tmp_path):
 
 
 # Tests: initialize_waltzer_runtime_context
-# Behavior: wires noop callbacks when outputs are disabled
-def test_initialize_waltzer_runtime_context_uses_noop_callbacks_when_disabled(make_global_config, make_user_config, tmp_path):
+# Behavior: builds RunContext from user config and output directory
+def test_initialize_waltzer_runtime_context_builds_run_context(make_user_config, tmp_path):
     from datetime import datetime
 
     output_dir = tmp_path / "output" / "20250101_120000_000000"
@@ -94,65 +94,16 @@ def test_initialize_waltzer_runtime_context_uses_noop_callbacks_when_disabled(ma
     timestamp = datetime(2025, 1, 1, 12, 0, 0)
     user_cfg = make_user_config(target_name="TestStar")
 
-    cfg = make_global_config(
-        write_intermediate_arrays=False,
-        produce_flux_convolution_plots=False,
-        produce_target_background_star_noise_vs_counts_plot=False,
-        write_calibration_frame_png=False,
-        write_science_frames_png=False,
-        write_science_frame_component_png=False,
-        write_background_star_footprint_on_science_frame=False,
-    )
-
     with patch("loaders.run_waltzer_context.setup_output_directory", return_value=(output_dir, timestamp_str, timestamp)), \
          patch("loaders.run_waltzer_context.setup_logger"), \
-         patch("loaders.run_waltzer_context.load_global_and_user_config", return_value=user_cfg), \
-         patch("loaders.run_waltzer_context.get_global_config", return_value=cfg):
+         patch("loaders.run_waltzer_context.load_global_and_user_config", return_value=user_cfg):
 
         run_ctx, got_user_cfg = run_waltzer_context.initialize_waltzer_runtime_context()
 
     assert got_user_cfg is user_cfg
-    assert run_ctx.dump_3d_array is run_waltzer_context._noop
-    assert run_ctx.plot_1d_for_channel is run_waltzer_context._noop
-    assert run_ctx.write_science_frame_png is run_waltzer_context._noop
-
-
-# Tests: initialize_waltzer_runtime_context
-# Behavior: wires real callbacks when outputs are enabled
-def test_initialize_waltzer_runtime_context_uses_real_callbacks_when_enabled(make_global_config, make_user_config, tmp_path):
-    from datetime import datetime
-
-    output_dir = tmp_path / "output" / "20250101_120000_000000"
-    timestamp_str = "20250101_120000_000000"
-    timestamp = datetime(2025, 1, 1, 12, 0, 0)
-    user_cfg = make_user_config(target_name="TestStar")
-
-    cfg = make_global_config(
-        write_intermediate_arrays=True,
-        produce_flux_convolution_plots=True,
-        produce_target_background_star_noise_vs_counts_plot=True,
-        write_calibration_frame_png=True,
-        write_science_frames_png=True,
-        write_science_frame_component_png=True,
-        write_background_star_footprint_on_science_frame=True,
-    )
-
-    marker = object()
-
-    with patch("loaders.run_waltzer_context.setup_output_directory", return_value=(output_dir, timestamp_str, timestamp)), \
-         patch("loaders.run_waltzer_context.setup_logger"), \
-         patch("loaders.run_waltzer_context.load_global_and_user_config", return_value=user_cfg), \
-         patch("loaders.run_waltzer_context.get_global_config", return_value=cfg), \
-         patch("loaders.run_waltzer_context.debug_dumps.dump_3d_array", marker), \
-         patch("utils.flux_image_array.plot_1d_for_channel", marker), \
-         patch("utils.images_science_frame.write_science_frame_png", marker):
-
-        run_ctx, got_user_cfg = run_waltzer_context.initialize_waltzer_runtime_context()
-
-    assert got_user_cfg is user_cfg
-    assert run_ctx.dump_3d_array is marker
-    assert run_ctx.plot_1d_for_channel is marker
-    assert run_ctx.write_science_frame_png is marker
+    assert run_ctx.target_name == user_cfg.target_name
+    assert run_ctx.output_dir == output_dir
+    assert run_ctx.timestamp == timestamp
 
 
 # Tests: setup_logger
