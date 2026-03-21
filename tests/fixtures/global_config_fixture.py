@@ -55,7 +55,6 @@ def make_global_config():
 
             write_intermediate_arrays=False,
             produce_flux_convolution_plots=False,
-            produce_target_background_star_noise_vs_counts_plot=False,
         )
 
         base.update(overrides)

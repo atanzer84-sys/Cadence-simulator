@@ -212,6 +212,9 @@ def test_calculateFluxOnEarth_executes_write_intermediate_arrays_instrumentation
     def fake_dump_3d_array(*args, **kwargs):
         called["dumped"] += 1
 
+    def fake_dump_1d_array(*args, **kwargs):
+        called["dumped"] += 1
+
     monkeypatch.setattr(
         "flux.flux_calc.load_model_for_temperature",
         lambda _t, announce_user=False: np.array([[5000.0, 1.0, 1.0]])
@@ -223,6 +226,8 @@ def test_calculateFluxOnEarth_executes_write_intermediate_arrays_instrumentation
 
     cfg = make_global_config(write_intermediate_arrays=True)
     monkeypatch.setattr("flux.flux_calc.get_global_config", lambda: cfg)
+    monkeypatch.setattr("flux.flux_calc.dump_3d_array", fake_dump_3d_array)
+    monkeypatch.setattr("flux.flux_calc.dump_1d_array", fake_dump_1d_array)
 
     star = make_star(
         name="Star",
@@ -236,7 +241,7 @@ def test_calculateFluxOnEarth_executes_write_intermediate_arrays_instrumentation
         mass=1.0,
     )
 
-    ctx = make_run_context(dump_3d_array=fake_dump_3d_array)
+    ctx = make_run_context()
 
     calculateFluxOnEarth(star, ctx, 3400.0, 18000.0)
 
