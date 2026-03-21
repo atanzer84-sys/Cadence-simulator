@@ -64,7 +64,6 @@ class GlobalConfig:
 
     write_intermediate_arrays: bool
     produce_flux_convolution_plots: bool
-    produce_target_background_star_noise_vs_counts_plot: bool
 
 _GLOBAL: GlobalConfig | None = None
 
@@ -143,7 +142,6 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
 
     write_intermediate_arrays = as_bool(raw.get("write_intermediate_arrays", 0), key="write_intermediate_arrays")
     produce_flux_convolution_plots = as_bool(raw.get("produce_flux_convolution_plots", raw.get("produce_flux_convolution_plots", 0)), key="produce_flux_convolution_plots")
-    produce_target_background_star_noise_vs_counts_plot = as_bool(raw.get("produce_target_background_star_noise_vs_counts_plot", 0), key="produce_target_background_star_noise_vs_counts_plot")
 
     _ensure_at_least_one_channel_enabled(run_vis, run_nuv, run_nir)
     ensure_non_negative(orbit_duration_minutes, key="orbit_duration_minutes")
@@ -203,7 +201,6 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
         zod_spectrum_file=zod_spectrum_file,
         write_intermediate_arrays=write_intermediate_arrays,
         produce_flux_convolution_plots=produce_flux_convolution_plots,
-        produce_target_background_star_noise_vs_counts_plot=produce_target_background_star_noise_vs_counts_plot,
     )
 
     logging.info("Global config loaded: %s", cfg)
