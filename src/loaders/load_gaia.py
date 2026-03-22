@@ -313,8 +313,9 @@ def _gaia_fetch_ap_and_join(field_cone: Table, GAIA_USE_ASYNC_JOBS, ap_batch_siz
             tbl = _run_gaia_job(ap_query, GAIA_USE_ASYNC_JOBS)
             if tbl is not None and len(tbl) > 0:
                 ap_tables.append(tbl)
-                # ap_tbl_text = "\n".join(tbl.pformat(max_lines=-1, max_width=-1))
-                # logging.info("Gaia background search: AP chunk start=%d n_ids=%d n_rows=%d\n%s", start, len(chunk), len(tbl), ap_tbl_text)
+                # TODO: REMOVE
+                ap_tbl_text = "\n".join(tbl.pformat(max_lines=-1, max_width=-1))
+                logging.info("Gaia background search: AP chunk start=%d n_ids=%d n_rows=%d\n%s", start, len(chunk), len(tbl), ap_tbl_text)
         except Exception as e:
             msg = f"Gaia background search: AP query failed (chunk {start}-{start + len(chunk)}): {e}"
             logging.exception(msg)
@@ -330,6 +331,8 @@ def _gaia_fetch_ap_and_join(field_cone: Table, GAIA_USE_ASYNC_JOBS, ap_batch_siz
     logging.info("Gaia background search: after AP search rows=%d", ap_rows)
 
     field_joined = join(field_cone, ap_tbl, keys="source_id", join_type="left")
+    field_joined_text = "\n".join(field_joined.pformat(max_lines=-1, max_width=-1))
+    logging.info("Gaia background search: field_joined after AP join rows=%d cols=%s\n%s", len(field_joined), list(field_joined.colnames), field_joined_text)
     return field_joined
 
 def _gaia_select_joined_base() -> str:
