@@ -125,22 +125,28 @@ def apply_distance_from_parallax_if_missing(star_params: dict) -> dict:
     If distance is missing, set it from parallax in star_params
     using distance_pc = 1000 / parallax_mas when valid.
     """
+    name = star_params.get("name", "?")
     if star_params.get("distance") is not None:
+        logging.info("Parallax distance fallback skipped for %s: distance already set (%r)", name, star_params.get("distance"))
         return star_params
 
     par = star_params.get("parallax")
     if par is None or np.ma.is_masked(par):
+        logging.info("Parallax distance fallback skipped for %s: no usable parallax in star_params (parallax=%r)", name, par)
         return star_params
 
     try:
         par = float(par)
     except Exception:
+        logging.info("Parallax distance fallback skipped for %s: parallax not float-convertible (parallax=%r)", name, star_params.get("parallax"))
         return star_params
 
     if not np.isfinite(par) or par <= 0.0:
+        logging.info("Parallax distance fallback skipped for %s: parallax invalid (parallax=%r)", name, par)
         return star_params
 
     star_params["distance"] = 1000.0 / par
+    logging.info("Parallax distance fallback applied for %s: parallax_mas=%s -> distance_pc=%s", name, par, star_params["distance"])
     return star_params
 
 

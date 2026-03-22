@@ -13,6 +13,7 @@ GAIA_PROVIDES = {
     "declination",
     "gaia_magnitude",
     "v_magnitude",
+    "parallax",
     "effective_temperature",
     "radius",
     "mass",
@@ -55,6 +56,7 @@ def lookup_target_star_gaia(star_params: dict, missing_stellar_keys, cfg: Global
 
         source_id = int(central_row["source_id"])
         print("source id (nearest):", source_id, "| sep_arcsec=", central_sep)
+        logging.info("Gaia lookup central match for %s: source_id (nearest)=%s sep_arcsec=%s", target_name, source_id, central_sep)
 
         gaia_row = query_gaia(source_id, cfg.GAIA_USE_ASYNC_JOBS)
         if not gaia_row:
@@ -66,8 +68,10 @@ def lookup_target_star_gaia(star_params: dict, missing_stellar_keys, cfg: Global
         # map Gaia columns to internal keys
         gaia_star_params = get_gaia_stellar_properties(gaia_row)
 
-        # return only missing keys
+        # return missing keys; parallax is optional (not required from Excel) but always merged when Gaia returns it
         gaia_filtered = {k: gaia_star_params.get(k) for k in missing_stellar_keys if k in gaia_star_params}
+        if gaia_star_params.get("parallax") is not None:
+            gaia_filtered["parallax"] = gaia_star_params["parallax"]
         if missing_stellar_keys and not gaia_filtered:
             msg = f"Gaia lookup for {target_name} did not return requested missing keys: {missing_stellar_keys}"
             logging.error(msg)
@@ -237,8 +241,6 @@ def _gaia_cone_search(center: SkyCoord, radius_arcsec: float, g_mag_limit: float
         logging.info("Gaia background search: no sources found")
         return None
 
-    logging.info("Gaia background search: cone search returned rows=%d ", len(cone))
-
     cone_small = cone[["source_id", "ra", "dec", "parallax", "phot_g_mean_mag"]]
 
     if g_mag_limit is not None:
@@ -250,7 +252,7 @@ def _gaia_cone_search(center: SkyCoord, radius_arcsec: float, g_mag_limit: float
         logging.info("Gaia background search: no sources after magnitude filter")
         return None
 
-    logging.info("Gaia background search: cone_small rows=%d", len(cone_small))
+    logging.info("Gaia background search: cone rows=%d ", len(cone))
 
     return cone_small
 
@@ -311,6 +313,8 @@ def _gaia_fetch_ap_and_join(field_cone: Table, GAIA_USE_ASYNC_JOBS, ap_batch_siz
             tbl = _run_gaia_job(ap_query, GAIA_USE_ASYNC_JOBS)
             if tbl is not None and len(tbl) > 0:
                 ap_tables.append(tbl)
+                # ap_tbl_text = "\n".join(tbl.pformat(max_lines=-1, max_width=-1))
+                # logging.info("Gaia background search: AP chunk start=%d n_ids=%d n_rows=%d\n%s", start, len(chunk), len(tbl), ap_tbl_text)
         except Exception as e:
             msg = f"Gaia background search: AP query failed (chunk {start}-{start + len(chunk)}): {e}"
             logging.exception(msg)

@@ -160,7 +160,7 @@ def test_lookup_target_star_gaia_raises_on_any_exception(monkeypatch, make_globa
 # Tests: lookup_target_star_gaia
 # Behavior: returns only requested missing keys from Gaia data
 def test_lookup_target_star_gaia_returns_only_missing_keys(monkeypatch, make_global_config):
-    gaia_row = _make_gaia_row(Teff=5777.0, radius_sun=1.01, mass_sun=1.0, mh_gspphot=0.1)
+    gaia_row = _make_gaia_row(Teff=5777.0, radius_sun=1.01, mass_sun=1.0, mh_gspphot=0.1, parallax=None)
 
     cone = _cone_table([(1.0, 2.0, 222)])
 
@@ -181,6 +181,54 @@ def test_lookup_target_star_gaia_returns_only_missing_keys(monkeypatch, make_glo
         "effective_temperature": 5777.0,
         "radius": 1.01,
     }
+
+
+# Tests: lookup_target_star_gaia
+# Behavior: parallax is included whenever Gaia returns it (optional; not required from Excel)
+# Also: when dist_pc is empty, distance maps to None but parallax is still returned for downstream fallback
+def test_lookup_target_star_gaia_includes_parallax_when_gaia_has_it(monkeypatch, make_global_config):
+    gaia_row = _make_gaia_row(Teff=5777.0, dist_pc="", parallax=5.0)
+
+    cone = _cone_table([(1.0, 2.0, 222)])
+
+    monkeypatch.setattr(
+        load_gaia,
+        "_gaia_cone_search",
+        lambda _center, radius_arcsec=2.0, g_mag_limit=None, GAIA_USE_ASYNC_JOBS=False: cone,
+    )
+    monkeypatch.setattr(load_gaia, "query_gaia", lambda _source_id, _async: gaia_row)
+
+    cfg = make_global_config(GAIA_USE_ASYNC_JOBS=False)
+    star_params = {"name": "Test Star", "right_ascension": 1.0, "declination": 2.0}
+    missing = ["distance", "effective_temperature"]
+
+    out = load_gaia.lookup_target_star_gaia(star_params, missing_stellar_keys=missing, cfg=cfg)
+
+    assert out["parallax"] == 5.0
+    assert out["distance"] is None
+    assert out["effective_temperature"] == 5777.0
+
+
+# Tests: lookup_target_star_gaia
+# Behavior: only distance missing from Gaia row → distance None, parallax still attached when present
+def test_lookup_target_star_gaia_stores_parallax_and_distance_none_when_only_distance_missing(monkeypatch, make_global_config):
+    gaia_row = _make_gaia_row(dist_pc="", parallax=8.0, Teff=5000.0)
+
+    cone = _cone_table([(1.0, 2.0, 222)])
+
+    monkeypatch.setattr(
+        load_gaia,
+        "_gaia_cone_search",
+        lambda _center, radius_arcsec=2.0, g_mag_limit=None, GAIA_USE_ASYNC_JOBS=False: cone,
+    )
+    monkeypatch.setattr(load_gaia, "query_gaia", lambda _source_id, _async: gaia_row)
+
+    cfg = make_global_config(GAIA_USE_ASYNC_JOBS=False)
+    star_params = {"name": "Parallax Star", "right_ascension": 1.0, "declination": 2.0}
+
+    out = load_gaia.lookup_target_star_gaia(star_params, missing_stellar_keys=["distance"], cfg=cfg)
+
+    assert out == {"distance": None, "parallax": 8.0}
 
 
 # Tests: lookup_target_star_gaia
@@ -304,6 +352,47 @@ def test_get_gaia_stellar_properties_handles_whitespace_strings():
     assert result["surface_gravity"] is None
 
 # Tests: lookup_target_star_gaia
+# Behavior: when RA/Dec absent, name resolution failure propagates (no coordinates to search)
+def test_lookup_target_star_gaia_raises_when_ra_dec_missing_and_name_resolution_fails(monkeypatch, make_global_config):
+
+    def _from_name_fails(_name):
+        raise ValueError("could not resolve name")
+
+    monkeypatch.setattr(load_gaia.SkyCoord, "from_name", staticmethod(_from_name_fails))
+
+    cfg = make_global_config(GAIA_USE_ASYNC_JOBS=False)
+
+    with pytest.raises(ValueError, match="could not resolve name"):
+        load_gaia.lookup_target_star_gaia(
+            {"name": "Unresolved Target"},
+            missing_stellar_keys=["distance"],
+            cfg=cfg,
+        )
+
+
+# Tests: lookup_target_star_gaia
+# Behavior: when RA/Dec absent but name resolves, empty cone still raises
+def test_lookup_target_star_gaia_raises_when_ra_dec_missing_and_cone_search_empty(monkeypatch, make_global_config):
+    center = SkyCoord(ra=11.0 * u.deg, dec=22.0 * u.deg, frame="icrs")
+
+    monkeypatch.setattr(load_gaia.SkyCoord, "from_name", staticmethod(lambda _name: center))
+    monkeypatch.setattr(
+        load_gaia,
+        "_gaia_cone_search",
+        lambda _found_center, radius_arcsec=2.0, g_mag_limit=None, GAIA_USE_ASYNC_JOBS=False: None,
+    )
+
+    cfg = make_global_config(GAIA_USE_ASYNC_JOBS=False)
+
+    with pytest.raises(RuntimeError, match="No Gaia cone result found"):
+        load_gaia.lookup_target_star_gaia(
+            {"name": "No Cone After Name"},
+            missing_stellar_keys=["distance"],
+            cfg=cfg,
+        )
+
+
+# Tests: lookup_target_star_gaia
 # Behavior: resolves target coordinates by name when RA and Dec are missing
 def test_lookup_target_star_gaia_resolves_name_when_coordinates_missing(monkeypatch, make_global_config):
     center = SkyCoord(ra=11.0 * u.deg, dec=22.0 * u.deg, frame="icrs")
@@ -315,7 +404,7 @@ def test_lookup_target_star_gaia_resolves_name_when_coordinates_missing(monkeypa
         "_gaia_cone_search",
         lambda found_center, radius_arcsec=2.0, g_mag_limit=None, GAIA_USE_ASYNC_JOBS=False: cone if found_center is center else None,
     )
-    monkeypatch.setattr(load_gaia, "query_gaia", lambda source_id, async_flag: _make_gaia_row(Teff=5000.0))
+    monkeypatch.setattr(load_gaia, "query_gaia", lambda source_id, async_flag: _make_gaia_row(Teff=5000.0, parallax=None))
 
     cfg = make_global_config(GAIA_USE_ASYNC_JOBS=False)
 
@@ -377,8 +466,8 @@ def test_lookup_target_star_gaia_raises_when_requested_keys_are_absent(monkeypat
         )
 
 # Tests: lookup_target_star_gaia
-# Behavior: returns an empty dict when no missing keys are requested
-def test_lookup_target_star_gaia_returns_empty_dict_when_missing_star_is_empty(monkeypatch, make_global_config):
+# Behavior: with no missing keys, still returns parallax when Gaia provides it (optional carry-over)
+def test_lookup_target_star_gaia_returns_parallax_only_when_missing_star_is_empty(monkeypatch, make_global_config):
     cone = _cone_table([(1.0, 2.0, 222)])
 
     monkeypatch.setattr(
@@ -396,7 +485,7 @@ def test_lookup_target_star_gaia_returns_empty_dict_when_missing_star_is_empty(m
         cfg=cfg,
     )
 
-    assert out == {}
+    assert out == {"parallax": 2.031923106187413}
 
 
 # Tests: query_gaia
