@@ -22,9 +22,9 @@ GAIA_PROVIDES = {
 }
 
 
-def lookup_target_star_gaia(star_params: dict, missing_star, cfg: GlobalConfig) -> dict:
+def lookup_target_star_gaia(star_params: dict, missing_stellar_keys, cfg: GlobalConfig) -> dict:
     target_name = star_params["name"]
-    logging.info("Gaia lookup required for star: %s for missing required parameters: %s", target_name, missing_star)
+    logging.info("Gaia lookup required for star: %s for missing required parameters: %s", target_name, missing_stellar_keys)
     print("Gaia lookup required for star: %s" % target_name)
 
     try:
@@ -33,10 +33,10 @@ def lookup_target_star_gaia(star_params: dict, missing_star, cfg: GlobalConfig) 
         dec = star_params.get("declination")
 
         if ra is not None and dec is not None:
-            logging.info("Gaia lookup using provided RA/Dec for star %s: ra=%s deg, dec=%s deg (missing=%s)", target_name, ra, dec, missing_star)
+            logging.info("Gaia lookup using provided RA/Dec for star %s: ra=%s deg, dec=%s deg (missing=%s)", target_name, ra, dec, missing_stellar_keys)
             center = SkyCoord(ra=ra * u.deg, dec=dec * u.deg, frame="icrs")
         else:
-            logging.info("Gaia lookup using name resolution for star %s (no RA/Dec in parameters; missing=%s)", target_name, missing_star)
+            logging.info("Gaia lookup using name resolution for star %s (no RA/Dec in parameters; missing=%s)", target_name, missing_stellar_keys)
             center = SkyCoord.from_name(target_name)
 
         cone_table = _gaia_cone_search(center, radius_arcsec=2.0, g_mag_limit=None, GAIA_USE_ASYNC_JOBS=cfg.GAIA_USE_ASYNC_JOBS)
@@ -67,9 +67,9 @@ def lookup_target_star_gaia(star_params: dict, missing_star, cfg: GlobalConfig) 
         gaia_star_params = get_gaia_stellar_properties(gaia_row)
 
         # return only missing keys
-        gaia_filtered = {k: gaia_star_params.get(k) for k in missing_star if k in gaia_star_params}
-        if missing_star and not gaia_filtered:
-            msg = f"Gaia lookup for {target_name} did not return requested missing keys: {missing_star}"
+        gaia_filtered = {k: gaia_star_params.get(k) for k in missing_stellar_keys if k in gaia_star_params}
+        if missing_stellar_keys and not gaia_filtered:
+            msg = f"Gaia lookup for {target_name} did not return requested missing keys: {missing_stellar_keys}"
             logging.error(msg)
             print(msg)
             raise RuntimeError(msg)

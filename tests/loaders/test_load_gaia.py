@@ -87,7 +87,7 @@ def test_lookup_target_star_gaia_raises_when_cone_search_empty(monkeypatch, make
     with pytest.raises(RuntimeError, match="No Gaia cone result found"):
         load_gaia.lookup_target_star_gaia(
             {"name": "No Match", "right_ascension": 1.0, "declination": 2.0},
-            missing_star=["effective_temperature"],
+            missing_stellar_keys=["effective_temperature"],
             cfg=cfg,
         )
 
@@ -108,7 +108,7 @@ def test_lookup_target_star_gaia_raises_when_cone_search_returns_empty_table(mon
     with pytest.raises(RuntimeError, match="No Gaia cone result found"):
         load_gaia.lookup_target_star_gaia(
             {"name": "No Match", "right_ascension": 1.0, "declination": 2.0},
-            missing_star=["effective_temperature"],
+            missing_stellar_keys=["effective_temperature"],
             cfg=cfg,
         )
 
@@ -132,7 +132,7 @@ def test_lookup_target_star_gaia_raises_when_query_gaia_returns_empty(monkeypatc
     with pytest.raises(RuntimeError, match="No Gaia row returned"):
         load_gaia.lookup_target_star_gaia(
             {"name": "HD 202772 A", "right_ascension": 1.0, "declination": 2.0},
-            missing_star=["effective_temperature"],
+            missing_stellar_keys=["effective_temperature"],
             cfg=cfg,
         )
 
@@ -152,7 +152,7 @@ def test_lookup_target_star_gaia_raises_on_any_exception(monkeypatch, make_globa
     with pytest.raises(RuntimeError, match="gaia down"):
         load_gaia.lookup_target_star_gaia(
             {"name": "HD 202772 A", "right_ascension": 1.0, "declination": 2.0},
-            missing_star=["effective_temperature"],
+            missing_stellar_keys=["effective_temperature"],
             cfg=cfg,
         )
 
@@ -175,7 +175,7 @@ def test_lookup_target_star_gaia_returns_only_missing_keys(monkeypatch, make_glo
     star_params = {"name": "HD 202772 A", "right_ascension": 1.0, "declination": 2.0}
     missing = ["effective_temperature", "radius"]
 
-    out = load_gaia.lookup_target_star_gaia(star_params, missing_star=missing, cfg=cfg)
+    out = load_gaia.lookup_target_star_gaia(star_params, missing_stellar_keys=missing, cfg=cfg)
 
     assert out == {
         "effective_temperature": 5777.0,
@@ -204,7 +204,7 @@ def test_lookup_target_star_gaia_passes_async_flag_to_helpers(monkeypatch, make_
     missing = ["effective_temperature"]
 
     cfg_async = make_global_config(GAIA_USE_ASYNC_JOBS=True)
-    load_gaia.lookup_target_star_gaia(star_params, missing_star=missing, cfg=cfg_async)
+    load_gaia.lookup_target_star_gaia(star_params, missing_stellar_keys=missing, cfg=cfg_async)
     assert recorded["cone_async"] is True
     assert recorded["query_async"] is True
 
@@ -212,7 +212,7 @@ def test_lookup_target_star_gaia_passes_async_flag_to_helpers(monkeypatch, make_
     recorded["query_async"] = None
 
     cfg_sync = make_global_config(GAIA_USE_ASYNC_JOBS=False)
-    load_gaia.lookup_target_star_gaia(star_params, missing_star=missing, cfg=cfg_sync)
+    load_gaia.lookup_target_star_gaia(star_params, missing_stellar_keys=missing, cfg=cfg_sync)
     assert recorded["cone_async"] is False
     assert recorded["query_async"] is False
 
@@ -321,7 +321,7 @@ def test_lookup_target_star_gaia_resolves_name_when_coordinates_missing(monkeypa
 
     out = load_gaia.lookup_target_star_gaia(
         {"name": "Target Without Coordinates"},
-        missing_star=["effective_temperature"],
+        missing_stellar_keys=["effective_temperature"],
         cfg=cfg,
     )
 
@@ -347,7 +347,7 @@ def test_lookup_target_star_gaia_raises_when_find_central_row_returns_none(monke
     with pytest.raises(RuntimeError, match="No Gaia central match found"):
         load_gaia.lookup_target_star_gaia(
             {"name": "Target", "right_ascension": 1.0, "declination": 2.0},
-            missing_star=["effective_temperature"],
+            missing_stellar_keys=["effective_temperature"],
             cfg=cfg,
         )
 
@@ -372,7 +372,7 @@ def test_lookup_target_star_gaia_raises_when_requested_keys_are_absent(monkeypat
     with pytest.raises(RuntimeError, match="did not return requested missing keys"):
         load_gaia.lookup_target_star_gaia(
             {"name": "Target", "right_ascension": 1.0, "declination": 2.0},
-            missing_star=["effective_temperature", "radius"],
+            missing_stellar_keys=["effective_temperature", "radius"],
             cfg=cfg,
         )
 
@@ -392,7 +392,7 @@ def test_lookup_target_star_gaia_returns_empty_dict_when_missing_star_is_empty(m
 
     out = load_gaia.lookup_target_star_gaia(
         {"name": "Target", "right_ascension": 1.0, "declination": 2.0},
-        missing_star=[],
+        missing_stellar_keys=[],
         cfg=cfg,
     )
 

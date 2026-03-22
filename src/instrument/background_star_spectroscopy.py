@@ -3,6 +3,7 @@ import numpy as np
 from configs.channel_config import SpectroscopyChannel
 from domain.star_catalog import StarCatalog
 from instrument.spectrum_spread import get_spectrum_placement, smear_1d_spectrum_dispersion, spread_1d_spectrum_to_2d
+from instrument.background_star_common import compute_roll_angle_samples, get_cached_counts, check_within_rotated_bounds, build_rotated_bounds
 
 
 def generate_background_star_spectroscopy_image(channel: SpectroscopyChannel, background_stars_catalog: StarCatalog, roll_angle_start: float, roll_angle_stop: float, frame_index: int) -> tuple[np.ndarray, dict[str, dict[str, float]]]:
@@ -16,8 +17,10 @@ def generate_background_star_spectroscopy_image(channel: SpectroscopyChannel, ba
     star_ids_in_slit: list[str] = []
     star_exposure_s_by_id: dict[str, float] = {}
     is_vis_channel = channel.channel_name.upper() == "VIS"
+
     for star_id in background_stars_catalog.stars_by_id:
         bg_star_result = _render_star_if_in_slit(star_id, channel, background_stars_catalog, frame_index, spectrum_placement, roll_angle_start, roll_angle_stop)
+
         if bg_star_result is not None:
             bg_star_2d, y_positions, rendered_exposure_s = bg_star_result
             image += bg_star_2d
@@ -50,20 +53,20 @@ def _render_star_if_in_slit(star_id: str, channel: SpectroscopyChannel, catalog:
     """Return 2d image, sampled detector rows, and rendered exposure in seconds."""
     x_target, y_target, slope, intercept = spectrum_placement
     dx, dy = catalog.get_offset_arcsec(star_id)
+    slit_half_bounds = (float(channel.slit_half_width_arcsec), float(channel.slit_half_length_arcsec))
 
-    counts_s_px = _get_cached_counts(star_id, catalog, channel, frame_index)
+    counts_s_px = get_cached_counts(star_id, catalog, channel, frame_index)
     if counts_s_px is None:
         return None
         
-    roll_angles = _compute_roll_angle_samples(dx, dy, channel, roll_angle_start, roll_angle_stop)
+    roll_angles = compute_roll_angle_samples(dx, dy, channel, roll_angle_start, roll_angle_stop)
     dt_per_sample = channel.exposure_s / float(len(roll_angles))
     star_image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
     valid_y_positions: list[int] = []
 
     for roll_angle_deg in roll_angles:
-        slit = _build_slit(channel, roll_angle_deg)
-        cos_roll, sin_roll, half_w, half_l = slit
-        uv = _slit_check(dx, dy, cos_roll, sin_roll, half_w, half_l)
+        slit = build_rotated_bounds(slit_half_bounds, roll_angle_deg)
+        uv = check_within_rotated_bounds(dx, dy, slit)
 
         if uv is None:
             continue
@@ -82,31 +85,6 @@ def _render_star_if_in_slit(star_id: str, channel: SpectroscopyChannel, catalog:
     return star_image, valid_y_positions, rendered_exposure_s
 
 
-def _build_slit(channel: SpectroscopyChannel, roll_angle_deg: float) -> tuple[float, float, float, float]:
-    rad = np.deg2rad(float(roll_angle_deg))
-    cos_roll = float(np.cos(rad))
-    sin_roll = float(np.sin(rad))
-    half_w = float(channel.slit_half_width_arcsec)
-    half_l = float(channel.slit_half_length_arcsec)
-    return cos_roll, sin_roll, half_w, half_l
-
-
-def _slit_check(dx: float, dy: float, cos_roll: float, sin_roll: float, half_w: float, half_l: float):
-    u = dx * cos_roll + dy * sin_roll
-    v = -dx * sin_roll + dy * cos_roll
-    if abs(u) > half_w or abs(v) > half_l:
-        return None
-    return [u, v]
-
-
-def _get_cached_counts(star_id: str, catalog: StarCatalog, channel: SpectroscopyChannel, frame_index: int) -> np.ndarray | None:
-    key = (star_id, channel.channel_name)
-    if key not in catalog.counts_by_id_and_band:
-        logging.info("BG STAR missing cached counts: frame=%d channel=%s star_id=%s", frame_index, channel.channel_name, star_id)
-        return None
-    return catalog.counts_by_id_and_band[key]
-
-
 def _detector_row(y_target: float, v_arcsec: float, channel: SpectroscopyChannel) -> int:
     y_offset_pix = v_arcsec / channel.pixel_scale
     y_row = int(round(y_target + y_offset_pix))
@@ -119,11 +97,3 @@ def _render_spectrum_to_2d(counts_px: np.ndarray, channel: SpectroscopyChannel, 
     return spread_1d_spectrum_to_2d(counts_smeared, channel, (x_target, float(y_row), slope, intercept), announce_user=False)
 
 
-def _compute_roll_angle_samples(dx: float, dy: float, channel: SpectroscopyChannel, roll_angle_start: float, roll_angle_stop: float, max_motion_per_step_px: float = 0.25) -> np.ndarray:
-    radius_arcsec = float(np.hypot(dx, dy))
-    delta_angle_rad = float(abs(np.deg2rad(roll_angle_stop - roll_angle_start)))
-    arc_length_arcsec = radius_arcsec * delta_angle_rad
-    arc_length_px = arc_length_arcsec / float(channel.pixel_scale)
-    n_steps = max(2, int(np.ceil(arc_length_px / max_motion_per_step_px)) + 1)
-    roll_angles = np.linspace(roll_angle_start, roll_angle_stop, n_steps, dtype=np.float32)
-    return roll_angles

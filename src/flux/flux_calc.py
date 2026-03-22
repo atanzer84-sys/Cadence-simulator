@@ -2,7 +2,7 @@ import logging
 import numpy as np
 from domain.star import Star
 from utils.constants import C_LIGHT_Angst, PARSEC_CM, R_V
-from configs.global_config import get_global_config
+from configs.global_config import get_global_config, GlobalConfig
 from flux.cute_line_core_emission import apply_line_core_emission
 from flux.cute_extinction import extinction_amores
 from flux.cute_ism_abs_all import cute_ism_abs_all
@@ -103,7 +103,7 @@ def convertStellarModelToFlux(model_data, r_star):
 
     return flux_lambda
 
-def apply_ism_absorption(data, ebv, cfg, announce_user: bool = False):
+def apply_ism_absorption(data, ebv, cfg: GlobalConfig, announce_user: bool = False):
     announce("Starting ISM absorption", announce_user)
     logging.info("ISM input: E(B-V)=%s", ebv)
 
