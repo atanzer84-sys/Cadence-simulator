@@ -369,6 +369,26 @@ def test_apply_distance_from_parallax_if_missing_accepts_numeric_string():
     assert star_params == {"parallax": "20.0", "distance": 50.0}
 
 
+# Tests: load_stellar pipeline (Gaia merge + parallax distance)
+# Behavior: same order as load_stellar_and_planetary_properties — merge Gaia (distance None, parallax set) then parallax fallback fills distance_pc
+def test_merge_gaia_then_apply_distance_fills_distance_from_parallax():
+    star_params = {"name": "TOI-6038 A", "right_ascension": 51.0, "declination": 40.0}
+    gaia_return = {"distance": None, "parallax": 5.61220048991683, "effective_temperature": 6070.0}
+
+    merged = merge_gaia_into_star_params(star_params, gaia_return)
+
+    assert merged["distance"] is None
+    assert merged["parallax"] == 5.61220048991683
+    assert merged["effective_temperature"] == 6070.0
+
+    out = apply_distance_from_parallax_if_missing(merged)
+
+    assert out is merged
+    expected_pc = 1000.0 / 5.61220048991683
+    assert out["distance"] == pytest.approx(expected_pc)
+    assert out["parallax"] == 5.61220048991683
+
+
 # Tests: apply_radius_from_teff_mag_distance_if_missing
 # Behavior: keeps existing radius unchanged
 def test_apply_radius_from_teff_mag_distance_if_missing_keeps_existing_radius():
