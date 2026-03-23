@@ -1,12 +1,13 @@
 import numpy as np
 import logging
 import math
+import astropy.units as u
 from astropy.coordinates import SkyCoord
 from astropy.table import join, vstack as table_vstack
-import astropy.units as u
 from domain.star import Star
 from astropy.table import Table
 from configs.global_config import GlobalConfig
+
 
 # Map SQL, CSV and Dict hardcoded to the properties we expect to have it all in one place. always.
 GAIA_FIELDS = {
@@ -47,17 +48,19 @@ def lookup_target_star_gaia(star_params: dict, missing_stellar_keys, cfg: Global
         # map Gaia columns to internal keys
         gaia_star_params = get_gaia_stellar_properties(gaia_row)
 
+        gaia_star_params = apply_distance_from_parallax_if_missing(gaia_star_params)
+
         # return missing keys; some Gaia keys are always merged for downstream use even if not required in Excel
-        gaia_filtered = {k: gaia_star_params.get(k) for k in missing_stellar_keys if k in gaia_star_params}
+        still_missing = [k for k in missing_stellar_keys if gaia_star_params.get(k) is None]
 
         # need to check if some required properties are still missing.
-        if missing_stellar_keys and not gaia_filtered:
-            msg = f"Gaia lookup for {target_name} did not return requested missing keys: {missing_stellar_keys}"
+        if still_missing:
+            msg = f"Gaia lookup for {target_name} did not return requested missing keys: {still_missing}"
             logging.error(msg)
             print(msg)
             raise RuntimeError(msg)
 
-        logging.info("Gaia parameters to merge: %s", gaia_filtered)
+        logging.info("Gaia parameters to merge: %s", gaia_star_params)
 
         # i want all properties that i fetched from gaia.
         return gaia_star_params
@@ -422,3 +425,34 @@ def _gaia_fetch_ap_and_join(field_cone: Table, GAIA_USE_ASYNC_JOBS, ap_batch_siz
     return field_joined
 
 
+
+def apply_distance_from_parallax_if_missing(star_params: dict) -> dict:
+    """
+    If distance is missing, set it from parallax in star_params
+    using distance_pc = 1000 / parallax_mas when valid.
+    """
+    name = star_params["name"]
+    distance = star_params.get("distance")
+    parallax = star_params.get("parallax")
+
+    if distance is not None:
+        logging.info("Parallax distance fallback skipped for %s: distance already set (%r)", name, distance)
+        return star_params
+
+    if parallax is None or np.ma.is_masked(parallax):
+        logging.info("Parallax distance fallback skipped for %s: no usable parallax in star_params (parallax=%r)", name, parallax)
+        return star_params
+
+    try:
+        parallax = float(parallax)
+    except Exception:
+        logging.info("Parallax distance fallback skipped for %s: parallax not float-convertible (parallax=%r)", name, parallax)
+        return star_params
+
+    if not np.isfinite(parallax) or parallax <= 0.0:
+        logging.info("Parallax distance fallback skipped for %s: parallax invalid (parallax=%r)", name, parallax)
+        return star_params
+
+    star_params["distance"] = 1000.0 / parallax
+    logging.info("Parallax distance fallback applied for %s: parallax_mas=%s -> distance_pc=%s", name, parallax, star_params["distance"])
+    return star_params

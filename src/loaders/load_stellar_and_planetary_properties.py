@@ -44,7 +44,6 @@ def load_stellar_and_planetary_properties(target_name_user_input):
             star_params = merge_gaia_into_star_params(star_params, gaia_star_params)
 
         # distance and radius fallbacks using Gaia parallax/magnitude if present
-        star_params = apply_distance_from_parallax_if_missing(star_params)
         star_params = apply_radius_from_teff_mag_distance_if_missing(star_params)
         # getting spectral type from mamjeck table and applying logR fallback.
         star_params = infer_mamajek(star_params)
@@ -118,37 +117,6 @@ def apply_radius_from_teff_mag_distance_if_missing(star_params: dict) -> dict:
 
     logging.info("Radius fallback applied for %s: G=%.3f distance_pc=%.3f Teff=%.1f -> M_G=%.3f L/Lsun=%.6f R/Rsun=%.6f", star_params.get("name"), gaia_mag, distance_pc, teff, abs_g_mag, luminosity_lsun, radius_rsun)
     return star_params
-
-
-def apply_distance_from_parallax_if_missing(star_params: dict) -> dict:
-    """
-    If distance is missing, set it from parallax in star_params
-    using distance_pc = 1000 / parallax_mas when valid.
-    """
-    name = star_params.get("name", "?")
-    if star_params.get("distance") is not None:
-        logging.info("Parallax distance fallback skipped for %s: distance already set (%r)", name, star_params.get("distance"))
-        return star_params
-
-    par = star_params.get("parallax")
-    if par is None or np.ma.is_masked(par):
-        logging.info("Parallax distance fallback skipped for %s: no usable parallax in star_params (parallax=%r)", name, par)
-        return star_params
-
-    try:
-        par = float(par)
-    except Exception:
-        logging.info("Parallax distance fallback skipped for %s: parallax not float-convertible (parallax=%r)", name, star_params.get("parallax"))
-        return star_params
-
-    if not np.isfinite(par) or par <= 0.0:
-        logging.info("Parallax distance fallback skipped for %s: parallax invalid (parallax=%r)", name, par)
-        return star_params
-
-    star_params["distance"] = 1000.0 / par
-    logging.info("Parallax distance fallback applied for %s: parallax_mas=%s -> distance_pc=%s", name, par, star_params["distance"])
-    return star_params
-
 
 def _find_excel_file(repo_root: Path):
     try:
