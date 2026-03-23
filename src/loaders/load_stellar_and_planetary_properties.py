@@ -48,7 +48,7 @@ def load_stellar_and_planetary_properties(target_name_user_input):
         star_params = apply_radius_from_teff_mag_distance_if_missing(star_params)
         # getting spectral type from mamjeck table and applying logR fallback.
         star_params = infer_mamajek(star_params)
-        star_params = apply_log_r_fallback(star_params, cfg=cfg)
+        star_params = apply_log_r(star_params, cfg=cfg)
         # now we finally have a list on missing parameters and can throw exceptions, because with missing parameters we can not do our simulation run.
         missing_star_final = get_missing_properties(star_params, mapping["required_stellar_parameters"])
 
@@ -57,7 +57,7 @@ def load_stellar_and_planetary_properties(target_name_user_input):
 
         star_params = clean_and_cast_parameters(star_params, Star)
         planet_params = clean_and_cast_parameters(planet_params, Planet)
-        msg = "Configurations loaded, checked and parsed."
+        msg = f"Target '{target_name}' parameters ready (Excel import, Gaia enrichment, fallbacks, Mamajek spectral type, and validation complete)."
         print(msg)
         logging.info(msg)
         return (planet_params, star_params, mapping["required_planetary_parameters"], mapping["required_stellar_parameters"]
@@ -177,14 +177,18 @@ def merge_gaia_into_star_params(star_params, gaia_star_params):
         logging.info("No Gaia parameters to merge.")
         return star_params
 
+    merged_items = {}
+    kept_items = {}
     for k, v in gaia_star_params.items():
         current = star_params.get(k)
 
         if current is None or (isinstance(current, str) and current.strip() == ""):
-            logging.info("Gaia merge: setting %s = %r", k, v)
             star_params[k] = v
+            merged_items[k] = v
         else:
-            logging.info("Gaia merge: keeping existing %s = %r", k, current)
+            kept_items[k] = current
+
+    logging.info("Gaia merge summary: merged=%d kept=%d total=%d merged_items=%s kept_items=%s", len(merged_items), len(kept_items), len(gaia_star_params), merged_items, kept_items)
 
     return star_params
 
@@ -193,14 +197,12 @@ def infer_mamajek_spectral_type(star_params, mamajek_path, log_output: bool = Tr
     global _MAMAJEK_CACHE
 
     if _MAMAJEK_CACHE is None or _MAMAJEK_CACHE[0] != mamajek_path:
-        if log_output:
-            logging.info("Loading Mamajek table from %s", mamajek_path)
         data = ascii.read(mamajek_path, comment="#")
         Sp = np.array(data["col1"])
         T_book = np.array(data["col2"], dtype=float)
         _MAMAJEK_CACHE = (mamajek_path, Sp, T_book)
         if log_output:
-            logging.info("Mamajek table loaded successfully (%d rows)", len(data))
+            logging.info("Mamajek table loaded from %s (%d rows)", mamajek_path, len(data))
     else:
         _, Sp, T_book = _MAMAJEK_CACHE
         if log_output:
@@ -228,7 +230,7 @@ def infer_mamajek_spectral_type(star_params, mamajek_path, log_output: bool = Tr
 
     return star_params
 
-def apply_log_r_fallback(star_params: dict, cfg: GlobalConfig, log_output: bool = True) -> dict:
+def apply_log_r(star_params: dict, cfg: GlobalConfig, log_output: bool = True) -> dict:
     if not cfg.enable_log_r_fallback:
         logging.info("log_r fallback skipped: enable_log_r_fallback=%s", cfg.enable_log_r_fallback)
         return star_params

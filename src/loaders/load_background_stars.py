@@ -7,7 +7,7 @@ from utils.helpers import resolve_path_under
 from configs.global_config import GlobalConfig
 from domain.star_catalog import StarCatalog
 from configs.channel_config import SpectroscopyChannel, PhotometryChannel
-from loaders.load_stellar_and_planetary_properties import load_excel_mapping, infer_mamajek, apply_log_r_fallback, get_missing_properties, apply_radius_from_teff_mag_distance_if_missing, apply_distance_from_parallax_if_missing
+from loaders.load_stellar_and_planetary_properties import load_excel_mapping, infer_mamajek, apply_log_r, get_missing_properties, apply_radius_from_teff_mag_distance_if_missing, apply_distance_from_parallax_if_missing
 from loaders.load_gaia import get_gaia_stellar_properties, gaia_lookup_for_background_stars
 import astropy.units as u
 from astropy.coordinates import SkyCoord
@@ -144,7 +144,7 @@ def create_background_star_catalog(table: Table, cfg: GlobalConfig):
             star_params = infer_mamajek(star_params, log_output=False)
         
         if star_params.get("radius") is not None:
-            star_params = apply_log_r_fallback(star_params, cfg, log_output=False)
+            star_params = apply_log_r(star_params, cfg, log_output=False)
 
         if not _ensure_required_properties(star_params, required_keys):
             continue

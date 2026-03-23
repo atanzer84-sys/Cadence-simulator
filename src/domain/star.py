@@ -22,6 +22,7 @@ class Star:
     log_r: float | None
     radius_sun_cm: float | None
     mass_sun_kg: float | None
+    gaia_source_id: int | None = None
 
     @classmethod
     def from_params(cls, star_params: Dict[str, Any], required_keys: list[str], log_output: bool = True) -> "Star":
@@ -48,6 +49,7 @@ class Star:
 
         star = cls(
             name=star_params["name"],
+            gaia_source_id=star_params["source_id"],
             spectral_type=star_params.get("spectral_type"),
             effective_temperature=star_params.get("effective_temperature"),
             radius=radius,

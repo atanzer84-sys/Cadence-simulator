@@ -8,20 +8,25 @@ from domain.star import Star
 from astropy.table import Table
 from configs.global_config import GlobalConfig
 
-GAIA_PROVIDES = {
-    "right_ascension",
-    "declination",
-    "gaia_magnitude",
-    "v_magnitude",
-    "parallax",
-    "effective_temperature",
-    "radius",
-    "mass",
-    "metallicity",
-    "surface_gravity",
-    "distance",
+# Map SQL, CSV and Dict hardcoded to the properties we expect to have it all in one place. always.
+GAIA_FIELDS = {
+    "source_id": "source_id",
+    "right_ascension": "ra",
+    "declination": "dec",
+    "parallax": "parallax",
+    "gaia_magnitude": "phot_g_mean_mag",
+    "v_magnitude": "phot_g_mean_mag",
+    "effective_temperature": "Teff",
+    "distance": "dist_pc",
+    "radius": "radius_sun",
+    "mass": "mass_sun",
+    "metallicity": "mh_gspphot",
+    "surface_gravity": "logg_gspphot",
 }
 
+# source_id,ra,dec,parallax,phot_g_mean_mag,Teff,dist_pc,radius_sun,mass_sun,mh_gspphot,logg_gspphot,sep_arcsec,is_target
+
+GAIA_PROVIDES = set(GAIA_FIELDS.keys())
 
 def lookup_target_star_gaia(star_params: dict, missing_stellar_keys, cfg: GlobalConfig) -> dict:
     target_name = star_params["name"]
@@ -29,49 +34,23 @@ def lookup_target_star_gaia(star_params: dict, missing_stellar_keys, cfg: Global
     print("Gaia lookup required for star: %s" % target_name)
 
     try:
-        # Decide how to get the sky position: prefer provided RA/Dec, fall back to name resolution.
-        ra = star_params.get("right_ascension")
-        dec = star_params.get("declination")
+        # use Simbad to get Gaia Source ID for the target's name
+        source_id = _resolve_gaia_source_id_from_name(target_name)
 
-        if ra is not None and dec is not None:
-            logging.info("Gaia lookup using provided RA/Dec for star %s: ra=%s deg, dec=%s deg (missing=%s)", target_name, ra, dec, missing_stellar_keys)
-            center = SkyCoord(ra=ra * u.deg, dec=dec * u.deg, frame="icrs")
-        else:
-            logging.info("Gaia lookup using name resolution for star %s (no RA/Dec in parameters; missing=%s)", target_name, missing_stellar_keys)
-            center = SkyCoord.from_name(target_name)
+        # if we get no result, we use ra, dec to get to a source id.
+        if source_id is None:
+            source_id = _resolve_source_id_from_position(star_params, cfg)
 
-        cone_table = _gaia_cone_search(center, radius_arcsec=2.0, g_mag_limit=None, GAIA_USE_ASYNC_JOBS=cfg.GAIA_USE_ASYNC_JOBS)
-        if cone_table is None or len(cone_table) == 0:
-            msg = f"No Gaia cone result found for {target_name}"
-            logging.error(msg)
-            print(msg)
-            raise RuntimeError(msg)
 
-        central_row, central_sep = _find_central_row(cone_table, center)
-        if central_row is None:
-            msg = f"No Gaia central match found for {target_name}"
-            logging.error(msg)
-            print(msg)
-            raise RuntimeError(msg)
-
-        source_id = int(central_row["source_id"])
-        print("source id (nearest):", source_id, "| sep_arcsec=", central_sep)
-        logging.info("Gaia lookup central match for %s: source_id (nearest)=%s sep_arcsec=%s", target_name, source_id, central_sep)
-
-        gaia_row = query_gaia(source_id, cfg.GAIA_USE_ASYNC_JOBS)
-        if not gaia_row:
-            msg = f"No Gaia row returned for {target_name} (source_id={source_id})"
-            logging.error(msg)
-            print(msg)
-            raise RuntimeError(msg)
+        gaia_row = query_gaia_target_star(source_id, cfg.GAIA_USE_ASYNC_JOBS)
 
         # map Gaia columns to internal keys
         gaia_star_params = get_gaia_stellar_properties(gaia_row)
 
-        # return missing keys; parallax is optional (not required from Excel) but always merged when Gaia returns it
+        # return missing keys; some Gaia keys are always merged for downstream use even if not required in Excel
         gaia_filtered = {k: gaia_star_params.get(k) for k in missing_stellar_keys if k in gaia_star_params}
-        if gaia_star_params.get("parallax") is not None:
-            gaia_filtered["parallax"] = gaia_star_params["parallax"]
+
+        # need to check if some required properties are still missing.
         if missing_stellar_keys and not gaia_filtered:
             msg = f"Gaia lookup for {target_name} did not return requested missing keys: {missing_stellar_keys}"
             logging.error(msg)
@@ -80,24 +59,186 @@ def lookup_target_star_gaia(star_params: dict, missing_stellar_keys, cfg: Global
 
         logging.info("Gaia parameters to merge: %s", gaia_filtered)
 
-        return gaia_filtered
+        # i want all properties that i fetched from gaia.
+        return gaia_star_params
 
     except Exception as e:
         logging.error("Gaia lookup failed for %s: %s", target_name, str(e))
         print(f"Gaia lookup failed for {target_name}: {e}")
         raise
 
-def query_gaia(sourceID, GAIA_USE_ASYNC_JOBS):
+def _resolve_gaia_source_id_from_name(target_name: str) -> int | None:
+    from astroquery.simbad import Simbad
+    import re
+
+    logging.info("SIMBAD lookup: resolving Gaia source_id for target_name=%s", target_name)
+
+    simbad = Simbad()
+    simbad.add_votable_fields("ids")
+
+    try:
+        result = simbad.query_object(target_name)
+    except Exception as e:
+        logging.exception("SIMBAD lookup failed for target_name=%s: %s", target_name, str(e))
+        return None
+
+    if result is None or len(result) == 0:
+        logging.warning("SIMBAD lookup returned no result for target_name=%s", target_name)
+        return None
+
+    ids_value = result["ids"][0]
+    if ids_value is None:
+        logging.warning("SIMBAD lookup returned no IDS field for target_name=%s", target_name)
+        return None
+
+    ids_text = str(ids_value)
+    logging.info("SIMBAD IDS for %s: %s", target_name, ids_text)
+
+    patterns = [
+        r"Gaia DR3 (\d+)",
+        r"Gaia EDR3 (\d+)",
+        r"Gaia DR2 (\d+)",
+    ]
+
+    for pattern in patterns:
+        match = re.search(pattern, ids_text)
+        if match:
+            source_id = int(match.group(1))
+            logging.info("SIMBAD match found for %s: pattern=%s source_id=%s", target_name, pattern, source_id)
+            return source_id
+
+    logging.warning("SIMBAD lookup: no Gaia source_id found in IDS for target_name=%s", target_name)
+    return None
+
+def _resolve_source_id_from_position(star_params: dict, cfg: GlobalConfig) -> int:
+    target_name = star_params["name"]
+
+    target_coord = _get_target_coordinates(star_params)
+    cone_table = _gaia_cone_search(target_coord, radius_arcsec=6.0, g_mag_limit=None, GAIA_USE_ASYNC_JOBS=cfg.GAIA_USE_ASYNC_JOBS)
+
+    if cone_table is None or len(cone_table) == 0:
+        msg = f"No Gaia cone result found for {target_name}"
+        logging.error(msg)
+        print(msg)
+        raise RuntimeError(msg)
+
+    source_id = _find_central_source_id(cone_table, target_coord)
+    if source_id is None:
+        msg = f"No Gaia central match found for {target_name}"
+        logging.error(msg)
+        print(msg)
+        raise RuntimeError(msg)
+
+    return source_id
+
+def _get_target_coordinates(star_params: dict) -> SkyCoord:
+    target_name = star_params["name"]
+    ra = star_params.get("right_ascension")
+    dec = star_params.get("declination")
+
+    if ra is None or dec is None:
+        raise ValueError(f"Gaia lookup failed for {target_name}: no RA/Dec available and no Gaia source_id could be resolved from SIMBAD")
+
+    target_coord = SkyCoord(ra=ra * u.deg, dec=dec * u.deg, frame="icrs")
+
+    logging.info("Gaia lookup target coords for %s: ra=%s deg dec=%s deg frame=%s", target_name, float(target_coord.ra.deg), float(target_coord.dec.deg), getattr(target_coord.frame, "name", str(target_coord.frame)))
+
+    return target_coord
+
+def _gaia_cone_search(center: SkyCoord, radius_arcsec: float, g_mag_limit: float, GAIA_USE_ASYNC_JOBS) -> Table | None:
+    """Cone search on gaia_source, slice columns. If g_mag_limit is set, keep only rows with phot_g_mean_mag < g_mag_limit. Returns table or None."""
+    try:
+        from astroquery.gaia import Gaia
+
+        use_async = GAIA_USE_ASYNC_JOBS
+        if use_async:
+            cone_result = Gaia.cone_search_async(center, radius=radius_arcsec * u.arcsec)
+        else:
+            cone_result = Gaia.cone_search(center, radius=radius_arcsec * u.arcsec)
+
+        cone = cone_result.get_results() if hasattr(cone_result, "get_results") else cone_result
+        
+    except Exception as e:
+        msg = f"Gaia background search: cone search failed: {e}"
+        logging.exception(msg)
+        print(msg)
+        return None
+
+    if cone is None or len(cone) == 0:
+        logging.info("Gaia background search: no sources found")
+        return None
+
+    cone_small = cone[["source_id", "ra", "dec", "parallax", "phot_g_mean_mag"]]
+
+    if g_mag_limit is not None:
+        print(f"Gaia background search: applying G<{g_mag_limit} filter")
+        cone_small = cone_small[cone_small["phot_g_mean_mag"] < g_mag_limit]
+        logging.info("Gaia background search: applying filter G<%s after mag filter rows=%d", g_mag_limit, len(cone_small))
+        if len(cone_small) == 0:
+            logging.info("Gaia background search: no sources after magnitude filter")
+            return None
+
+    # TODO: REMOVE THIS AGAIN
+    logging.info("Gaia background search: cone rows=%d ", len(cone))
+    for i, row in enumerate(cone_small):
+        logging.info("Gaia background search: cone_row[%d] source_id=%s ra=%s deg dec=%s deg parallax=%s phot_g_mean_mag=%s", i, int(row["source_id"]), _to_float(row["ra"]), _to_float(row["dec"]), _to_float(row["parallax"]), _to_float(row["phot_g_mean_mag"]))
+
+    return cone_small
+
+def query_gaia_target_star(sourceID, GAIA_USE_ASYNC_JOBS):
     query = _gaia_query_for_source_id(sourceID)
-    gaia_result_row = _run_gaia_job(query, GAIA_USE_ASYNC_JOBS)
+    gaia_result_row = _run_gaia_query(query, GAIA_USE_ASYNC_JOBS)
 
     if len(gaia_result_row) == 0:
-        logging.warning("No Gaia joined row returned for (source_id=%s)", sourceID)
-        return {}
+        msg = f"No Gaia row returned for source_id={sourceID}"
+        logging.error(msg)
+        print(msg)
+        raise RuntimeError(msg)
 
     logging.info("Gaia row for source_id=%s: %s", sourceID, {col: gaia_result_row[0][col] for col in gaia_result_row.colnames})
     return gaia_result_row[0]
 
+def _gaia_select_joined_base() -> str:
+    return f"""
+        SELECT
+            gs.source_id,
+            gs.ra AS {GAIA_FIELDS["right_ascension"]},
+            gs.dec AS {GAIA_FIELDS["declination"]},
+            gs.parallax AS {GAIA_FIELDS["parallax"]},
+            gs.phot_g_mean_mag AS {GAIA_FIELDS["gaia_magnitude"]},
+            COALESCE(ap.teff_gspphot, ap.teff_gspspec, supp.teff_gspspec_ann, gs.rv_template_teff) AS {GAIA_FIELDS["effective_temperature"]},
+            COALESCE(ap.distance_gspphot, supp.distance_gspphot_phoenix, supp.distance_gspphot_marcs) AS {GAIA_FIELDS["distance"]},
+            COALESCE(ap.radius_gspphot, ap.radius_flame, supp.radius_flame_spec, supp.radius_gspphot_a, supp.radius_gspphot_marcs, supp.radius_gspphot_phoenix) AS {GAIA_FIELDS["radius"]},
+            COALESCE(ap.mass_flame, supp.mass_flame_spec) AS {GAIA_FIELDS["mass"]},
+            ap.mh_gspphot AS {GAIA_FIELDS["metallicity"]},
+            ap.logg_gspphot AS {GAIA_FIELDS["surface_gravity"]}
+        FROM gaiadr3.gaia_source AS gs
+        LEFT JOIN gaiadr3.astrophysical_parameters AS ap ON gs.source_id = ap.source_id
+        LEFT JOIN gaiadr3.astrophysical_parameters_supp AS supp ON gs.source_id = supp.source_id
+    """
+
+def _gaia_query_for_source_id(source_id: int) -> str:
+    return f"{_gaia_select_joined_base()} WHERE gs.source_id = {int(source_id)}"
+
+def _gaia_query_for_source_ids(source_ids: list[int]) -> str:
+    in_list = ",".join(str(int(x)) for x in source_ids)
+    return f"{_gaia_select_joined_base()} WHERE gs.source_id IN ({in_list})"
+
+def get_gaia_stellar_properties(gaia_row, log_output: bool = True):
+    gaia_star_params = {}
+
+    for key, column in GAIA_FIELDS.items():
+        value = gaia_row.get(column)
+
+        if key == "source_id":
+            gaia_star_params[key] = int(value) if value is not None else None
+        else:
+            gaia_star_params[key] = _to_float(value)
+
+    if log_output:
+        logging.info("Gaia stellar parameters extracted: %s", gaia_star_params)    
+    
+    return gaia_star_params
 
 def _to_float(value):
     if value is None:
@@ -116,27 +257,6 @@ def _to_float(value):
     if math.isnan(value):
         return None
     return value
-
-def get_gaia_stellar_properties(gaia_row, log_output: bool = True):
-
-    # source_id,ra,dec,parallax,phot_g_mean_mag,Teff,dist_pc,radius_sun,mass_sun,mh_gspphot,logg_gspphot,sep_arcsec,is_target
-    gaia_star_params = {
-        "right_ascension": _to_float(gaia_row.get("ra")),
-        "declination": _to_float(gaia_row.get("dec")),
-        "parallax": _to_float(gaia_row.get("parallax")),
-        "v_magnitude": _to_float(gaia_row.get("phot_g_mean_mag")),
-        "gaia_magnitude": _to_float(gaia_row.get("phot_g_mean_mag")),
-        "effective_temperature": _to_float(gaia_row.get("Teff")),
-        "distance": _to_float(gaia_row.get("dist_pc")),
-        "radius": _to_float(gaia_row.get("radius_sun")),
-        "mass": _to_float(gaia_row.get("mass_sun")),
-        "metallicity": _to_float(gaia_row.get("mh_gspphot")),
-        "surface_gravity": _to_float(gaia_row.get("logg_gspphot")),
-    }
-    if log_output:
-        logging.info("Gaia stellar parameters extracted: %s", gaia_star_params)    
-    
-    return gaia_star_params
 
 
 def gaia_lookup_for_background_stars(star: Star, g_mag_limit, GAIA_USE_ASYNC_JOBS, radius_arcsec) -> Table | None:
@@ -199,7 +319,7 @@ def gaia_lookup_for_background_stars(star: Star, g_mag_limit, GAIA_USE_ASYNC_JOB
     return field_joined
 
 
-def _run_gaia_job(query: str, GAIA_USE_ASYNC_JOBS):
+def _run_gaia_query(query: str, GAIA_USE_ASYNC_JOBS):
     """
     Run a Gaia TAP job using the GAIA_USE_ASYNC_JOBS flag from GlobalConfig.
 
@@ -218,69 +338,35 @@ def _run_gaia_job(query: str, GAIA_USE_ASYNC_JOBS):
     return job.get_results() if hasattr(job, "get_results") else job
 
 
-def _gaia_cone_search(center: SkyCoord, radius_arcsec: float, g_mag_limit: float, GAIA_USE_ASYNC_JOBS) -> Table | None:
-    """Cone search on gaia_source, slice columns. If g_mag_limit is set, keep only rows with phot_g_mean_mag < g_mag_limit. Returns table or None."""
-    try:
-        from astroquery.gaia import Gaia
-
-        use_async = GAIA_USE_ASYNC_JOBS
-        if use_async:
-            logging.info("Gaia background search: using ASYNC cone_search (GAIA_USE_ASYNC_JOBS=True)")
-            cone_result = Gaia.cone_search_async(center, radius=radius_arcsec * u.arcsec)
-        else:
-            logging.info("Gaia background search: using SYNC cone_search (GAIA_USE_ASYNC_JOBS=False)")
-            cone_result = Gaia.cone_search(center, radius=radius_arcsec * u.arcsec)
-        cone = cone_result.get_results() if hasattr(cone_result, "get_results") else cone_result
-    except Exception as e:
-        msg = f"Gaia background search: cone search failed: {e}"
-        logging.exception(msg)
-        print(msg)
-        return None
-
-    if cone is None or len(cone) == 0:
-        logging.info("Gaia background search: no sources found")
-        return None
-
-    cone_small = cone[["source_id", "ra", "dec", "parallax", "phot_g_mean_mag"]]
-
-    if g_mag_limit is not None:
-        print(f"Gaia background search: applying G<{g_mag_limit} filter")
-        cone_small = cone_small[cone_small["phot_g_mean_mag"] < g_mag_limit]
-        logging.info("Gaia background search: applying filter G<%s after mag filter rows=%d", g_mag_limit, len(cone_small))
-
-    if len(cone_small) == 0:
-        logging.info("Gaia background search: no sources after magnitude filter")
-        return None
-
-    logging.info("Gaia background search: cone rows=%d ", len(cone))
-
-    return cone_small
 
     
-def _find_central_row(cone_small: Table, center: SkyCoord) -> tuple[object | None, float | None]:
+def _find_central_source_id(cone_result: Table, target_coord: SkyCoord) -> int | None:
     """
     Find the row in cone_small that is closest to the given center position.
 
     Returns (row, separation_arcsec) or (None, None) if cone_small is empty.
     """
-    if cone_small is None or len(cone_small) == 0:
-        return None, None
-
-    cone_coords = SkyCoord(ra=cone_small["ra"], dec=cone_small["dec"], unit=u.deg, frame="icrs")
-    seps = center.separation(cone_coords)
+    cone_coords = SkyCoord(ra=cone_result["ra"], dec=cone_result["dec"], unit=u.deg, frame="icrs")
+    
+    seps = target_coord.separation(cone_coords)
     seps_arcsec = seps.arcsec
 
+    for i in range(len(seps_arcsec)):
+        logging.info("Gaia central-row: cone_coords[%d] ra=%s deg dec=%s deg seps_arcsec=%s source_id=%s", i, float(cone_coords.ra.deg[i]), float(cone_coords.dec.deg[i]), float(seps_arcsec[i]), int(cone_result[i]["source_id"]))
+
     idx_center = int(np.argmin(seps_arcsec))
-    central_cone_row = cone_small[idx_center]
+    central_cone_row = cone_result[idx_center]
     central_sep = float(seps_arcsec[idx_center])
-    return central_cone_row, central_sep
+    central_source_id = int(central_cone_row["source_id"]) if "source_id" in cone_result.colnames else None
+    logging.info("Gaia central-row: idx_center=%d central_source_id=%s central_sep_arcsec=%.6f", idx_center, central_source_id, central_sep)
+    return central_source_id
 
 
 def _gaia_drop_central_star(cone_small: Table, center: SkyCoord) -> tuple[Table, object, float] | None:
     """Identify central (nearest) star, remove it from table. Returns (field_cone, central_cone_row, central_sep) or None if no field left."""
 
 
-    central_cone_row, central_sep = _find_central_row(cone_small, center)
+    central_cone_row, central_sep = _find_central_source_id(cone_small, center)
     if central_cone_row is None:
         logging.info("Gaia background search: no central star found in cone")
         return None
@@ -310,7 +396,7 @@ def _gaia_fetch_ap_and_join(field_cone: Table, GAIA_USE_ASYNC_JOBS, ap_batch_siz
         chunk = ids[start:start + ap_batch_size]
         ap_query = _gaia_query_for_source_ids(chunk)
         try:
-            tbl = _run_gaia_job(ap_query, GAIA_USE_ASYNC_JOBS)
+            tbl = _run_gaia_query(ap_query, GAIA_USE_ASYNC_JOBS)
             if tbl is not None and len(tbl) > 0:
                 ap_tables.append(tbl)
                 # TODO: REMOVE
@@ -334,31 +420,5 @@ def _gaia_fetch_ap_and_join(field_cone: Table, GAIA_USE_ASYNC_JOBS, ap_batch_siz
     field_joined_text = "\n".join(field_joined.pformat(max_lines=-1, max_width=-1))
     logging.info("Gaia background search: field_joined after AP join rows=%d cols=%s\n%s", len(field_joined), list(field_joined.colnames), field_joined_text)
     return field_joined
-
-def _gaia_select_joined_base() -> str:
-    return """
-        SELECT
-            gs.source_id,
-            gs.ra,
-            gs.dec,
-            gs.parallax,
-            gs.phot_g_mean_mag,
-            COALESCE(ap.teff_gspphot, ap.teff_gspspec, supp.teff_gspspec_ann, gs.rv_template_teff) AS Teff,
-            COALESCE(ap.distance_gspphot, supp.distance_gspphot_phoenix, supp.distance_gspphot_marcs) AS dist_pc,
-            COALESCE(ap.radius_gspphot, ap.radius_flame, supp.radius_flame_spec, supp.radius_gspphot_a, supp.radius_gspphot_marcs, supp.radius_gspphot_phoenix) AS radius_sun, 
-            COALESCE(ap.mass_flame, supp.mass_flame_spec) AS mass_sun,
-            ap.mh_gspphot,
-            ap.logg_gspphot
-        FROM gaiadr3.gaia_source AS gs
-        LEFT JOIN gaiadr3.astrophysical_parameters AS ap ON gs.source_id = ap.source_id
-        LEFT JOIN gaiadr3.astrophysical_parameters_supp AS supp ON gs.source_id = supp.source_id
-    """
-
-def _gaia_query_for_source_id(source_id: int) -> str:
-    return f"{_gaia_select_joined_base()} WHERE gs.source_id = {int(source_id)}"
-
-def _gaia_query_for_source_ids(source_ids: list[int]) -> str:
-    in_list = ",".join(str(int(x)) for x in source_ids)
-    return f"{_gaia_select_joined_base()} WHERE gs.source_id IN ({in_list})"
 
 

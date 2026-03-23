@@ -1,0 +1,22 @@
+WALTzER — background Gaia + target identity (next session)
+
+Goal
+Make background-star handling unambiguous and avoid duplicated sky columns when joining cone + astrophysical-parameters results.
+
+1. Target Gaia source_id on the star
+
+When the target is resolved via Gaia (cone → nearest row → query_gaia), persist gaia_source_id on the target Star (or equivalent) so the rest of the pipeline can reuse it.
+Excel-only loads do not have source_id — design for that explicitly.
+2. Large cone for backgrounds
+
+For a wide cone (e.g. ~400″), remove the target from the field list by gaia_source_id when it is set (filter source_id != target.gaia_source_id). No second “who is the central star?” step in that case.
+Fallback when source_id is missing: keep today’s idea — drop the row closest to target RA/Dec, with a maximum separation threshold so we don’t remove the wrong star if the target isn’t in the cone.
+3. Join / duplicate columns (ra_1, ra_2)
+
+Background flow: field_cone already has ra, dec, parallax, phot_g_mean_mag. The batch AP query should not repeat those columns on the right-hand side of an Astropy join, or the join renames them. Prefer one shared SQL fragment for COALESCEs + FROM/JOINs, with two SELECT variants: full (target single-ID query) vs supplement-only ( source_id + AP fields) for the background batch join. Do not copy-paste the whole query twice.
+4. Optional cleanup
+
+Reduce repeated SkyCoord(ra=star.right_ascension, dec=star.declination, ...) — e.g. one Star → ICRS SkyCoord helper (or cache on Star after first use).
+Constraints
+
+Don’t change production behavior without tests; keep _gaia_query_for_source_ids behavior for external helpers (gaiabyid, gaiahelper_create_background_stars) that expect the full row including sky/photometry for their own use.

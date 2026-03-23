@@ -265,7 +265,7 @@ def test_create_background_star_catalog_missing_offset_columns_raises(monkeypatc
     monkeypatch.setattr(lbs, "apply_distance_from_parallax_if_missing", lambda p: p)
     monkeypatch.setattr(lbs, "apply_radius_from_teff_mag_distance_if_missing", lambda p: p)
     monkeypatch.setattr(lbs, "infer_mamajek", lambda p, log_output=False: p)
-    monkeypatch.setattr(lbs, "apply_log_r_fallback", lambda p, _cfg, log_output=False: p)
+    monkeypatch.setattr(lbs, "apply_log_r", lambda p, _cfg, log_output=False: p)
     monkeypatch.setattr(lbs, "_ensure_required_properties", lambda p, req: True)
 
     class _FakeStar:
@@ -286,7 +286,7 @@ def test_create_background_star_catalog_missing_offset_columns_raises(monkeypatc
 
 
 # Tests: create_background_star_catalog
-# Behavior: runs infer_mamajek and apply_log_r_fallback only when guarded keys exist
+# Behavior: runs infer_mamajek and apply_log_r only when guarded keys exist
 def test_create_background_star_catalog_teff_and_radius_guards(monkeypatch, make_global_config):
     cfg = make_global_config(magnitude_cutoff=15.0)
     table = Table(
@@ -320,7 +320,7 @@ def test_create_background_star_catalog_teff_and_radius_guards(monkeypatch, make
         return params
 
     monkeypatch.setattr(lbs, "infer_mamajek", _infer)
-    monkeypatch.setattr(lbs, "apply_log_r_fallback", _logr)
+    monkeypatch.setattr(lbs, "apply_log_r", _logr)
     monkeypatch.setattr(lbs, "_ensure_required_properties", lambda p, req: True)
 
     class _FakeStar:
@@ -344,7 +344,7 @@ def test_create_background_star_catalog_teff_and_radius_guards(monkeypatch, make
 
 
 # Tests: create_background_star_catalog
-# Behavior: when radius exists, apply_log_r_fallback is invoked with cfg and log_output=False
+# Behavior: when radius exists, apply_log_r is invoked with cfg and log_output=False
 def test_create_background_star_catalog_radius_branch_calls_log_r_fallback(monkeypatch, make_global_config):
     cfg = make_global_config(magnitude_cutoff=15.0)
     table = Table(
@@ -362,13 +362,13 @@ def test_create_background_star_catalog_radius_branch_calls_log_r_fallback(monke
     monkeypatch.setattr(lbs, "apply_radius_from_teff_mag_distance_if_missing", lambda p: p)
     monkeypatch.setattr(lbs, "infer_mamajek", lambda p, log_output=False: p)
 
-    def _apply_log_r_fallback(params, cfg_in, log_output=False):
+    def _apply_log_r(params, cfg_in, log_output=False):
         seen["called"] += 1
         seen["cfg"] = cfg_in
         seen["log_output"] = log_output
         return params
 
-    monkeypatch.setattr(lbs, "apply_log_r_fallback", _apply_log_r_fallback)
+    monkeypatch.setattr(lbs, "apply_log_r", _apply_log_r)
     monkeypatch.setattr(lbs, "_ensure_required_properties", lambda p, req: True)
 
     class _FakeStar:

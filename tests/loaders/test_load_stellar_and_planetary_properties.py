@@ -7,7 +7,7 @@ import pytest
 
 from loaders.load_stellar_and_planetary_properties import (
     _find_excel_file,
-    apply_log_r_fallback,
+    apply_log_r,
     infer_mamajek_spectral_type,
     infer_mamajek,
     load_excel_mapping,
@@ -227,21 +227,21 @@ def test_merge_gaia_into_star_params_none_gaia_returns_original():
     assert star_params == {"teff": 5000}
 
 
-# Tests: apply_log_r_fallback
+# Tests: apply_log_r
 # Behavior: leaves the dict unchanged when fallback is disabled
-def test_apply_log_r_fallback_disabled(make_global_config):
+def test_apply_log_r_disabled(make_global_config):
     cfg = make_global_config(enable_log_r_fallback=False)
     star_params = {"effective_temperature": 6000}
 
-    out = apply_log_r_fallback(star_params, cfg)
+    out = apply_log_r(star_params, cfg)
 
     assert out is star_params
     assert star_params == {"effective_temperature": 6000}
 
 
-# Tests: apply_log_r_fallback
+# Tests: apply_log_r
 # Behavior: keeps an existing log_r value
-def test_apply_log_r_fallback_does_not_override_existing_log_r(make_global_config):
+def test_apply_log_r_does_not_override_existing_log_r(make_global_config):
     cfg = make_global_config(
         enable_log_r_fallback=True,
         log_r_teff_threshold=5500.0,
@@ -250,15 +250,15 @@ def test_apply_log_r_fallback_does_not_override_existing_log_r(make_global_confi
     )
     star_params = {"effective_temperature": 6000, "log_r": -9.9}
 
-    out = apply_log_r_fallback(star_params, cfg)
+    out = apply_log_r(star_params, cfg)
 
     assert out is star_params
     assert star_params == {"effective_temperature": 6000, "log_r": -9.9}
 
 
-# Tests: apply_log_r_fallback
+# Tests: apply_log_r
 # Behavior: sets hot and cool fallback values
-def test_apply_log_r_fallback_sets_hot_or_cool_value_based_on_threshold(make_global_config):
+def test_apply_log_r_sets_hot_or_cool_value_based_on_threshold(make_global_config):
     cfg = make_global_config(
         enable_log_r_fallback=True,
         log_r_teff_threshold=5500.0,
@@ -267,21 +267,21 @@ def test_apply_log_r_fallback_sets_hot_or_cool_value_based_on_threshold(make_glo
     )
 
     star_hot = {"effective_temperature": "6000"}
-    out_hot = apply_log_r_fallback(star_hot, cfg)
+    out_hot = apply_log_r(star_hot, cfg)
 
     assert out_hot is star_hot
     assert star_hot == {"effective_temperature": "6000", "log_r": -4.2}
 
     star_cool = {"effective_temperature": "5000"}
-    out_cool = apply_log_r_fallback(star_cool, cfg)
+    out_cool = apply_log_r(star_cool, cfg)
 
     assert out_cool is star_cool
     assert star_cool == {"effective_temperature": "5000", "log_r": -4.8}
 
 
-# Tests: apply_log_r_fallback
+# Tests: apply_log_r
 # Behavior: leaves the dict unchanged when temperature is missing
-def test_apply_log_r_fallback_missing_teff_does_not_modify_dict(make_global_config):
+def test_apply_log_r_missing_teff_does_not_modify_dict(make_global_config):
     cfg = make_global_config(
         enable_log_r_fallback=True,
         log_r_teff_threshold=5500.0,
@@ -290,15 +290,15 @@ def test_apply_log_r_fallback_missing_teff_does_not_modify_dict(make_global_conf
     )
     star_params = {}
 
-    out = apply_log_r_fallback(star_params, cfg)
+    out = apply_log_r(star_params, cfg)
 
     assert out is star_params
     assert star_params == {}
 
 
-# Tests: apply_log_r_fallback
+# Tests: apply_log_r
 # Behavior: leaves the dict unchanged for invalid temperature
-def test_apply_log_r_fallback_invalid_teff_does_not_modify_dict(make_global_config):
+def test_apply_log_r_invalid_teff_does_not_modify_dict(make_global_config):
     cfg = make_global_config(
         enable_log_r_fallback=True,
         log_r_teff_threshold=5500.0,
@@ -307,7 +307,7 @@ def test_apply_log_r_fallback_invalid_teff_does_not_modify_dict(make_global_conf
     )
     star_params = {"effective_temperature": "nope"}
 
-    out = apply_log_r_fallback(star_params, cfg)
+    out = apply_log_r(star_params, cfg)
 
     assert out is star_params
     assert star_params == {"effective_temperature": "nope"}
@@ -587,7 +587,7 @@ def test_load_stellar_and_planetary_properties_raises_when_required_star_values_
     monkeypatch.setattr(mod, "apply_distance_from_parallax_if_missing", lambda star_params: star_params)
     monkeypatch.setattr(mod, "apply_radius_from_teff_mag_distance_if_missing", lambda star_params: star_params)
     monkeypatch.setattr(mod, "infer_mamajek", lambda star_params, log_output=True: star_params)
-    monkeypatch.setattr(mod, "apply_log_r_fallback", lambda star_params, cfg, log_output=True: star_params)
+    monkeypatch.setattr(mod, "apply_log_r", lambda star_params, cfg, log_output=True: star_params)
     monkeypatch.setattr(mod, "load_excel_mapping", lambda: {"required_stellar_parameters": ["name", "radius"]})
     monkeypatch.setattr(mod, "get_missing_properties", lambda star_params, required_keys, log_output=False: ["radius"])
 
@@ -624,7 +624,7 @@ def test_load_stellar_and_planetary_properties_happy_path(monkeypatch, make_glob
     monkeypatch.setattr(mod, "apply_distance_from_parallax_if_missing", lambda star_params: star_params)
     monkeypatch.setattr(mod, "apply_radius_from_teff_mag_distance_if_missing", lambda star_params: star_params)
     monkeypatch.setattr(mod, "infer_mamajek", lambda star_params, log_output=True: star_params)
-    monkeypatch.setattr(mod, "apply_log_r_fallback", lambda star_params, cfg, log_output=True: star_params)
+    monkeypatch.setattr(mod, "apply_log_r", lambda star_params, cfg, log_output=True: star_params)
     monkeypatch.setattr(
         mod,
         "load_excel_mapping",

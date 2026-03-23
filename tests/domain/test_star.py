@@ -9,6 +9,7 @@ def test_star_from_params_ok_and_unit_conversion():
     # Verifies that Star.from_params computes radius_sun_cm and mass_sun_kg using constants.
     params = {
         "name": "HD 1234",
+        "source_id": 123456789,
         "radius": 2.0,
         "mass": 3.0,
     }
@@ -61,6 +62,7 @@ def test_star_missing_effective_temperature_raises():
 def test_star_is_frozen():
     params = {
         "name": "HD 1234",
+        "source_id": 123456789,
         "radius": 1.0,
         "mass": 1.0,
     }
@@ -76,6 +78,7 @@ def test_star_is_frozen():
 def test_star_required_keys_empty():
     params = {
         "name": "HD 1234",
+        "source_id": 123456789,
         "radius": 2.0,
         "mass": 3.0,
     }
@@ -94,6 +97,7 @@ def test_star_required_key_present_but_is_missing(monkeypatch):
 
     params = {
         "name": "HD 1234",
+        "source_id": 123456789,
         "radius": 2.0,
         "mass": 3.0,
     }
@@ -111,6 +115,7 @@ def test_star_required_key_present_but_is_missing(monkeypatch):
 def test_star_log_output_false(capsys, caplog):
     params = {
         "name": "HD 1234",
+        "source_id": 123456789,
         "radius": 2.0,
         "mass": 3.0,
     }
@@ -141,6 +146,7 @@ def test_star_radius_none_raises():
 def test_star_optional_fields_are_passed_through():
     params = {
         "name": "HD 1234",
+        "source_id": 123456789,
         "radius": 2.0,
         "mass": 3.0,
         "spectral_type": "G2V",
@@ -176,6 +182,7 @@ def test_star_optional_fields_are_passed_through():
 def test_star_mass_none_sets_mass_sun_kg_to_none():
     params = {
         "name": "HD 1234",
+        "source_id": 123456789,
         "radius": 2.0,
         "mass": None,
     }
