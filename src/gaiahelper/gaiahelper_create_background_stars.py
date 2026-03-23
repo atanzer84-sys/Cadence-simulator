@@ -1,14 +1,27 @@
 from astroquery.gaia import Gaia
 from astropy.coordinates import SkyCoord
 from datetime import datetime
-from loaders.load_gaia import _gaia_query_for_source_ids
+from loaders.load_gaia import _gaia_query_for_source_ids, GAIA_FIELDS
 from loaders.run_waltzer_context import setup_output_directory
 from pathlib import Path
 import pandas as pd
 
 
+OUTPUT_HEADER_MAP = {v: k for k, v in GAIA_FIELDS.items() if k != "v_magnitude"}
+
+
 def ts(*args):
     print(datetime.now().strftime('%H:%M:%S'), *args)
+
+
+def rename_output_columns(tbl):
+    if tbl is None:
+        return None
+    renamed = tbl.copy()
+    for old_name, new_name in OUTPUT_HEADER_MAP.items():
+        if old_name in renamed.colnames and new_name not in renamed.colnames:
+            renamed.rename_column(old_name, new_name)
+    return renamed
 
 
 def gaia_nearby_stars_with_params_by_name(target_name: str, radius_arcsec: float, mag_limit: float):
@@ -72,12 +85,9 @@ def split_target_and_background(tbl, coord: SkyCoord):
 
     idx_target = separations.argmin()
 
-    is_target = [False] * len(tbl)
-    is_target[idx_target] = True
-    tbl["is_target"] = is_target
-
     target_row = tbl[idx_target:idx_target + 1].copy()
-    background_tbl = tbl[~tbl["is_target"]].copy()
+    mask = [i != idx_target for i in range(len(tbl))]
+    background_tbl = tbl[mask].copy()
 
     return background_tbl, target_row
 
@@ -90,7 +100,8 @@ def write_targets_excel(target_rows, output_dir):
     all_target_dfs = []
 
     for target_name, target_row in target_rows:
-        df = target_row.to_pandas()
+        renamed_target_row = rename_output_columns(target_row)
+        df = renamed_target_row.to_pandas()
         df.insert(0, "target_star", target_name)
 
         if "source_id" in df.columns:
@@ -99,9 +110,13 @@ def write_targets_excel(target_rows, output_dir):
         all_target_dfs.append(df)
 
     target_df = pd.concat(all_target_dfs, ignore_index=True)
+    for column in target_df.columns:
+        if column in ("target_star", "source_id"):
+            continue
+        target_df[column] = pd.to_numeric(target_df[column], errors="coerce")
 
     excel_path = Path(output_dir) / "all_target_stars.xlsx"
-    target_df.to_excel(excel_path, index=False, float_format="%.12f")
+    target_df.to_excel(excel_path, index=False)
 
     print(f"Saved target stars Excel file to {excel_path}")
 
@@ -192,7 +207,7 @@ def main(existing_output_dir=None):
     #     "K2-232",
     #     "KELT-11",
     #     "KELT-17",
-    #     "KELT-19 A",
+    #     "KELT-19",
     #     "KELT-2 A",
     #     "KELT-20",
     #     "KELT-24",
@@ -252,7 +267,7 @@ def main(existing_output_dir=None):
     #     "HAT-P-7",
     # ]
 
-    star_names = ["HD 84979"]
+    star_names = ["TOI-6038", "KELT-19"]
     
     RADIUS_ARCSEC = 450.0 # 10 arcmin
  
@@ -282,7 +297,8 @@ def main(existing_output_dir=None):
                 filename = name.replace(" ", "_") + ".csv"
                 filepath = output_dir / filename
 
-                background_tbl.write(filepath, format="ascii.csv", overwrite=True)
+                renamed_background_tbl = rename_output_columns(background_tbl)
+                renamed_background_tbl.write(filepath, format="ascii.csv", overwrite=True)
 
                 print(f"Saved {len(background_tbl)} background rows to {filepath}")
 

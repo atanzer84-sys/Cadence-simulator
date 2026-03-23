@@ -40,7 +40,7 @@ def lookup_target_star_gaia(star_params: dict, missing_stellar_keys, cfg: Global
 
         # if we get no result, we use ra, dec to get to a source id.
         if source_id is None:
-            source_id = _resolve_source_id_from_position(star_params, cfg)
+            source_id = _resolve_source_id_from_position(star_params, cfg.GAIA_USE_ASYNC_JOBS)
 
 
         gaia_row = query_gaia_target_star(source_id, cfg.GAIA_USE_ASYNC_JOBS)
@@ -113,11 +113,11 @@ def _resolve_gaia_source_id_from_name(target_name: str) -> int | None:
     logging.warning("SIMBAD lookup: no Gaia source_id found in IDS for target_name=%s", target_name)
     return None
 
-def _resolve_source_id_from_position(star_params: dict, cfg: GlobalConfig) -> int:
+def _resolve_source_id_from_position(star_params: dict, GAIA_USE_ASYNC_JOBS) -> int:
     target_name = star_params["name"]
 
     target_coord = _get_target_coordinates(star_params)
-    cone_table = _gaia_cone_search(target_coord, radius_arcsec=6.0, g_mag_limit=None, GAIA_USE_ASYNC_JOBS=cfg.GAIA_USE_ASYNC_JOBS)
+    cone_table = _gaia_cone_search(target_coord, radius_arcsec=6.0, g_mag_limit=None, GAIA_USE_ASYNC_JOBS=GAIA_USE_ASYNC_JOBS)
 
     if cone_table is None or len(cone_table) == 0:
         msg = f"No Gaia cone result found for {target_name}"

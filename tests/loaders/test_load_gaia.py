@@ -6,6 +6,7 @@ import os
 import pytest
 
 from loaders import load_gaia
+from loaders.load_stellar_and_planetary_properties import merge_gaia_into_star_params
 
 
 def _cone_table(rows):
@@ -282,21 +283,19 @@ def test_lookup_target_star_gaia_raises_on_any_exception(monkeypatch, make_globa
 
 
 # Tests: lookup_target_star_gaia
-# Behavior: only distance missing from Gaia row → distance None, parallax still attached when present
+# Behavior: raises when requested distance is still missing after Gaia mapping
 def test_lookup_target_star_gaia_stores_parallax_and_distance_none_when_only_distance_missing(monkeypatch, make_global_config):
     gaia_row = _make_gaia_row(dist_pc="", parallax=8.0, Teff=5000.0)
 
     monkeypatch.setattr(load_gaia, "_resolve_gaia_source_id_from_name", lambda _name: 222)
     monkeypatch.setattr(load_gaia, "query_gaia_target_star", lambda _source_id, _async: gaia_row)
+    monkeypatch.setattr(load_gaia, "apply_distance_from_parallax_if_missing", lambda p: p)
 
     cfg = make_global_config(GAIA_USE_ASYNC_JOBS=False)
     star_params = {"name": "Parallax Star", "right_ascension": 1.0, "declination": 2.0}
 
-    out = load_gaia.lookup_target_star_gaia(star_params, missing_stellar_keys=["distance"], cfg=cfg)
-
-    assert out["distance"] is None
-    assert out["parallax"] == 8.0
-    assert out["source_id"] == 222
+    with pytest.raises(RuntimeError, match="did not return requested missing keys"):
+        load_gaia.lookup_target_star_gaia(star_params, missing_stellar_keys=["distance"], cfg=cfg)
 
 
 # Tests: lookup_target_star_gaia
@@ -310,6 +309,7 @@ def test_lookup_target_star_gaia_passes_async_flag_to_helpers(monkeypatch, make_
 
     monkeypatch.setattr(load_gaia, "_resolve_gaia_source_id_from_name", lambda _name: 222)
     monkeypatch.setattr(load_gaia, "query_gaia_target_star", fake_query)
+    monkeypatch.setattr(load_gaia, "apply_distance_from_parallax_if_missing", lambda p: p)
 
     star_params = {"name": "HD 202772 A", "right_ascension": 1.0, "declination": 2.0}
     missing = ["effective_temperature"]
@@ -431,6 +431,7 @@ def test_lookup_target_star_gaia_raises_when_ra_dec_missing_and_name_resolution_
 def test_lookup_target_star_gaia_resolves_name_when_coordinates_missing(monkeypatch, make_global_config):
     monkeypatch.setattr(load_gaia, "_resolve_gaia_source_id_from_name", lambda _name: 222)
     monkeypatch.setattr(load_gaia, "query_gaia_target_star", lambda source_id, async_flag: _make_gaia_row(Teff=5000.0, parallax=None))
+    monkeypatch.setattr(load_gaia, "apply_distance_from_parallax_if_missing", lambda p: p)
 
     cfg = make_global_config(GAIA_USE_ASYNC_JOBS=False)
 
@@ -484,6 +485,7 @@ def test_lookup_target_star_gaia_raises_when_requested_keys_are_absent(monkeypat
     monkeypatch.setattr(load_gaia, "_resolve_gaia_source_id_from_name", lambda _name: 222)
     monkeypatch.setattr(load_gaia, "query_gaia_target_star", lambda source_id, async_flag: _make_gaia_row())
     monkeypatch.setattr(load_gaia, "get_gaia_stellar_properties", lambda gaia_row: {"mass": 1.0})
+    monkeypatch.setattr(load_gaia, "apply_distance_from_parallax_if_missing", lambda p: p)
 
     cfg = make_global_config(GAIA_USE_ASYNC_JOBS=False)
 
@@ -499,6 +501,7 @@ def test_lookup_target_star_gaia_raises_when_requested_keys_are_absent(monkeypat
 def test_lookup_target_star_gaia_success_returns_gaia_star_params(monkeypatch, make_global_config):
     monkeypatch.setattr(load_gaia, "_resolve_gaia_source_id_from_name", lambda _name: 222)
     monkeypatch.setattr(load_gaia, "query_gaia_target_star", lambda _source_id, _async: _make_gaia_row(Teff=5123.0, radius_sun=0.88))
+    monkeypatch.setattr(load_gaia, "apply_distance_from_parallax_if_missing", lambda p: p)
 
     cfg = make_global_config(GAIA_USE_ASYNC_JOBS=False)
 
@@ -519,6 +522,7 @@ def test_lookup_target_star_gaia_raises_when_required_missing_params_not_in_gaia
     monkeypatch.setattr(load_gaia, "_resolve_gaia_source_id_from_name", lambda _name: 222)
     monkeypatch.setattr(load_gaia, "query_gaia_target_star", lambda _source_id, _async: _make_gaia_row())
     monkeypatch.setattr(load_gaia, "get_gaia_stellar_properties", lambda _gaia_row: {"mass": 1.0, "source_id": 222})
+    monkeypatch.setattr(load_gaia, "apply_distance_from_parallax_if_missing", lambda p: p)
 
     cfg = make_global_config(GAIA_USE_ASYNC_JOBS=False)
 
@@ -603,6 +607,83 @@ def test_to_float_returns_none_for_nan():
 # Behavior: returns None for non numeric strings
 def test_to_float_returns_none_for_non_numeric_string():
     assert load_gaia._to_float("not_a_number") is None
+
+
+# Tests: apply_distance_from_parallax_if_missing
+# Behavior: sets distance from positive parallax when distance is missing
+def test_apply_distance_from_parallax_if_missing_sets_distance_from_positive_parallax():
+    star_params = {"name": "Target", "parallax": 10.0}
+
+    out = load_gaia.apply_distance_from_parallax_if_missing(star_params)
+
+    assert out is star_params
+    assert star_params == {"name": "Target", "parallax": 10.0, "distance": 100.0}
+
+
+# Tests: apply_distance_from_parallax_if_missing
+# Behavior: keeps existing distance unchanged
+def test_apply_distance_from_parallax_if_missing_keeps_existing_distance():
+    star_params = {"name": "Target", "parallax": 10.0, "distance": 42.0}
+
+    out = load_gaia.apply_distance_from_parallax_if_missing(star_params)
+
+    assert out is star_params
+    assert star_params == {"name": "Target", "parallax": 10.0, "distance": 42.0}
+
+
+# Tests: apply_distance_from_parallax_if_missing
+# Behavior: leaves values unchanged for zero negative missing and invalid parallax
+@pytest.mark.parametrize(
+    "star_params",
+    [
+        {"name": "Target"},
+        {"name": "Target", "parallax": None},
+        {"name": "Target", "parallax": 0.0},
+        {"name": "Target", "parallax": -1.0},
+        {"name": "Target", "parallax": ""},
+        {"name": "Target", "parallax": "   "},
+        {"name": "Target", "parallax": "utter nonsense"},
+        {"name": "Target", "parallax": object()},
+    ],
+)
+def test_apply_distance_from_parallax_if_missing_rejects_bullshit_input(star_params):
+    original = dict(star_params)
+
+    out = load_gaia.apply_distance_from_parallax_if_missing(star_params)
+
+    assert out is star_params
+    assert star_params == original
+
+
+# Tests: apply_distance_from_parallax_if_missing
+# Behavior: accepts numeric strings for positive parallax
+def test_apply_distance_from_parallax_if_missing_accepts_numeric_string():
+    star_params = {"name": "Target", "parallax": "20.0"}
+
+    out = load_gaia.apply_distance_from_parallax_if_missing(star_params)
+
+    assert out is star_params
+    assert star_params == {"name": "Target", "parallax": "20.0", "distance": 50.0}
+
+
+# Tests: load_stellar pipeline (Gaia merge + parallax distance)
+# Behavior: same order as load_stellar_and_planetary_properties — merge Gaia (distance None, parallax set) then parallax fallback fills distance_pc
+def test_merge_gaia_then_apply_distance_fills_distance_from_parallax():
+    star_params = {"name": "TOI-6038 A", "right_ascension": 51.0, "declination": 40.0}
+    gaia_return = {"distance": None, "parallax": 5.61220048991683, "effective_temperature": 6070.0}
+
+    merged = merge_gaia_into_star_params(star_params, gaia_return)
+
+    assert merged["distance"] is None
+    assert merged["parallax"] == 5.61220048991683
+    assert merged["effective_temperature"] == 6070.0
+
+    out = load_gaia.apply_distance_from_parallax_if_missing(merged)
+
+    assert out is merged
+    expected_pc = 1000.0 / 5.61220048991683
+    assert out["distance"] == pytest.approx(expected_pc)
+    assert out["parallax"] == 5.61220048991683
 
 
 # Tests: _gaia_cone_search
@@ -912,3 +993,28 @@ def test_gaia_cone_search_returns_none_when_mag_filter_empties_result(monkeypatc
     center = SkyCoord(ra=1.0 * u.deg, dec=2.0 * u.deg, frame="icrs")
     out = load_gaia._gaia_cone_search(center, radius_arcsec=100.0, g_mag_limit=10.0, GAIA_USE_ASYNC_JOBS=False)
     assert out is None
+
+
+# Tests: lookup_target_star_gaia
+# Behavior: raises when Gaia returns only part of the requested missing keys
+def test_lookup_target_star_gaia_raises_when_only_some_requested_keys_are_returned(monkeypatch, make_global_config):
+    monkeypatch.setattr(load_gaia, "_resolve_gaia_source_id_from_name", lambda _name: 222)
+    monkeypatch.setattr(load_gaia, "query_gaia_target_star", lambda _source_id, _async: _make_gaia_row())
+    monkeypatch.setattr(
+        load_gaia,
+        "get_gaia_stellar_properties",
+        lambda _gaia_row: {
+            "source_id": 222,
+            "effective_temperature": 5123.0,
+        },
+    )
+    monkeypatch.setattr(load_gaia, "apply_distance_from_parallax_if_missing", lambda p: p)
+
+    cfg = make_global_config(GAIA_USE_ASYNC_JOBS=False)
+
+    with pytest.raises(RuntimeError, match="did not return requested missing keys"):
+        load_gaia.lookup_target_star_gaia(
+            {"name": "Partial Gaia Target"},
+            missing_stellar_keys=["effective_temperature", "radius"],
+            cfg=cfg,
+        )

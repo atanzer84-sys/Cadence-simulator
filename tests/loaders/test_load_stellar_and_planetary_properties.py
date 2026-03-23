@@ -13,7 +13,6 @@ from loaders.load_stellar_and_planetary_properties import (
     load_excel_mapping,
     load_stellar_and_planetary_properties,
     merge_gaia_into_star_params,
-    apply_distance_from_parallax_if_missing,
     apply_radius_from_teff_mag_distance_if_missing,
 )
 
@@ -312,83 +311,6 @@ def test_apply_log_r_invalid_teff_does_not_modify_dict(make_global_config):
     assert out is star_params
     assert star_params == {"effective_temperature": "nope"}
 
-# Tests: apply_distance_from_parallax_if_missing
-# Behavior: sets distance from positive parallax when distance is missing
-def test_apply_distance_from_parallax_if_missing_sets_distance_from_positive_parallax():
-    star_params = {"parallax": 10.0}
-
-    out = apply_distance_from_parallax_if_missing(star_params)
-
-    assert out is star_params
-    assert star_params == {"parallax": 10.0, "distance": 100.0}
-
-
-# Tests: apply_distance_from_parallax_if_missing
-# Behavior: keeps existing distance unchanged
-def test_apply_distance_from_parallax_if_missing_keeps_existing_distance():
-    star_params = {"parallax": 10.0, "distance": 42.0}
-
-    out = apply_distance_from_parallax_if_missing(star_params)
-
-    assert out is star_params
-    assert star_params == {"parallax": 10.0, "distance": 42.0}
-
-
-# Tests: apply_distance_from_parallax_if_missing
-# Behavior: leaves values unchanged for zero negative missing and invalid parallax
-@pytest.mark.parametrize(
-    "star_params",
-    [
-        {},
-        {"parallax": None},
-        {"parallax": 0.0},
-        {"parallax": -1.0},
-        {"parallax": ""},
-        {"parallax": "   "},
-        {"parallax": "utter nonsense"},
-        {"parallax": object()},
-    ],
-)
-def test_apply_distance_from_parallax_if_missing_rejects_bullshit_input(star_params):
-    original = dict(star_params)
-
-    out = apply_distance_from_parallax_if_missing(star_params)
-
-    assert out is star_params
-    assert star_params == original
-
-
-# Tests: apply_distance_from_parallax_if_missing
-# Behavior: accepts numeric strings for positive parallax
-def test_apply_distance_from_parallax_if_missing_accepts_numeric_string():
-    star_params = {"parallax": "20.0"}
-
-    out = apply_distance_from_parallax_if_missing(star_params)
-
-    assert out is star_params
-    assert star_params == {"parallax": "20.0", "distance": 50.0}
-
-
-# Tests: load_stellar pipeline (Gaia merge + parallax distance)
-# Behavior: same order as load_stellar_and_planetary_properties — merge Gaia (distance None, parallax set) then parallax fallback fills distance_pc
-def test_merge_gaia_then_apply_distance_fills_distance_from_parallax():
-    star_params = {"name": "TOI-6038 A", "right_ascension": 51.0, "declination": 40.0}
-    gaia_return = {"distance": None, "parallax": 5.61220048991683, "effective_temperature": 6070.0}
-
-    merged = merge_gaia_into_star_params(star_params, gaia_return)
-
-    assert merged["distance"] is None
-    assert merged["parallax"] == 5.61220048991683
-    assert merged["effective_temperature"] == 6070.0
-
-    out = apply_distance_from_parallax_if_missing(merged)
-
-    assert out is merged
-    expected_pc = 1000.0 / 5.61220048991683
-    assert out["distance"] == pytest.approx(expected_pc)
-    assert out["parallax"] == 5.61220048991683
-
-
 # Tests: apply_radius_from_teff_mag_distance_if_missing
 # Behavior: keeps existing radius unchanged
 def test_apply_radius_from_teff_mag_distance_if_missing_keeps_existing_radius():
@@ -584,7 +506,6 @@ def test_load_stellar_and_planetary_properties_raises_when_required_star_values_
     monkeypatch.setattr(mod, "get_global_config", lambda: cfg)
     monkeypatch.setattr(mod, "lookup_target_star_gaia", lambda *args, **kwargs: {})
     monkeypatch.setattr(mod, "merge_gaia_into_star_params", lambda star_params, gaia_params: star_params)
-    monkeypatch.setattr(mod, "apply_distance_from_parallax_if_missing", lambda star_params: star_params)
     monkeypatch.setattr(mod, "apply_radius_from_teff_mag_distance_if_missing", lambda star_params: star_params)
     monkeypatch.setattr(mod, "infer_mamajek", lambda star_params, log_output=True: star_params)
     monkeypatch.setattr(mod, "apply_log_r", lambda star_params, cfg, log_output=True: star_params)
@@ -621,7 +542,6 @@ def test_load_stellar_and_planetary_properties_happy_path(monkeypatch, make_glob
     monkeypatch.setattr(mod, "get_global_config", lambda: cfg)
     monkeypatch.setattr(mod, "lookup_target_star_gaia", lambda *args, **kwargs: {"radius": 1.0})
     monkeypatch.setattr(mod, "merge_gaia_into_star_params", lambda star_params, gaia_params: {**star_params, **gaia_params})
-    monkeypatch.setattr(mod, "apply_distance_from_parallax_if_missing", lambda star_params: star_params)
     monkeypatch.setattr(mod, "apply_radius_from_teff_mag_distance_if_missing", lambda star_params: star_params)
     monkeypatch.setattr(mod, "infer_mamajek", lambda star_params, log_output=True: star_params)
     monkeypatch.setattr(mod, "apply_log_r", lambda star_params, cfg, log_output=True: star_params)
