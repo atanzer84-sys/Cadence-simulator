@@ -31,6 +31,7 @@ def make_global_config():
             n_calibration_frames=0,
             write_calibration_frame_png=False,
             write_science_frame_component_png=False,
+            write_science_frame_component_fits=False,
             invert_calibration_science_frame_component=False,
             invert_science_frames=False,
             write_science_frames_png=False,
