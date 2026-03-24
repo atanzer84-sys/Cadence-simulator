@@ -6,16 +6,17 @@ from instrument.science_image import build_science_images, _build_science_image_
 
 # Tests: _build_science_image_without_bg_stars
 # Behavior: Verifies that the construction matching channel dimensions dynamically.
-def test_build_science_image_integrity(make_spectroscopy_channel, make_run_context, make_global_config, make_star):
+def test_build_science_image_integrity(make_spectroscopy_channel, make_run_context, make_global_config, make_star, make_header):
     channel = make_spectroscopy_channel()
     ctx = make_run_context()
     cfg = make_global_config()
     star = make_star()
+    base_header = make_header()
 
     target_signal = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
     bg_comp = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
 
-    result = _build_science_image_without_bg_stars(target_signal, bg_comp, channel, ctx, cfg, star, frame_index=0)
+    result = _build_science_image_without_bg_stars(target_signal, bg_comp, channel, ctx, cfg, star, frame_index=0, base_header=base_header)
 
     assert result.dtype == np.float32
     # Dynamic shape check to avoid brittle hardcoding
@@ -24,33 +25,35 @@ def test_build_science_image_integrity(make_spectroscopy_channel, make_run_conte
 
 # Tests: _build_science_image_without_bg_stars
 # Behavior: Ensures the diagnostic PNG writing path (frame_index < 1) is exercised without errors.
-def test_build_science_image_diagnostic_path(make_photometry_channel, make_run_context, make_global_config, make_star):
+def test_build_science_image_diagnostic_path(make_photometry_channel, make_run_context, make_global_config, make_star, make_header):
     # Initialize a photometry channel (32x32).
     channel = make_photometry_channel()
     ctx = make_run_context()
     cfg = make_global_config()
     star = make_star()
+    base_header = make_header()
 
     signal = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
 
     # Execute for frame 0 (triggers diagnostic logic) and frame 1 (skips it).
-    _build_science_image_without_bg_stars(signal, signal, channel, ctx, cfg, star, frame_index=0)
-    _build_science_image_without_bg_stars(signal, signal, channel, ctx, cfg, star, frame_index=1)
+    _build_science_image_without_bg_stars(signal, signal, channel, ctx, cfg, star, frame_index=0, base_header=base_header)
+    _build_science_image_without_bg_stars(signal, signal, channel, ctx, cfg, star, frame_index=1, base_header=base_header)
 
 
 # Tests: _build_science_image_without_bg_stars
 # Behavior: Verifies that the builder handles custom channel pixel overrides correctly.
-def test_build_science_image_custom_geometry(make_spectroscopy_channel, make_run_context, make_global_config, make_star):
+def test_build_science_image_custom_geometry(make_spectroscopy_channel, make_run_context, make_global_config, make_star, make_header):
     # Use fixture overrides to test a non-standard 10x5 sensor.
     channel = make_spectroscopy_channel(x_pixels=10, y_pixels=5)
     ctx = make_run_context()
     cfg = make_global_config()
     star = make_star()
+    base_header = make_header()
 
     signal = np.zeros((5, 10), dtype=np.float32)
 
     # Execute and verify the resulting array shape matches the override.
-    result = _build_science_image_without_bg_stars(signal, signal, channel, ctx, cfg, star, frame_index=0)
+    result = _build_science_image_without_bg_stars(signal, signal, channel, ctx, cfg, star, frame_index=0, base_header=base_header)
     assert result.shape == (5, 10)
 
 # Tests: _generate_channel_calibration_frames
@@ -93,7 +96,7 @@ def test_generate_calibration_frames_realistic(realistic_spectroscopy_channel, m
 
 # Tests: _build_science_image_without_bg_stars
 # Behavior: Verifies deterministic additive composition with stochastic terms patched out.
-def test_build_science_image_additive_correctness(make_spectroscopy_channel, make_run_context, make_global_config, make_star):
+def test_build_science_image_additive_correctness(make_spectroscopy_channel, make_run_context, make_global_config, make_star, make_header):
     # Setup channel with 0 read/dark noise. Patch stochastic terms below.
     channel = make_spectroscopy_channel(
         read_noise=0.0,
@@ -105,6 +108,7 @@ def test_build_science_image_additive_correctness(make_spectroscopy_channel, mak
     ctx = make_run_context()
     cfg = make_global_config()
     star = make_star()
+    base_header = make_header()
 
     # Create known constant component arrays
     target_signal = np.full((channel.y_pixels, channel.x_pixels), 50.0, dtype=np.float32)
@@ -115,7 +119,7 @@ def test_build_science_image_additive_correctness(make_spectroscopy_channel, mak
 
     with patch("instrument.science_image.generate_photon_noise_from_spectra2d", return_value=np.zeros_like(target_signal)), \
          patch("instrument.science_image.generate_cosmic_rays", return_value=np.zeros_like(target_signal)):
-        result = _build_science_image_without_bg_stars(target_signal, bg_comp, channel, ctx, cfg, star, frame_index=0)
+        result = _build_science_image_without_bg_stars(target_signal, bg_comp, channel, ctx, cfg, star, frame_index=0, base_header=base_header)
 
     # Validate the sum
     np.testing.assert_allclose(result, expected_value, atol=1e-5)
@@ -206,7 +210,7 @@ def test_create_channel_images_roll_angle_progression(make_spectroscopy_channel,
 
 # Tests: _create_per_exposure
 # Behavior: spectroscopy branch adds background stars, applies gain, and forwards visibility bands.
-def test_create_per_exposure_spectroscopy_branch(make_spectroscopy_channel, make_run_context, make_global_config, make_star):
+def test_create_per_exposure_spectroscopy_branch(make_spectroscopy_channel, make_run_context, make_global_config, make_star, make_header):
     channel = make_spectroscopy_channel(x_pixels=3, y_pixels=2, ccd_gain=2.0)
     visibility_mock = Mock()
     ctx = make_run_context()
@@ -215,6 +219,7 @@ def test_create_per_exposure_spectroscopy_branch(make_spectroscopy_channel, make
         write_background_star_footprint_on_science_frame=True,
     )
     star = make_star()
+    base_header = make_header()
 
     base_img = np.full((2, 3), 10.0, dtype=np.float32)
     bg_stars = np.full((2, 3), 1.5, dtype=np.float32)
@@ -236,6 +241,7 @@ def test_create_per_exposure_spectroscopy_branch(make_spectroscopy_channel, make
             frame_index=3,
             roll_angle_start=12.5,
             roll_angle_end=15.0,
+            base_header=base_header,
         )
 
     mock_build.assert_called_once()
@@ -256,7 +262,7 @@ def test_create_per_exposure_spectroscopy_branch(make_spectroscopy_channel, make
 
 # Tests: _create_per_exposure
 # Behavior: photometry branch forwards arc visibility payload.
-def test_create_per_exposure_photometry_branch(make_photometry_channel, make_run_context, make_global_config, make_star):
+def test_create_per_exposure_photometry_branch(make_photometry_channel, make_run_context, make_global_config, make_star, make_header):
     channel = make_photometry_channel(x_pixels=3, y_pixels=2, ccd_gain=1.0)
     visibility_mock = Mock()
     ctx = make_run_context()
@@ -265,6 +271,7 @@ def test_create_per_exposure_photometry_branch(make_photometry_channel, make_run
         write_background_star_footprint_on_science_frame=True,
     )
     star = make_star()
+    base_header = make_header()
 
     base_img = np.full((2, 3), 5.0, dtype=np.float32)
     bg_stars = np.full((2, 3), 2.0, dtype=np.float32)
@@ -286,6 +293,7 @@ def test_create_per_exposure_photometry_branch(make_photometry_channel, make_run
             frame_index=0,
             roll_angle_start=0.0,
             roll_angle_end=1.0,
+            base_header=base_header,
         )
 
     mock_bg_phot.assert_called_once_with(channel, None, 0.0, 1.0, 0)
@@ -300,7 +308,7 @@ def test_create_per_exposure_photometry_branch(make_photometry_channel, make_run
 
 # Tests: _create_per_exposure
 # Behavior: unsupported channel type raises TypeError.
-def test_create_per_exposure_rejects_unsupported_channel(make_run_context, make_global_config, make_star):
+def test_create_per_exposure_rejects_unsupported_channel(make_run_context, make_global_config, make_star, make_header):
     class DummyChannel:
         ccd_gain = 1.0
 
@@ -308,6 +316,7 @@ def test_create_per_exposure_rejects_unsupported_channel(make_run_context, make_
     ctx = make_run_context()
     cfg = make_global_config()
     star = make_star()
+    base_header = make_header()
     base_img = np.zeros((2, 2), dtype=np.float32)
 
     with patch("instrument.science_image._build_science_image_without_bg_stars", return_value=base_img):
@@ -323,6 +332,7 @@ def test_create_per_exposure_rejects_unsupported_channel(make_run_context, make_
                 frame_index=0,
                 roll_angle_start=0.0,
                 roll_angle_end=1.0,
+                base_header=base_header,
             )
 
 

@@ -8,7 +8,7 @@ from astropy.coordinates import SkyCoord, get_sun, BarycentricTrueEcliptic
 import astropy.units as u
 from scipy.interpolate import CubicSpline
 from astropy.time import Time
-
+from instrument.spectrum_spread import get_target_star_detector_position
 
 def generate_background_image(channel: SpectroscopyChannel, star: Star ) -> np.ndarray:
 
@@ -37,10 +37,20 @@ def generate_background_image(channel: SpectroscopyChannel, star: Star ) -> np.n
             np.arange(len(background)),
             background,
         )
-    image[:, :] = background[np.newaxis, :]
+
+    if channel.channel_name == "NIR":
+        image[:, :] = background[np.newaxis, :]
+    else:
+        _, y0 = get_target_star_detector_position(channel)
+        half_slit_rows = int(np.floor(channel.slit_half_length_arcsec / channel.pixel_scale))
+        y_min = max(0, y0 - half_slit_rows)
+        y_max = min(ny - 1, y0 + half_slit_rows)
+        image[y_min:y_max + 1, :] = background[np.newaxis, :]
+
     image*=channel.exposure_s
 
     logging.info("Background 2D image created for channel %s with size %dx%d and shape %dx%d.", channel.channel_name, nx, ny, image.shape[0], image.shape[1])
+
     return image
 
 
