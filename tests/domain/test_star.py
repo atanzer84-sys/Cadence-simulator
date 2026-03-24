@@ -197,6 +197,22 @@ def test_star_mass_none_sets_mass_sun_kg_to_none():
     assert star.mass_sun_kg is None
 
 
+def test_star_missing_source_id_sets_gaia_source_id_to_none():
+    params = {
+        "name": "HD 1234",
+        "radius": 2.0,
+        "mass": 3.0,
+    }
+
+    star = Star.from_params(
+        params,
+        required_keys=["name", "radius", "mass"],
+        log_output=False,
+    )
+
+    assert star.gaia_source_id is None
+
+
 def test_star_radius_none_raises_even_if_radius_not_in_required_keys():
     params = {
         "name": "HD 1234",

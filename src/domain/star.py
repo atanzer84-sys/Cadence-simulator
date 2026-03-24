@@ -49,7 +49,7 @@ class Star:
 
         star = cls(
             name=star_params["name"],
-            gaia_source_id=star_params["source_id"],
+            gaia_source_id=star_params.get("source_id"),
             spectral_type=star_params.get("spectral_type"),
             effective_temperature=star_params.get("effective_temperature"),
             radius=radius,

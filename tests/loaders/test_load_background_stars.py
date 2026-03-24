@@ -25,7 +25,7 @@ def test_save_background_stars_csv_writes_file_and_emits_message(tmp_path, caplo
     table = Table({"ra": [10.0], "dec": [20.0], "source_id": [123]})
 
     with caplog.at_level("INFO"):
-        lbs.save_background_stars_csv(table, tmp_path, "Target Name")
+        lbs._save_background_stars_csv(table, tmp_path, "Target Name")
 
     expected_path = tmp_path / "Target_Name.csv"
     assert expected_path.exists()
@@ -58,7 +58,7 @@ def test_drop_stars_outside_max_radius_filters_by_max_channel_radius(make_spectr
     nuv = make_spectroscopy_channel(slit_half_width_arcsec=3.0, slit_half_length_arcsec=4.0)  # radius 5
     nir = make_photometry_channel(x_pixels=6, y_pixels=8, pixel_scale=1.0)  # radius 5
 
-    filtered = lbs.drop_stars_outside_max_radius(table, nuv=nuv, vis=None, nir=nir)
+    filtered = lbs._drop_stars_outside_max_radius(table, nuv=nuv, vis=None, nir=nir)
 
     assert len(filtered) == 2
     assert np.allclose(filtered["separation_arcsec"], [1.0, 5.0])
@@ -70,7 +70,7 @@ def test_drop_stars_outside_max_radius_vis_channel_path(make_spectroscopy_channe
     table = Table({"separation_arcsec": [4.9, 5.0, 5.1]})
     vis = make_spectroscopy_channel(slit_half_width_arcsec=3.0, slit_half_length_arcsec=4.0)  # radius 5
 
-    filtered = lbs.drop_stars_outside_max_radius(table, nuv=None, vis=vis, nir=None)
+    filtered = lbs._drop_stars_outside_max_radius(table, nuv=None, vis=vis, nir=None)
 
     assert len(filtered) == 2
     assert np.allclose(filtered["separation_arcsec"], [4.9, 5.0])
@@ -80,7 +80,7 @@ def test_drop_stars_outside_max_radius_vis_channel_path(make_spectroscopy_channe
 # Behavior: returns input unchanged when no channels are enabled
 def test_drop_stars_outside_max_radius_no_channels_returns_input():
     table = Table({"separation_arcsec": [1.0, 2.0, 3.0]})
-    out = lbs.drop_stars_outside_max_radius(table, nuv=None, vis=None, nir=None)
+    out = lbs._drop_stars_outside_max_radius(table, nuv=None, vis=None, nir=None)
     assert len(out) == len(table)
     assert np.allclose(out["separation_arcsec"], table["separation_arcsec"])
 
@@ -90,7 +90,7 @@ def test_drop_stars_outside_max_radius_no_channels_returns_input():
 def test_drop_stars_outside_max_radius_non_positive_radius_noop(make_spectroscopy_channel):
     table = Table({"separation_arcsec": [1.0, 2.0, 3.0]})
     nuv = make_spectroscopy_channel(slit_half_width_arcsec=0.0, slit_half_length_arcsec=0.0)
-    out = lbs.drop_stars_outside_max_radius(table, nuv=nuv, vis=None, nir=None)
+    out = lbs._drop_stars_outside_max_radius(table, nuv=nuv, vis=None, nir=None)
     assert len(out) == len(table)
     assert np.allclose(out["separation_arcsec"], table["separation_arcsec"])
 
@@ -100,7 +100,7 @@ def test_drop_stars_outside_max_radius_non_positive_radius_noop(make_spectroscop
 def test_drop_stars_outside_max_radius_empty_table_stays_empty(make_spectroscopy_channel):
     table = Table({"separation_arcsec": []})
     nuv = make_spectroscopy_channel(slit_half_width_arcsec=3.0, slit_half_length_arcsec=4.0)
-    out = lbs.drop_stars_outside_max_radius(table, nuv=nuv, vis=None, nir=None)
+    out = lbs._drop_stars_outside_max_radius(table, nuv=nuv, vis=None, nir=None)
     assert len(out) == 0
 
 
@@ -115,7 +115,7 @@ def test_annotate_background_star_offsets_arcsec_adds_columns(make_star):
         }
     )
 
-    out = lbs.annotate_background_star_offsets_arcsec(table, star)
+    out = lbs._annotate_background_star_offsets_arcsec(table, star)
 
     assert "relative_dx_arcsec" in out.colnames
     assert "relative_dy_arcsec" in out.colnames
@@ -129,7 +129,7 @@ def test_annotate_background_star_offsets_arcsec_adds_columns(make_star):
 def test_load_background_csv_if_exists_missing_returns_none(tmp_path, make_star):
     star = make_star(name="Target Name")
 
-    table = lbs.load_background_csv_if_exists(star, repo_root=tmp_path)
+    table = lbs._load_background_csv_if_exists(star, repo_root=tmp_path)
 
     assert table is None
 
@@ -143,7 +143,7 @@ def test_load_background_csv_if_exists_loads_table(tmp_path, make_star):
     csv_path.write_text("ra,dec,source_id\n10.0,20.0,123\n", encoding="utf-8")
     star = make_star(name="Target Name")
 
-    table = lbs.load_background_csv_if_exists(star, repo_root=tmp_path)
+    table = lbs._load_background_csv_if_exists(star, repo_root=tmp_path)
 
     assert table is not None
     assert len(table) == 1
@@ -166,7 +166,7 @@ def test_load_background_csv_if_exists_malformed_csv_raises(tmp_path, make_star,
 
     monkeypatch.setattr(lbs.Table, "read", staticmethod(_raise_malformed))
     with pytest.raises(ValueError):
-        lbs.load_background_csv_if_exists(star, repo_root=tmp_path)
+        lbs._load_background_csv_if_exists(star, repo_root=tmp_path)
 
 
 # Tests: load_background_csv_if_exists
@@ -181,7 +181,7 @@ def test_load_background_csv_if_exists_missing_required_columns_raises(tmp_path,
     star = make_star(name="Target Name")
 
     with pytest.raises(ValueError):
-        lbs.load_background_csv_if_exists(star, repo_root=tmp_path)
+        lbs._load_background_csv_if_exists(star, repo_root=tmp_path)
 
 
 # Tests: annotate_background_star_offsets_arcsec
@@ -193,7 +193,7 @@ def test_annotate_background_star_offsets_arcsec_missing_columns_raises(make_sta
     table = Table({"source_id": [1]})
 
     with pytest.raises(KeyError):
-        lbs.annotate_background_star_offsets_arcsec(table, star)
+        lbs._annotate_background_star_offsets_arcsec(table, star)
 
 
 # Tests: _passes_magnitude_cutoff

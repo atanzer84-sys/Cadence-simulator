@@ -1,13 +1,13 @@
 from astroquery.gaia import Gaia
 from astropy.coordinates import SkyCoord
 from datetime import datetime
-from loaders.load_gaia import _gaia_query_for_source_ids, GAIA_FIELDS
+from loaders.load_gaia import _gaia_query_for_source_ids, GAIA_PROPERTIES
 from loaders.run_waltzer_context import setup_output_directory
 from pathlib import Path
 import pandas as pd
 
 
-OUTPUT_HEADER_MAP = {v: k for k, v in GAIA_FIELDS.items() if k != "v_magnitude"}
+OUTPUT_HEADER_MAP = {v: k for k, v in GAIA_PROPERTIES.items() if k != "v_magnitude"}
 
 
 def ts(*args):

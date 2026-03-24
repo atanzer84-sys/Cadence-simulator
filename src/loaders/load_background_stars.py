@@ -1,4 +1,5 @@
 import logging
+import numpy as np
 from loaders.run_waltzer_context import RunContext
 from domain.star import Star
 from astropy.table import Table
@@ -21,70 +22,141 @@ def lookup_background_stars(nuv: SpectroscopyChannel | None, vis: SpectroscopyCh
 
     # TODO: IF YOU WANT TO LOAD A CATALOG OF ALL BACKGROUND STARS AND LOOK THEM UP, THIS WOULD BE THE PLACE.
     # lookup star_name.csv and load it, so we do not have to query gaia
-    table = load_background_csv_if_exists(star)
-    if table is None:
-        table = gaia_lookup_for_background_stars(star, g_mag_limit=cfg.magnitude_cutoff, GAIA_USE_ASYNC_JOBS=cfg.GAIA_USE_ASYNC_JOBS, radius_arcsec=cfg.gaia_conesearch_radius_arcsec)
-        if table is not None and len(table) > 0:
-            save_background_stars_csv(table, ctx.output_dir, star.name)
-    else:
-        print(f"Background stars loaded from CSV cache ({len(table)} rows).")
+    table = _load_or_query_background_star_table(ctx, star, cfg)
+
     if table is None or len(table) == 0:
         return StarCatalog()
 
-    table = annotate_background_star_offsets_arcsec(table, star)
-    table = drop_stars_outside_max_radius(table, nuv, vis, nir)
+    table = _apply_background_star_magnitude_cutoff(table, cfg.magnitude_cutoff)
+
+    if len(table) == 0:
+        return StarCatalog()
+
+    table = _annotate_background_star_offsets_arcsec(table, star)
+    table = _drop_stars_outside_max_radius(table, nuv, vis, nir)
     catalog = create_background_star_catalog(table, cfg)
 
     logging.info("Background star catalog prepared: stars=%d", len(catalog.stars_by_id))
 
     return catalog
 
-def load_background_csv_if_exists(star: Star, repo_root=None) -> Table | None:
+def _load_or_query_background_star_table(ctx: RunContext, star: Star, cfg: GlobalConfig) -> Table | None:
+    table = _load_background_csv_if_exists(star)
+
+    if table is None:
+        table = gaia_lookup_for_background_stars(
+            star,
+            g_mag_limit=cfg.magnitude_cutoff,
+            GAIA_USE_ASYNC_JOBS=cfg.GAIA_USE_ASYNC_JOBS,
+            radius_arcsec=cfg.gaia_conesearch_radius_arcsec,
+        )
+
+        if table is not None and len(table) > 0:
+            _save_background_stars_csv(table, ctx.output_dir, star.name)
+
+    return table
+
+def _load_background_csv_if_exists(star: Star, repo_root=None) -> Table | None:
     repo_root = get_repo_root() if repo_root is None else repo_root
     csv_name = star.name.replace(" ", "_")
     csv_path = resolve_path_under(repo_root, "data", "BackgroundStars", f"{csv_name}.csv")
+    logging.info("Background stars: loading cached CSV: %s", csv_path)
 
     if not csv_path.exists():
         return None
 
     table = Table.read(csv_path, format="csv")
-    required_columns = {"ra", "dec"}
+    required_columns = {"right_ascension", "declination"}
     missing_columns = sorted(required_columns - set(table.colnames))
     if missing_columns:
         raise ValueError(
             f"Background CSV missing required columns {missing_columns}: {csv_path}"
         )
 
-    logging.info("Background stars: loading cached CSV: %s", csv_path)
     logging.info("Loaded background CSV for %s: rows=%d, columns=%s", star.name, len(table), list(table.colnames))
     return table
 
-def annotate_background_star_offsets_arcsec(table: Table, target_star: Star) -> Table:
+def _save_background_stars_csv(table: Table, output_dir, star_name: str) -> None:
+    """Write background stars table to CSV in output_dir. Use same name as cache so it can be moved to data/BackgroundStars/."""
+    csv_name = star_name.replace(" ", "_")
+    csv_path = output_dir / f"{csv_name}.csv"
+    table.write(csv_path, format="ascii.csv", overwrite=True)
+    msg = f"Background stars: saved to {csv_path} (move to data/BackgroundStars/ for cache)"
+    logging.info(msg)
+    print(msg)
+
+
+def _apply_background_star_magnitude_cutoff(table: Table, max_mag: float) -> Table:
+    if "gaia_magnitude" not in table.colnames:
+        logging.info("Background star magnitude filter skipped: 'gaia_magnitude' column not present")
+        return table
+
+    table = table[table["gaia_magnitude"] <= max_mag]
+    logging.info("Background star magnitude filter applied: max_mag=%s remaining=%d", max_mag, len(table))
+    return table
+
+
+# def _annotate_background_star_offsets_arcsec(table: Table, target_star: Star) -> Table:
+#     ra0 = float(target_star.right_ascension)
+#     dec0 = float(target_star.declination)
+#     target = SkyCoord(ra=ra0 * u.deg, dec=dec0 * u.deg, frame="icrs")
+
+#     dx_values = []
+#     dy_values = []
+#     sep_values = []
+
+#     for row in table:
+#         bg = SkyCoord(ra=float(row["right_ascension"]) * u.deg, dec=float(row["declination"]) * u.deg, frame="icrs")
+#         dlon, dlat = target.spherical_offsets_to(bg)
+#         dx_values.append(dlon.to(u.arcsec).value)
+#         dy_values.append(dlat.to(u.arcsec).value)
+#         sep_values.append(target.separation(bg).to(u.arcsec).value)
+
+#     table = table.copy()
+#     table["relative_dx_arcsec"] = dx_values
+#     table["relative_dy_arcsec"] = dy_values
+#     table["separation_arcsec"] = sep_values
+
+#     logging.info("Background star offsets computed: stars=%d", len(table))
+
+#     return table
+
+def _annotate_background_star_offsets_arcsec(table: Table, target_star: Star) -> Table:
     ra0 = float(target_star.right_ascension)
     dec0 = float(target_star.declination)
     target = SkyCoord(ra=ra0 * u.deg, dec=dec0 * u.deg, frame="icrs")
 
-    dx_values = []
-    dy_values = []
-    sep_values = []
+    sources_coord = SkyCoord(
+        ra=np.asarray(table["right_ascension"], dtype=float) * u.deg,
+        dec=np.asarray(table["declination"], dtype=float) * u.deg,
+        frame="icrs",
+    )
 
-    for row in table:
-        bg = SkyCoord(ra=float(row["ra"]) * u.deg, dec=float(row["dec"]) * u.deg, frame="icrs")
-        dlon, dlat = target.spherical_offsets_to(bg)
-        dx_values.append(dlon.to(u.arcsec).value)
-        dy_values.append(dlat.to(u.arcsec).value)
-        sep_values.append(target.separation(bg).to(u.arcsec).value)
+    dlon, dlat = target.spherical_offsets_to(sources_coord)
+
+    use_cached_sep = False
+    if "sep_arcsec" in table.colnames:
+        try:
+            sep_values = np.asarray(table["sep_arcsec"], dtype=float)
+            if len(sep_values) == len(table) and np.all(np.isfinite(sep_values)):
+                use_cached_sep = True
+        except Exception:
+            use_cached_sep = False
+
+    if not use_cached_sep:
+        sep_values = target.separation(sources_coord).to(u.arcsec).value
 
     table = table.copy()
-    table["relative_dx_arcsec"] = dx_values
-    table["relative_dy_arcsec"] = dy_values
+    table["relative_dx_arcsec"] = dlon.to(u.arcsec).value
+    table["relative_dy_arcsec"] = dlat.to(u.arcsec).value
     table["separation_arcsec"] = sep_values
 
-    logging.info("Background star offsets computed: stars=%d", len(table))
+    logging.info("Background star offsets computed: stars=%d used_cached_sep=%s", len(table), use_cached_sep)
 
     return table
 
-def drop_stars_outside_max_radius(table: Table, nuv: SpectroscopyChannel | None, vis: SpectroscopyChannel | None, nir: PhotometryChannel | None) -> Table:
+
+def _drop_stars_outside_max_radius(table: Table, nuv: SpectroscopyChannel | None, vis: SpectroscopyChannel | None, nir: PhotometryChannel | None) -> Table:
     """Filter Gaia background stars to those that can reach any active channel."""
 
     radii_arcsec = []
@@ -127,14 +199,23 @@ def _photometry_radius_arcsec(channel: PhotometryChannel) -> float:
     half_height_arcsec = 0.5 * float(channel.y_pixels) * float(channel.pixel_scale)
     return (half_width_arcsec * half_width_arcsec + half_height_arcsec * half_height_arcsec) ** 0.5
 
+
+
+
+
+
+
+
+
+
+
+
 def create_background_star_catalog(table: Table, cfg: GlobalConfig):
     catalog = StarCatalog()
     required_keys = load_required_stellar_parameters()
 
     for row in table:
         star_params = get_gaia_stellar_properties(row, log_output=False)
-        if not _passes_magnitude_cutoff(star_params, max_mag=cfg.magnitude_cutoff):
-            continue
 
         _set_background_star_name(star_params, row)
         star_params = apply_distance_from_parallax_if_missing(star_params)
@@ -170,14 +251,6 @@ def load_required_stellar_parameters():
     return mapping["required_stellar_parameters"]
 
 
-def save_background_stars_csv(table: Table, output_dir, star_name: str) -> None:
-    """Write background stars table to CSV in output_dir. Use same name as cache so it can be moved to data/BackgroundStars/."""
-    csv_name = star_name.replace(" ", "_")
-    csv_path = output_dir / f"{csv_name}.csv"
-    table.write(csv_path, format="ascii.csv", overwrite=True)
-    msg = f"Background stars: saved to {csv_path} (move to data/BackgroundStars/ for cache)"
-    logging.info(msg)
-    print(msg)
 
 
 def _passes_magnitude_cutoff(star_params: dict, max_mag: float) -> bool:

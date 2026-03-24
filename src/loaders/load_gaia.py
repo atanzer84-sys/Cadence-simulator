@@ -10,24 +10,36 @@ from configs.global_config import GlobalConfig
 
 
 # Map SQL, CSV and Dict hardcoded to the properties we expect to have it all in one place. always.
-GAIA_FIELDS = {
-    "source_id": "source_id",
-    "right_ascension": "ra",
-    "declination": "dec",
-    "parallax": "parallax",
-    "gaia_magnitude": "phot_g_mean_mag",
-    "v_magnitude": "phot_g_mean_mag",
-    "effective_temperature": "Teff",
-    "distance": "dist_pc",
-    "radius": "radius_sun",
-    "mass": "mass_sun",
-    "metallicity": "mh_gspphot",
-    "surface_gravity": "logg_gspphot",
-}
+# GAIA_FIELDS = {
+#     "source_id": "source_id",
+#     "right_ascension": "ra",
+#     "declination": "dec",
+#     "parallax": "parallax",
+#     "gaia_magnitude": "phot_g_mean_mag",
+#     "v_magnitude": "phot_g_mean_mag",
+#     "effective_temperature": "Teff",
+#     "distance": "dist_pc",
+#     "radius": "radius_sun",
+#     "mass": "mass_sun",
+#     "metallicity": "mh_gspphot",
+#     "surface_gravity": "logg_gspphot",
+# }
 
-# source_id,ra,dec,parallax,phot_g_mean_mag,Teff,dist_pc,radius_sun,mass_sun,mh_gspphot,logg_gspphot,sep_arcsec,is_target
+GAIA_PROPERTIES = (
+    "source_id",
+    "right_ascension",
+    "declination",
+    "parallax",
+    "gaia_magnitude",
+    "effective_temperature",
+    "distance",
+    "radius",
+    "mass",
+    "metallicity",
+    "surface_gravity",
+)
 
-GAIA_PROVIDES = set(GAIA_FIELDS.keys())
+GAIA_PROVIDES = set(GAIA_PROPERTIES)
 
 def lookup_target_star_gaia(star_params: dict, missing_stellar_keys, cfg: GlobalConfig) -> dict:
     target_name = star_params["name"]
@@ -205,16 +217,16 @@ def _gaia_select_joined_base() -> str:
     return f"""
         SELECT
             gs.source_id,
-            gs.ra AS {GAIA_FIELDS["right_ascension"]},
-            gs.dec AS {GAIA_FIELDS["declination"]},
-            gs.parallax AS {GAIA_FIELDS["parallax"]},
-            gs.phot_g_mean_mag AS {GAIA_FIELDS["gaia_magnitude"]},
-            COALESCE(ap.teff_gspphot, ap.teff_gspspec, supp.teff_gspspec_ann, gs.rv_template_teff) AS {GAIA_FIELDS["effective_temperature"]},
-            COALESCE(ap.distance_gspphot, supp.distance_gspphot_phoenix, supp.distance_gspphot_marcs) AS {GAIA_FIELDS["distance"]},
-            COALESCE(ap.radius_gspphot, ap.radius_flame, supp.radius_flame_spec, supp.radius_gspphot_a, supp.radius_gspphot_marcs, supp.radius_gspphot_phoenix) AS {GAIA_FIELDS["radius"]},
-            COALESCE(ap.mass_flame, supp.mass_flame_spec) AS {GAIA_FIELDS["mass"]},
-            ap.mh_gspphot AS {GAIA_FIELDS["metallicity"]},
-            ap.logg_gspphot AS {GAIA_FIELDS["surface_gravity"]}
+            gs.ra AS right_ascension,
+            gs.dec AS declination,
+            gs.parallax AS parallax,
+            gs.phot_g_mean_mag AS gaia_magnitude,
+            COALESCE(ap.teff_gspphot, ap.teff_gspspec, supp.teff_gspspec_ann, gs.rv_template_teff) AS effective_temperature,
+            COALESCE(ap.distance_gspphot, supp.distance_gspphot_phoenix, supp.distance_gspphot_marcs) AS "distance",
+            COALESCE(ap.radius_gspphot, ap.radius_flame, supp.radius_flame_spec, supp.radius_gspphot_a, supp.radius_gspphot_marcs, supp.radius_gspphot_phoenix) AS radius,
+            COALESCE(ap.mass_flame, supp.mass_flame_spec) AS mass,
+            ap.mh_gspphot AS metallicity,
+            ap.logg_gspphot AS surface_gravity
         FROM gaiadr3.gaia_source AS gs
         LEFT JOIN gaiadr3.astrophysical_parameters AS ap ON gs.source_id = ap.source_id
         LEFT JOIN gaiadr3.astrophysical_parameters_supp AS supp ON gs.source_id = supp.source_id
@@ -230,14 +242,14 @@ def _gaia_query_for_source_ids(source_ids: list[int]) -> str:
 def get_gaia_stellar_properties(gaia_row, log_output: bool = True):
     gaia_star_params = {}
 
-    for key, column in GAIA_FIELDS.items():
-        value = gaia_row.get(column)
+    for key in GAIA_PROPERTIES:
+        value = gaia_row[key]
 
         if key == "source_id":
             gaia_star_params[key] = int(value) if value is not None else None
         else:
             gaia_star_params[key] = _to_float(value)
-
+            
     if log_output:
         logging.info("Gaia stellar parameters extracted: %s", gaia_star_params)    
     
