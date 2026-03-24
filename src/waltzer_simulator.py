@@ -25,19 +25,19 @@ def main():
         # calculating flux on earth once for all enabled channels
         photons_star, wavelengths_total = prepare_star_photon_flux_for_channels(star, run_ctx, nuv_channel, vis_channel, nir_channel)
 
-        # convoluting flux to instrument properties and returning per-channel detector images
-        spectra_2d_nuv = prepare_detector_image_spectroscopy(photons_star, wavelengths_total, nuv_channel, run_ctx, star) if nuv_channel is not None else None
-        spectra_2d_vis = prepare_detector_image_spectroscopy(photons_star, wavelengths_total, vis_channel, run_ctx, star) if vis_channel is not None else None
-        rate_nir = prepare_detector_image_photometry(photons_star, wavelengths_total, nir_channel, run_ctx, star) if nir_channel is not None else None
+        # # convoluting flux to instrument properties and returning per-channel detector images
+        # spectra_2d_nuv = prepare_detector_image_spectroscopy(photons_star, wavelengths_total, nuv_channel, run_ctx, star) if nuv_channel is not None else None
+        # spectra_2d_vis = prepare_detector_image_spectroscopy(photons_star, wavelengths_total, vis_channel, run_ctx, star) if vis_channel is not None else None
+        # rate_nir = prepare_detector_image_photometry(photons_star, wavelengths_total, nir_channel, run_ctx, star) if nir_channel is not None else None
 
         # lookup background stars and populate a star catalog with the background stars and convolved counts
         background_stars_catalog = lookup_background_stars(nuv_channel, vis_channel, nir_channel, run_ctx, star)
         background_stars_catalog = populate_background_star_counts(background_stars_catalog, nuv_channel, vis_channel, nir_channel, run_ctx)
         
-        # Build and write science frames immediately
-        build_science_images(spectra_2d_nuv, nuv_channel, run_ctx, star, background_stars_catalog) if nuv_channel is not None else None
-        build_science_images(spectra_2d_vis, vis_channel, run_ctx, star, background_stars_catalog) if vis_channel is not None else None
-        build_science_images(rate_nir, nir_channel, run_ctx, star, background_stars_catalog) if nir_channel is not None else None        
+        # # Build and write science frames immediately
+        # build_science_images(spectra_2d_nuv, nuv_channel, run_ctx, star, background_stars_catalog) if nuv_channel is not None else None
+        # build_science_images(spectra_2d_vis, vis_channel, run_ctx, star, background_stars_catalog) if vis_channel is not None else None
+        # build_science_images(rate_nir, nir_channel, run_ctx, star, background_stars_catalog) if nir_channel is not None else None        
 
 
     except Exception as e:

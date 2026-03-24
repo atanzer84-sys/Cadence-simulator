@@ -85,7 +85,6 @@ def _save_background_stars_csv(table: Table, output_dir, star_name: str) -> None
     logging.info(msg)
     print(msg)
 
-
 def _apply_background_star_magnitude_cutoff(table: Table, max_mag: float) -> Table:
     if "gaia_magnitude" not in table.colnames:
         logging.info("Background star magnitude filter skipped: 'gaia_magnitude' column not present")
@@ -94,32 +93,6 @@ def _apply_background_star_magnitude_cutoff(table: Table, max_mag: float) -> Tab
     table = table[table["gaia_magnitude"] <= max_mag]
     logging.info("Background star magnitude filter applied: max_mag=%s remaining=%d", max_mag, len(table))
     return table
-
-
-# def _annotate_background_star_offsets_arcsec(table: Table, target_star: Star) -> Table:
-#     ra0 = float(target_star.right_ascension)
-#     dec0 = float(target_star.declination)
-#     target = SkyCoord(ra=ra0 * u.deg, dec=dec0 * u.deg, frame="icrs")
-
-#     dx_values = []
-#     dy_values = []
-#     sep_values = []
-
-#     for row in table:
-#         bg = SkyCoord(ra=float(row["right_ascension"]) * u.deg, dec=float(row["declination"]) * u.deg, frame="icrs")
-#         dlon, dlat = target.spherical_offsets_to(bg)
-#         dx_values.append(dlon.to(u.arcsec).value)
-#         dy_values.append(dlat.to(u.arcsec).value)
-#         sep_values.append(target.separation(bg).to(u.arcsec).value)
-
-#     table = table.copy()
-#     table["relative_dx_arcsec"] = dx_values
-#     table["relative_dy_arcsec"] = dy_values
-#     table["separation_arcsec"] = sep_values
-
-#     logging.info("Background star offsets computed: stars=%d", len(table))
-
-#     return table
 
 def _annotate_background_star_offsets_arcsec(table: Table, target_star: Star) -> Table:
     ra0 = float(target_star.right_ascension)
@@ -154,7 +127,6 @@ def _annotate_background_star_offsets_arcsec(table: Table, target_star: Star) ->
     logging.info("Background star offsets computed: stars=%d used_cached_sep=%s", len(table), use_cached_sep)
 
     return table
-
 
 def _drop_stars_outside_max_radius(table: Table, nuv: SpectroscopyChannel | None, vis: SpectroscopyChannel | None, nir: PhotometryChannel | None) -> Table:
     """Filter Gaia background stars to those that can reach any active channel."""
@@ -199,17 +171,6 @@ def _photometry_radius_arcsec(channel: PhotometryChannel) -> float:
     half_height_arcsec = 0.5 * float(channel.y_pixels) * float(channel.pixel_scale)
     return (half_width_arcsec * half_width_arcsec + half_height_arcsec * half_height_arcsec) ** 0.5
 
-
-
-
-
-
-
-
-
-
-
-
 def create_background_star_catalog(table: Table, cfg: GlobalConfig):
     catalog = StarCatalog()
     required_keys = load_required_stellar_parameters()
@@ -251,23 +212,12 @@ def load_required_stellar_parameters():
     return mapping["required_stellar_parameters"]
 
 
-
-
-def _passes_magnitude_cutoff(star_params: dict, max_mag: float) -> bool:
-    """True if star has gaia_magnitude and it is <= max_mag."""
-    mag = star_params.get("gaia_magnitude")
-    if mag is None:
-        return False
-    return float(mag) <= max_mag
-
-
 def _set_background_star_name(star_params: dict, row) -> None:
     """Set star_params['name'] from row source_id, or '0000' if missing."""
     if "source_id" in row.colnames and row["source_id"] is not None:
         star_params["name"] = f"gaia_{int(row['source_id'])}"
     else:
         star_params["name"] = "0000"
-
 
 def _ensure_required_properties(star_params: dict, required_keys: list[str]) -> bool:
     """Return False if any required keys are missing (logs and skip). Otherwise return True."""
