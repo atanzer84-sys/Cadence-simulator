@@ -42,10 +42,10 @@ class Star:
         radius = star_params.get("radius")
         if radius is None:
             raise ValueError("Star missing required key at construction: ['radius']")
-        radius_sun_cm = radius * R_SUN_cm
+        radius_sun_cm = float(radius * R_SUN_cm)
 
         mass = star_params.get("mass")
-        mass_sun_kg = mass * M_SUN_kg if mass is not None else None
+        mass_sun_kg = float(mass * M_SUN_kg) if mass is not None else None
 
         star = cls(
             name=star_params["name"],

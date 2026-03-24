@@ -443,28 +443,28 @@ def apply_distance_from_parallax_if_missing(star_params: dict) -> dict:
     If distance is missing, set it from parallax in star_params
     using distance_pc = 1000 / parallax_mas when valid.
     """
-    name = star_params["name"]
+    identifier = star_params.get("name") or star_params.get("source_id") or "<unknown>"
     distance = star_params.get("distance")
     parallax = star_params.get("parallax")
 
     if distance is not None:
-        logging.info("Parallax distance fallback skipped for %s: distance already set (%r)", name, distance)
+        logging.info("Parallax distance fallback skipped for %s: distance already set (%r)", identifier, distance)
         return star_params
 
     if parallax is None or np.ma.is_masked(parallax):
-        logging.info("Parallax distance fallback skipped for %s: no usable parallax in star_params (parallax=%r)", name, parallax)
+        logging.info("Parallax distance fallback skipped for %s: no usable parallax in star_params (parallax=%r)", identifier, parallax)
         return star_params
 
     try:
         parallax = float(parallax)
     except Exception:
-        logging.info("Parallax distance fallback skipped for %s: parallax not float-convertible (parallax=%r)", name, parallax)
+        logging.info("Parallax distance fallback skipped for %s: parallax not float-convertible (parallax=%r)", identifier, parallax)
         return star_params
 
     if not np.isfinite(parallax) or parallax <= 0.0:
-        logging.info("Parallax distance fallback skipped for %s: parallax invalid (parallax=%r)", name, parallax)
+        logging.info("Parallax distance fallback skipped for %s: parallax invalid (parallax=%r)", identifier, parallax)
         return star_params
 
     star_params["distance"] = 1000.0 / parallax
-    logging.info("Parallax distance fallback applied for %s: parallax_mas=%s -> distance_pc=%s", name, parallax, star_params["distance"])
+    logging.info("Parallax distance fallback applied for %s: parallax_mas=%s -> distance_pc=%s", identifier, parallax, star_params["distance"])
     return star_params
