@@ -8,23 +8,6 @@ from domain.star import Star
 from astropy.table import Table
 from configs.global_config import GlobalConfig
 
-
-# Map SQL, CSV and Dict hardcoded to the properties we expect to have it all in one place. always.
-# GAIA_FIELDS = {
-#     "source_id": "source_id",
-#     "right_ascension": "ra",
-#     "declination": "dec",
-#     "parallax": "parallax",
-#     "gaia_magnitude": "phot_g_mean_mag",
-#     "v_magnitude": "phot_g_mean_mag",
-#     "effective_temperature": "Teff",
-#     "distance": "dist_pc",
-#     "radius": "radius_sun",
-#     "mass": "mass_sun",
-#     "metallicity": "mh_gspphot",
-#     "surface_gravity": "logg_gspphot",
-# }
-
 GAIA_PROPERTIES = (
     "source_id",
     "right_ascension",
@@ -42,18 +25,18 @@ GAIA_PROPERTIES = (
 GAIA_PROVIDES = set(GAIA_PROPERTIES)
 
 def lookup_target_star_gaia(star_params: dict, missing_stellar_keys, cfg: GlobalConfig) -> dict:
+
     target_name = star_params["name"]
     logging.info("Gaia lookup required for star: %s for missing required parameters: %s", target_name, missing_stellar_keys)
     print("Gaia lookup required for star: %s" % target_name)
 
     try:
-        # use Simbad to get Gaia Source ID for the target's name
-        source_id = _resolve_gaia_source_id_from_name(target_name)
+        right_ascension = star_params.get("right_ascension")
+        declination = star_params.get("declination")
 
-        # if we get no result, we use ra, dec to get to a source id.
+        source_id = _get_source_id(target_name, right_ascension, declination, cfg.GAIA_USE_ASYNC_JOBS)
         if source_id is None:
-            source_id = _resolve_source_id_from_position(star_params, cfg.GAIA_USE_ASYNC_JOBS)
-
+            raise ValueError(f"Gaia lookup failed for {target_name}: no RA/Dec available and no Gaia source_id could be resolved from SIMBAD")
 
         gaia_row = query_gaia_target_star(source_id, cfg.GAIA_USE_ASYNC_JOBS)
 
@@ -81,6 +64,18 @@ def lookup_target_star_gaia(star_params: dict, missing_stellar_keys, cfg: Global
         logging.error("Gaia lookup failed for %s: %s", target_name, str(e))
         print(f"Gaia lookup failed for {target_name}: {e}")
         raise
+
+def _get_source_id(target_name: str, right_ascension: float | None, declination: float | None, GAIA_USE_ASYNC_JOBS) -> int | None:
+
+    # use Simbad to get Gaia Source ID for the target's name
+    source_id = _resolve_gaia_source_id_from_name(target_name)
+
+    if source_id is None:
+        if right_ascension is None or declination is None:
+            return None
+        source_id = _resolve_source_id_from_coordinates(target_name, float(right_ascension), float(declination), GAIA_USE_ASYNC_JOBS)
+
+    return source_id
 
 def _resolve_gaia_source_id_from_name(target_name: str) -> int | None:
     from astroquery.simbad import Simbad
@@ -125,10 +120,9 @@ def _resolve_gaia_source_id_from_name(target_name: str) -> int | None:
     logging.warning("SIMBAD lookup: no Gaia source_id found in IDS for target_name=%s", target_name)
     return None
 
-def _resolve_source_id_from_position(star_params: dict, GAIA_USE_ASYNC_JOBS) -> int:
-    target_name = star_params["name"]
+def _resolve_source_id_from_coordinates(target_name: str, right_ascension: float, declination: float, GAIA_USE_ASYNC_JOBS) -> int:
 
-    target_coord = _get_target_coordinates(star_params)
+    target_coord = _get_target_coordinates(target_name, right_ascension, declination)
     cone_table = _gaia_cone_search(target_coord, radius_arcsec=6.0, g_mag_limit=None, GAIA_USE_ASYNC_JOBS=GAIA_USE_ASYNC_JOBS)
 
     if cone_table is None or len(cone_table) == 0:
@@ -137,24 +131,21 @@ def _resolve_source_id_from_position(star_params: dict, GAIA_USE_ASYNC_JOBS) -> 
         print(msg)
         raise RuntimeError(msg)
 
-    source_id = _find_central_source_id(cone_table, target_coord)
+    source_id = _find_target_source_id(cone_table, target_coord)
     if source_id is None:
         msg = f"No Gaia central match found for {target_name}"
         logging.error(msg)
         print(msg)
-        raise RuntimeError(msg)
+        return None
 
     return source_id
 
-def _get_target_coordinates(star_params: dict) -> SkyCoord:
-    target_name = star_params["name"]
-    ra = star_params.get("right_ascension")
-    dec = star_params.get("declination")
+def _get_target_coordinates(target_name: str, right_ascension: float | None, declination: float | None) -> SkyCoord:
 
-    if ra is None or dec is None:
+    if right_ascension is None or declination is None:
         raise ValueError(f"Gaia lookup failed for {target_name}: no RA/Dec available and no Gaia source_id could be resolved from SIMBAD")
 
-    target_coord = SkyCoord(ra=ra * u.deg, dec=dec * u.deg, frame="icrs")
+    target_coord = SkyCoord(ra=right_ascension * u.deg, dec=declination * u.deg, frame="icrs")
 
     logging.info("Gaia lookup target coords for %s: ra=%s deg dec=%s deg frame=%s", target_name, float(target_coord.ra.deg), float(target_coord.dec.deg), getattr(target_coord.frame, "name", str(target_coord.frame)))
 
@@ -200,6 +191,28 @@ def _gaia_cone_search(center: SkyCoord, radius_arcsec: float, g_mag_limit: float
 
     return cone_small
 
+def _find_target_source_id(cone_result: Table, target_coord: SkyCoord) -> int | None:
+    """
+    Find the row in cone_small that is closest to the given center position.
+
+    Returns (row, separation_arcsec) or (None, None) if cone_small is empty.
+    """
+    cone_coords = SkyCoord(ra=cone_result["ra"], dec=cone_result["dec"], unit=u.deg, frame="icrs")
+    
+    separations = target_coord.separation(cone_coords)
+    separations_arcsec = separations.arcsec
+
+    # TODO: REMOVE AGAIN
+    for i in range(len(separations_arcsec)):
+        logging.info("Gaia central-row: cone_coords[%d] ra=%s deg dec=%s deg seps_arcsec=%s source_id=%s", i, float(cone_coords.ra.deg[i]), float(cone_coords.dec.deg[i]), float(separations_arcsec[i]), int(cone_result[i]["source_id"]))
+
+    idx_center = int(np.argmin(separations_arcsec))
+    central_cone_row = cone_result[idx_center]
+    central_sep = float(separations_arcsec[idx_center])
+    central_source_id = int(central_cone_row["source_id"]) if "source_id" in cone_result.colnames else None
+    logging.info("Gaia central-row: idx_center=%d central_source_id=%s central_sep_arcsec=%.6f", idx_center, central_source_id, central_sep)
+    return central_source_id
+
 def query_gaia_target_star(sourceID, GAIA_USE_ASYNC_JOBS):
     query = _gaia_query_for_source_id(sourceID)
     gaia_result_row = _run_gaia_query(query, GAIA_USE_ASYNC_JOBS)
@@ -212,6 +225,9 @@ def query_gaia_target_star(sourceID, GAIA_USE_ASYNC_JOBS):
 
     logging.info("Gaia row for source_id=%s: %s", sourceID, {col: gaia_result_row[0][col] for col in gaia_result_row.colnames})
     return gaia_result_row[0]
+
+def _gaia_query_for_source_id(source_id: int) -> str:
+    return f"{_gaia_select_joined_base()} WHERE gs.source_id = {int(source_id)}"
 
 def _gaia_select_joined_base() -> str:
     return f"""
@@ -232,8 +248,21 @@ def _gaia_select_joined_base() -> str:
         LEFT JOIN gaiadr3.astrophysical_parameters_supp AS supp ON gs.source_id = supp.source_id
     """
 
-def _gaia_query_for_source_id(source_id: int) -> str:
-    return f"{_gaia_select_joined_base()} WHERE gs.source_id = {int(source_id)}"
+def _run_gaia_query(query: str, GAIA_USE_ASYNC_JOBS):
+    from astroquery.gaia import Gaia
+
+    use_async = GAIA_USE_ASYNC_JOBS
+    if use_async:
+        job = Gaia.launch_job_async(query)
+    else:
+        job = Gaia.launch_job(query)
+    return job.get_results() if hasattr(job, "get_results") else job
+
+
+
+
+
+
 
 def _gaia_query_for_source_ids(source_ids: list[int]) -> str:
     in_list = ",".join(str(int(x)) for x in source_ids)
@@ -275,37 +304,22 @@ def _to_float(value):
 
 
 def gaia_lookup_for_background_stars(star: Star, g_mag_limit, GAIA_USE_ASYNC_JOBS, radius_arcsec) -> Table | None:
-    """
-    Fetch background stars from Gaia in a cone around the target star.
-
-    Runs a cone search, removes the central (target) star, queries
-    astrophysical_parameters for the rest, and returns the joined table.
-    Used when no cached CSV exists in data/BackgroundStars/.
-
-    Parameters
-    ----------
-    star : Star
-        Target star; must have right_ascension and declination.
-
-    Returns
-    -------
-    Table | None
-        Table of field stars (cone + AP columns), or None if no sources,
-        no field after removing central, or on Gaia/TAP error.
-    """
     print(f"==== Gaia background search: START (g_mag_limit={g_mag_limit}, GAIA_USE_ASYNC_JOBS={GAIA_USE_ASYNC_JOBS} , radius_arcsec={radius_arcsec}) =====")
     logging.info("Gaia background search: START g_mag_limit=%s GAIA_USE_ASYNC_JOBS=%s radius_arcsec=%s", g_mag_limit, GAIA_USE_ASYNC_JOBS, radius_arcsec)
 
-    if star.right_ascension is None or star.declination is None:
-        logging.warning("Gaia background search: missing target coordinates (ra=%s dec=%s) for star=%s",
-            star.right_ascension, star.declination, star.name)
-        return None
+    # if we already have the source id from gaia, this is easy to remove from the gaia rows we get from the sql query.
+    target_name = star.name
+    target_gaia_source_id = star.gaia_source_id
+    target_right_ascension = star.right_ascension
+    target_declination = star.declination
 
-    center = SkyCoord(ra=star.right_ascension * u.deg, dec=star.declination * u.deg, frame="icrs")
+    if star.gaia_source_id is None:
+        target_gaia_source_id = _get_source_id(target_name, target_right_ascension, target_declination, GAIA_USE_ASYNC_JOBS)
+        
 
-    cone_small = _gaia_cone_search(center, radius_arcsec, g_mag_limit=g_mag_limit, GAIA_USE_ASYNC_JOBS=GAIA_USE_ASYNC_JOBS)
-    if cone_small is None or len(cone_small) == 0:
-        return None
+
+
+
 
     drop_result = _gaia_drop_central_star(cone_small, center)
     if drop_result is None:
@@ -334,54 +348,14 @@ def gaia_lookup_for_background_stars(star: Star, g_mag_limit, GAIA_USE_ASYNC_JOB
     return field_joined
 
 
-def _run_gaia_query(query: str, GAIA_USE_ASYNC_JOBS):
-    """
-    Run a Gaia TAP job using the GAIA_USE_ASYNC_JOBS flag from GlobalConfig.
-
-    Parameters
-    ----------
-    query : str
-        ADQL query string.
-    """
-    from astroquery.gaia import Gaia
-
-    use_async = GAIA_USE_ASYNC_JOBS
-    if use_async:
-        job = Gaia.launch_job_async(query)
-    else:
-        job = Gaia.launch_job(query)
-    return job.get_results() if hasattr(job, "get_results") else job
 
 
-
-    
-def _find_central_source_id(cone_result: Table, target_coord: SkyCoord) -> int | None:
-    """
-    Find the row in cone_small that is closest to the given center position.
-
-    Returns (row, separation_arcsec) or (None, None) if cone_small is empty.
-    """
-    cone_coords = SkyCoord(ra=cone_result["ra"], dec=cone_result["dec"], unit=u.deg, frame="icrs")
-    
-    seps = target_coord.separation(cone_coords)
-    seps_arcsec = seps.arcsec
-
-    for i in range(len(seps_arcsec)):
-        logging.info("Gaia central-row: cone_coords[%d] ra=%s deg dec=%s deg seps_arcsec=%s source_id=%s", i, float(cone_coords.ra.deg[i]), float(cone_coords.dec.deg[i]), float(seps_arcsec[i]), int(cone_result[i]["source_id"]))
-
-    idx_center = int(np.argmin(seps_arcsec))
-    central_cone_row = cone_result[idx_center]
-    central_sep = float(seps_arcsec[idx_center])
-    central_source_id = int(central_cone_row["source_id"]) if "source_id" in cone_result.colnames else None
-    logging.info("Gaia central-row: idx_center=%d central_source_id=%s central_sep_arcsec=%.6f", idx_center, central_source_id, central_sep)
-    return central_source_id
-
-
+  
 def _gaia_drop_central_star(cone_small: Table, center: SkyCoord) -> tuple[Table, object, float] | None:
     """Identify central (nearest) star, remove it from table. Returns (field_cone, central_cone_row, central_sep) or None if no field left."""
 
 
-    central_cone_row, central_sep = _find_central_source_id(cone_small, center)
+    central_cone_row, central_sep = _find_target_source_id(cone_small, center)
     if central_cone_row is None:
         logging.info("Gaia background search: no central star found in cone")
         return None

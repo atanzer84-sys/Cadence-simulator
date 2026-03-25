@@ -2,7 +2,6 @@ from astropy.coordinates import SkyCoord
 from astropy.table import Table
 import astropy.units as u
 import numpy as np
-import os
 import pytest
 
 from loaders import load_gaia
@@ -18,16 +17,16 @@ def _cone_table(rows):
 def _make_gaia_row(**overrides):
     row = {
         "source_id": 222,
-        "ra": 286.97138676797084,
-        "dec": 46.86824405830706,
+        "right_ascension": 286.97138676797084,
+        "declination": 46.86824405830706,
         "parallax": 2.031923106187413,
-        "phot_g_mean_mag": 10.38234,
-        "Teff": 5777.0,
-        "dist_pc": 10.0,
-        "radius_sun": 1.0,
-        "mass_sun": 1.0,
-        "mh_gspphot": 0.0,
-        "logg_gspphot": 4.5,
+        "gaia_magnitude": 10.38234,
+        "effective_temperature": 5777.0,
+        "distance": 10.0,
+        "radius": 1.0,
+        "mass": 1.0,
+        "metallicity": 0.0,
+        "surface_gravity": 4.5,
     }
     row.update(overrides)
     return row
@@ -58,6 +57,72 @@ class _FakeSimbadResult:
             raise IndexError(idx)
         return self._row
 
+
+
+# Tests: _get_source_id
+# Behavior: returns Gaia source_id from SIMBAD name resolution when target name is WASP-14
+def test_get_source_id_returns_gaia_id_from_name_for_wasp_14(monkeypatch):
+    expected_source_id = 1242084170974175232
+
+    monkeypatch.setattr(
+        load_gaia,
+        "_resolve_gaia_source_id_from_name",
+        lambda target_name: expected_source_id if target_name == "WASP-14" else None,
+    )
+
+    def fail_if_called(*_args, **_kwargs):
+        raise AssertionError("_resolve_source_id_from_coordinates should not be called when name resolution succeeds")
+
+    monkeypatch.setattr(load_gaia, "_resolve_source_id_from_coordinates", fail_if_called)
+
+    out = load_gaia._get_source_id(
+        target_name="WASP-14",
+        right_ascension=None,
+        declination=None,
+        GAIA_USE_ASYNC_JOBS=False,
+    )
+
+    assert out == expected_source_id
+
+
+# Tests: _get_source_id
+# Behavior: falls back to RA/Dec coordinate lookup when name resolution fails and returns the Gaia source_id for WASP-14
+def test_get_source_id_falls_back_to_coordinates_when_name_resolution_fails(monkeypatch):
+    expected_source_id = 1242084170974175232
+    expected_ra = 218.27662916581795
+    expected_dec = 21.89468654650299
+
+    monkeypatch.setattr(load_gaia, "_resolve_gaia_source_id_from_name", lambda _target_name: None)
+
+    recorded = {}
+
+    def fake_resolve_source_id_from_coordinates(target_name, right_ascension, declination, GAIA_USE_ASYNC_JOBS):
+        recorded["target_name"] = target_name
+        recorded["right_ascension"] = right_ascension
+        recorded["declination"] = declination
+        recorded["GAIA_USE_ASYNC_JOBS"] = GAIA_USE_ASYNC_JOBS
+        return expected_source_id
+
+    monkeypatch.setattr(load_gaia, "_resolve_source_id_from_coordinates", fake_resolve_source_id_from_coordinates)
+
+    out = load_gaia._get_source_id(
+        target_name="1242084170974175232",
+        right_ascension=expected_ra,
+        declination=expected_dec,
+        GAIA_USE_ASYNC_JOBS=False,
+    )
+
+    assert out == expected_source_id
+    assert recorded == {
+        "target_name": "1242084170974175232",
+        "right_ascension": expected_ra,
+        "declination": expected_dec,
+        "GAIA_USE_ASYNC_JOBS": False,
+    }
+
+
+
+    
 
 # Tests: _resolve_gaia_source_id_from_name
 # Behavior: returns Gaia source_id when SIMBAD IDS contains Gaia DR3 id
@@ -178,7 +243,6 @@ def test_get_target_coordinates_raises_when_ra_dec_missing():
 
 # Tests: lookup_target_star_gaia (live)
 # Behavior: full live run without monkeypatch resolves Gaia data for a known target
-@pytest.mark.skipif(os.getenv("RUN_LIVE_GAIA_TESTS") != "1", reason="Set RUN_LIVE_GAIA_TESTS=1 to run live SIMBAD/Gaia test")
 def test_lookup_target_star_gaia_live_run_without_monkeypatch(make_global_config):
     cfg = make_global_config(GAIA_USE_ASYNC_JOBS=False)
     star_params = {"name": "HD 189733", "right_ascension": 300.1821223, "declination": 22.7097759}
@@ -202,7 +266,7 @@ def test_find_central_row_returns_nearest():
         (1.0, 2.001, 333),
     ])
 
-    source_id = load_gaia._find_central_source_id(table, center)
+    source_id = load_gaia._find_target_source_id(table, center)
     assert source_id == 222
 
 
@@ -213,7 +277,7 @@ def test_find_central_row_returns_none_for_empty_table():
     table = _cone_table([])
 
     with pytest.raises(ValueError):
-        load_gaia._find_central_source_id(table, center)
+        load_gaia._find_target_source_id(table, center)
 
 
 # Tests: _find_central_source_id
@@ -222,7 +286,7 @@ def test_find_central_row_returns_none_for_none_table():
     center = SkyCoord(ra=1.0 * u.deg, dec=2.0 * u.deg, frame="icrs")
 
     with pytest.raises(TypeError):
-        load_gaia._find_central_source_id(None, center)
+        load_gaia._find_target_source_id(None, center)
 
 
 # Tests: lookup_target_star_gaia
@@ -285,7 +349,7 @@ def test_lookup_target_star_gaia_raises_on_any_exception(monkeypatch, make_globa
 # Tests: lookup_target_star_gaia
 # Behavior: raises when requested distance is still missing after Gaia mapping
 def test_lookup_target_star_gaia_stores_parallax_and_distance_none_when_only_distance_missing(monkeypatch, make_global_config):
-    gaia_row = _make_gaia_row(dist_pc="", parallax=8.0, Teff=5000.0)
+    gaia_row = _make_gaia_row(distance="", parallax=8.0, effective_temperature=5000.0)
 
     monkeypatch.setattr(load_gaia, "_resolve_gaia_source_id_from_name", lambda _name: 222)
     monkeypatch.setattr(load_gaia, "query_gaia_target_star", lambda _source_id, _async: gaia_row)
@@ -328,7 +392,7 @@ def test_lookup_target_star_gaia_passes_async_flag_to_helpers(monkeypatch, make_
 # Tests: get_gaia_stellar_properties
 # Behavior: converts NaN values in Gaia fields to None
 def test_get_gaia_stellar_properties_converts_nan_to_none():
-    row = _make_gaia_row(Teff=float("nan"), dist_pc=float("nan"), mass_sun=None)
+    row = _make_gaia_row(effective_temperature=float("nan"), distance=float("nan"), mass=None)
 
     out = load_gaia.get_gaia_stellar_properties(row)
 
@@ -343,15 +407,15 @@ def test_get_gaia_stellar_properties_converts_nan_to_none():
 # Behavior: reads Gaia cached CSV column names into internal keys
 def test_get_gaia_stellar_properties_reads_cached_csv_column_names():
     row = _make_gaia_row(
-        Teff=4656.00146484375,
-        radius_sun=30.21190071105957,
-        mass_sun=4.80074405670166,
-        mh_gspphot=0.14090000092983246,
-        logg_gspphot=2.046299934387207,
-        ra=294.6925327559344,
-        dec=31.24936559398053,
-        dist_pc=2401.2685546875,
-        phot_g_mean_mag=11.795485496520996,
+        effective_temperature=4656.00146484375,
+        radius=30.21190071105957,
+        mass=4.80074405670166,
+        metallicity=0.14090000092983246,
+        surface_gravity=2.046299934387207,
+        right_ascension=294.6925327559344,
+        declination=31.24936559398053,
+        distance=2401.2685546875,
+        gaia_magnitude=11.795485496520996,
         parallax=0.3549924624326295,
     )
 
@@ -368,12 +432,12 @@ def test_get_gaia_stellar_properties_reads_cached_csv_column_names():
 # Behavior: converts empty strings in numeric Gaia fields to None
 def test_get_gaia_stellar_properties_handles_empty_strings_from_gaia():
     gaia_row = _make_gaia_row(
-        Teff="",
-        dist_pc="",
-        radius_sun="",
-        mass_sun="",
-        mh_gspphot=np.ma.masked,
-        logg_gspphot=np.ma.masked,
+        effective_temperature="",
+        distance="",
+        radius="",
+        mass="",
+        metallicity=np.ma.masked,
+        surface_gravity=np.ma.masked,
     )
 
     result = load_gaia.get_gaia_stellar_properties(gaia_row, log_output=False)
@@ -392,12 +456,12 @@ def test_get_gaia_stellar_properties_handles_empty_strings_from_gaia():
 # Behavior: converts whitespace-only numeric Gaia fields to None
 def test_get_gaia_stellar_properties_handles_whitespace_strings():
     gaia_row = _make_gaia_row(
-        Teff="   ",
-        dist_pc="   ",
-        radius_sun="   ",
-        mass_sun="   ",
-        mh_gspphot="   ",
-        logg_gspphot="   ",
+        effective_temperature="   ",
+        distance="   ",
+        radius="   ",
+        mass="   ",
+        metallicity="   ",
+        surface_gravity="   ",
     )
 
     result = load_gaia.get_gaia_stellar_properties(gaia_row, log_output=False)
@@ -430,7 +494,7 @@ def test_lookup_target_star_gaia_raises_when_ra_dec_missing_and_name_resolution_
 # Behavior: when SIMBAD returns source_id, lookup succeeds without RA/Dec
 def test_lookup_target_star_gaia_resolves_name_when_coordinates_missing(monkeypatch, make_global_config):
     monkeypatch.setattr(load_gaia, "_resolve_gaia_source_id_from_name", lambda _name: 222)
-    monkeypatch.setattr(load_gaia, "query_gaia_target_star", lambda source_id, async_flag: _make_gaia_row(Teff=5000.0, parallax=None))
+    monkeypatch.setattr(load_gaia, "query_gaia_target_star", lambda source_id, async_flag: _make_gaia_row(effective_temperature=5000.0, parallax=None))
     monkeypatch.setattr(load_gaia, "apply_distance_from_parallax_if_missing", lambda p: p)
 
     cfg = make_global_config(GAIA_USE_ASYNC_JOBS=False)
@@ -500,7 +564,7 @@ def test_lookup_target_star_gaia_raises_when_requested_keys_are_absent(monkeypat
 # Behavior: successful Gaia lookup returns Gaia parameter payload
 def test_lookup_target_star_gaia_success_returns_gaia_star_params(monkeypatch, make_global_config):
     monkeypatch.setattr(load_gaia, "_resolve_gaia_source_id_from_name", lambda _name: 222)
-    monkeypatch.setattr(load_gaia, "query_gaia_target_star", lambda _source_id, _async: _make_gaia_row(Teff=5123.0, radius_sun=0.88))
+    monkeypatch.setattr(load_gaia, "query_gaia_target_star", lambda _source_id, _async: _make_gaia_row(effective_temperature=5123.0, radius=0.88))
     monkeypatch.setattr(load_gaia, "apply_distance_from_parallax_if_missing", lambda p: p)
 
     cfg = make_global_config(GAIA_USE_ASYNC_JOBS=False)
@@ -734,7 +798,6 @@ def test_gaia_cone_search_returns_small_table_without_magnitude_limit(monkeypatc
 
 # Tests: _gaia_drop_central_star
 # Behavior: removes the nearest source and keeps the background stars
-@pytest.mark.xfail(reason="Known contract mismatch: _gaia_drop_central_star expects (row, sep) but _find_central_source_id returns int", strict=False)
 def test_gaia_drop_central_star_removes_central_source():
     center = SkyCoord(ra=1.0 * u.deg, dec=2.0 * u.deg, frame="icrs")
     cone = Table(
@@ -801,7 +864,6 @@ def test_gaia_lookup_for_background_stars_returns_none_when_target_coordinates_m
 
 # Tests: gaia_lookup_for_background_stars
 # Behavior: removes the central star and returns joined background rows
-@pytest.mark.xfail(reason="Known contract mismatch: _gaia_drop_central_star expects (row, sep) but _find_central_source_id returns int", strict=False)
 def test_gaia_lookup_for_background_stars_happy_path_returns_joined_field_rows(monkeypatch, make_star):
     star = make_star(name="Target", right_ascension=1.0, declination=2.0)
     cone = Table(
@@ -842,7 +904,6 @@ def test_gaia_lookup_for_background_stars_happy_path_returns_joined_field_rows(m
 
 # Tests: gaia_lookup_for_background_stars
 # Behavior: passes the magnitude limit into the cone search
-@pytest.mark.xfail(reason="Known contract mismatch: _gaia_drop_central_star expects (row, sep) but _find_central_source_id returns int", strict=False)
 def test_gaia_lookup_for_background_stars_forwards_magnitude_limit(monkeypatch, make_star):
     star = make_star(name="Target", right_ascension=1.0, declination=2.0)
     recorded = {"g_mag_limit": None}

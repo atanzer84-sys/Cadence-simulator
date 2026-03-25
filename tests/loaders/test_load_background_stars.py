@@ -110,8 +110,8 @@ def test_annotate_background_star_offsets_arcsec_adds_columns(make_star):
     star = make_star(right_ascension=100.0, declination=20.0)
     table = Table(
         {
-            "ra": [100.0, 100.001],
-            "dec": [20.0, 20.0],
+            "right_ascension": [100.0, 100.001],
+            "declination": [20.0, 20.0],
         }
     )
 
@@ -140,14 +140,14 @@ def test_load_background_csv_if_exists_loads_table(tmp_path, make_star):
     bg_dir = tmp_path / "data" / "BackgroundStars"
     bg_dir.mkdir(parents=True)
     csv_path = bg_dir / "Target_Name.csv"
-    csv_path.write_text("ra,dec,source_id\n10.0,20.0,123\n", encoding="utf-8")
+    csv_path.write_text("right_ascension,declination,source_id\n10.0,20.0,123\n", encoding="utf-8")
     star = make_star(name="Target Name")
 
     table = lbs._load_background_csv_if_exists(star, repo_root=tmp_path)
 
     assert table is not None
     assert len(table) == 1
-    assert float(table["ra"][0]) == 10.0
+    assert float(table["right_ascension"][0]) == 10.0
 
 
 # Tests: load_background_csv_if_exists
@@ -158,7 +158,7 @@ def test_load_background_csv_if_exists_malformed_csv_raises(tmp_path, make_star,
     bg_dir = tmp_path / "data" / "BackgroundStars"
     bg_dir.mkdir(parents=True)
     csv_path = bg_dir / "Target_Name.csv"
-    csv_path.write_text("ra,dec,source_id\n10.0,20.0,123\n", encoding="utf-8")
+    csv_path.write_text("right_ascension,declination,source_id\n10.0,20.0,123\n", encoding="utf-8")
     star = make_star(name="Target Name")
 
     def _raise_malformed(*args, **kwargs):
@@ -196,21 +196,17 @@ def test_annotate_background_star_offsets_arcsec_missing_columns_raises(make_sta
         lbs._annotate_background_star_offsets_arcsec(table, star)
 
 
-# Tests: _passes_magnitude_cutoff
-# Behavior: requires gaia_magnitude and enforces <= max_mag
-def test_passes_magnitude_cutoff_behavior():
-    assert lbs._passes_magnitude_cutoff({"gaia_magnitude": 10.0}, max_mag=11.0) is True
-    assert lbs._passes_magnitude_cutoff({"gaia_magnitude": 12.0}, max_mag=11.0) is False
-    assert lbs._passes_magnitude_cutoff({}, max_mag=11.0) is False
+# Tests: _apply_background_star_magnitude_cutoff
+# Behavior: keeps rows <= max_mag; missing magnitude column skips filter
+def test_apply_background_star_magnitude_cutoff_behavior():
+    table = Table({"gaia_magnitude": [10.0, 12.0], "source_id": [1, 2]})
+    out = lbs._apply_background_star_magnitude_cutoff(table, max_mag=11.0)
+    assert len(out) == 1
+    assert float(out["gaia_magnitude"][0]) == 10.0
 
-
-# Tests: _passes_magnitude_cutoff
-# Behavior: non-numeric magnitude raises ValueError when cast fails
-def test_passes_magnitude_cutoff_non_numeric_magnitude_raises():
-    import pytest
-
-    with pytest.raises(ValueError):
-        lbs._passes_magnitude_cutoff({"gaia_magnitude": "not-a-number"}, max_mag=11.0)
+    no_mag = Table({"source_id": [1, 2]})
+    unchanged = lbs._apply_background_star_magnitude_cutoff(no_mag, max_mag=11.0)
+    assert len(unchanged) == 2
 
 
 # Tests: _set_background_star_name
@@ -398,15 +394,15 @@ def test_lookup_background_stars_uses_csv_cache_path(monkeypatch, make_star, mak
     star = make_star(name="Target")
     cfg = make_global_config(magnitude_cutoff=15.0, GAIA_USE_ASYNC_JOBS=False, gaia_conesearch_radius_arcsec=30.0)
     ctx = make_run_context()
-    cached = Table({"ra": [1.0], "dec": [2.0], "source_id": [123]})
+    cached = Table({"right_ascension": [1.0], "declination": [2.0], "source_id": [123]})
     catalog_obj = lbs.StarCatalog()
 
     monkeypatch.setattr(lbs, "get_global_config", lambda: cfg)
-    monkeypatch.setattr(lbs, "load_background_csv_if_exists", lambda s: cached)
+    monkeypatch.setattr(lbs, "_load_background_csv_if_exists", lambda s: cached)
     monkeypatch.setattr(lbs, "gaia_lookup_for_background_stars", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("gaia should not be called")))
-    monkeypatch.setattr(lbs, "save_background_stars_csv", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("save should not be called")))
-    monkeypatch.setattr(lbs, "annotate_background_star_offsets_arcsec", lambda table, target: table)
-    monkeypatch.setattr(lbs, "drop_stars_outside_max_radius", lambda table, nuv, vis, nir: table)
+    monkeypatch.setattr(lbs, "_save_background_stars_csv", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("save should not be called")))
+    monkeypatch.setattr(lbs, "_annotate_background_star_offsets_arcsec", lambda table, target: table)
+    monkeypatch.setattr(lbs, "_drop_stars_outside_max_radius", lambda table, nuv, vis, nir: table)
     monkeypatch.setattr(lbs, "create_background_star_catalog", lambda table, cfg_in: catalog_obj)
 
     out = lbs.lookup_background_stars(None, None, None, ctx, star)
@@ -419,12 +415,12 @@ def test_lookup_background_stars_queries_gaia_and_saves_when_rows(monkeypatch, m
     star = make_star(name="Target")
     cfg = make_global_config(magnitude_cutoff=16.0, GAIA_USE_ASYNC_JOBS=True, gaia_conesearch_radius_arcsec=77.0)
     ctx = make_run_context()
-    gaia_table = Table({"ra": [1.0], "dec": [2.0], "source_id": [999]})
+    gaia_table = Table({"right_ascension": [1.0], "declination": [2.0], "source_id": [999]})
     calls = {"save": 0}
     catalog_obj = lbs.StarCatalog()
 
     monkeypatch.setattr(lbs, "get_global_config", lambda: cfg)
-    monkeypatch.setattr(lbs, "load_background_csv_if_exists", lambda s: None)
+    monkeypatch.setattr(lbs, "_load_background_csv_if_exists", lambda s: None)
     monkeypatch.setattr(
         lbs,
         "gaia_lookup_for_background_stars",
@@ -432,9 +428,9 @@ def test_lookup_background_stars_queries_gaia_and_saves_when_rows(monkeypatch, m
         if (g_mag_limit, GAIA_USE_ASYNC_JOBS, radius_arcsec) == (16.0, True, 77.0)
         else (_ for _ in ()).throw(AssertionError("unexpected gaia args")),
     )
-    monkeypatch.setattr(lbs, "save_background_stars_csv", lambda table, output_dir, star_name: calls.__setitem__("save", calls["save"] + 1))
-    monkeypatch.setattr(lbs, "annotate_background_star_offsets_arcsec", lambda table, target: table)
-    monkeypatch.setattr(lbs, "drop_stars_outside_max_radius", lambda table, nuv, vis, nir: table)
+    monkeypatch.setattr(lbs, "_save_background_stars_csv", lambda table, output_dir, star_name: calls.__setitem__("save", calls["save"] + 1))
+    monkeypatch.setattr(lbs, "_annotate_background_star_offsets_arcsec", lambda table, target: table)
+    monkeypatch.setattr(lbs, "_drop_stars_outside_max_radius", lambda table, nuv, vis, nir: table)
     monkeypatch.setattr(lbs, "create_background_star_catalog", lambda table, cfg_in: catalog_obj)
 
     out = lbs.lookup_background_stars(None, None, None, ctx, star)
@@ -451,11 +447,11 @@ def test_lookup_background_stars_empty_result_returns_empty_catalog(monkeypatch,
     calls = {"annotate": 0, "drop": 0, "create": 0}
 
     monkeypatch.setattr(lbs, "get_global_config", lambda: cfg)
-    monkeypatch.setattr(lbs, "load_background_csv_if_exists", lambda s: None)
-    monkeypatch.setattr(lbs, "gaia_lookup_for_background_stars", lambda *args, **kwargs: Table({"ra": [], "dec": [], "source_id": []}))
-    monkeypatch.setattr(lbs, "save_background_stars_csv", lambda *args, **kwargs: None)
-    monkeypatch.setattr(lbs, "annotate_background_star_offsets_arcsec", lambda *args, **kwargs: calls.__setitem__("annotate", calls["annotate"] + 1))
-    monkeypatch.setattr(lbs, "drop_stars_outside_max_radius", lambda *args, **kwargs: calls.__setitem__("drop", calls["drop"] + 1))
+    monkeypatch.setattr(lbs, "_load_background_csv_if_exists", lambda s: None)
+    monkeypatch.setattr(lbs, "gaia_lookup_for_background_stars", lambda *args, **kwargs: Table({"right_ascension": [], "declination": [], "source_id": []}))
+    monkeypatch.setattr(lbs, "_save_background_stars_csv", lambda *args, **kwargs: None)
+    monkeypatch.setattr(lbs, "_annotate_background_star_offsets_arcsec", lambda *args, **kwargs: calls.__setitem__("annotate", calls["annotate"] + 1))
+    monkeypatch.setattr(lbs, "_drop_stars_outside_max_radius", lambda *args, **kwargs: calls.__setitem__("drop", calls["drop"] + 1))
     monkeypatch.setattr(lbs, "create_background_star_catalog", lambda *args, **kwargs: calls.__setitem__("create", calls["create"] + 1))
 
     out = lbs.lookup_background_stars(None, None, None, ctx, star)

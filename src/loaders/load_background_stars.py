@@ -44,12 +44,7 @@ def _load_or_query_background_star_table(ctx: RunContext, star: Star, cfg: Globa
     table = _load_background_csv_if_exists(star)
 
     if table is None:
-        table = gaia_lookup_for_background_stars(
-            star,
-            g_mag_limit=cfg.magnitude_cutoff,
-            GAIA_USE_ASYNC_JOBS=cfg.GAIA_USE_ASYNC_JOBS,
-            radius_arcsec=cfg.gaia_conesearch_radius_arcsec,
-        )
+        table = gaia_lookup_for_background_stars(star, g_mag_limit=cfg.magnitude_cutoff, GAIA_USE_ASYNC_JOBS=cfg. GAIA_USE_ASYNC_JOBS, radius_arcsec=cfg.gaia_conesearch_radius_arcsec)
 
         if table is not None and len(table) > 0:
             _save_background_stars_csv(table, ctx.output_dir, star.name)
