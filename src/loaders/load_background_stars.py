@@ -44,7 +44,13 @@ def _load_or_query_background_star_table(ctx: RunContext, star: Star, cfg: Globa
     table = _load_background_csv_if_exists(star)
 
     if table is None:
-        table = gaia_lookup_for_background_stars(star, g_mag_limit=cfg.magnitude_cutoff, GAIA_USE_ASYNC_JOBS=cfg. GAIA_USE_ASYNC_JOBS, radius_arcsec=cfg.gaia_conesearch_radius_arcsec)
+        # We query Gaia with a fixed magnitude cutoff when creating the cached CSV.
+        # This keeps the cache consistent across runs: later we apply `cfg.magnitude_cutoff`
+        # by filtering the loaded CSV in-memory (see `_apply_background_star_magnitude_cutoff`
+        # at the start of `lookup_background_stars`). If `cfg.magnitude_cutoff` is increased later
+        # beyond this fixed value, we will not get additional (fainter) background stars unless
+        # the cache file is regenerated.
+        table = gaia_lookup_for_background_stars(star, g_mag_cutoff=20.0, GAIA_USE_ASYNC_JOBS=cfg. GAIA_USE_ASYNC_JOBS, radius_arcsec=cfg.gaia_conesearch_radius_arcsec)
 
         if table is not None and len(table) > 0:
             _save_background_stars_csv(table, ctx.output_dir, star.name)
@@ -55,7 +61,6 @@ def _load_background_csv_if_exists(star: Star, repo_root=None) -> Table | None:
     repo_root = get_repo_root() if repo_root is None else repo_root
     csv_name = star.name.replace(" ", "_")
     csv_path = resolve_path_under(repo_root, "data", "BackgroundStars", f"{csv_name}.csv")
-    logging.info("Background stars: loading cached CSV: %s", csv_path)
 
     if not csv_path.exists():
         return None
@@ -64,12 +69,16 @@ def _load_background_csv_if_exists(star: Star, repo_root=None) -> Table | None:
     required_columns = {"right_ascension", "declination"}
     missing_columns = sorted(required_columns - set(table.colnames))
     if missing_columns:
-        raise ValueError(
-            f"Background CSV missing required columns {missing_columns}: {csv_path}"
-        )
+        raise ValueError(f"Background CSV missing required columns {missing_columns}: {csv_path}")
 
     logging.info("Loaded background CSV for %s: rows=%d, columns=%s", star.name, len(table), list(table.colnames))
+    print(f"Background stars: loaded cached CSV for {star.name} with {len(table)} rows")
     return table
+
+
+
+
+
 
 def _save_background_stars_csv(table: Table, output_dir, star_name: str) -> None:
     """Write background stars table to CSV in output_dir. Use same name as cache so it can be moved to data/BackgroundStars/."""

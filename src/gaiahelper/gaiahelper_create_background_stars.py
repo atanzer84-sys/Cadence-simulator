@@ -1,13 +1,12 @@
-from astroquery.gaia import Gaia
 from astropy.coordinates import SkyCoord
 from datetime import datetime
-from loaders.load_gaia import _gaia_query_for_source_ids, GAIA_PROPERTIES
+from loaders.load_gaia import _gaia_cone_search, _gaia_query_for_source_ids, _run_gaia_query
 from loaders.run_waltzer_context import setup_output_directory
 from pathlib import Path
 import pandas as pd
 
 
-OUTPUT_HEADER_MAP = {v: k for k, v in GAIA_PROPERTIES.items() if k != "v_magnitude"}
+OUTPUT_HEADER_MAP = {}
 
 
 def ts(*args):
@@ -24,51 +23,32 @@ def rename_output_columns(tbl):
     return renamed
 
 
-def gaia_nearby_stars_with_params_by_name(target_name: str, radius_arcsec: float, mag_limit: float):
+def gaia_nearby_stars_with_params_by_name(target_name: str, radius_arcsec: float, mag_limit: float, GAIA_USE_ASYNC_JOBS: bool = True):
     ts("Resolving target name...")
 
     coord = SkyCoord.from_name(target_name)
     ts("Target RA deg:", coord.ra.deg)
     ts("Target DEC deg:", coord.dec.deg)
-    # 1) fast: cone search in gaia_source
-    radius_arcmin = radius_arcsec / 60
+
+    radius_arcmin = radius_arcsec / 60.0
     ts(f"Running cone search on gaia_source ({radius_arcsec} arcsec = {radius_arcmin:.2f} arcmin)...")
 
-    # job1 = Gaia.cone_search_async(coord, radius=radius_arcsec * u.arcsec)
-    # cone = job1.get_results()
-    Gaia.TIMEOUT = 120
+    cone = _gaia_cone_search(coord, radius_arcsec=radius_arcsec, g_mag_limit=mag_limit, GAIA_USE_ASYNC_JOBS=GAIA_USE_ASYNC_JOBS)
 
-    ra0 = coord.ra.deg
-    dec0 = coord.dec.deg
-    radius_deg = radius_arcsec / 3600.0
-
-    query_cone = f"""
-    SELECT source_id, ra, dec, parallax, phot_g_mean_mag
-    FROM gaiadr3.gaia_source
-    WHERE 1 = CONTAINS(
-        POINT('ICRS', ra, dec),
-        CIRCLE('ICRS', {ra0}, {dec0}, {radius_deg})
-    )
-    AND phot_g_mean_mag < {mag_limit}
-    """
-
-    job1 = Gaia.launch_job_async(query_cone)
-    cone = job1.get_results()
-
-    if len(cone) == 0:
+    if cone is None or len(cone) == 0:
         return cone, coord
 
     ts(f"Cone search done. Rows: {len(cone)}")
 
-    # keep only what you need from gaia_source
-    cone_small = cone["source_id", "ra", "dec", "parallax", "phot_g_mean_mag"]
-    # 2) pull only AP columns for these IDs (no spatial function)
-    ids = [int(x) for x in cone_small["source_id"]]
+    ids = [int(x) for x in cone["source_id"]]
     ts("Querying astrophysical_parameters for", len(ids), "source_ids...")
-    query = _gaia_query_for_source_ids(ids)
 
-    job2 = Gaia.launch_job_async(query)
-    out = job2.get_results()
+    query = _gaia_query_for_source_ids(ids, g_mag_limit=mag_limit)
+    out = _run_gaia_query(query, GAIA_USE_ASYNC_JOBS)
+
+    if out is None:
+        raise RuntimeError(f"Gaia joined query returned None for {target_name}")
+
     ts("Combined query returned rows:", len(out))
 
     out.sort("phot_g_mean_mag")
@@ -151,7 +131,6 @@ def build_master_excel_from_csvs(output_dir):
 
 
 def report_saved_vs_missing(star_names, output_dir):
-    """Report which target stars have background CSVs and which do not."""
     csv_files = sorted(Path(output_dir).glob("*.csv"))
     have_files = set()
     for csv_file in csv_files:
@@ -267,11 +246,12 @@ def main(existing_output_dir=None):
     #     "HAT-P-7",
     # ]
 
-    star_names = ["TOI-6038", "KELT-19"]
+    star_names = ["WASP-82"]
     
     RADIUS_ARCSEC = 450.0 # 10 arcmin
  
     mag_limit = 20.0
+    GAIA_USE_ASYNC_JOBS = True
 
     if existing_output_dir is None:
         output_dir, _, _ = setup_output_directory()
@@ -287,7 +267,11 @@ def main(existing_output_dir=None):
             print(f"Processing {name}")
 
             try:
-                tbl, coord = gaia_nearby_stars_with_params_by_name(name, radius_arcsec=RADIUS_ARCSEC, mag_limit=mag_limit)
+                tbl, coord = gaia_nearby_stars_with_params_by_name(name, radius_arcsec=RADIUS_ARCSEC, mag_limit=mag_limit, GAIA_USE_ASYNC_JOBS=GAIA_USE_ASYNC_JOBS)
+
+                if tbl is None or len(tbl) == 0:
+                    print(f"No Gaia rows returned for {name}")
+                    continue
 
                 background_tbl, target_row = split_target_and_background(tbl, coord)
 
@@ -313,4 +297,3 @@ def main(existing_output_dir=None):
 
 if __name__ == "__main__":
     main()
-    # main("/Users/andreatanzer/Documents/Space Science/MasterThesis/WALTzER-simulator/output/all")

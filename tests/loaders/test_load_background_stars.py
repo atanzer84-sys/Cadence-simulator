@@ -424,8 +424,8 @@ def test_lookup_background_stars_queries_gaia_and_saves_when_rows(monkeypatch, m
     monkeypatch.setattr(
         lbs,
         "gaia_lookup_for_background_stars",
-        lambda s, g_mag_limit, GAIA_USE_ASYNC_JOBS, radius_arcsec: gaia_table
-        if (g_mag_limit, GAIA_USE_ASYNC_JOBS, radius_arcsec) == (16.0, True, 77.0)
+        lambda s, g_mag_cutoff, GAIA_USE_ASYNC_JOBS, radius_arcsec: gaia_table
+        if (g_mag_cutoff, GAIA_USE_ASYNC_JOBS, radius_arcsec) == (20.0, True, 77.0)
         else (_ for _ in ()).throw(AssertionError("unexpected gaia args")),
     )
     monkeypatch.setattr(lbs, "_save_background_stars_csv", lambda table, output_dir, star_name: calls.__setitem__("save", calls["save"] + 1))
