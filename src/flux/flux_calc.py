@@ -10,7 +10,7 @@ from flux.cute_unred import unred
 from astropy.coordinates import SkyCoord
 from astropy import units as u
 from loaders.run_waltzer_context import RunContext
-from loaders.load_model_temperature import load_model_for_temperature, cut_model_wavelength_range
+from loaders.load_model_temperature import load_model_for_temperature
 from utils.debug_dumps import dump_1d_array, dump_3d_array
 from utils.helpers import announce
 from utils.flux_image_array import plot_flux_and_photons_windows
@@ -21,8 +21,7 @@ def calculate_flux_on_earth(star: Star, ctx: RunContext, wl_min_A: float, wl_max
     dump_arrays = cfg.write_intermediate_arrays and not background_star
     dump_plots = cfg.produce_flux_convolution_plots and not background_star
 
-    model_data = load_model_for_temperature(star.effective_temperature, announce_user=announce_user)
-    model_data = cut_model_wavelength_range(model_data, wl_min_A, wl_max_A)
+    model_data = load_model_for_temperature(star.effective_temperature, wl_min_A, wl_max_A, announce_user=announce_user)
 
     if dump_arrays:
         dump_3d_array(model_data, ctx.output_dir, star.name, "FluxCalc_1_model_input", perChannel=True, zoom=True)

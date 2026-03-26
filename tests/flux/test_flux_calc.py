@@ -105,7 +105,7 @@ def test_compute_ebv_av_converts_distance_and_forwards_coords(monkeypatch):
 def test_calculate_flux_on_earth_no_optional_steps_called(make_star, make_global_config, make_run_context, monkeypatch):
     monkeypatch.setattr(
         "flux.flux_calc.load_model_for_temperature",
-        lambda _t, announce_user=False: np.array([[5000.0, 1.0, 1.0]])
+        lambda _t, _wl_min, _wl_max, announce_user=False: np.array([[5000.0, 1.0, 1.0]])
     )
     monkeypatch.setattr("flux.flux_calc.convert_stellar_model_to_flux", lambda d, _: d)
     monkeypatch.setattr("flux.flux_calc.compute_ebv_av", lambda *_: (0.0, 0.0))
@@ -139,7 +139,7 @@ def test_calculate_flux_on_earth_optional_steps_called(make_star, make_global_co
     # wavelength must be inside 3400–18000 Å
     monkeypatch.setattr(
         "flux.flux_calc.load_model_for_temperature",
-        lambda _t, announce_user=False: np.array([[5000.0, 1.0, 1.0]])
+        lambda _t, _wl_min, _wl_max, announce_user=False: np.array([[5000.0, 1.0, 1.0]])
     )
     monkeypatch.setattr("flux.flux_calc.convert_stellar_model_to_flux", lambda d, _: d)
     monkeypatch.setattr("flux.flux_calc.compute_ebv_av", lambda *_: (0.1, 0.0))
@@ -175,7 +175,7 @@ def test_calculate_flux_on_earth_optional_steps_called(make_star, make_global_co
 def test_calculate_flux_on_earth_returns_photons_and_wavelengths_same_length(make_star, make_global_config, make_run_context, monkeypatch):
     monkeypatch.setattr(
         "flux.flux_calc.load_model_for_temperature",
-        lambda _t, announce_user=False: np.array([[100.0, 1.0, 1.0]])
+        lambda _t, _wl_min, _wl_max, announce_user=False: np.array([[100.0, 1.0, 1.0]])
     )
     monkeypatch.setattr("flux.flux_calc.convert_stellar_model_to_flux", lambda d, _: d)
     monkeypatch.setattr("flux.flux_calc.compute_ebv_av", lambda *_: (0.0, 0.0))
@@ -217,7 +217,7 @@ def test_calculate_flux_on_earth_executes_write_intermediate_arrays_instrumentat
 
     monkeypatch.setattr(
         "flux.flux_calc.load_model_for_temperature",
-        lambda _t, announce_user=False: np.array([[5000.0, 1.0, 1.0]])
+        lambda _t, _wl_min, _wl_max, announce_user=False: np.array([[5000.0, 1.0, 1.0]])
     )
     monkeypatch.setattr("flux.flux_calc.convert_stellar_model_to_flux", lambda d, _: d)
     monkeypatch.setattr("flux.flux_calc.compute_ebv_av", lambda *_: (0.0, 0.0))
@@ -249,18 +249,19 @@ def test_calculate_flux_on_earth_executes_write_intermediate_arrays_instrumentat
 
 
 # Tests: calculate_flux_on_earth
-# Behavior: enforces wavelength cut via cut_model_wavelength_range
+# Behavior: enforces wavelength cut via _cut_model_wavelength_range
 def test_calculate_flux_on_earth_applies_wavelength_cut(make_star, make_global_config, make_run_context, monkeypatch):
-    # Model contains wavelengths outside the requested range
-    model = np.array([
-        [3000.0, 1.0, 1.0],
-        [5000.0, 2.0, 1.0],
-        [20000.0, 3.0, 1.0],
-    ])
+    requested = {"wl_min_A": None, "wl_max_A": None}
+    # Loader now owns wavelength cutting; simulate already-cut model output.
+    cut_model = np.array([[5000.0, 2.0, 1.0]])
 
     monkeypatch.setattr(
         "flux.flux_calc.load_model_for_temperature",
-        lambda t, announce_user=False: model
+        lambda _t, _wl_min, _wl_max, announce_user=False: (
+            requested.__setitem__("wl_min_A", _wl_min),
+            requested.__setitem__("wl_max_A", _wl_max),
+            cut_model,
+        )[2]
     )
     monkeypatch.setattr("flux.flux_calc.convert_stellar_model_to_flux", lambda d, _: d)
     monkeypatch.setattr("flux.flux_calc.compute_ebv_av", lambda *_: (0.0, 0.0))
@@ -276,6 +277,8 @@ def test_calculate_flux_on_earth_applies_wavelength_cut(make_star, make_global_c
 
     flux, wavelengths = calculate_flux_on_earth(star, ctx, 4000.0, 18000.0)
 
+    assert requested["wl_min_A"] == 4000.0
+    assert requested["wl_max_A"] == 18000.0
     assert np.allclose(wavelengths, [5000.0])
     assert np.allclose(flux, [2.0])
 
