@@ -19,7 +19,7 @@ _TEXT_H_IN = 0.7
 _GAP_IN = 0.8
 _TITLE_FONTSIZE = 11
 _STATS_FONTSIZE = 10
-_FIGURE_DPI = 100
+_FIGURE_COMMON_DPI = 150
 # None avoids expensive tight-bbox computation; we use tight_layout() for spacing instead.
 _BBOX_INCHES = None
 # Max pixels used for percentile scaling; larger arrays are subsampled to reduce runtime.
@@ -30,7 +30,6 @@ def write_science_frame_png(detector_data, channel: Channel, ctx: RunContext, cf
     filetype = "science"
     channel_name = channel.channel_name
     inverted = cfg.invert_science_frames
-    logging.info("PNG writing: channel=%s frame_type=%s index=%s", channel_name, filetype, index)
 
     # Prepare data for PNG: optionally crop to spectrum strip for spectroscopy
     data_for_png = detector_data
@@ -73,6 +72,7 @@ def save_single_frame_png_NIR(array: np.ndarray, filename: Path, title: str, sta
     GAP_IN_NIR = 0.35
     TEXT_H_IN_NIR = 0.9
     NIR_LABEL_FONTSIZE = 16
+    _FIGURE_NIR_DPI = 100
 
 
     ny, nx = array.shape
@@ -139,12 +139,11 @@ def save_single_frame_png_NIR(array: np.ndarray, filename: Path, title: str, sta
         ax_txt.text(0.5, y, line, ha="center", va="center", fontsize=STATS_FONTSIZE_NIR, color=color, transform=ax_txt.transAxes)
         
     fig.tight_layout()
-    fig.savefig(filename, dpi=_FIGURE_DPI, bbox_inches=_BBOX_INCHES)
+    fig.savefig(filename, dpi=_FIGURE_NIR_DPI, bbox_inches=_BBOX_INCHES)
     plt.close(fig)
     logging.debug("Wrote %s", filename)
 
 def save_single_frame_png_NUV(array: np.ndarray, filename: Path, title: str, stats_text: str) -> None:
-    FIGURE_DPI = 175
     
     ny, nx = array.shape
     img_h_in = max(2.0, _WIDTH_IN * (ny / nx))
@@ -167,7 +166,7 @@ def save_single_frame_png_NUV(array: np.ndarray, filename: Path, title: str, sta
     ax_txt.text(0.5, 0.5, stats_text, ha="center", va="center", fontsize=_STATS_FONTSIZE, transform=ax_txt.transAxes)
 
     fig.subplots_adjust(left=0.05, right=0.98, top=0.92, bottom=0.05)
-    fig.savefig(filename, dpi=FIGURE_DPI, bbox_inches=_BBOX_INCHES)
+    fig.savefig(filename, dpi=_FIGURE_COMMON_DPI, bbox_inches=_BBOX_INCHES)
     plt.close(fig)
     logging.debug("Wrote %s", filename)
 
@@ -194,7 +193,7 @@ def save_single_frame_png_VIS(array: np.ndarray, filename: Path, title: str, sta
     ax_txt.text(0.5, 0.5, stats_text, ha="center", va="center", fontsize=_STATS_FONTSIZE, transform=ax_txt.transAxes)
 
     fig.tight_layout()
-    fig.savefig(filename, dpi=_FIGURE_DPI, bbox_inches=_BBOX_INCHES)
+    fig.savefig(filename, dpi=_FIGURE_COMMON_DPI, bbox_inches=_BBOX_INCHES)
     plt.close(fig)
     logging.debug("Wrote %s", filename)
 
@@ -223,7 +222,7 @@ def save_single_frame_png_VIS_cropped(array: np.ndarray, filename: Path, title: 
     ax_txt.text(0.5, 0.5, stats_text, ha="center", va="center", fontsize=_STATS_FONTSIZE, transform=ax_txt.transAxes)
 
     fig.subplots_adjust(left=0.10, right=0.98, top=0.85, bottom=0.08)
-    fig.savefig(filename, dpi=_FIGURE_DPI, bbox_inches=_BBOX_INCHES)
+    fig.savefig(filename, dpi=_FIGURE_COMMON_DPI, bbox_inches=_BBOX_INCHES)
     plt.close(fig)
     logging.debug("Wrote %s", filename)
 

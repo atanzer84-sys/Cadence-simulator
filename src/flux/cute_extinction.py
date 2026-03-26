@@ -1,5 +1,4 @@
 import numpy as np
-import logging
 
 def extinction_amores(glong,glat,distance):
 #Interstellar Extinction in the Galaxy (Amores & L�pine - 2004)
@@ -92,6 +91,5 @@ def extinction_amores(glong,glat,distance):
     rs = 3.05  #ratio between total to selective extinction
     ebv = av/rs
 
-    logging.info("Extinction calculation: distance_kpc=%s glong=%s glat=%s E(B-V)=%s A_V=%s", distance, glong, glat, ebv, av)
     return ebv,av
 

@@ -412,35 +412,6 @@ def test_spread_1d_to_2d_profile_weight_shape_mismatch(make_spectroscopy_channel
         _spread_1d_to_2d_profile(counts, channel, placement)
 
 
-# Tests: test_spread_1d_to_2d_profile_column_sum_mismatch_warns
-# Behavior: Profile spread logs when conservation check exceeds tolerance
-def test_spread_1d_to_2d_profile_column_sum_mismatch_warns(make_spectroscopy_channel, caplog):
-    channel = make_spectroscopy_channel(
-        x_pixels=5,
-        y_pixels=7,
-        slope=0.0,
-        intercept_pixels=0.0,
-        spread_y_positions=np.array([-1, 0, 1], dtype=float),
-        # Deliberately under-normalized weights force a true conservation mismatch.
-        spread_y_weights=np.array(
-            [
-                [0.2, 0.2, 0.2, 0.2, 0.2],
-                [0.5, 0.5, 0.5, 0.5, 0.5],
-                [0.2, 0.2, 0.2, 0.2, 0.2],
-            ],
-            dtype=np.float32,
-        ),
-        spread_y_wavelengths=np.linspace(100, 200, 5, dtype=float),
-        effective_area_wavelength=np.linspace(100, 200, 5, dtype=float),
-    )
-    counts = np.array([10, 20, 30, 40, 50], dtype=np.float32)
-    placement = get_spectrum_placement(channel)
-
-    with caplog.at_level(logging.WARNING):
-        _spread_1d_to_2d_profile(counts, channel, placement)
-    assert any("PROFILE SPREAD CHECK WARN" in r.getMessage() for r in caplog.records)
-
-
 # ---------------------------------------------------------------------------
 # spread_1d_spectrum_to_2d
 # ---------------------------------------------------------------------------

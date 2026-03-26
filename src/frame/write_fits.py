@@ -1,4 +1,3 @@
-import logging
 from astropy.io import fits
 from loaders.run_waltzer_context import RunContext
 from frame.frame_class import Frame
@@ -11,9 +10,6 @@ def write_fits_frame(frame: Frame, ctx: RunContext, index: int, exposure: float)
     # _log_oversized_header_cards(frame.header, frame.data.shape)
 
     fits.PrimaryHDU(data=frame.data, header=frame.header).writeto(filename, overwrite=True)
-    logging.info("FITS writing finished: channel=%s frame_type=%s frame=%d", frame.channel_tag, frame.frame_type, index)
-
-
 
 # def _log_oversized_header_cards(header, data_shape):
 #     """Print any FITS header cards whose raw image is at the 80-char limit, plus image size."""

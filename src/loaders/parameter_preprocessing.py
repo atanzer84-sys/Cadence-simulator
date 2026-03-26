@@ -19,8 +19,6 @@ def get_missing_properties(parameters: dict, required_keys: list[str], log_outpu
       • value is an empty/whitespace-only string
     """
     if log_output:
-        logging.info("Checking missing properties...")
-        logging.info("Required keys: %s", required_keys)
         logging.info("Current parameters: %s", parameters)
         logging.info("Missing properties result: %s", [k for k in required_keys if k not in parameters or is_missing(parameters.get(k))])
 

@@ -6,30 +6,24 @@ import pytest
 from utils.helpers import (
     announce,
     ensure_path_under,
-    print_if_enabled,
+    announce,
     resolve_path_under,
 )
 
 
-def test_print_if_enabled_true_prints(capsys):
+def test_announce_enabled_true_prints(capsys):
     """When enabled=True, message is printed to stdout."""
-    print_if_enabled("hello", True)
+    announce("hello", True)
     out, _ = capsys.readouterr()
     assert "hello" in out
 
 
-def test_print_if_enabled_false_does_not_print(capsys):
+def test_announce_enabled_false_does_not_print(capsys):
     """When enabled=False, nothing is printed."""
-    print_if_enabled("hello", False)
+    announce("hello", False)
     out, _ = capsys.readouterr()
     assert "hello" not in out
 
-
-def test_announce_logs_always(caplog):
-    """announce() always logs the message when to_user=False."""
-    with caplog.at_level(logging.INFO):
-        announce("logged", to_user=False)
-    assert "logged" in caplog.text
 
 
 def test_announce_prints_when_to_user_true(capsys):

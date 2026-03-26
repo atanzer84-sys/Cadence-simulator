@@ -24,7 +24,6 @@ def load_matching_excel_row_from_excel(excel_path, target_name_user_input):
             if name is None:
                 break
             column_headers.append(name)
-        logging.info("Excel column headers: %s", column_headers)
 
         if "pl_name" not in column_headers:
             raise ValueError("Excel file has no 'pl_name' column")
@@ -113,9 +112,15 @@ def load_excel_cfg(mapping_path: Path):
             "required_stellar_parameters": parse_required("required_stellar_parameters"),
         }
 
-        logging.info("Excel mapping: %d planet keys, %d star keys, %d required planet, %d required star", len(mapping["planet"]), len(mapping["star"]), len(mapping["required_planetary_parameters"]), len(mapping["required_stellar_parameters"]))
-        logging.info("Planet mapping keys: %s", mapping["planet"].keys())
-        logging.info("Star mapping keys: %s", mapping["star"].keys())
+        logging.info(
+            "Excel mapping summary: planet_keys=%d [%s] | star_keys=%d [%s] | required_planet=%d | required_star=%d",
+            len(mapping["planet"]),
+            ", ".join(sorted(mapping["planet"].keys())),
+            len(mapping["star"]),
+            ", ".join(sorted(mapping["star"].keys())),
+            len(mapping["required_planetary_parameters"]),
+            len(mapping["required_stellar_parameters"]),
+        )
 
         return mapping
 
@@ -171,7 +176,7 @@ def map_to_planet_or_star_dictionary(planet_star_dictionary: PlanetStarDict, map
 
     # i don't care about not mapped columns. I just write it to the log and carry on.
     if unknown_headers:
-        logging.warning("Ignoring unmapped Excel columns:\n%s", "\n".join(f"  {h!r}" for h in unknown_headers))
+        logging.warning("Ignoring unmapped Excel columns: %s", ", ".join(repr(h) for h in unknown_headers))
     
     # no star's name in excel, so we insert the matched star name from the row 
     star_params["name"] = target_name

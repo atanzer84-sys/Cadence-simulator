@@ -1,4 +1,3 @@
-import logging
 from configs.channel_config import PhotometryChannel, SpectroscopyChannel, Channel
 
 def compute_extended_wavelength_range(channels: list[Channel], margin_A: float = 200.0) -> tuple[float, float]:
@@ -14,7 +13,5 @@ def compute_extended_wavelength_range(channels: list[Channel], margin_A: float =
 def get_required_wavelength_range(nuv: SpectroscopyChannel | None, vis: SpectroscopyChannel | None, nir: PhotometryChannel | None, margin_A: float = 200.0) -> tuple[float, float]:
     channels = [c for c in (nuv, vis, nir) if c is not None]
     wl_min_A, wl_max_A = compute_extended_wavelength_range(channels, margin_A)
-
-    logging.info("WL RANGE: wl_min_A=%g wl_max_A=%g margin_A=%g", wl_min_A, wl_max_A, margin_A)
 
     return wl_min_A, wl_max_A

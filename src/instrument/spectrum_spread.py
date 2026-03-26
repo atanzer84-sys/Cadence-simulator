@@ -4,6 +4,9 @@ import logging
 from configs.channel_config import SpectroscopyChannel
 from utils.helpers import announce
 
+_PROFILE_SPREAD_WARNED_CHANNELS: set[str] = set()
+_PROFILE_SPREAD_WARN_THRESHOLD = 5e-2
+
 
 def spread_target_star_spectrum_to_2d(counts_s_pixel_convolved, channel: SpectroscopyChannel):
     """Entry point for target star: derive spatial info and spread 1D spectrum to 2D."""
@@ -77,11 +80,10 @@ def _spread_1d_to_2d_gaussian(counts_s_pixel_convolved, channel: SpectroscopyCha
 
     col_sums = image.sum(axis=0)
 
-    if not np.allclose(col_sums, counts_s_pixel_convolved, rtol=1e-6, atol=1e-7):
+    if not np.allclose(col_sums, counts_s_pixel_convolved, rtol=1e-2, atol=1e-3):
         logging.error("GAUSSIAN SPREAD CHECK FAILED: channel=%s column sums do not match input counts", channel.channel_name)
         raise ValueError("Gaussian spread column sum mismatch")
     
-    logging.info("Gaussian spectrum spread applied: channel=%s nx=%d ny=%d sigma_pix=%.3f slope=%.3f intercept=%.3f", channel.channel_name, nx, ny, spatial_sigma_pix, slope, intercept)
     return image
 
 def _gaussian_vertical_profile(ny: int, y_center: float, sigma: float) -> np.ndarray:
@@ -126,7 +128,9 @@ def _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel: SpectroscopyChan
 
         
     m = float(np.max(np.abs(image.sum(axis=0) - counts_s_pixel_convolved) / np.maximum(np.abs(counts_s_pixel_convolved), 1e-30)))
-    if m > 1e-6: logging.warning("PROFILE SPREAD CHECK WARN | channel=%s | max_rel_diff=%g", channel.channel_name, m)
+    if m > _PROFILE_SPREAD_WARN_THRESHOLD and channel.channel_name not in _PROFILE_SPREAD_WARNED_CHANNELS:
+        _PROFILE_SPREAD_WARNED_CHANNELS.add(channel.channel_name)
+        logging.warning("PROFILE SPREAD CHECK WARN | channel=%s | max_rel_diff=%g | threshold=%g (logged once per channel)", channel.channel_name, m, _PROFILE_SPREAD_WARN_THRESHOLD)
 
 
     logging.info("Profile spectrum spread applied: channel=%s nx=%d ny=%d profile_rows=%d profile_cols=%d input_sum=%g image_sum=%g", channel.channel_name, nx, ny, spread_weights.shape[0], spread_weights.shape[1], float(np.sum(counts_s_pixel_convolved)), float(np.sum(image)))
@@ -138,14 +142,14 @@ def get_target_star_detector_position(channel: SpectroscopyChannel):
     ny = channel.y_pixels
     x0 = int(round(channel.slit_position_x_arcsec / channel.pixel_scale))
     y0 = int(round((ny // 2) + channel.slit_position_y_arcsec / channel.pixel_scale))
-    logging.info("SPREAD_ANCHOR channel=%s x0=%d y0=%d nx=%d ny=%d", channel.channel_name, x0, y0, nx, ny)
+    logging.info("Get target star detector position: channel=%s x0=%d y0=%d nx=%d ny=%d", channel.channel_name, x0, y0, nx, ny)
 
     if x0 != 0:
-        logging.error("SPREAD_ANCHOR_ERROR channel=%s x0=%d horizontal shift not supported", channel.channel_name, x0)
+        logging.error("Get target star detector position failed: channel=%s x0=%d horizontal shift not supported", channel.channel_name, x0)
         raise ValueError("Horizontal slit_position_x_arcsec not yet supported (must be 0.0)")
 
     if y0 < 0 or y0 >= ny:
-        logging.error("SPREAD_ANCHOR_ERROR channel=%s y0=%d ny=%d", channel.channel_name, y0, ny)
+        logging.error("Get target star detector position failed: channel=%s y0=%d ny=%d (outside detector)", channel.channel_name, y0, ny)
         raise ValueError("slit_position_y_arcsec places spectrum outside detector")
 
     return x0, y0

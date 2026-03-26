@@ -11,7 +11,6 @@ def read_text_lines_with_fallback(path: Path, encodings: tuple[str, ...], contex
     for enc in encodings:
         try:
             lines = path.read_text(encoding=enc).splitlines()
-            logging.info("%s read: file=%s encoding=%s", context, path, enc)
             return lines
         except UnicodeError as exc:
             last_exc = exc
@@ -165,7 +164,6 @@ def _parse_pixel_scale(lines: list[str], path: Path) -> float:
             try:
                 value_str = s.split(":", 1)[1].strip()
                 pixel_scale = float(value_str)
-                logging.info("Parsed pixel scale from effective area header: %s (file: %s)", pixel_scale, path)
                 return pixel_scale
             except Exception as exc:
                 msg = f"Invalid pixel scale value in effective area file header: {path}"
@@ -220,7 +218,6 @@ def parse_spread_header_wavelengths(lines: list[str], path: Path, channel_name: 
                 raise ValueError(f"Spread header has no wavelength columns in file: {path}")
             try:
                 wavelength_header = np.array([float(x) for x in parts[1:]], dtype=np.float32)
-                logging.info("Channel %s: spread header wavelengths count=%d values=%s", channel_name, wavelength_header.shape[0], wavelength_header)
                 return wavelength_header
             except Exception as exc:
                 logging.error("Channel %s: failed to parse spread header wavelength columns in %s", channel_name, path)

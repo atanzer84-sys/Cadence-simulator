@@ -3,7 +3,7 @@ import numpy as np
 from loaders.run_waltzer_context import get_repo_root
 import re
 from pathlib import Path
-from utils.helpers import announce, print_if_enabled
+from utils.helpers import announce, announce
 
 
 
@@ -26,7 +26,7 @@ def load_model_for_temperature(t_star, announce_user: bool = False):
     if delta > 300:
         msg = f"MODEL_TEMP_LARGE_DELTA: requested={t_target:.0f} K, picked={t_pick} K, delta={delta:.0f} K"
         logging.warning(msg)
-        print_if_enabled(msg, announce_user)
+        announce(msg, announce_user)
 
     model_file = model_dir / "model.flx"
 

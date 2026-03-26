@@ -1,37 +1,37 @@
 import numpy as np
 
 from flux.flux_calc import (
-    convertStellarModelToFlux,
+    convert_stellar_model_to_flux,
     compute_flux_at_earth,
     compute_ebv_av,
     apply_unred,
-    calculateFluxOnEarth,
+    calculate_flux_on_earth,
 )
 from utils.constants import C_LIGHT_Angst, PARSEC_CM
 
 
-# Tests: convertStellarModelToFlux
+# Tests: convert_stellar_model_to_flux
 # Behavior: preserves shape and wavelength column
-def test_convertStellarModelToFlux_shape_and_wavelength():
+def test_convert_stellar_model_to_flux_shape_and_wavelength():
     model_data = np.array([
         [1000.0, 1.0, 2.0],
         [2000.0, 3.0, 4.0],
     ])
     r_star = 1.0
 
-    out = convertStellarModelToFlux(model_data, r_star)
+    out = convert_stellar_model_to_flux(model_data, r_star)
 
     assert out.shape == model_data.shape
     np.testing.assert_allclose(out[:, 0], model_data[:, 0])
 
 
-# Tests: convertStellarModelToFlux
+# Tests: convert_stellar_model_to_flux
 # Behavior: verifies frequency→wavelength conversion and geometric scaling
 def test_frequency_to_wavelength_conversion():
     model_data = np.array([[1000.0, 1.0, 0.0]])
     r_star = 1.0
 
-    out = convertStellarModelToFlux(model_data, r_star)
+    out = convert_stellar_model_to_flux(model_data, r_star)
 
     geometry = 4 * np.pi * r_star**2 * 4 * np.pi
     recovered_intensity = out[0, 1] / geometry
@@ -100,14 +100,14 @@ def test_compute_ebv_av_converts_distance_and_forwards_coords(monkeypatch):
     assert called["distance_kpc"] == 2.5
 
 
-# Tests: calculateFluxOnEarth
+# Tests: calculate_flux_on_earth
 # Behavior: optional steps skipped when flags are False
-def test_calculateFluxOnEarth_no_optional_steps_called(make_star, make_global_config, make_run_context, monkeypatch):
+def test_calculate_flux_on_earth_no_optional_steps_called(make_star, make_global_config, make_run_context, monkeypatch):
     monkeypatch.setattr(
         "flux.flux_calc.load_model_for_temperature",
         lambda _t, announce_user=False: np.array([[5000.0, 1.0, 1.0]])
     )
-    monkeypatch.setattr("flux.flux_calc.convertStellarModelToFlux", lambda d, _: d)
+    monkeypatch.setattr("flux.flux_calc.convert_stellar_model_to_flux", lambda d, _: d)
     monkeypatch.setattr("flux.flux_calc.compute_ebv_av", lambda *_: (0.0, 0.0))
     monkeypatch.setattr("flux.flux_calc.compute_flux_at_earth", lambda d, _dist, announce_user=False: d[:, 1])
     monkeypatch.setattr("flux.flux_calc.apply_unred", lambda w, f, e, announce_user=False: f)
@@ -127,21 +127,21 @@ def test_calculateFluxOnEarth_no_optional_steps_called(make_star, make_global_co
 
     ctx = make_run_context()
 
-    flux, wavelengths = calculateFluxOnEarth(star, ctx, 3400.0, 18000.0)
+    flux, wavelengths = calculate_flux_on_earth(star, ctx, 3400.0, 18000.0)
 
     assert flux[0] == 1.0
     assert wavelengths[0] == 5000.0
 
 
-# Tests: calculateFluxOnEarth
+# Tests: calculate_flux_on_earth
 # Behavior: optional steps applied when flags are True
-def test_calculateFluxOnEarth_optional_steps_called(make_star, make_global_config, make_run_context, monkeypatch):
+def test_calculate_flux_on_earth_optional_steps_called(make_star, make_global_config, make_run_context, monkeypatch):
     # wavelength must be inside 3400–18000 Å
     monkeypatch.setattr(
         "flux.flux_calc.load_model_for_temperature",
         lambda _t, announce_user=False: np.array([[5000.0, 1.0, 1.0]])
     )
-    monkeypatch.setattr("flux.flux_calc.convertStellarModelToFlux", lambda d, _: d)
+    monkeypatch.setattr("flux.flux_calc.convert_stellar_model_to_flux", lambda d, _: d)
     monkeypatch.setattr("flux.flux_calc.compute_ebv_av", lambda *_: (0.1, 0.0))
     monkeypatch.setattr("flux.flux_calc.compute_flux_at_earth", lambda d, _dist, announce_user=False: d[:, 1])
 
@@ -164,20 +164,20 @@ def test_calculateFluxOnEarth_optional_steps_called(make_star, make_global_confi
 
     ctx = make_run_context()
 
-    flux, wavelengths = calculateFluxOnEarth(star, ctx, 3400.0, 18000.0)
+    flux, wavelengths = calculate_flux_on_earth(star, ctx, 3400.0, 18000.0)
 
     assert flux[0] == 6.0
     assert wavelengths[0] == 5000.0
 
 
-# Tests: calculateFluxOnEarth
+# Tests: calculate_flux_on_earth
 # Behavior: output arrays have same length and finite values
-def test_calculateFluxOnEarth_returns_photons_and_wavelengths_same_length(make_star, make_global_config, make_run_context, monkeypatch):
+def test_calculate_flux_on_earth_returns_photons_and_wavelengths_same_length(make_star, make_global_config, make_run_context, monkeypatch):
     monkeypatch.setattr(
         "flux.flux_calc.load_model_for_temperature",
         lambda _t, announce_user=False: np.array([[100.0, 1.0, 1.0]])
     )
-    monkeypatch.setattr("flux.flux_calc.convertStellarModelToFlux", lambda d, _: d)
+    monkeypatch.setattr("flux.flux_calc.convert_stellar_model_to_flux", lambda d, _: d)
     monkeypatch.setattr("flux.flux_calc.compute_ebv_av", lambda *_: (0.0, 0.0))
     monkeypatch.setattr("flux.flux_calc.compute_flux_at_earth", lambda d, _dist, announce_user=False: d[:, 1])
     monkeypatch.setattr("flux.flux_calc.apply_unred", lambda w, f, e, announce_user=False: f)
@@ -197,16 +197,16 @@ def test_calculateFluxOnEarth_returns_photons_and_wavelengths_same_length(make_s
 
     ctx = make_run_context()
 
-    flux, wavelengths = calculateFluxOnEarth(star, ctx, 3400.0, 18000.0)
+    flux, wavelengths = calculate_flux_on_earth(star, ctx, 3400.0, 18000.0)
 
     assert len(flux) == len(wavelengths)
     assert np.all(np.isfinite(flux))
     assert np.all(np.isfinite(wavelengths))
 
 
-# Tests: calculateFluxOnEarth
+# Tests: calculate_flux_on_earth
 # Behavior: instrumentation triggers at least one dump
-def test_calculateFluxOnEarth_executes_write_intermediate_arrays_instrumentation(make_star, make_global_config, make_run_context, monkeypatch):
+def test_calculate_flux_on_earth_executes_write_intermediate_arrays_instrumentation(make_star, make_global_config, make_run_context, monkeypatch):
     called = {"dumped": 0}
 
     def fake_dump_3d_array(*args, **kwargs):
@@ -219,7 +219,7 @@ def test_calculateFluxOnEarth_executes_write_intermediate_arrays_instrumentation
         "flux.flux_calc.load_model_for_temperature",
         lambda _t, announce_user=False: np.array([[5000.0, 1.0, 1.0]])
     )
-    monkeypatch.setattr("flux.flux_calc.convertStellarModelToFlux", lambda d, _: d)
+    monkeypatch.setattr("flux.flux_calc.convert_stellar_model_to_flux", lambda d, _: d)
     monkeypatch.setattr("flux.flux_calc.compute_ebv_av", lambda *_: (0.0, 0.0))
     monkeypatch.setattr("flux.flux_calc.compute_flux_at_earth", lambda d, _dist, announce_user=False: d[:, 1])
     monkeypatch.setattr("flux.flux_calc.apply_unred", lambda w, f, e, announce_user=False: f)
@@ -243,14 +243,14 @@ def test_calculateFluxOnEarth_executes_write_intermediate_arrays_instrumentation
 
     ctx = make_run_context()
 
-    calculateFluxOnEarth(star, ctx, 3400.0, 18000.0)
+    calculate_flux_on_earth(star, ctx, 3400.0, 18000.0)
 
     assert called["dumped"] > 0
 
 
-# Tests: calculateFluxOnEarth
+# Tests: calculate_flux_on_earth
 # Behavior: enforces wavelength cut via cut_model_wavelength_range
-def test_calculateFluxOnEarth_applies_wavelength_cut(make_star, make_global_config, make_run_context, monkeypatch):
+def test_calculate_flux_on_earth_applies_wavelength_cut(make_star, make_global_config, make_run_context, monkeypatch):
     # Model contains wavelengths outside the requested range
     model = np.array([
         [3000.0, 1.0, 1.0],
@@ -262,7 +262,7 @@ def test_calculateFluxOnEarth_applies_wavelength_cut(make_star, make_global_conf
         "flux.flux_calc.load_model_for_temperature",
         lambda t, announce_user=False: model
     )
-    monkeypatch.setattr("flux.flux_calc.convertStellarModelToFlux", lambda d, _: d)
+    monkeypatch.setattr("flux.flux_calc.convert_stellar_model_to_flux", lambda d, _: d)
     monkeypatch.setattr("flux.flux_calc.compute_ebv_av", lambda *_: (0.0, 0.0))
     monkeypatch.setattr("flux.flux_calc.compute_flux_at_earth", lambda d, dist, announce_user=False: d[:, 1])
     monkeypatch.setattr("flux.flux_calc.apply_unred", lambda w, f, e, **k: f)
@@ -274,7 +274,7 @@ def test_calculateFluxOnEarth_applies_wavelength_cut(make_star, make_global_conf
 
     ctx = make_run_context()
 
-    flux, wavelengths = calculateFluxOnEarth(star, ctx, 4000.0, 18000.0)
+    flux, wavelengths = calculate_flux_on_earth(star, ctx, 4000.0, 18000.0)
 
     assert np.allclose(wavelengths, [5000.0])
     assert np.allclose(flux, [2.0])

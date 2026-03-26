@@ -232,6 +232,5 @@ def _compute_n_science_frames(channel_name: str, exposure_s: float) -> int:
     cfg = get_global_config()
     frame_time_s = exposure_s + cfg.readout_gap_s
     n_science_frames = int(cfg.orbit_total_duration_s / frame_time_s)
-    logging.info("Channel %s science frame calculation: orbit_total_duration_s=%g exposure_s=%g readout_gap_s=%g frame_time=%g n_science_frames=%d", channel_name, cfg.orbit_total_duration_s, exposure_s, cfg.readout_gap_s, frame_time_s, n_science_frames)
     return n_science_frames
 

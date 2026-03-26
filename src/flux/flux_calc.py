@@ -15,7 +15,7 @@ from utils.debug_dumps import dump_1d_array, dump_3d_array
 from utils.helpers import announce
 from utils.flux_image_array import plot_flux_and_photons_windows
 
-def calculateFluxOnEarth(star: Star, ctx: RunContext, wl_min_A: float, wl_max_A: float, announce_user: bool = False, background_star: bool = False):
+def calculate_flux_on_earth(star: Star, ctx: RunContext, wl_min_A: float, wl_max_A: float, announce_user: bool = False, background_star: bool = False):
     announce(f"Starting to calculate Flux on Earth for target star {star.name}", announce_user)
     cfg = get_global_config()
     dump_arrays = cfg.write_intermediate_arrays and not background_star
@@ -27,7 +27,7 @@ def calculateFluxOnEarth(star: Star, ctx: RunContext, wl_min_A: float, wl_max_A:
     if dump_arrays:
         dump_3d_array(model_data, ctx.output_dir, star.name, "FluxCalc_1_model_input", perChannel=True, zoom=True)
 
-    flux_lambda_original = convertStellarModelToFlux(model_data, star.radius_sun_cm)
+    flux_lambda_original = convert_stellar_model_to_flux(model_data, star.radius_sun_cm)
     # keep undiluted flux
     flux_lambda_diluted = flux_lambda_original
     wavelengths = flux_lambda_original[:, 0]
@@ -78,7 +78,7 @@ def calculateFluxOnEarth(star: Star, ctx: RunContext, wl_min_A: float, wl_max_A:
     return flux_unred, wavelengths
 
 
-def convertStellarModelToFlux(model_data, r_star):
+def convert_stellar_model_to_flux(model_data, r_star):
     '''
     Legacy model flux:
     frequency-based stellar model quantity, converted to per-wavelength
@@ -105,8 +105,6 @@ def convertStellarModelToFlux(model_data, r_star):
 
 def apply_ism_absorption(data, ebv, cfg: GlobalConfig, announce_user: bool = False):
     announce("Starting ISM absorption", announce_user)
-    logging.info("ISM input: E(B-V)=%s", ebv)
-
     if cfg.mg2_col is None:
         nh = 5.8e21 * ebv  # The Mg2 column density is
         fractionMg2 = 0.825  # (Frisch & Slavin 2003; this is the fraction of Mg in the ISM that is singly ionised)
@@ -114,10 +112,10 @@ def apply_ism_absorption(data, ebv, cfg: GlobalConfig, announce_user: bool = Fal
         # Safe runtime path: keep physically correct -inf for zero columns without triggering log10(0) warnings.
         mg2_col_linear = nh * fractionMg2 * 10.0**Mg_abn
         nmg2 = -np.inf if mg2_col_linear <= 0.0 else np.log10(mg2_col_linear)
-        logging.info("ISM MgII column computed: nmg2=%s", nmg2)
+        nmg2_source = "computed"
     else:
         nmg2 = float(cfg.mg2_col)
-        logging.info("ISM MgII column from cfg: nmg2=%s", nmg2)
+        nmg2_source = "cfg"
 
     if cfg.mg1_col is None:
         nh = 5.8e21 * ebv  # The Mg1 column density is
@@ -125,10 +123,10 @@ def apply_ism_absorption(data, ebv, cfg: GlobalConfig, announce_user: bool = Fal
         Mg_abn = -5.33  # (Frisch & Slavin 2003; this is the ISM abundance of Mg)
         mg1_col_linear = nh * fractionMg1 * 10.0**Mg_abn
         nmg1 = -np.inf if mg1_col_linear <= 0.0 else np.log10(mg1_col_linear)
-        logging.info("ISM MgI column computed: nmg1=%s", nmg1)
+        nmg1_source = "computed"
     else:
         nmg1 = float(cfg.mg1_col)
-        logging.info("ISM MgI column from cfg: nmg1=%s", nmg1)
+        nmg1_source = "cfg"
 
     if cfg.fe2_col is None:
         nh = 5.8e21 * ebv  # The Fe2 column density is
@@ -136,13 +134,14 @@ def apply_ism_absorption(data, ebv, cfg: GlobalConfig, announce_user: bool = Fal
         Fe_abn = -5.73  # (Frisch & Slavin 2003; this is the ISM abundance of Fe)
         fe2_col_linear = nh * fractionFe2 * 10.0**Fe_abn
         nfe2 = -np.inf if fe2_col_linear <= 0.0 else np.log10(fe2_col_linear)
-        logging.info("ISM FeII column computed: nfe2=%s", nfe2)
+        nfe2_source = "computed"
     else:
         nfe2 = float(cfg.fe2_col)
-        logging.info("ISM FeII column from cfg: nfe2=%s", nfe2)
+        nfe2_source = "cfg"
+
+    logging.info("ISM params: E(B-V)=%s nmg2=%s (%s) nmg1=%s (%s) nfe2=%s (%s)", ebv, nmg2, nmg2_source, nmg1, nmg1_source, nfe2, nfe2_source)
 
     flux_data = cute_ism_abs_all(data, nmg2, nmg1, nfe2)
-    logging.info("ISM absorption applied")
 
     return flux_data
 
@@ -164,13 +163,11 @@ def compute_flux_at_earth(flux_lambda_diluted, distance_pc, announce_user: bool 
     announce("Starting Flux at Earth calculation", announce_user)
     flux_di = flux_lambda_diluted[:,1]
     flux_at_earth = flux_di / (4.0 * np.pi * (distance_pc * PARSEC_CM) ** 2)
-    logging.info("Flux at Earth calculation finished")
     return flux_at_earth
 
 def apply_unred(wavelengths, flux_at_earth, ebv, announce_user: bool = False):
     announce("Starting to apply UNRED extinction correction", announce_user)
     ebv = -1.0 * ebv
     flux_unred = unred(wavelengths, flux_at_earth, ebv=ebv, R_V=R_V)
-    logging.info("UNRED extinction correction applied")
     return flux_unred
 

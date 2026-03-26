@@ -35,8 +35,6 @@ class Star:
             msg2 = f"Star created: {star_params['name']}"
             print(msg1)
             print(msg2)
-            logging.info(msg1.strip())
-            logging.info(msg2)
 
 
         radius = star_params.get("radius")
@@ -67,6 +65,6 @@ class Star:
         )
 
         if log_output:
-            logging.info("Created Star object: %s", star)
+            logging.info("Star created: %s", star)
 
         return star

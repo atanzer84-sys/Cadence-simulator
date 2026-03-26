@@ -1,7 +1,7 @@
 import numpy as np
 from pathlib import Path
 import pytest
-from flux.flux_calc import convertStellarModelToFlux, apply_line_core_emission, apply_ism_absorption, compute_flux_at_earth, apply_unred
+from flux.flux_calc import convert_stellar_model_to_flux, apply_line_core_emission, apply_ism_absorption, compute_flux_at_earth, apply_unred
 from instrument.prepare_detector_images import convert_flux_to_photons
 
 from utils.constants import R_SUN_cm
@@ -93,7 +93,7 @@ def run_snapshot_convertIntensityToLuminosity(star_name, radius_rsun, band):
     expected_file = base / f"{star_name}_FluxCalc_2_convertIntensityToLuminosity_snapshot_{band}_zoom.txt"
     model = np.loadtxt(model_file, dtype=np.float64)
     expected = np.loadtxt(expected_file, dtype=np.float64)
-    got = convertStellarModelToFlux(model, radius_rsun * R_SUN_cm)
+    got = convert_stellar_model_to_flux(model, radius_rsun * R_SUN_cm)
     assert got.shape == expected.shape
     np.testing.assert_allclose(got, expected, rtol=1e-6, atol=0.0)
 

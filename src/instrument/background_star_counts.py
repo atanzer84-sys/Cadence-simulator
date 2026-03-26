@@ -4,7 +4,7 @@ import logging
 from configs.channel_config import SpectroscopyChannel, PhotometryChannel
 from instrument.prepare_detector_images import compute_counts_per_s_px_one_channel
 import numpy as np
-from instrument.wavelength_range import get_required_wavelength_range
+from instrument.wavelength_range import get_required_wavelength_range, compute_extended_wavelength_range
 from instrument.prepare_detector_images import prepare_star_photon_flux_in_range
 
 def populate_background_star_counts(background_stars_catalog: StarCatalog, nuv: SpectroscopyChannel | None, vis: SpectroscopyChannel | None, nir: PhotometryChannel | None, ctx: RunContext) -> StarCatalog:
@@ -18,11 +18,19 @@ def populate_background_star_counts(background_stars_catalog: StarCatalog, nuv: 
         return background_stars_catalog
 
     logging.info("Starting Flux Calculation and Detector Convolution for Star in Counts / px / s FOR %d background stars", total)
+    for channel in enabled_channels:
+        wl_first_A, wl_last_A = compute_extended_wavelength_range([channel])
+        logging.info(
+            "Background-star spectral convolution wavelength window: channel=%s wl_first_A=%.1f wl_last_A=%.1f",
+            channel.channel_name,
+            wl_first_A,
+            wl_last_A,
+        )
     print(f"\n==== STARTING FLUX CALCULATION FOR {total} BACKGROUND STARS =====")
 
     for i, (star_id, bg_star) in enumerate(background_stars_catalog.stars_by_id.items(), start=1):
         if i == 1 or i == total or i % 10 == 0:
-            print(f"Flux Calculation and Detector Convolution for Star: {i}/{total} for {star_id}")
+            print(f"Flux Calculation and Detector Convolution for Star: {i}/{total}")
 
         photons_star, wavelengths = prepare_star_photon_flux_in_range(bg_star, ctx, wl_min_A, wl_max_A, announce_user=False, background_star=True)
 

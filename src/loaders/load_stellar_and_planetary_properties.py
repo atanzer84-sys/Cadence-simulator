@@ -33,7 +33,7 @@ def load_stellar_and_planetary_properties(target_name_user_input):
         # getting (still dirty) separate dictionaries for planetary and stellar properties
         planet_params, star_params = map_to_planet_or_star_dictionary(planet_star_dictionary, mapping, target_name)
 
-        # TODO: MISSING PLANET WHEN NEEDED 
+        # TODO: ADD MISSING PARAMS FOR PLANET WHEN NEEDED 
         # list all properties that are required by config, empty in excel to prep for gaia lookup
         missing_star = get_missing_properties(star_params, mapping["required_stellar_parameters"])
         missing_for_gaia = [k for k in missing_star if k in GAIA_PROVIDES]

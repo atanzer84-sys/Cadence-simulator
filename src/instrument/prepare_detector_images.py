@@ -2,7 +2,7 @@ import numpy as np
 import logging
 from configs.global_config import get_global_config
 from domain.star import Star
-from flux.flux_calc import calculateFluxOnEarth
+from flux.flux_calc import calculate_flux_on_earth
 from loaders.run_waltzer_context import RunContext
 from configs.channel_config import PhotometryChannel, SpectroscopyChannel, Channel
 from instrument.spectrum_spread import spread_target_star_spectrum_to_2d, get_spectrum_placement
@@ -20,9 +20,7 @@ def prepare_star_photon_flux_for_channels(star: Star, ctx: RunContext, nuv: Spec
     return photons_star, wavelengths_total
 
 def prepare_star_photon_flux_in_range(star: Star, ctx: RunContext, wl_min_A: float, wl_max_A: float, announce_user: bool = True, background_star: bool = False):
-    logging.info("Calculating flux on Earth and converting to photons for star %s", star.name)
-
-    flux, wavelengths = calculateFluxOnEarth(star, ctx, wl_min_A, wl_max_A, announce_user=announce_user, background_star=background_star)
+    flux, wavelengths = calculate_flux_on_earth(star, ctx, wl_min_A, wl_max_A, announce_user=announce_user, background_star=background_star)
     photons_star = convert_flux_to_photons(flux, wavelengths)
     photons_star = np.asarray(photons_star, dtype=np.float32)
     wavelengths = np.asarray(wavelengths, dtype=np.float32)
@@ -75,8 +73,6 @@ def prepare_detector_image_photometry(photons: np.ndarray, wavelengths: np.ndarr
 
 def compute_counts_per_s_px_one_channel(photons_star: np.ndarray, wavelengths: np.ndarray, channel: Channel, ctx: RunContext, star: Star, background_star: bool = False):
 
-    logging.info("Computing counts per second per pixel for channel %s", channel.channel_name)
-
     # 2) photons -> broadened -> counts/s/pixel (single channel path, reusing existing pieces)
     broadened_flux, wavelength = compute_broadened_channel_flux(photons_star, wavelengths, channel, star)
     counts_s_px_convolved = counts_per_s_px_conv_per_channel(broadened_flux, wavelength, channel)
@@ -84,10 +80,8 @@ def compute_counts_per_s_px_one_channel(photons_star: np.ndarray, wavelengths: n
     return counts_s_px_convolved
 
 def convert_flux_to_photons(flux_unred, wavelengths):
-    logging.info("Converting flux to photon flux")
     photon_flux = flux_unred * PHOTON_ENERGY_CONVERSION_A * wavelengths #from ergs/s/cm2/A to photons/s/cm2/A
 
-    logging.info(f"photon_flux_at_earth_A shape: {photon_flux.shape}")
     return photon_flux
 
 

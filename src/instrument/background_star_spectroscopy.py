@@ -44,7 +44,7 @@ def generate_background_star_spectroscopy_image(channel: SpectroscopyChannel, ba
 
     img_sum = float(np.sum(image))
     img_max = float(np.max(image)) if image.size > 0 else 0.0
-    logging.info("BG STARS Slit and rendering in frame with roll_angle: frame=%d channel=%s roll_angle_start=%g roll_angle_stop=%g n_in_slit=%d/%d image_sum=%g image_max=%g star_ids_mag_texp_in_slit=[%s]", frame_index, channel.channel_name, float(roll_angle_start), float(roll_angle_stop), int(n_in_slit), int(total), img_sum, img_max, ", ".join(star_ids_mag_texp_in_slit))
+    logging.info("Background Stars in Slit, rendering frame with roll_angle: frame=%d channel=%s roll_angle_start=%g roll_angle_stop=%g n_in_slit=%d/%d image_sum=%g image_max=%g star_ids_mag_texp_in_slit=[%s]", frame_index, channel.channel_name, float(roll_angle_start), float(roll_angle_stop), int(n_in_slit), int(total), img_sum, img_max, ", ".join(star_ids_mag_texp_in_slit))
 
     return image, background_star_bands
 

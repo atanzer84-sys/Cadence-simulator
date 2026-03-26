@@ -1,15 +1,14 @@
 from utils.constants import AU_cm, Mgaratio_loggf2to1, MgII2w, MgII1w
 import numpy as np
 import logging
-from utils.helpers import print_if_enabled
+from utils.helpers import announce
 
 def apply_line_core_emission(flux, sigmaMg22, sigmaMg21, logR, spectral_type, announce_user: bool = False):
     """
     Add Mg II h & k line core emission to the stellar flux.
     Thin wrapper around legacy cute_snr_lca.
     """
-    print_if_enabled("Starting to apply line core emission", announce_user)
-    flux_before = flux[:, 1].copy()
+    announce("Starting to apply line core emission", announce_user)
 
     Rmg = compute_Rmg(spectral_type, logR)
     E=Rmg*AU_cm**2
@@ -21,21 +20,7 @@ def apply_line_core_emission(flux, sigmaMg22, sigmaMg21, logR, spectral_type, an
     flux_emission = flux[:,1] + gaussMg2
     flux[:,1]= flux_emission
 
-    # diff
-    diff = flux[:, 1] - flux_before
-
-    max_abs_full = float(np.max(np.abs(diff)))
-    mean_abs_full = float(np.mean(np.abs(diff)))
-
-    mg_mask = (flux[:, 0] >= 2790.0) & (flux[:, 0] <= 2850.0)
-    if np.any(mg_mask):
-        max_abs_mg = float(np.max(np.abs(diff[mg_mask])))
-        mean_abs_mg = float(np.mean(np.abs(diff[mg_mask])))
-    else:
-        max_abs_mg = None
-        mean_abs_mg = None
-
-    logging.info("Line core emission applied: spectral_type=%s logR=%s sigmaMg22=%.6f sigmaMg21=%.6f Rmg=%s max_abs_full=%s mean_abs_full=%s max_abs_mg=%s mean_abs_mg=%s", spectral_type, logR, sigmaMg22, sigmaMg21, Rmg, max_abs_full, mean_abs_full, max_abs_mg, mean_abs_mg)
+    logging.info("Line core emission applied: spectral_type=%s logR=%s sigmaMg22=%.6f sigmaMg21=%.6f Rmg=%s ", spectral_type, logR, sigmaMg22, sigmaMg21, Rmg)
 
     return flux
 

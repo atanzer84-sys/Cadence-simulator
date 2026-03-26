@@ -85,16 +85,14 @@ def test_write_fits_frame_overwrites_existing(make_static_frame, make_run_contex
 
 
 # Tests: write_fits_frame
-# Behavior: logs write operation at INFO level
-def test_write_fits_frame_logs_info(make_static_frame, make_run_context, tmp_path, monkeypatch, caplog):
+# Behavior: writes FITS without requiring logger side effects
+def test_write_fits_frame_no_log_assertion(make_static_frame, make_run_context, tmp_path, monkeypatch):
     frame = make_static_frame()
     ctx = make_run_context(output_dir=tmp_path)
     fake_path = tmp_path / "test.fits"
 
     monkeypatch.setattr("frame.write_fits.build_base_output_path", lambda *a, **k: fake_path)
 
-    caplog.set_level("INFO")
-
     write_fits_frame(frame, ctx, index=0, exposure=1.0)
 
-    assert any(r.levelname == "INFO" for r in caplog.records)
+    assert fake_path.exists()

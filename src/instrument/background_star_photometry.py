@@ -34,8 +34,7 @@ def generate_background_star_photometry_image(channel: PhotometryChannel, backgr
         star_infos.append(f"{formatted}(id={star_id},mag={mag:.3f})")
 
     star_ids_on_frame = ",".join(star_infos)
-    exposure_s = getattr(channel, "exposure_s", None)
-    logging.info("BG STARS ARC: frame=%d channel=%s exptime_s=%s roll_angle_start=%g roll_angle_stop=%g n_on_detector=%d/%d star_ids_on_frame=%s", frame_index, channel.channel_name, str(exposure_s), float(roll_angle_start), float(roll_angle_stop), int(n_on_detector), int(total), star_ids_on_frame)
+    logging.info("Background Stars on Detector, rendering frame with roll_angle: frame=%d channel=%s roll_angle_start=%g roll_angle_stop=%g n_on_detector=%d/%d star_ids_on_frame=%s", frame_index, channel.channel_name, float(roll_angle_start), float(roll_angle_stop), int(n_on_detector), int(total), star_ids_on_frame)
 
 
     return image, background_star_arcs
@@ -74,32 +73,10 @@ def _render_star_if_on_detector(star_id: str, channel: PhotometryChannel, catalo
     psf_center_x = int(channel.psf_center_x)
     psf_center_y = int(channel.psf_center_y)
 
-    logging.info("BG STAR START: frame=%d channel=%s star_id=%s dx=%.6f dy=%.6f n_positions=%d total_flux_e_s=%.6e flux_per_step_e_s=%.6e first_pos=%s last_pos=%s", frame_index, channel.channel_name, star_id, dx, dy, len(valid_positions), total_flux_electrons_per_second, flux_per_step_electrons_per_second, valid_positions[0], valid_positions[-1])
 
-    for i, (x_background_star, y_background_star) in enumerate(valid_positions):
-
+    for x_background_star, y_background_star in valid_positions:
         psf_stamp = channel.psf_image * flux_per_step_electrons_per_second
-
-        stamp_sum_before = float(np.sum(psf_stamp))
-        stamp_max_before = float(np.max(psf_stamp))
-        before_sum = float(np.sum(star_image))
-
         paste_psf_stamp(star_image, psf_stamp, x_background_star, y_background_star, psf_center_x, psf_center_y)
-        after_sum = float(np.sum(star_image))
-        pasted_delta = after_sum - before_sum
-
-        logging.info("BG STAR STEP: frame=%d channel=%s star_id=%s step=%d/%d det_x=%d det_y=%d stamp_sum=%.6e stamp_max=%.6e pasted_delta=%.6e", frame_index, channel.channel_name, star_id, i + 1, len (valid_positions), x_background_star, y_background_star, stamp_sum_before, stamp_max_before, pasted_delta)
-    final_sum = float(np.sum(star_image))
-
-    final_max = float(np.max(star_image))
-    nonzero_y, nonzero_x = np.nonzero(star_image)
-
-    if nonzero_y.size > 0:
-        bbox = f"y={int(np.min(nonzero_y))}..{int(np.max(nonzero_y))}, x={int(np.min(nonzero_x))}..{int(np.max(nonzero_x))}"
-    else:
-        bbox = "none"
-
-    logging.info("BG STAR FINAL: frame=%d channel=%s star_id=%s final_sum=%.6e final_max=%.6e bbox=%s", frame_index, channel.channel_name, star_id, final_sum, final_max, bbox)
 
     return star_image, valid_positions
 

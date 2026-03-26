@@ -171,11 +171,7 @@ def _gaia_cone_search(center: SkyCoord, radius_arcsec: float, g_mag_limit: float
         return None
 
     cone_small = cone[["source_id", "ra", "dec"]]
-
-    # TODO: REMOVE THIS AGAIN
     logging.info("Gaia background search: cone rows=%d ", len(cone))
-    for i, row in enumerate(cone_small):
-        logging.info("Gaia background search: cone_row[%d] source_id=%s ra=%s deg dec=%s ", i, int(row["source_id"]), _to_float(row["ra"]), _to_float(row["dec"]))
 
     return cone_small
 
@@ -205,10 +201,6 @@ def _find_target_source_id(cone_result: Table, target_coord: SkyCoord) -> int | 
     
     separations = target_coord.separation(cone_coords)
     separations_arcsec = separations.arcsec
-
-    # TODO: REMOVE AGAIN
-    for i in range(len(separations_arcsec)):
-        logging.info("Gaia central-row: cone_coords[%d] ra=%s deg dec=%s deg seps_arcsec=%s source_id=%s", i, float(cone_coords.ra.deg[i]), float(cone_coords.dec.deg[i]), float(separations_arcsec[i]), int(cone_result[i]["source_id"]))
 
     idx_center = int(np.argmin(separations_arcsec))
     central_cone_row = cone_result[idx_center]
@@ -288,21 +280,17 @@ def apply_distance_from_parallax_if_missing(star_params: dict) -> dict:
     parallax = star_params.get("parallax")
 
     if distance is not None:
-        logging.info("Parallax distance fallback skipped for %s: distance already set (%r)", identifier, distance)
         return star_params
 
     if parallax is None or np.ma.is_masked(parallax):
-        logging.info("Parallax distance fallback skipped for %s: no usable parallax in star_params (parallax=%r)", identifier, parallax)
         return star_params
 
     try:
         parallax = float(parallax)
     except Exception:
-        logging.info("Parallax distance fallback skipped for %s: parallax not float-convertible (parallax=%r)", identifier, parallax)
         return star_params
 
     if not np.isfinite(parallax) or parallax <= 0.0:
-        logging.info("Parallax distance fallback skipped for %s: parallax invalid (parallax=%r)", identifier, parallax)
         return star_params
 
     star_params["distance"] = 1000.0 / parallax

@@ -103,17 +103,16 @@ def test_load_model_success_announces_loaded_model():
 # Tests: load_model_for_temperature
 # Behavior: warns and prints when selected model is far from requested temperature
 def test_load_model_large_delta_warns_and_prints():
-    """load_model_for_temperature warns and prints when picked model is far from requested temperature."""
+    """load_model_for_temperature emits warning path and still loads successfully for large delta."""
     with patch("loaders.load_model_temperature.get_repo_root", return_value=FIXTURES_ROOT), \
          patch("loaders.load_model_temperature.logging.warning") as mock_warning, \
-         patch("loaders.load_model_temperature.print_if_enabled") as mock_print:
-        load_model_for_temperature(6201.0, announce_user=True)
+         patch("loaders.load_model_temperature.announce") as mock_print:
+        result = load_model_for_temperature(6201.0, announce_user=True)
 
+    assert result.shape == (2, 3)
     mock_warning.assert_called_once()
-    warning_msg = mock_warning.call_args.args[0]
-    assert "MODEL_TEMP_LARGE_DELTA" in warning_msg
-    assert "delta=" in warning_msg
-    mock_print.assert_called_once_with(warning_msg, True)
+    assert mock_print.call_count == 2
+    assert all(call.args[1] is True for call in mock_print.call_args_list)
 
 
 # Tests: load_model_for_temperature

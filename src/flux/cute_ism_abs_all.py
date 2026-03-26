@@ -2,7 +2,6 @@ from utils.constants import C_LIGHT_km_s, ISM_b_Mg2, MgII1w, vr_ISM, MgII1_loggf
 import scipy.constants as sc
 import scipy.special as ss
 import numpy as np
-import logging
 
 def cute_ism_abs_all(flux,n_mg2,n_mg1,n_fe2):
     #Construct the ISM absorption
@@ -40,7 +39,7 @@ def cute_ism_abs_all(flux,n_mg2,n_mg1,n_fe2):
 
     flux_absorption = ISM * n_flux
     flux[:,1]=flux[:,2]*flux_absorption
-    logging.info("ISM absorption: n_mg2=%s n_mg1=%s n_fe2=%s input_flux_ratio_mean=%s transmission_mean=%s absorbed_flux_mean=%s", n_mg2, n_mg1, n_fe2, float(np.mean(n_flux)), float(np.mean(ISM)), float(np.mean(flux[:,1])))
+
     return flux
 
 def voigtq(wavelength, absorber, line):

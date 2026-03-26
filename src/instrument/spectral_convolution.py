@@ -1,5 +1,4 @@
 import numpy as np
-import logging
 from domain.star import Star
 from configs.channel_config import Channel
 from instrument.wavelength_range import compute_extended_wavelength_range
@@ -7,11 +6,8 @@ from instrument.wavelength_range import compute_extended_wavelength_range
 def compute_broadened_channel_flux(photon_flux_at_earth: np.ndarray, wavelengths_total: np.ndarray, channel: Channel, star: Star):
     # Cut up array to broaden with gauss later
     cut_photon_flux, wavelength = cut_wavelength_window_with_margin(photon_flux_at_earth, wavelengths_total, channel)
-    logging.info("BG_FLUX_CUT star_id=%s channel=%s n=%d wl_min=%.1f wl_max=%.1f", star.name, channel.channel_name, wavelength.size, float(wavelength[0]), float(wavelength[-1]))
-
     # Gaussian Broadening of flux over wavelengths
     photon_flux_smoothed =  gaussbroad(wavelength, cut_photon_flux, channel.pixel_scale)
-    logging.info("BG_FLUX_SMOOTHED star_id=%s channel=%s n=%d wl_min=%.1f wl_max=%.1f", star.name, channel.channel_name, wavelength.size, float(wavelength[0]), float(wavelength[-1]))
     return photon_flux_smoothed, wavelength
 
 
@@ -29,8 +25,6 @@ def cut_wavelength_window_with_margin(photon_flux_at_earth: np.ndarray, waveleng
 
     if len(wavelength_cut) == 0:
         raise ValueError(f"Channel range [{channel.effective_area_wavelength[0]}, {channel.effective_area_wavelength[-1]}] with margin {margin_A} does not overlap total wavelengths.")
-
-    logging.info("BG_FLUX_CUT_WINDOW indices=[%d:%d] wl=%.1f-%.1f n=%d", i0, i1, float(wavelength_cut[0]), float(wavelength_cut[-1]), len(wavelength_cut))
 
     return flux_cut, wavelength_cut
 
@@ -98,5 +92,4 @@ def counts_per_s_px_conv_per_channel(broadened_photon_flux: np.ndarray, waveleng
     photon_flux_on_pixel = np.interp(channel.effective_area_wavelength, wavelength, broadened_photon_flux)
     photons_per_pixel_cm2_s = photon_flux_on_pixel * channel.pixel_scale
     counts_s_px_convolved = photons_per_pixel_cm2_s * channel.effective_area
-    logging.info("Counts per pixel computed: channel=%s bins=%d", channel.channel_name, len(counts_s_px_convolved))
     return counts_s_px_convolved

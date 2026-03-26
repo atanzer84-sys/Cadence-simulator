@@ -41,6 +41,6 @@ class Planet:
             equilibrium_temperature=planet_params.get("equilibrium_temperature"),
             scale_height=planet_params.get("scale_height"),
         )
-        logging.info("Created Planet object: %s", planet)
+        logging.info("Planet created: %s", planet)
 
         return planet

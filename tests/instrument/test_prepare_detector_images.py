@@ -44,7 +44,7 @@ def test_prepare_star_photon_flux_in_range_converts_and_calls_outputs(make_star,
     flux = np.array([2.0, 4.0, 6.0], dtype=np.float64)
     wavelengths = np.array([100.0, 200.0, 300.0], dtype=np.float64)
 
-    with patch("instrument.prepare_detector_images.calculateFluxOnEarth", return_value=(flux, wavelengths)), patch("instrument.prepare_detector_images.get_global_config", return_value=cfg), patch("instrument.prepare_detector_images.plot_flux_and_photons_windows", plot_mock), patch("instrument.prepare_detector_images.dump_1d_array", dump_1d_mock):
+    with patch("instrument.prepare_detector_images.calculate_flux_on_earth", return_value=(flux, wavelengths)), patch("instrument.prepare_detector_images.get_global_config", return_value=cfg), patch("instrument.prepare_detector_images.plot_flux_and_photons_windows", plot_mock), patch("instrument.prepare_detector_images.dump_1d_array", dump_1d_mock):
         photons_star, wavelengths_total = prepare_star_photon_flux_in_range(star, ctx, 100.0, 300.0, announce_user=False)
 
     expected_photons = (flux * PHOTON_ENERGY_CONVERSION_A * wavelengths).astype(np.float32)
