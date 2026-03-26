@@ -60,6 +60,10 @@ def _render_star_if_in_slit(star_id: str, image, channel: SpectroscopyChannel, c
     dt_per_sample = channel.exposure_s / float(len(roll_angles))
     valid_y_positions: list[int] = []
 
+    # we want to remember the time per y-row. spreading is super expensive and we don't need to spread if we already spread one specific y-row
+    time_per_row: dict[int, float] = {}
+
+
     for roll_angle_deg in roll_angles:
         slit = build_rotated_bounds(slit_half_bounds, roll_angle_deg)
         uv = check_within_rotated_bounds(dx, dy, slit)
@@ -69,13 +73,20 @@ def _render_star_if_in_slit(star_id: str, image, channel: SpectroscopyChannel, c
 
         _, v = uv
         y_row = _detector_row(y_target, v, channel)
-        counts_this_step = counts_s_px * dt_per_sample
-        img = _render_spectrum_to_2d(counts_this_step, channel, x_target, y_row, slope, intercept)
-        image += img
         valid_y_positions.append(y_row)
+
+        if y_row in time_per_row:
+            time_per_row[y_row] += dt_per_sample
+        else:
+            time_per_row[y_row] = dt_per_sample
 
     if len(valid_y_positions) == 0:
         return None
+
+    for y_row, total_time in time_per_row.items():
+        counts_this_step = counts_s_px * total_time
+        img = _render_spectrum_to_2d(counts_this_step, channel, x_target, y_row, slope, intercept)
+        image += img
 
     rendered_exposure_s = len(valid_y_positions) * dt_per_sample
     return valid_y_positions, rendered_exposure_s
