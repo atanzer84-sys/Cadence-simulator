@@ -196,4 +196,3 @@ def _report_science_frame_progress(channel, frame_index, total_orbits, roll_angl
     )
 
     print(message)
-    logging.info("SCIENCE: %s | absolute_roll %.2f° -> %.2f°", message, roll_angle_start, roll_angle_end)

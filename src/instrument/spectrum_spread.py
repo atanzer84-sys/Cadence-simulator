@@ -132,17 +132,13 @@ def _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel: SpectroscopyChan
         _PROFILE_SPREAD_WARNED_CHANNELS.add(channel.channel_name)
         logging.warning("PROFILE SPREAD CHECK WARN | channel=%s | max_rel_diff=%g | threshold=%g (logged once per channel)", channel.channel_name, m, _PROFILE_SPREAD_WARN_THRESHOLD)
 
-
-    logging.info("Profile spectrum spread applied: channel=%s nx=%d ny=%d profile_rows=%d profile_cols=%d input_sum=%g image_sum=%g", channel.channel_name, nx, ny, spread_weights.shape[0], spread_weights.shape[1], float(np.sum(counts_s_pixel_convolved)), float(np.sum(image)))
     return image
 
 
 def get_target_star_detector_position(channel: SpectroscopyChannel):
-    nx = channel.x_pixels
     ny = channel.y_pixels
     x0 = int(round(channel.slit_position_x_arcsec / channel.pixel_scale))
     y0 = int(round((ny // 2) + channel.slit_position_y_arcsec / channel.pixel_scale))
-    logging.info("Get target star detector position: channel=%s x0=%d y0=%d nx=%d ny=%d", channel.channel_name, x0, y0, nx, ny)
 
     if x0 != 0:
         logging.error("Get target star detector position failed: channel=%s x0=%d horizontal shift not supported", channel.channel_name, x0)

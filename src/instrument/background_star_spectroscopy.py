@@ -16,6 +16,7 @@ def generate_background_star_spectroscopy_image(channel: SpectroscopyChannel, ba
     n_in_slit = 0
     star_ids_in_slit: list[str] = []
     star_exposure_s_by_id: dict[str, float] = {}
+    star_y_rows_by_id: dict[str, list[int]] = {}
     is_vis_channel = channel.channel_name.upper() == "VIS"
 
     for star_id in background_stars_catalog.stars_by_id:
@@ -27,24 +28,24 @@ def generate_background_star_spectroscopy_image(channel: SpectroscopyChannel, ba
             n_in_slit += 1
             star_ids_in_slit.append(star_id)
             star_exposure_s_by_id[star_id] = float(rendered_exposure_s)
+            star_y_rows_by_id[star_id] = y_positions
             if is_vis_channel and len(y_positions) > 0:
                 background_star_bands[star_id] = {
                     "y0": float(np.mean(y_positions)),
                     "sigma": float(max(channel.spread_half_height_pix, (max(y_positions) - min(y_positions)) / 2.0)),
                 }
 
-    star_ids_mag_in_slit: list[str] = []
     star_ids_mag_texp_in_slit: list[str] = []
     for sid in star_ids_in_slit:
         mag = background_stars_catalog.stars_by_id[sid].gaia_magnitude
-        mag_val = mag if mag is not None else float("nan")
-        star_ids_mag_in_slit.append(f"{sid}:{mag_val:.3f}")
         t_exp_s = star_exposure_s_by_id.get(sid, 0.0)
-        star_ids_mag_texp_in_slit.append(f"{sid}:{mag_val:.3f}:{t_exp_s:.3f}s")
+        y_rows = star_y_rows_by_id.get(sid, [])
+        y_min = int(min(y_rows))
+        y_max = int(max(y_rows))
+        y_text = f"YROW={y_min}-{y_max}"
+        star_ids_mag_texp_in_slit.append(f"ID={sid} | G={mag} | EXP={t_exp_s:.3f}s | {y_text}")
 
-    img_sum = float(np.sum(image))
-    img_max = float(np.max(image)) if image.size > 0 else 0.0
-    logging.info("Background Stars in Slit, rendering frame with roll_angle: frame=%d channel=%s roll_angle_start=%g roll_angle_stop=%g n_in_slit=%d/%d image_sum=%g image_max=%g star_ids_mag_texp_in_slit=[%s]", frame_index, channel.channel_name, float(roll_angle_start), float(roll_angle_stop), int(n_in_slit), int(total), img_sum, img_max, ", ".join(star_ids_mag_texp_in_slit))
+    logging.info("Background Stars in Slit, rendering frame with roll_angle: frame=%d channel=%s roll_angle_start=%g roll_angle_stop=%g n_in_slit=%d/%d star_ids_mag_texp_in_slit=[%s]", frame_index, channel.channel_name, float(roll_angle_start), float(roll_angle_stop), int(n_in_slit), int(total), " ; ".join(star_ids_mag_texp_in_slit))
 
     return image, background_star_bands
 
@@ -88,7 +89,6 @@ def _render_star_if_in_slit(star_id: str, channel: SpectroscopyChannel, catalog:
 def _detector_row(y_target: float, v_arcsec: float, channel: SpectroscopyChannel) -> int:
     y_offset_pix = v_arcsec / channel.pixel_scale
     y_row = int(round(y_target + y_offset_pix))
-    logging.info("BG star row placement: target star (y0) y position: %.0f, background star y position: %d", y_target, y_row)
     return y_row
 
 
