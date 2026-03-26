@@ -18,13 +18,11 @@ def generate_background_star_photometry_image(channel: PhotometryChannel, backgr
     stars_on_detector_ids = []
 
     for star_id in background_stars_catalog.stars_by_id:
-        bg_star_result = _render_star_if_on_detector(star_id, channel, background_stars_catalog, frame_index, target_star_placement, roll_angle_start, roll_angle_stop)
+        valid_positions = _render_star_if_on_detector(star_id, channel, background_stars_catalog, frame_index, target_star_placement, roll_angle_start, roll_angle_stop, image)
         
-        if bg_star_result is None:
+        if valid_positions is None:
             continue
 
-        bg_star_image, valid_positions = bg_star_result
-        image += bg_star_image
         background_star_arcs[star_id] = valid_positions
         n_on_detector += 1
 
@@ -35,7 +33,7 @@ def generate_background_star_photometry_image(channel: PhotometryChannel, backgr
 
     return image, background_star_arcs
 
-def _render_star_if_on_detector(star_id: str, channel: PhotometryChannel, catalog: StarCatalog, frame_index: int, target_star_placement: tuple[int, float], roll_angle_start, roll_angle_stop) -> tuple[np.ndarray, list[tuple[int, int]]] | None:
+def _render_star_if_on_detector(star_id: str, channel: PhotometryChannel, catalog: StarCatalog, frame_index: int, target_star_placement: tuple[int, float], roll_angle_start, roll_angle_stop, image: np.ndarray) -> list[tuple[int, int]] | None:
 
     x_target, y_target = target_star_placement
     dx, dy = catalog.get_offset_arcsec(star_id)
@@ -46,7 +44,6 @@ def _render_star_if_on_detector(star_id: str, channel: PhotometryChannel, catalo
         return None
 
     roll_angles = compute_roll_angle_samples(dx, dy, channel, roll_angle_start, roll_angle_stop)
-    star_image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
     valid_positions: list[tuple[int, int]] = []
 
     for roll_angle_deg in roll_angles:
@@ -72,9 +69,9 @@ def _render_star_if_on_detector(star_id: str, channel: PhotometryChannel, catalo
 
     for x_background_star, y_background_star in valid_positions:
         psf_stamp = channel.psf_image * flux_per_step_electrons_per_second
-        paste_psf_stamp(star_image, psf_stamp, x_background_star, y_background_star, psf_center_x, psf_center_y)
+        paste_psf_stamp(image, psf_stamp, x_background_star, y_background_star, psf_center_x, psf_center_y)
 
-    return star_image, valid_positions
+    return valid_positions
 
 
 def _detector_position(x_target: int, y_target: int, u: float, v: float, channel: PhotometryChannel) -> tuple[int, int]:

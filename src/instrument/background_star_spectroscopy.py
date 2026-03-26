@@ -20,11 +20,11 @@ def generate_background_star_spectroscopy_image(channel: SpectroscopyChannel, ba
     is_vis_channel = channel.channel_name.upper() == "VIS"
 
     for star_id in background_stars_catalog.stars_by_id:
-        bg_star_result = _render_star_if_in_slit(star_id, channel, background_stars_catalog, frame_index, spectrum_placement, roll_angle_start, roll_angle_stop)
+        bg_star_result = _render_star_if_in_slit(star_id, image, channel, background_stars_catalog, frame_index, spectrum_placement, roll_angle_start, roll_angle_stop)
 
         if bg_star_result is not None:
-            bg_star_2d, y_positions, rendered_exposure_s = bg_star_result
-            image += bg_star_2d
+            y_positions, rendered_exposure_s = bg_star_result
+        
             n_in_slit += 1
             stars_in_slit_log.append(
                 {
@@ -46,8 +46,8 @@ def generate_background_star_spectroscopy_image(channel: SpectroscopyChannel, ba
     return image, background_star_bands
 
 
-def _render_star_if_in_slit(star_id: str, channel: SpectroscopyChannel, catalog: StarCatalog, frame_index: int, spectrum_placement: tuple[int, float, float, float], roll_angle_start: float, roll_angle_stop: float) -> tuple[np.ndarray, list[int], float] | None:
-    """Return 2d image, sampled detector rows, and rendered exposure in seconds."""
+def _render_star_if_in_slit(star_id: str, image, channel: SpectroscopyChannel, catalog: StarCatalog, frame_index: int, spectrum_placement: tuple[int, float, float, float], roll_angle_start: float, roll_angle_stop: float) -> tuple[list[int], float] | None:
+    """Render directly into star_image and return sampled detector rows and rendered exposure in seconds."""
     x_target, y_target, slope, intercept = spectrum_placement
     dx, dy = catalog.get_offset_arcsec(star_id)
     slit_half_bounds = (float(channel.slit_half_width_arcsec), float(channel.slit_half_length_arcsec))
@@ -58,7 +58,6 @@ def _render_star_if_in_slit(star_id: str, channel: SpectroscopyChannel, catalog:
         
     roll_angles = compute_roll_angle_samples(dx, dy, channel, roll_angle_start, roll_angle_stop)
     dt_per_sample = channel.exposure_s / float(len(roll_angles))
-    star_image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
     valid_y_positions: list[int] = []
 
     for roll_angle_deg in roll_angles:
@@ -72,14 +71,14 @@ def _render_star_if_in_slit(star_id: str, channel: SpectroscopyChannel, catalog:
         y_row = _detector_row(y_target, v, channel)
         counts_this_step = counts_s_px * dt_per_sample
         img = _render_spectrum_to_2d(counts_this_step, channel, x_target, y_row, slope, intercept)
-        star_image += img
+        image += img
         valid_y_positions.append(y_row)
 
     if len(valid_y_positions) == 0:
         return None
 
     rendered_exposure_s = len(valid_y_positions) * dt_per_sample
-    return star_image, valid_y_positions, rendered_exposure_s
+    return valid_y_positions, rendered_exposure_s
 
 
 def _detector_row(y_target: float, v_arcsec: float, channel: SpectroscopyChannel) -> int:
