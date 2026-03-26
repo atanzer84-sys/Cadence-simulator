@@ -67,6 +67,7 @@ def _create_channel_images(stellar_signal, channel: Channel, ctx: RunContext, cf
     background_component = generate_background_image(channel, star)
     
     n_science_frames = channel.n_science_frames
+    total_orbits = max(1, int(np.ceil(cfg.orbit_revolutions)))
 
     for frame_index in range(n_science_frames):
         time_s = frame_index * (exposure + readout_gap_s)
@@ -77,9 +78,8 @@ def _create_channel_images(stellar_signal, channel: Channel, ctx: RunContext, cf
         phot = compute_aperture_photometry(img, channel)
 
 
-        logging.info("SCIENCE: generating frame %d/%d for %s (%d x %d), exptime_s=%g.", frame_index + 1, n_science_frames, channel.channel_name, channel.x_pixels, channel.y_pixels, exposure)
-        print(f"Creating SCIENCE frame {frame_index + 1}/{n_science_frames} (roll_angle_start={roll_angle_start:.2f}°, roll_angle_end={roll_angle_end:.2f}°) for {channel.channel_name}.")
-        
+        _report_science_frame_progress(channel, frame_index, total_orbits, roll_angle_start, roll_angle_end)
+
         header = append_base_frame_header(base_header, filetype="SCIENCE", channel=channel, index0=frame_index)
         append_image_stats_header(header, img)
         append_channel_frame_header(header, channel, exptime_s=exposure)
@@ -110,7 +110,7 @@ def _create_per_exposure(stellar_component, background_component, channel: Chann
     image *= ccd_gain
 
     if cfg.write_background_star_footprint_on_science_frame:
-        generate_background_star_visibility_on_science_frame(image, bg_stars, "SCIENCE PANEL", ctx, channel, star=star, index=frame_index, inverted=cfg.invert_calibration_science_frame_component, **visibility_kwargs)
+        generate_background_star_visibility_on_science_frame(image, bg_stars, ctx, channel, star=star, index=frame_index, inverted=cfg.invert_calibration_science_frame_component, **visibility_kwargs)
 
     return image
 
@@ -178,3 +178,22 @@ def _write_science_component_fits(data: np.ndarray, frame_type: str, channel: Ch
         channel_tag=channel.channel_name,
     )
     write_fits_frame(frame, ctx, frame_index, channel.exposure_s)
+
+def _report_science_frame_progress(channel, frame_index, total_orbits, roll_angle_start, roll_angle_end):
+    orbit_idx = int(np.floor(roll_angle_start / 360.0)) + 1
+    frames_per_orbit = channel.n_science_frames // total_orbits
+
+    start_mod = roll_angle_start % 360.0
+    end_mod = roll_angle_end % 360.0
+
+    orbit_frame_idx = frame_index - (orbit_idx - 1) * frames_per_orbit + 1
+
+    message = (
+        f"{channel.channel_name} | Orbit {orbit_idx}/{total_orbits} | "
+        f"Frame {frame_index + 1}/{channel.n_science_frames} | "
+        f"Orbit-frame {orbit_frame_idx}/{frames_per_orbit} | "
+        f"Roll {start_mod:.2f}° -> {end_mod:.2f}°"
+    )
+
+    print(message)
+    logging.info("SCIENCE: %s | absolute_roll %.2f° -> %.2f°", message, roll_angle_start, roll_angle_end)

@@ -208,6 +208,67 @@ def test_create_channel_images_roll_angle_progression(make_spectroscopy_channel,
     assert second[9] == 150.0
 
 
+def test_create_channel_images_roll_angle_step_and_width_invariants(make_spectroscopy_channel, make_run_context, make_global_config, make_star, make_header):
+    channel = make_spectroscopy_channel(n_science_frames=3, exposure_s=10.0, x_pixels=2, y_pixels=2)
+    ctx = make_run_context()
+    cfg = make_global_config(readout_gap_s=5.0, orbit_duration_minutes=1.0, orbit_revolutions=2.0)
+    star = make_star()
+    base_header = make_header()
+    stellar_signal = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
+    bg_component = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
+    img = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
+
+    with patch("instrument.science_image.generate_background_image", return_value=bg_component), \
+         patch("instrument.science_image._create_per_exposure", return_value=img) as mock_create, \
+         patch("instrument.science_image.compute_aperture_photometry", return_value=None), \
+         patch("instrument.science_image.append_base_frame_header", return_value=base_header), \
+         patch("instrument.science_image.append_image_stats_header"), \
+         patch("instrument.science_image.append_channel_frame_header"), \
+         patch("instrument.science_image.append_photometry_header"), \
+         patch("instrument.science_image.Frame"), \
+         patch("instrument.science_image.write_fits_frame"):
+        _create_channel_images(stellar_signal, channel, ctx, cfg, star, background_stars_catalog=None, base_header=base_header)
+
+    starts = [call.args[8] for call in mock_create.call_args_list]
+    ends = [call.args[9] for call in mock_create.call_args_list]
+    cadence_deg = 360.0 * ((channel.exposure_s + cfg.readout_gap_s) / (cfg.orbit_duration_minutes * 60.0))
+    width_deg = 360.0 * (channel.exposure_s / (cfg.orbit_duration_minutes * 60.0))
+
+    np.testing.assert_allclose(np.diff(starts), cadence_deg)
+    np.testing.assert_allclose(np.array(ends) - np.array(starts), width_deg)
+
+
+def test_create_channel_images_prints_wrapped_angles_and_orbit_for_multi_orbit(make_spectroscopy_channel, make_run_context, make_global_config, make_star, make_header):
+    channel = make_spectroscopy_channel(n_science_frames=2, exposure_s=10.0, x_pixels=2, y_pixels=2)
+    ctx = make_run_context()
+    cfg = make_global_config(readout_gap_s=50.0, orbit_duration_minutes=1.0, orbit_revolutions=2.0)
+    star = make_star()
+    base_header = make_header()
+    stellar_signal = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
+    bg_component = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
+    img = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
+
+    with patch("instrument.science_image.generate_background_image", return_value=bg_component), \
+         patch("instrument.science_image._create_per_exposure", return_value=img), \
+         patch("instrument.science_image.compute_aperture_photometry", return_value=None), \
+         patch("instrument.science_image.append_base_frame_header", return_value=base_header), \
+         patch("instrument.science_image.append_image_stats_header"), \
+         patch("instrument.science_image.append_channel_frame_header"), \
+         patch("instrument.science_image.append_photometry_header"), \
+         patch("instrument.science_image.Frame"), \
+         patch("instrument.science_image.write_fits_frame"), \
+         patch("builtins.print") as mock_print:
+        _create_channel_images(stellar_signal, channel, ctx, cfg, star, background_stars_catalog=None, base_header=base_header)
+
+    frame_prints = [call.args[0] for call in mock_print.call_args_list if call.args and "Creating SCIENCE frame" in call.args[0]]
+    assert len(frame_prints) == 2
+    assert "Orbit 1/2" in frame_prints[0]
+    assert "Orbit 2/2" in frame_prints[1]
+    assert "[0.00° mod 360]" in frame_prints[0]
+    assert "[60.00° mod 360]" in frame_prints[0]
+    assert "[0.00° mod 360]" in frame_prints[1]
+
+
 # Tests: _create_per_exposure
 # Behavior: spectroscopy branch adds background stars, applies gain, and forwards visibility bands.
 def test_create_per_exposure_spectroscopy_branch(make_spectroscopy_channel, make_run_context, make_global_config, make_star, make_header):
@@ -251,8 +312,8 @@ def test_create_per_exposure_spectroscopy_branch(make_spectroscopy_channel, make
     np.testing.assert_allclose(result, expected)
 
     call = visibility_mock.call_args
-    assert call.args[2] == "SCIENCE PANEL"
-    assert call.args[4] is channel
+    assert call.args[2] is ctx
+    assert call.args[3] is channel
     assert call.kwargs["star"] is star
     assert call.kwargs["index"] == 3
     assert call.kwargs["inverted"] is False
