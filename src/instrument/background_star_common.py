@@ -41,3 +41,5 @@ def build_rotated_bounds(half_bounds: tuple[float, float], roll_angle_deg: float
     sin_roll = float(np.sin(rad))
 
     return cos_roll, sin_roll, half_w, half_h
+
+

@@ -5,6 +5,8 @@ from instrument.psf_spread import get_photometry_placement, paste_psf_stamp
 import logging
 from instrument.background_star_common import compute_roll_angle_samples, get_cached_counts, check_within_rotated_bounds, build_rotated_bounds
 
+_LAST_VISIBLE_SIGNATURE_BY_CHANNEL: dict[str, tuple[str, ...]] = {}
+
 def generate_background_star_photometry_image(channel: PhotometryChannel, background_stars_catalog: StarCatalog, roll_angle_start: float, roll_angle_stop: float, frame_index: int) -> tuple[np.ndarray, dict[str, dict[str, float]]]:
     
     image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
@@ -13,7 +15,7 @@ def generate_background_star_photometry_image(channel: PhotometryChannel, backgr
     target_star_placement = get_photometry_placement(channel)
     total = len(background_stars_catalog.stars_by_id)
     n_on_detector = 0
-    star_infos: list[str] = []
+    stars_on_detector_ids = []
 
     for star_id in background_stars_catalog.stars_by_id:
         bg_star_result = _render_star_if_on_detector(star_id, channel, background_stars_catalog, frame_index, target_star_placement, roll_angle_start, roll_angle_stop)
@@ -27,15 +29,9 @@ def generate_background_star_photometry_image(channel: PhotometryChannel, backgr
         n_on_detector += 1
 
         # Collect ID + magnitude info for logging (similar to spectroscopy helper).
-        bg_star = background_stars_catalog.stars_by_id[star_id]
+        stars_on_detector_ids.append(star_id)
 
-        formatted = f"{int(star_id.split('_')[1]):,}".replace(",", " ")
-        mag = bg_star.gaia_magnitude if bg_star.gaia_magnitude is not None else float("nan")
-        star_infos.append(f"{formatted}(id={star_id},mag={mag:.3f})")
-
-    star_ids_on_frame = ",".join(star_infos)
-    logging.info("Background Stars on Detector, rendering frame with roll_angle: frame=%d channel=%s roll_angle_start=%g roll_angle_stop=%g n_on_detector=%d/%d star_ids_on_frame=%s", frame_index, channel.channel_name, float(roll_angle_start), float(roll_angle_stop), int(n_on_detector), int(total), star_ids_on_frame)
-
+    _log_background_stars_on_detector(frame_index, channel.channel_name, roll_angle_start, roll_angle_stop, n_on_detector, total, stars_on_detector_ids, background_stars_catalog, background_star_arcs)
 
     return image, background_star_arcs
 
@@ -88,3 +84,39 @@ def _detector_position(x_target: int, y_target: int, u: float, v: float, channel
 
 
 
+def _log_background_stars_on_detector(frame_index: int, channel_name: str, roll_angle_start: float, roll_angle_stop: float, n_on_detector: int, total: int, stars_on_detector_ids: list[str], background_stars_catalog: StarCatalog, background_star_arcs: dict[str, list[tuple[int, int]]]) -> None:
+    current_signature = tuple(sorted(stars_on_detector_ids))
+    previous_signature = _LAST_VISIBLE_SIGNATURE_BY_CHANNEL.get(channel_name)
+
+    if frame_index == 0 or previous_signature is None:
+        full_list = []
+        for star_id in stars_on_detector_ids:
+            bg_star = background_stars_catalog.stars_by_id[star_id]
+            valid_positions = background_star_arcs[star_id]
+            x_positions = [pos[0] for pos in valid_positions]
+            y_positions = [pos[1] for pos in valid_positions]
+            full_list.append(f"ID={star_id} | G={bg_star.gaia_magnitude} | XCOL={min(x_positions)}-{max(x_positions)} | YROW={min(y_positions)}-{max(y_positions)}")
+        logging.info("Background Stars on Detector, rendering frame with roll_angle: frame=%d channel=%s roll_angle_start=%g roll_angle_stop=%g n_on_detector=%d/%d stars=[%s]", frame_index, channel_name, float(roll_angle_start), float(roll_angle_stop), int(n_on_detector), int(total), " ; ".join(full_list))
+    else:
+        prev_ids = set(previous_signature)
+        curr_ids = set(current_signature)
+
+        added_ids = curr_ids - prev_ids
+        removed_ids = prev_ids - curr_ids
+
+        if added_ids or removed_ids:
+            added_list = []
+            for star_id in added_ids:
+                bg_star = background_stars_catalog.stars_by_id[star_id]
+                valid_positions = background_star_arcs[star_id]
+                x_positions = [pos[0] for pos in valid_positions]
+                y_positions = [pos[1] for pos in valid_positions]
+                added_list.append(f"ID={star_id} | G={bg_star.gaia_magnitude} | XCOL={min(x_positions)}-{max(x_positions)} | YROW={min(y_positions)}-{max(y_positions)}")
+
+            removed_list = []
+            for star_id in removed_ids:
+                removed_list.append(f"ID={star_id}")
+
+            logging.info("Background Stars on Detector, rendering frame with roll_angle: frame=%d channel=%s roll_angle_start=%g roll_angle_stop=%g n_on_detector=%d/%d added=[%s] removed=[%s]", frame_index, channel_name, float(roll_angle_start), float(roll_angle_stop), int(n_on_detector), int(total), " ; ".join(added_list), " ; ".join(removed_list))
+
+    _LAST_VISIBLE_SIGNATURE_BY_CHANNEL[channel_name] = current_signature

@@ -45,7 +45,7 @@ def generate_cosmic_rays(channel: Channel, cfg: GlobalConfig):
 
             image[y_n, x_n] = cosmic_ray_charge_e
 
-    logging.info("Cosmic rays generated: channel=%s count=%d signal_e=%d x_val=%s, y_val=%s, direction=%s", channel.channel_name, cosmic_rays, cosmic_ray_charge_e, x_val, y_val, direction)
+    logging.info("Cosmic rays generated: channel=%s count=%d signal_e=%d", channel.channel_name, cosmic_rays, cosmic_ray_charge_e)
     return image
 
 
