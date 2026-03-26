@@ -45,7 +45,7 @@ def write_science_frame_png(detector_data, channel: Channel, ctx: RunContext, cf
         y_hi = min(ny, y0 + half_height + 1)
         data_for_png = detector_data[y_lo:y_hi, :]
 
-    title = format_frame_title(star.name, channel_name, filetype, star)
+    title = format_frame_title(channel_name, filetype, star)
 
     frame_to_plot = (data_for_png.max() - data_for_png) if inverted else data_for_png
 

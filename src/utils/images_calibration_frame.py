@@ -14,7 +14,7 @@ def write_calibration_frame_png(detector_data, frame_type: str, channel: Channel
     exposure = channel.exposure_s
     logging.info("PNG calibration: channel=%s frame_type=%s index=%s", channel_name, frame_type, index)
 
-    title = format_frame_title(ctx.target_name, channel_name, frame_type, star)
+    title = format_frame_title(channel_name, frame_type, star)
 
     frame_to_plot = (detector_data.max() - detector_data) if inverted else detector_data
 
