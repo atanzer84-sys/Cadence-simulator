@@ -1,6 +1,4 @@
 """Tests for utils.helpers."""
-import logging
-
 import pytest
 
 from utils.helpers import (
