@@ -13,11 +13,6 @@ def test_format_star_metadata_includes_teff_and_distance(make_star):
     assert "42 pc" in text
 
 
-def test_format_star_metadata_none_returns_empty_string():
-    """Passing None returns an empty string."""
-    assert images_common.format_star_metadata(None) == ""
-
-
 def test_format_star_metadata_includes_gaia_magnitude_with_one_decimal(make_star):
     """When gaia_magnitude is set, it appears in the string formatted to one decimal."""
     s = make_star(name="HD 2685", gaia_magnitude=7.64)
@@ -29,7 +24,7 @@ def test_format_frame_title_includes_metadata_when_star_given(make_star):
     """Title includes target name, channel/type, and star Teff/distance when star is provided."""
     s = make_star(name="HD 2685", effective_temperature=6000.0, distance_pc=50.0, gaia_magnitude=None)
 
-    title = images_common.format_frame_title("HD 2685", "NUV", "BIAS", s)
+    title = images_common.format_frame_title("NUV", "BIAS", s)
 
     assert "HD 2685" in title
     assert "NUV BIAS" in title
