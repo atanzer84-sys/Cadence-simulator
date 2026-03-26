@@ -238,7 +238,7 @@ def test_create_channel_images_roll_angle_step_and_width_invariants(make_spectro
     np.testing.assert_allclose(np.array(ends) - np.array(starts), width_deg)
 
 
-def test_create_channel_images_prints_wrapped_angles_and_orbit_for_multi_orbit(make_spectroscopy_channel, make_run_context, make_global_config, make_star, make_header):
+def test_create_channel_images_reports_wrapped_angles_and_orbit_for_multi_orbit(make_spectroscopy_channel, make_run_context, make_global_config, make_star, make_header):
     channel = make_spectroscopy_channel(n_science_frames=2, exposure_s=10.0, x_pixels=2, y_pixels=2)
     ctx = make_run_context()
     cfg = make_global_config(readout_gap_s=50.0, orbit_duration_minutes=1.0, orbit_revolutions=2.0)
@@ -257,16 +257,24 @@ def test_create_channel_images_prints_wrapped_angles_and_orbit_for_multi_orbit(m
          patch("instrument.science_image.append_photometry_header"), \
          patch("instrument.science_image.Frame"), \
          patch("instrument.science_image.write_fits_frame"), \
-         patch("builtins.print") as mock_print:
+         patch("instrument.science_image._report_science_frame_progress") as mock_report:
         _create_channel_images(stellar_signal, channel, ctx, cfg, star, background_stars_catalog=None, base_header=base_header)
 
-    frame_prints = [call.args[0] for call in mock_print.call_args_list if call.args and "Creating SCIENCE frame" in call.args[0]]
-    assert len(frame_prints) == 2
-    assert "Orbit 1/2" in frame_prints[0]
-    assert "Orbit 2/2" in frame_prints[1]
-    assert "[0.00° mod 360]" in frame_prints[0]
-    assert "[60.00° mod 360]" in frame_prints[0]
-    assert "[0.00° mod 360]" in frame_prints[1]
+    assert mock_report.call_count == 2
+    first_call = mock_report.call_args_list[0].args
+    second_call = mock_report.call_args_list[1].args
+
+    assert first_call[0] is channel
+    assert first_call[1] == 0
+    assert first_call[2] == 2
+    assert first_call[3] == 0.0
+    assert first_call[4] == 60.0
+
+    assert second_call[0] is channel
+    assert second_call[1] == 1
+    assert second_call[2] == 2
+    assert second_call[3] == 360.0
+    assert second_call[4] == 420.0
 
 
 # Tests: _create_per_exposure
