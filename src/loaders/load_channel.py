@@ -193,9 +193,6 @@ def load_channel_spectroscopy(path: Path, exposure_s: float, background: dict):
         zod_spectrum_flux=background["zod_spectrum_flux"],
     )
 
-
-
-
 def _ensure_effective_area_matches_x_pixels(channel_name: str, effective_area_file: str, effective_area_wavelength, x_pixels: int, source_file: str) -> None:
 
     if len(effective_area_wavelength) != x_pixels:
