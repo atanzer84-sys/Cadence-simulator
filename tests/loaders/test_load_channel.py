@@ -10,7 +10,8 @@ from configs.channel_config import PhotometryChannel, SpectroscopyChannel
 from loaders.load_channel import (
     _compute_n_science_frames,
     _ensure_effective_area_matches_x_pixels,
-    load_channel_config,
+    load_channel_photometry,
+    load_channel_spectroscopy,
     load_channels_config,
 )
 
@@ -24,19 +25,22 @@ def test_load_channels_config_all_channels_disabled_returns_none(
 ):
     user_cfg = make_user_config()
     cfg = make_global_config(run_nuv=False, run_vis=False, run_nir=False)
-    calls = []
+    calls_spectro = []
+    calls_photo = []
 
     monkeypatch.setattr("loaders.load_channel.get_global_config", lambda: cfg)
     monkeypatch.setattr("loaders.load_channel.get_repo_root", lambda: Path("/repo"))
     monkeypatch.setattr("loaders.load_channel.load_background_from_global_cfg", lambda: {"bg": "payload"})
-    monkeypatch.setattr("loaders.load_channel.load_channel_config", lambda *args: calls.append(args))
+    monkeypatch.setattr("loaders.load_channel.load_channel_spectroscopy", lambda *args: calls_spectro.append(args))
+    monkeypatch.setattr("loaders.load_channel.load_channel_photometry", lambda *args: calls_photo.append(args))
 
     nuv_channel, vis_channel, nir_channel = load_channels_config(user_cfg)
 
     assert nuv_channel is None
     assert vis_channel is None
     assert nir_channel is None
-    assert calls == []
+    assert calls_spectro == []
+    assert calls_photo == []
 
 
 # Tests: load_channels_config
@@ -49,27 +53,30 @@ def test_load_channels_config_only_nuv_enabled(
     user_cfg = make_user_config()
     cfg = make_global_config(run_nuv=True, run_vis=False, run_nir=False)
     background = {"bg": "payload"}
-    calls = []
+    calls_spectro = []
+    calls_photo = []
 
     monkeypatch.setattr("loaders.load_channel.get_global_config", lambda: cfg)
     monkeypatch.setattr("loaders.load_channel.get_repo_root", lambda: Path("/repo"))
     monkeypatch.setattr("loaders.load_channel.load_background_from_global_cfg", lambda: background)
 
-    def _load_channel_config(path, exposure_s, bg):
-        calls.append((path, exposure_s, bg))
+    def _load_channel_spectroscopy(path, exposure_s, bg):
+        calls_spectro.append((path, exposure_s, bg))
         return {"channel": "NUV"}
 
-    monkeypatch.setattr("loaders.load_channel.load_channel_config", _load_channel_config)
+    monkeypatch.setattr("loaders.load_channel.load_channel_spectroscopy", _load_channel_spectroscopy)
+    monkeypatch.setattr("loaders.load_channel.load_channel_photometry", lambda *args: calls_photo.append(args))
 
     nuv_channel, vis_channel, nir_channel = load_channels_config(user_cfg)
 
     assert nuv_channel is not None
     assert vis_channel is None
     assert nir_channel is None
-    assert len(calls) == 1
-    assert calls[0][0] == Path("/repo/configs/waltzer_nuv.cfg")
-    assert calls[0][1] == user_cfg.exposure_NUV_s
-    assert calls[0][2] is background
+    assert len(calls_spectro) == 1
+    assert calls_spectro[0][0] == Path("/repo/configs/waltzer_nuv.cfg")
+    assert calls_spectro[0][1] == user_cfg.exposure_NUV_s
+    assert calls_spectro[0][2] is background
+    assert calls_photo == []
 
 
 # Tests: load_channels_config
@@ -82,27 +89,30 @@ def test_load_channels_config_only_vis_enabled(
     user_cfg = make_user_config()
     cfg = make_global_config(run_nuv=False, run_vis=True, run_nir=False)
     background = {"bg": "payload"}
-    calls = []
+    calls_spectro = []
+    calls_photo = []
 
     monkeypatch.setattr("loaders.load_channel.get_global_config", lambda: cfg)
     monkeypatch.setattr("loaders.load_channel.get_repo_root", lambda: Path("/repo"))
     monkeypatch.setattr("loaders.load_channel.load_background_from_global_cfg", lambda: background)
 
-    def _load_channel_config(path, exposure_s, bg):
-        calls.append((path, exposure_s, bg))
+    def _load_channel_spectroscopy(path, exposure_s, bg):
+        calls_spectro.append((path, exposure_s, bg))
         return {"channel": "VIS"}
 
-    monkeypatch.setattr("loaders.load_channel.load_channel_config", _load_channel_config)
+    monkeypatch.setattr("loaders.load_channel.load_channel_spectroscopy", _load_channel_spectroscopy)
+    monkeypatch.setattr("loaders.load_channel.load_channel_photometry", lambda *args: calls_photo.append(args))
 
     nuv_channel, vis_channel, nir_channel = load_channels_config(user_cfg)
 
     assert nuv_channel is None
     assert vis_channel is not None
     assert nir_channel is None
-    assert len(calls) == 1
-    assert calls[0][0] == Path("/repo/configs/waltzer_vis.cfg")
-    assert calls[0][1] == user_cfg.exposure_VIS_s
-    assert calls[0][2] is background
+    assert len(calls_spectro) == 1
+    assert calls_spectro[0][0] == Path("/repo/configs/waltzer_vis.cfg")
+    assert calls_spectro[0][1] == user_cfg.exposure_VIS_s
+    assert calls_spectro[0][2] is background
+    assert calls_photo == []
 
 
 # Tests: load_channels_config
@@ -115,27 +125,30 @@ def test_load_channels_config_only_nir_enabled(
     user_cfg = make_user_config()
     cfg = make_global_config(run_nuv=False, run_vis=False, run_nir=True)
     background = {"bg": "payload"}
-    calls = []
+    calls_photo = []
+    calls_spectro = []
 
     monkeypatch.setattr("loaders.load_channel.get_global_config", lambda: cfg)
     monkeypatch.setattr("loaders.load_channel.get_repo_root", lambda: Path("/repo"))
     monkeypatch.setattr("loaders.load_channel.load_background_from_global_cfg", lambda: background)
 
-    def _load_channel_config(path, exposure_s, bg):
-        calls.append((path, exposure_s, bg))
+    def _load_channel_photometry(path, exposure_s, bg):
+        calls_photo.append((path, exposure_s, bg))
         return {"channel": "NIR"}
 
-    monkeypatch.setattr("loaders.load_channel.load_channel_config", _load_channel_config)
+    monkeypatch.setattr("loaders.load_channel.load_channel_photometry", _load_channel_photometry)
+    monkeypatch.setattr("loaders.load_channel.load_channel_spectroscopy", lambda *args: calls_spectro.append(args))
 
     nuv_channel, vis_channel, nir_channel = load_channels_config(user_cfg)
 
     assert nuv_channel is None
     assert vis_channel is None
     assert nir_channel is not None
-    assert len(calls) == 1
-    assert calls[0][0] == Path("/repo/configs/waltzer_nir.cfg")
-    assert calls[0][1] == user_cfg.exposure_IR_s
-    assert calls[0][2] is background
+    assert len(calls_photo) == 1
+    assert calls_photo[0][0] == Path("/repo/configs/waltzer_nir.cfg")
+    assert calls_photo[0][1] == user_cfg.exposure_IR_s
+    assert calls_photo[0][2] is background
+    assert calls_spectro == []
 
 
 
@@ -179,9 +192,9 @@ def test_compute_n_science_frames_returns_integer_frame_count(
     assert n_science_frames == 4
 
 
-# Tests: load_channel_config
+# Tests: load_channel_photometry
 # Behavior: NIR config creates photometry channel
-def test_load_channel_config_nir_returns_photometry_channel(monkeypatch):
+def test_load_channel_photometry_nir_returns_photometry_channel(monkeypatch):
     raw = {
         "channel_name": "NIR",
         "x_pixels": "4",
@@ -219,7 +232,7 @@ def test_load_channel_config_nir_returns_photometry_channel(monkeypatch):
     )
     monkeypatch.setattr("loaders.load_channel._compute_n_science_frames", lambda channel_name, exposure_s: 7)
 
-    channel = load_channel_config(Path("nir.cfg"), 12.0, background)
+    channel = load_channel_photometry(Path("nir.cfg"), 12.0, background)
 
     assert isinstance(channel, PhotometryChannel)
     assert channel.channel_name == "NIR"
@@ -234,9 +247,9 @@ def test_load_channel_config_nir_returns_photometry_channel(monkeypatch):
     assert channel.draw_aperture_photometry_overlay is True
 
 
-# Tests: load_channel_config
+# Tests: load_channel_spectroscopy
 # Behavior: VIS config creates spectroscopy channel
-def test_load_channel_config_vis_returns_spectroscopy_channel(monkeypatch):
+def test_load_channel_spectroscopy_vis_returns_spectroscopy_channel(monkeypatch):
     raw = {
         "channel_name": "VIS",
         "x_pixels": "3",
@@ -288,7 +301,7 @@ def test_load_channel_config_vis_returns_spectroscopy_channel(monkeypatch):
     )
     monkeypatch.setattr("loaders.load_channel._compute_n_science_frames", lambda channel_name, exposure_s: 9)
 
-    channel = load_channel_config(Path("vis.cfg"), 15.0, background)
+    channel = load_channel_spectroscopy(Path("vis.cfg"), 15.0, background)
 
     assert isinstance(channel, SpectroscopyChannel)
     assert channel.channel_name == "VIS"

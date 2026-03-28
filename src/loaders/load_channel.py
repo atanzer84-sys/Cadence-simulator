@@ -9,7 +9,6 @@ from loaders.load_channel_files_spectroscopy import load_spread_profile_file_spe
 from loaders.load_channel_files_photometry import load_psf_image_file
 from configs.global_config import get_global_config
 
-
 def load_channels_config(user_cfg: UserConfig):
     repo_root = get_repo_root()
     background = load_background_from_global_cfg()
@@ -20,21 +19,19 @@ def load_channels_config(user_cfg: UserConfig):
     nir_channel = None
 
     if cfg.run_nuv:
-        nuv_channel = load_channel_config(repo_root / "configs" / "waltzer_nuv.cfg", user_cfg.exposure_NUV_s, background)
+        nuv_channel = load_channel_spectroscopy(repo_root / "configs" / "waltzer_nuv.cfg", user_cfg.exposure_NUV_s, background)
     if cfg.run_vis:
-        vis_channel = load_channel_config(repo_root / "configs" / "waltzer_vis.cfg", user_cfg.exposure_VIS_s, background)
+        vis_channel = load_channel_spectroscopy(repo_root / "configs" / "waltzer_vis.cfg", user_cfg.exposure_VIS_s, background)
     if cfg.run_nir:
-        nir_channel = load_channel_config(repo_root / "configs" / "waltzer_nir.cfg", user_cfg.exposure_IR_s, background)
+        nir_channel = load_channel_photometry(repo_root / "configs" / "waltzer_nir.cfg", user_cfg.exposure_IR_s, background)
     
     return nuv_channel, vis_channel, nir_channel
 
 
-def load_channel_config(path: Path, exposure_s: float, background: dict):
-
-    logging.info("Reading channel config from %s", path)
-
+def load_common_channel(path: Path, exposure_s: float):
     raw = parse_simple_kv(path)
     channel_name=str(raw["channel_name"]).strip()
+    source_file=str(path)
     x_pixels=as_int(raw["x_pixels"], key="x_pixels")
     y_pixels=as_int(raw["y_pixels"], key="y_pixels")
     resolution_factor=as_float(raw["resolution_factor"], key="resolution_factor")
@@ -43,53 +40,72 @@ def load_channel_config(path: Path, exposure_s: float, background: dict):
     read_noise=as_float(raw["read_noise"], key="read_noise")
     bias_offset=as_float(raw.get("bias_offset", 0.0), key="bias_offset")
     ccd_gain=as_float(raw.get("ccd_gain", 1.0), key="ccd_gain")
-    source_file=str(path)
-
     n_science_frames = _compute_n_science_frames(channel_name, exposure_s)
-
     effective_area_file=str(raw.get("effective_area_file", "")).strip()
     effective_area_wavelength, effective_area, pixel_scale = load_effective_area_file(effective_area_file)
 
-    if channel_name == "NIR":
-        psf_file = str(raw.get("psf_file", "")).strip()
-        psf_image, psf_center_y, psf_center_x = load_psf_image_file(psf_file, channel_name)
-        source_position_x_arcsec = as_float(raw.get("source_position_x_arcsec", 0.0), key="source_position_x_arcsec")
-        source_position_y_arcsec = as_float(raw.get("source_position_y_arcsec", 0.0), key="source_position_y_arcsec")
-        draw_aperture_photometry_overlay = as_bool(raw.get("draw_aperture_photometry_overlay", 0), key="draw_aperture_photometry_overlay")
-        
-        return PhotometryChannel(
-            channel_name=channel_name,
-            x_pixels=x_pixels,
-            y_pixels=y_pixels,
-            resolution_factor=resolution_factor,
-            dark_noise=dark_noise,
-            dark_current_sigma=dark_current_sigma,
-            read_noise=read_noise,
-            bias_offset=bias_offset,
-            ccd_gain=ccd_gain,
-            exposure_s=exposure_s,
-            n_science_frames=n_science_frames,
-            source_file=source_file,
-            effective_area_file=effective_area_file,
-            effective_area_wavelength=effective_area_wavelength,
-            effective_area=effective_area,
-            pixel_scale=pixel_scale,
-            psf_file=psf_file,
-            psf_image=psf_image,
-            psf_center_x=psf_center_x,
-            psf_center_y=psf_center_y,
-            source_position_x_arcsec=source_position_x_arcsec,
-            source_position_y_arcsec=source_position_y_arcsec,
-            draw_aperture_photometry_overlay=draw_aperture_photometry_overlay,
-            background_type=background["background_type"],
-            background_wavelength=background["background_wavelength"],
-            background_flux=background["background_flux"],
-            sky_pixel_area_arcsec2=background["sky_pixel_area_arcsec2"],
-            zod_dist=background["zod_dist"],
-            zod_spectrum_wavelength=background["zod_spectrum_wavelength"],
-            zod_spectrum_flux=background["zod_spectrum_flux"],
+    channel_properties = raw, channel_name, source_file
+    detector_common = x_pixels, y_pixels, resolution_factor, dark_noise, dark_current_sigma, read_noise, bias_offset, ccd_gain
+    exposure_common = exposure_s, n_science_frames
+    effective_area_common = effective_area_file, effective_area_wavelength, effective_area, pixel_scale
+    
+    return channel_properties, detector_common, exposure_common, effective_area_common
 
-        )
+def load_channel_photometry(path: Path, exposure_s: float, background: dict):
+    # Common values provided by load_common_channel()
+    channel_properties, detector_common, exposure_common, effective_area_common = load_common_channel(path, exposure_s)
+    raw, channel_name, source_file = channel_properties
+    x_pixels, y_pixels, resolution_factor, dark_noise, dark_current_sigma, read_noise, bias_offset, ccd_gain = detector_common
+    exposure_s, n_science_frames = exposure_common
+    effective_area_file, effective_area_wavelength, effective_area, pixel_scale = effective_area_common
+
+    # Photometry-only parsing
+    psf_file = str(raw.get("psf_file", "")).strip()
+    psf_image, psf_center_y, psf_center_x = load_psf_image_file(psf_file, channel_name)
+    source_position_x_arcsec = as_float(raw.get("source_position_x_arcsec", 0.0), key="source_position_x_arcsec")
+    source_position_y_arcsec = as_float(raw.get("source_position_y_arcsec", 0.0), key="source_position_y_arcsec")
+    draw_aperture_photometry_overlay = as_bool(raw.get("draw_aperture_photometry_overlay", 0), key="draw_aperture_photometry_overlay")
+
+    # Final channel object
+    return PhotometryChannel(
+        channel_name=channel_name,
+        x_pixels=x_pixels,
+        y_pixels=y_pixels,
+        resolution_factor=resolution_factor,
+        dark_noise=dark_noise,
+        dark_current_sigma=dark_current_sigma,
+        read_noise=read_noise,
+        bias_offset=bias_offset,
+        ccd_gain=ccd_gain,
+        exposure_s=exposure_s,
+        n_science_frames=n_science_frames,
+        source_file=source_file,
+        effective_area_file=effective_area_file,
+        effective_area_wavelength=effective_area_wavelength,
+        effective_area=effective_area,
+        pixel_scale=pixel_scale,
+        psf_file=psf_file,
+        psf_image=psf_image,
+        psf_center_x=psf_center_x,
+        psf_center_y=psf_center_y,
+        source_position_x_arcsec=source_position_x_arcsec,
+        source_position_y_arcsec=source_position_y_arcsec,
+        draw_aperture_photometry_overlay=draw_aperture_photometry_overlay,
+        background_type=background["background_type"],
+        background_wavelength=background["background_wavelength"],
+        background_flux=background["background_flux"],
+        sky_pixel_area_arcsec2=background["sky_pixel_area_arcsec2"],
+        zod_dist=background["zod_dist"],
+        zod_spectrum_wavelength=background["zod_spectrum_wavelength"],
+        zod_spectrum_flux=background["zod_spectrum_flux"],
+    )
+
+def load_channel_spectroscopy(path: Path, exposure_s: float, background: dict):
+    channel_properties, detector_common, exposure_common, effective_area_common = load_common_channel(path, exposure_s)
+    raw, channel_name, source_file = channel_properties
+    x_pixels, y_pixels, resolution_factor, dark_noise, dark_current_sigma, read_noise, bias_offset, ccd_gain = detector_common
+    exposure_s, n_science_frames = exposure_common
+    effective_area_file, effective_area_wavelength, effective_area, pixel_scale = effective_area_common
 
     # Spectroscopy only:
     # effective area only matches x pixels in spectroscopy
@@ -176,6 +192,8 @@ def load_channel_config(path: Path, exposure_s: float, background: dict):
         zod_spectrum_wavelength=background["zod_spectrum_wavelength"],
         zod_spectrum_flux=background["zod_spectrum_flux"],
     )
+
+
 
 
 def _ensure_effective_area_matches_x_pixels(channel_name: str, effective_area_file: str, effective_area_wavelength, x_pixels: int, source_file: str) -> None:
