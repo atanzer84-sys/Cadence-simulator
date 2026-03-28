@@ -4,15 +4,15 @@ import logging
 from configs.channel_config import SpectroscopyChannel, PhotometryChannel
 from configs.user_config import UserConfig
 from configs.config_parsing import parse_simple_kv, as_int, as_float, as_bool, as_optional_int, ensure_non_negative
-from loaders.load_channel_files_common import load_effective_area_file, load_background_file, load_zod_dist_file, load_zod_spectrum_file
-from loaders.load_channel_files_spectroscopy import load_spread_profile_file_spectroscopy
+from loaders.load_channel_files_common import load_effective_area_file, load_background_from_global_cfg
+from loaders.load_channel_files_spectroscopy import load_spread_profile_file_spectroscopy, load_polarization_file, validate_polarization_config
 from loaders.load_channel_files_photometry import load_psf_image_file
 from configs.global_config import get_global_config
 
 
 def load_channels_config(user_cfg: UserConfig):
     repo_root = get_repo_root()
-    background = _load_background_from_global_cfg()
+    background = load_background_from_global_cfg()
     cfg = get_global_config()
 
     nuv_channel = None
@@ -56,6 +56,7 @@ def load_channel_config(path: Path, exposure_s: float, background: dict):
         source_position_x_arcsec = as_float(raw.get("source_position_x_arcsec", 0.0), key="source_position_x_arcsec")
         source_position_y_arcsec = as_float(raw.get("source_position_y_arcsec", 0.0), key="source_position_y_arcsec")
         draw_aperture_photometry_overlay = as_bool(raw.get("draw_aperture_photometry_overlay", 0), key="draw_aperture_photometry_overlay")
+        
         return PhotometryChannel(
             channel_name=channel_name,
             x_pixels=x_pixels,
@@ -115,6 +116,12 @@ def load_channel_config(path: Path, exposure_s: float, background: dict):
 
     smear_shift_pixels = slit_width_arcsec / pixel_scale
 
+    observation_mode = str(raw.get("observation_mode", "spectroscopy")).strip().lower()
+    polarization_delta_file = str(raw.get("polarization_delta_file", "")).strip()
+    beam_separation_pix = as_int(raw.get("beam_separation_pix", 0), key="beam_separation_pix")
+    polarization_wavelength, polarization_delta = load_polarization_file(polarization_delta_file, channel_name)
+    validate_polarization_config(channel_name, observation_mode, polarization_wavelength, polarization_delta, beam_separation_pix, y_pixels)
+
     return SpectroscopyChannel(
         channel_name=channel_name,
         x_pixels=x_pixels,
@@ -138,7 +145,11 @@ def load_channel_config(path: Path, exposure_s: float, background: dict):
         pixel_scale=pixel_scale,
         
         mode=mode,
-        
+        observation_mode=observation_mode,
+        polarization_delta_file=polarization_delta_file or None,
+        polarization_wavelength=polarization_wavelength,
+        polarization_delta=polarization_delta,
+        beam_separation_pix=beam_separation_pix,
         spread_profile_file=spread_profile_file,
         spread_half_height_pix=spread_half_height_pix,
 
@@ -164,63 +175,8 @@ def load_channel_config(path: Path, exposure_s: float, background: dict):
         zod_dist=background["zod_dist"],
         zod_spectrum_wavelength=background["zod_spectrum_wavelength"],
         zod_spectrum_flux=background["zod_spectrum_flux"],
-    )  
+    )
 
-
-def _load_background_from_global_cfg():
-    cfg = get_global_config()
-
-    background_type = (cfg.background_type or "").strip().lower()
-    if background_type == "":
-        background_type = None
-
-    background_wavelength = None
-    background_flux = None
-    sky_pixel_area_arcsec2 = cfg.sky_pixel_area_arcsec2  # may be None
-    zod_dist = None
-    zod_spec_wl = None
-    zod_spec_flux = None
-
-    if background_type is None:
-        return {
-            "background_type": background_type,
-            "background_wavelength": background_wavelength,
-            "background_flux": background_flux,
-            "sky_pixel_area_arcsec2": sky_pixel_area_arcsec2,
-            "zod_dist": zod_dist,
-            "zod_spectrum_wavelength": zod_spec_wl,
-            "zod_spectrum_flux": zod_spec_flux,
-        }
-
-    if background_type == "default":
-        if cfg.background_file is None:
-            raise ValueError("global.cfg: background_type=default requires background_file")
-        if cfg.sky_pixel_area_arcsec2 is None:
-            raise ValueError("global.cfg: background_type=default requires sky_pixel_area_arcsec2")
-        background_wavelength, background_flux = load_background_file(cfg.background_file)
-
-    elif background_type == "calc":
-        if cfg.zod_dist_file is None or cfg.zod_spectrum_file is None:
-            raise ValueError("global.cfg: background_type=calc requires zod_dist_file and zod_spectrum_file")
-        if cfg.sky_pixel_area_arcsec2 is None:
-            raise ValueError("global.cfg: background_type=calc requires sky_pixel_area_arcsec2")
-        zod_dist = load_zod_dist_file(cfg.zod_dist_file)
-        zod_spec_wl, zod_spec_flux = load_zod_spectrum_file(cfg.zod_spectrum_file)
-
-    else:
-        raise ValueError(
-            f"global.cfg: invalid background_type={background_type!r} (expected: default, calc, or empty)"
-        )
-
-    return {
-        "background_type": background_type,
-        "background_wavelength": background_wavelength,
-        "background_flux": background_flux,
-        "sky_pixel_area_arcsec2": sky_pixel_area_arcsec2,
-        "zod_dist": zod_dist,
-        "zod_spectrum_wavelength": zod_spec_wl,
-        "zod_spectrum_flux": zod_spec_flux,
-    }
 
 def _ensure_effective_area_matches_x_pixels(channel_name: str, effective_area_file: str, effective_area_wavelength, x_pixels: int, source_file: str) -> None:
 

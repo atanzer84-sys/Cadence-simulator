@@ -10,6 +10,7 @@ import pytest
 from loaders.load_channel_files_common import (
     find_first_numeric_row_index,
     load_background_file,
+    load_background_from_global_cfg,
     load_effective_area_file,
     load_zod_dist_file,
     load_zod_spectrum_file,
@@ -18,6 +19,7 @@ from loaders.load_channel_files_common import (
 )
 
 _REPO_ROOT_COMMON = "loaders.load_channel_files_common.get_repo_root"
+_GLOBAL_CFG_COMMON = "loaders.load_channel_files_common.get_global_config"
 
 
 @pytest.fixture
@@ -228,6 +230,92 @@ def test_load_background_file_malformed_numeric_row_raises(data_dir):
 
     with pytest.raises(ValueError):
         load_background_file("bg.txt")
+
+
+# Tests: load_background_from_global_cfg
+# Behavior: empty background type returns empty background payload
+def test_load_background_from_global_cfg_empty_type_returns_empty_payload(make_global_config, monkeypatch):
+    cfg = make_global_config(background_type="", sky_pixel_area_arcsec2=None)
+
+    monkeypatch.setattr(_GLOBAL_CFG_COMMON, lambda: cfg)
+
+    background = load_background_from_global_cfg()
+
+    assert background["background_type"] is None
+    assert background["background_wavelength"] is None
+    assert background["background_flux"] is None
+    assert background["sky_pixel_area_arcsec2"] is None
+    assert background["zod_dist"] is None
+    assert background["zod_spectrum_wavelength"] is None
+    assert background["zod_spectrum_flux"] is None
+
+
+# Tests: load_background_from_global_cfg
+# Behavior: default background loads spectrum and sky pixel area
+def test_load_background_from_global_cfg_default_loads_background_file(make_global_config, monkeypatch):
+    cfg = make_global_config(
+        background_type="default",
+        background_file="background.txt",
+        sky_pixel_area_arcsec2=2.5,
+    )
+
+    monkeypatch.setattr(_GLOBAL_CFG_COMMON, lambda: cfg)
+    monkeypatch.setattr(
+        "loaders.load_channel_files_common.load_background_file",
+        lambda filename: (np.array([1000.0, 1100.0]), np.array([0.1, 0.2])),
+    )
+
+    background = load_background_from_global_cfg()
+
+    assert background["background_type"] == "default"
+    assert np.allclose(background["background_wavelength"], [1000.0, 1100.0])
+    assert np.allclose(background["background_flux"], [0.1, 0.2])
+    assert background["sky_pixel_area_arcsec2"] == 2.5
+    assert background["zod_dist"] is None
+    assert background["zod_spectrum_wavelength"] is None
+    assert background["zod_spectrum_flux"] is None
+
+
+# Tests: load_background_from_global_cfg
+# Behavior: calc background loads zodiacal inputs
+def test_load_background_from_global_cfg_calc_loads_zodiacal_inputs(make_global_config, monkeypatch):
+    cfg = make_global_config(
+        background_type="calc",
+        zod_dist_file="zod_dist.txt",
+        zod_spectrum_file="zod_spec.txt",
+        sky_pixel_area_arcsec2=3.0,
+    )
+
+    monkeypatch.setattr(_GLOBAL_CFG_COMMON, lambda: cfg)
+    monkeypatch.setattr(
+        "loaders.load_channel_files_common.load_zod_dist_file",
+        lambda filename: np.array([[1.0, 2.0], [3.0, 4.0]]),
+    )
+    monkeypatch.setattr(
+        "loaders.load_channel_files_common.load_zod_spectrum_file",
+        lambda filename: (np.array([1200.0, 1300.0]), np.array([0.3, 0.4])),
+    )
+
+    background = load_background_from_global_cfg()
+
+    assert background["background_type"] == "calc"
+    assert background["background_wavelength"] is None
+    assert background["background_flux"] is None
+    assert background["sky_pixel_area_arcsec2"] == 3.0
+    assert np.allclose(background["zod_dist"], [[1.0, 2.0], [3.0, 4.0]])
+    assert np.allclose(background["zod_spectrum_wavelength"], [1200.0, 1300.0])
+    assert np.allclose(background["zod_spectrum_flux"], [0.3, 0.4])
+
+
+# Tests: load_background_from_global_cfg
+# Behavior: invalid background type raises ValueError
+def test_load_background_from_global_cfg_invalid_type_raises(make_global_config, monkeypatch):
+    cfg = make_global_config(background_type="weird")
+
+    monkeypatch.setattr(_GLOBAL_CFG_COMMON, lambda: cfg)
+
+    with pytest.raises(ValueError):
+        load_background_from_global_cfg()
 
 
 # Tests: load_zod_dist_file

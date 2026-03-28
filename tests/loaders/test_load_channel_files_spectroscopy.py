@@ -2,7 +2,11 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from loaders.load_channel_files_spectroscopy import load_spread_profile_file_spectroscopy
+from loaders.load_channel_files_spectroscopy import (
+    load_polarization_file,
+    load_spread_profile_file_spectroscopy,
+    validate_polarization_config,
+)
 
 _REPO_ROOT_SPEC = "loaders.load_channel_files_spectroscopy.get_repo_root"
 
@@ -183,3 +187,132 @@ def test_load_spread_profile_file_spectroscopy_single_numeric_row_raises(monkeyp
 
     with pytest.raises(ValueError, match="Invalid spread table structure"):
         load_spread_profile_file_spectroscopy("spread.txt", "VIS")
+
+
+# Tests: load_polarization_file
+# Behavior: empty or blank filename returns none pair
+def test_load_polarization_file_empty_filename_returns_none_none(monkeypatch, tmp_path):
+    monkeypatch.setattr(_REPO_ROOT_SPEC, lambda: tmp_path)
+
+    assert load_polarization_file("", "VIS") == (None, None)
+    assert load_polarization_file("   ", "NUV") == (None, None)
+
+
+# Tests: load_polarization_file
+# Behavior: loads wavelength and delta columns as float32
+def test_load_polarization_file_success(monkeypatch, tmp_path):
+    monkeypatch.setattr(_REPO_ROOT_SPEC, lambda: tmp_path)
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    _write(data_dir / "pol.txt", "1000  0.0\n1100  0.5\n1200  1.0\n")
+
+    wl, delta = load_polarization_file("pol.txt", "VIS")
+
+    assert wl.dtype == np.float32
+    assert delta.dtype == np.float32
+    assert np.allclose(wl, [1000.0, 1100.0, 1200.0])
+    assert np.allclose(delta, [0.0, 0.5, 1.0])
+
+
+# Tests: load_polarization_file
+# Behavior: missing file raises ValueError
+def test_load_polarization_file_missing_file_raises(monkeypatch, tmp_path):
+    monkeypatch.setattr(_REPO_ROOT_SPEC, lambda: tmp_path)
+    (tmp_path / "data").mkdir(exist_ok=True)
+
+    with pytest.raises(ValueError, match="Polarization file not found"):
+        load_polarization_file("missing_pol.txt", "VIS")
+
+
+# Tests: load_polarization_file
+# Behavior: fewer than two columns raises ValueError
+def test_load_polarization_file_one_column_raises(monkeypatch, tmp_path):
+    monkeypatch.setattr(_REPO_ROOT_SPEC, lambda: tmp_path)
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    _write(data_dir / "pol.txt", "1000\n1100\n")
+
+    with pytest.raises(ValueError, match="Invalid polarization file format"):
+        load_polarization_file("pol.txt", "NUV")
+
+
+# Tests: load_polarization_file
+# Behavior: non-numeric content raises ValueError
+def test_load_polarization_file_malformed_numeric_raises(monkeypatch, tmp_path):
+    monkeypatch.setattr(_REPO_ROOT_SPEC, lambda: tmp_path)
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    _write(data_dir / "pol.txt", "1000  0.1\n1100  BAD\n")
+
+    with pytest.raises(ValueError, match="Failed to parse polarization file"):
+        load_polarization_file("pol.txt", "VIS")
+
+
+# Tests: load_polarization_file
+# Behavior: delta below zero raises ValueError
+def test_load_polarization_file_delta_negative_raises(monkeypatch, tmp_path):
+    monkeypatch.setattr(_REPO_ROOT_SPEC, lambda: tmp_path)
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    _write(data_dir / "pol.txt", "1000  -0.01\n1100  0.5\n")
+
+    with pytest.raises(ValueError, match="polarization delta must be in range"):
+        load_polarization_file("pol.txt", "VIS")
+
+
+# Tests: load_polarization_file
+# Behavior: delta above one raises ValueError
+def test_load_polarization_file_delta_above_one_raises(monkeypatch, tmp_path):
+    monkeypatch.setattr(_REPO_ROOT_SPEC, lambda: tmp_path)
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    _write(data_dir / "pol.txt", "1000  1.01\n1100  0.5\n")
+
+    with pytest.raises(ValueError, match="polarization delta must be in range"):
+        load_polarization_file("pol.txt", "VIS")
+
+
+# Tests: validate_polarization_config
+# Behavior: spectroscopy mode accepts missing polarization data
+def test_validate_polarization_config_spectroscopy_allows_missing_polarization():
+    validate_polarization_config("VIS", "spectroscopy", None, None, 0, 32)
+
+
+# Tests: validate_polarization_config
+# Behavior: spectropolarimetry requires polarization arrays
+def test_validate_polarization_config_spectropolarimetry_requires_polarization():
+    with pytest.raises(ValueError, match="spectropolarimetry requires polarization_delta_file"):
+        validate_polarization_config("VIS", "spectropolarimetry", None, None, 2, 32)
+
+
+# Tests: validate_polarization_config
+# Behavior: spectropolarimetry requires beam_separation_pix >= 1
+def test_validate_polarization_config_spectropolarimetry_beam_separation_zero_raises():
+    wl = np.array([1000.0], dtype=np.float32)
+    d = np.array([0.5], dtype=np.float32)
+    with pytest.raises(ValueError, match="beam_separation_pix must be >= 1"):
+        validate_polarization_config("NUV", "spectropolarimetry", wl, d, 0, 32)
+
+
+# Tests: validate_polarization_config
+# Behavior: spectropolarimetry rejects beam_separation_pix >= y_pixels
+def test_validate_polarization_config_spectropolarimetry_beam_too_large_raises():
+    wl = np.array([1000.0], dtype=np.float32)
+    d = np.array([0.5], dtype=np.float32)
+    with pytest.raises(ValueError, match=r"beam_separation_pix=6 too large for detector height=6"):
+        validate_polarization_config("VIS", "spectropolarimetry", wl, d, 6, 6)
+
+
+# Tests: validate_polarization_config
+# Behavior: spectropolarimetry with valid inputs does not raise
+def test_validate_polarization_config_spectropolarimetry_valid_ok():
+    wl = np.array([1000.0, 1100.0], dtype=np.float32)
+    d = np.array([0.2, 0.8], dtype=np.float32)
+    validate_polarization_config("VIS", "spectropolarimetry", wl, d, 2, 64)
+
+
+# Tests: validate_polarization_config
+# Behavior: unknown observation_mode raises ValueError
+def test_validate_polarization_config_invalid_mode_raises():
+    with pytest.raises(ValueError, match=r"invalid observation_mode=imaging"):
+        validate_polarization_config("VIS", "imaging", None, None, 0, 32)

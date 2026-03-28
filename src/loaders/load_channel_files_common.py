@@ -2,6 +2,7 @@ from pathlib import Path
 import logging
 import warnings
 import numpy as np
+from configs.global_config import get_global_config
 from loaders.run_waltzer_context import get_repo_root
 from utils.helpers import resolve_path_under
 
@@ -156,6 +157,61 @@ def load_background_file(background_filename: str) -> tuple[np.ndarray | None, n
 
     logging.info("Background spectrum loaded: file=%s rows=%d", path, wavelength.shape[0])
     return wavelength, flux
+
+def load_background_from_global_cfg():
+    cfg = get_global_config()
+
+    background_type = (cfg.background_type or "").strip().lower()
+    if background_type == "":
+        background_type = None
+
+    background_wavelength = None
+    background_flux = None
+    sky_pixel_area_arcsec2 = cfg.sky_pixel_area_arcsec2  # may be None
+    zod_dist = None
+    zod_spec_wl = None
+    zod_spec_flux = None
+
+    if background_type is None:
+        return {
+            "background_type": background_type,
+            "background_wavelength": background_wavelength,
+            "background_flux": background_flux,
+            "sky_pixel_area_arcsec2": sky_pixel_area_arcsec2,
+            "zod_dist": zod_dist,
+            "zod_spectrum_wavelength": zod_spec_wl,
+            "zod_spectrum_flux": zod_spec_flux,
+        }
+
+    if background_type == "default":
+        if cfg.background_file is None:
+            raise ValueError("global.cfg: background_type=default requires background_file")
+        if cfg.sky_pixel_area_arcsec2 is None:
+            raise ValueError("global.cfg: background_type=default requires sky_pixel_area_arcsec2")
+        background_wavelength, background_flux = load_background_file(cfg.background_file)
+
+    elif background_type == "calc":
+        if cfg.zod_dist_file is None or cfg.zod_spectrum_file is None:
+            raise ValueError("global.cfg: background_type=calc requires zod_dist_file and zod_spectrum_file")
+        if cfg.sky_pixel_area_arcsec2 is None:
+            raise ValueError("global.cfg: background_type=calc requires sky_pixel_area_arcsec2")
+        zod_dist = load_zod_dist_file(cfg.zod_dist_file)
+        zod_spec_wl, zod_spec_flux = load_zod_spectrum_file(cfg.zod_spectrum_file)
+
+    else:
+        raise ValueError(
+            f"global.cfg: invalid background_type={background_type!r} (expected: default, calc, or empty)"
+        )
+
+    return {
+        "background_type": background_type,
+        "background_wavelength": background_wavelength,
+        "background_flux": background_flux,
+        "sky_pixel_area_arcsec2": sky_pixel_area_arcsec2,
+        "zod_dist": zod_dist,
+        "zod_spectrum_wavelength": zod_spec_wl,
+        "zod_spectrum_flux": zod_spec_flux,
+    }
 
 def _parse_pixel_scale(lines: list[str], path: Path) -> float:
     for line in lines:

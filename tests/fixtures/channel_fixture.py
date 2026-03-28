@@ -83,6 +83,11 @@ def make_spectroscopy_channel():
 
         specific = dict(
             mode=1,
+            observation_mode="spectroscopy",
+            polarization_delta_file=None,
+            polarization_wavelength=None,
+            polarization_delta=None,
+            beam_separation_pix=0,
             spread_profile_file="spread_profile.txt",
             spread_half_height_pix=2,
             slit_position_x_arcsec=0.0,

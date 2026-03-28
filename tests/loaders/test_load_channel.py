@@ -10,9 +10,8 @@ from configs.channel_config import PhotometryChannel, SpectroscopyChannel
 from loaders.load_channel import (
     _compute_n_science_frames,
     _ensure_effective_area_matches_x_pixels,
-    _load_background_from_global_cfg,
     load_channel_config,
-    load_channels_config
+    load_channels_config,
 )
 
 
@@ -29,7 +28,7 @@ def test_load_channels_config_all_channels_disabled_returns_none(
 
     monkeypatch.setattr("loaders.load_channel.get_global_config", lambda: cfg)
     monkeypatch.setattr("loaders.load_channel.get_repo_root", lambda: Path("/repo"))
-    monkeypatch.setattr("loaders.load_channel._load_background_from_global_cfg", lambda: {"bg": "payload"})
+    monkeypatch.setattr("loaders.load_channel.load_background_from_global_cfg", lambda: {"bg": "payload"})
     monkeypatch.setattr("loaders.load_channel.load_channel_config", lambda *args: calls.append(args))
 
     nuv_channel, vis_channel, nir_channel = load_channels_config(user_cfg)
@@ -54,7 +53,7 @@ def test_load_channels_config_only_nuv_enabled(
 
     monkeypatch.setattr("loaders.load_channel.get_global_config", lambda: cfg)
     monkeypatch.setattr("loaders.load_channel.get_repo_root", lambda: Path("/repo"))
-    monkeypatch.setattr("loaders.load_channel._load_background_from_global_cfg", lambda: background)
+    monkeypatch.setattr("loaders.load_channel.load_background_from_global_cfg", lambda: background)
 
     def _load_channel_config(path, exposure_s, bg):
         calls.append((path, exposure_s, bg))
@@ -87,7 +86,7 @@ def test_load_channels_config_only_vis_enabled(
 
     monkeypatch.setattr("loaders.load_channel.get_global_config", lambda: cfg)
     monkeypatch.setattr("loaders.load_channel.get_repo_root", lambda: Path("/repo"))
-    monkeypatch.setattr("loaders.load_channel._load_background_from_global_cfg", lambda: background)
+    monkeypatch.setattr("loaders.load_channel.load_background_from_global_cfg", lambda: background)
 
     def _load_channel_config(path, exposure_s, bg):
         calls.append((path, exposure_s, bg))
@@ -120,7 +119,7 @@ def test_load_channels_config_only_nir_enabled(
 
     monkeypatch.setattr("loaders.load_channel.get_global_config", lambda: cfg)
     monkeypatch.setattr("loaders.load_channel.get_repo_root", lambda: Path("/repo"))
-    monkeypatch.setattr("loaders.load_channel._load_background_from_global_cfg", lambda: background)
+    monkeypatch.setattr("loaders.load_channel.load_background_from_global_cfg", lambda: background)
 
     def _load_channel_config(path, exposure_s, bg):
         calls.append((path, exposure_s, bg))
@@ -138,104 +137,6 @@ def test_load_channels_config_only_nir_enabled(
     assert calls[0][1] == user_cfg.exposure_IR_s
     assert calls[0][2] is background
 
-
-
-# Tests: _load_background_from_global_cfg
-# Behavior: empty background type returns empty background payload
-def test_load_background_from_global_cfg_empty_type_returns_empty_payload(
-    make_global_config,
-    monkeypatch,
-):
-    cfg = make_global_config(background_type="", sky_pixel_area_arcsec2=None)
-
-    monkeypatch.setattr("loaders.load_channel.get_global_config", lambda: cfg)
-
-    background = _load_background_from_global_cfg()
-
-    assert background["background_type"] is None
-    assert background["background_wavelength"] is None
-    assert background["background_flux"] is None
-    assert background["sky_pixel_area_arcsec2"] is None
-    assert background["zod_dist"] is None
-    assert background["zod_spectrum_wavelength"] is None
-    assert background["zod_spectrum_flux"] is None
-
-
-# Tests: _load_background_from_global_cfg
-# Behavior: default background loads spectrum and sky pixel area
-def test_load_background_from_global_cfg_default_loads_background_file(
-    make_global_config,
-    monkeypatch,
-):
-    cfg = make_global_config(
-        background_type="default",
-        background_file="background.txt",
-        sky_pixel_area_arcsec2=2.5,
-    )
-
-    monkeypatch.setattr("loaders.load_channel.get_global_config", lambda: cfg)
-    monkeypatch.setattr(
-        "loaders.load_channel.load_background_file",
-        lambda filename: (np.array([1000.0, 1100.0]), np.array([0.1, 0.2])),
-    )
-
-    background = _load_background_from_global_cfg()
-
-    assert background["background_type"] == "default"
-    assert np.allclose(background["background_wavelength"], [1000.0, 1100.0])
-    assert np.allclose(background["background_flux"], [0.1, 0.2])
-    assert background["sky_pixel_area_arcsec2"] == 2.5
-    assert background["zod_dist"] is None
-    assert background["zod_spectrum_wavelength"] is None
-    assert background["zod_spectrum_flux"] is None
-
-
-# Tests: _load_background_from_global_cfg
-# Behavior: calc background loads zodiacal inputs
-def test_load_background_from_global_cfg_calc_loads_zodiacal_inputs(
-    make_global_config,
-    monkeypatch,
-):
-    cfg = make_global_config(
-        background_type="calc",
-        zod_dist_file="zod_dist.txt",
-        zod_spectrum_file="zod_spec.txt",
-        sky_pixel_area_arcsec2=3.0,
-    )
-
-    monkeypatch.setattr("loaders.load_channel.get_global_config", lambda: cfg)
-    monkeypatch.setattr(
-        "loaders.load_channel.load_zod_dist_file",
-        lambda filename: np.array([[1.0, 2.0], [3.0, 4.0]]),
-    )
-    monkeypatch.setattr(
-        "loaders.load_channel.load_zod_spectrum_file",
-        lambda filename: (np.array([1200.0, 1300.0]), np.array([0.3, 0.4])),
-    )
-
-    background = _load_background_from_global_cfg()
-
-    assert background["background_type"] == "calc"
-    assert background["background_wavelength"] is None
-    assert background["background_flux"] is None
-    assert background["sky_pixel_area_arcsec2"] == 3.0
-    assert np.allclose(background["zod_dist"], [[1.0, 2.0], [3.0, 4.0]])
-    assert np.allclose(background["zod_spectrum_wavelength"], [1200.0, 1300.0])
-    assert np.allclose(background["zod_spectrum_flux"], [0.3, 0.4])
-
-
-# Tests: _load_background_from_global_cfg
-# Behavior: invalid background type raises ValueError
-def test_load_background_from_global_cfg_invalid_type_raises(
-    make_global_config,
-    monkeypatch,
-):
-    cfg = make_global_config(background_type="weird")
-
-    monkeypatch.setattr("loaders.load_channel.get_global_config", lambda: cfg)
-
-    with pytest.raises(ValueError):
-        _load_background_from_global_cfg()
 
 
 # Tests: _ensure_effective_area_matches_x_pixels

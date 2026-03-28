@@ -50,3 +50,52 @@ def load_spread_profile_file_spectroscopy(spread_filename: str, channel_name: st
 
     logging.info("Spread profile loaded: channel=%s rows=%d wavelength_bins=%d", channel_name, positions.shape[0], wavelength_header.shape[0])
     return positions, weights_matrix, wavelength_header
+
+def load_polarization_file(filename: str, channel_name: str):
+
+    if not filename or filename.strip() == "":
+        logging.info("Channel %s: no polarization delta file configured.", channel_name)
+        return None, None
+
+    repo_root = get_repo_root()
+    path = resolve_path_under(repo_root, "data", filename)
+
+    if not path.exists():
+        logging.error("Channel %s: polarization file not found: %s", channel_name, path)
+        raise ValueError(f"Polarization file not found: {path}")
+
+    try:
+        data = np.loadtxt(path)
+    except Exception as exc:
+        raise ValueError(f"Failed to parse polarization file: {path}") from exc
+
+    if data.ndim != 2 or data.shape[1] < 2:
+        raise ValueError(f"Invalid polarization file format: {path}")
+
+    wavelength = data[:, 0].astype(np.float32)
+    delta = data[:, 1].astype(np.float32)
+
+    if not np.all(np.isfinite(delta)):
+        raise ValueError(f"{channel_name}: polarization delta contains non-finite values")
+
+    if np.any(delta < 0.0) or np.any(delta > 1.0):
+        raise ValueError(f"{channel_name}: polarization delta must be in range [0, 1]")
+        
+    logging.info("Polarization file loaded: channel=%s rows=%d", channel_name, len(wavelength))
+
+    return wavelength, delta
+
+def validate_polarization_config(channel_name: str, observation_mode: str, pol_wl, pol_delta, beam_separation_pix: int, y_pixels: int):
+
+    if observation_mode == "spectropolarimetry":
+        if pol_wl is None or pol_delta is None:
+            raise ValueError(f"{channel_name}: spectropolarimetry requires polarization_delta_file")
+    
+        if beam_separation_pix < 1:
+            raise ValueError(f"{channel_name}: beam_separation_pix must be >= 1")
+    
+        if beam_separation_pix >= y_pixels:
+            raise ValueError(f"{channel_name}: beam_separation_pix={beam_separation_pix} too large for detector height={y_pixels}")
+    
+    elif observation_mode != "spectroscopy":
+        raise ValueError(f"{channel_name}: invalid observation_mode={observation_mode}")

@@ -46,6 +46,11 @@ class Channel:
 @dataclass(frozen=True, slots=True, kw_only=True)
 class SpectroscopyChannel(Channel):
     mode: int
+    observation_mode: str
+    polarization_delta_file: str | None = None
+    polarization_wavelength: np.ndarray | None = None
+    polarization_delta: np.ndarray | None = None
+    beam_separation_pix: int
 
     spread_profile_file: str
     spread_half_height_pix: int
