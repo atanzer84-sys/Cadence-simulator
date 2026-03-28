@@ -281,7 +281,7 @@ def test_validate_polarization_config_spectroscopy_allows_missing_polarization()
 # Tests: validate_polarization_config
 # Behavior: spectropolarimetry requires polarization arrays
 def test_validate_polarization_config_spectropolarimetry_requires_polarization():
-    with pytest.raises(ValueError, match="spectropolarimetry requires polarization_delta_file"):
+    with pytest.raises(ValueError, match="spectropolarimetry requires polarization_file"):
         validate_polarization_config("VIS", "spectropolarimetry", None, None, 2, 32)
 
 

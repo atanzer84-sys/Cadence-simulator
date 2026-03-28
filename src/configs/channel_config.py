@@ -47,7 +47,7 @@ class Channel:
 class SpectroscopyChannel(Channel):
     mode: int
     observation_mode: str
-    polarization_delta_file: str | None = None
+    polarization_file: str | None = None
     polarization_wavelength: np.ndarray | None = None
     polarization_delta: np.ndarray | None = None
     beam_separation_pix: int

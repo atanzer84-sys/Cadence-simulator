@@ -89,7 +89,7 @@ def validate_polarization_config(channel_name: str, observation_mode: str, pol_w
 
     if observation_mode == "spectropolarimetry":
         if pol_wl is None or pol_delta is None:
-            raise ValueError(f"{channel_name}: spectropolarimetry requires polarization_delta_file")
+            raise ValueError(f"{channel_name}: spectropolarimetry requires polarization_file")
     
         if beam_separation_pix < 1:
             raise ValueError(f"{channel_name}: beam_separation_pix must be >= 1")

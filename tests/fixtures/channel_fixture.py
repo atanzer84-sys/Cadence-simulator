@@ -84,7 +84,7 @@ def make_spectroscopy_channel():
         specific = dict(
             mode=1,
             observation_mode="spectroscopy",
-            polarization_delta_file=None,
+            polarization_file=None,
             polarization_wavelength=None,
             polarization_delta=None,
             beam_separation_pix=0,

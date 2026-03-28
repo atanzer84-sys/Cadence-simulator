@@ -117,9 +117,9 @@ def load_channel_config(path: Path, exposure_s: float, background: dict):
     smear_shift_pixels = slit_width_arcsec / pixel_scale
 
     observation_mode = str(raw.get("observation_mode", "spectroscopy")).strip().lower()
-    polarization_delta_file = str(raw.get("polarization_delta_file", "")).strip()
+    polarization_file = str(raw.get("polarization_file", "")).strip()
     beam_separation_pix = as_int(raw.get("beam_separation_pix", 0), key="beam_separation_pix")
-    polarization_wavelength, polarization_delta = load_polarization_file(polarization_delta_file, channel_name)
+    polarization_wavelength, polarization_delta = load_polarization_file(polarization_file, channel_name)
     validate_polarization_config(channel_name, observation_mode, polarization_wavelength, polarization_delta, beam_separation_pix, y_pixels)
 
     return SpectroscopyChannel(
@@ -146,7 +146,7 @@ def load_channel_config(path: Path, exposure_s: float, background: dict):
         
         mode=mode,
         observation_mode=observation_mode,
-        polarization_delta_file=polarization_delta_file or None,
+        polarization_file=polarization_file or None,
         polarization_wavelength=polarization_wavelength,
         polarization_delta=polarization_delta,
         beam_separation_pix=beam_separation_pix,

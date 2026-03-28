@@ -11,7 +11,10 @@ _PROFILE_SPREAD_WARN_THRESHOLD = 5e-2
 def spread_target_star_spectrum_to_2d(counts_s_pixel_convolved, channel: SpectroscopyChannel):
     """Entry point for target star: derive spatial info and spread 1D spectrum to 2D."""
     placement = get_spectrum_placement(channel)
-    return spread_1d_spectrum_to_2d(counts_s_pixel_convolved, channel, placement)
+    if channel.observation_mode == "spectroscopy":
+        return spread_1d_spectrum_to_2d(counts_s_pixel_convolved, channel, placement)
+    if channel.observation_mode == "spectropolarimetry":
+        return spread_target_star_spectropolarimetry_to_2d(counts_s_pixel_convolved, channel, placement)
 
 def get_spectrum_placement(channel: SpectroscopyChannel) -> tuple[int, float, float, float]:
     """Return (x0, y0, slope, intercept_pixels) for target star. For background stars: use x0, slope, intercept; supply y0 per star."""
@@ -22,6 +25,20 @@ def get_spectrum_placement(channel: SpectroscopyChannel) -> tuple[int, float, fl
         raise ValueError("slope and intercept_pixels must be 0 (not yet supported)")
     return x0, float(y0), float(slope), float(intercept)
 
+def get_target_star_detector_position(channel: SpectroscopyChannel):
+    ny = channel.y_pixels
+    x0 = int(round(channel.slit_position_x_arcsec / channel.pixel_scale))
+    y0 = int(round((ny // 2) + channel.slit_position_y_arcsec / channel.pixel_scale))
+
+    if x0 != 0:
+        logging.error("Get target star detector position failed: channel=%s x0=%d horizontal shift not supported", channel.channel_name, x0)
+        raise ValueError("Horizontal slit_position_x_arcsec not yet supported (must be 0.0)")
+
+    if y0 < 0 or y0 >= ny:
+        logging.error("Get target star detector position failed: channel=%s y0=%d ny=%d (outside detector)", channel.channel_name, y0, ny)
+        raise ValueError("slit_position_y_arcsec places spectrum outside detector")
+
+    return x0, y0
 
 def spread_1d_spectrum_to_2d(counts_s_pixel_convolved, channel: SpectroscopyChannel, placement, announce_user: bool = True):
     """Spread 1D spectrum to 2D. Caller provides placement (x0, y0, slope, intercept). For background stars: x0, _, slope, intercept = get_spectrum_placement(channel); y0 = y_background_star."""
@@ -49,8 +66,6 @@ def spread_1d_spectrum_to_2d(counts_s_pixel_convolved, channel: SpectroscopyChan
         return _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel, placement)
     else:
         return _spread_1d_to_2d_gaussian(counts_s_pixel_convolved, channel, placement)
-
-
 
 def _spread_1d_to_2d_gaussian(counts_s_pixel_convolved, channel: SpectroscopyChannel, placement):
     nx = channel.x_pixels
@@ -95,7 +110,6 @@ def _gaussian_vertical_profile(ny: int, y_center: float, sigma: float) -> np.nda
         raise ValueError("vertical profile sum <= 0")
     return w / w_sum
 
-
 def _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel: SpectroscopyChannel, placement):
     """Vectorized wavelength-dependent profile spread."""
     nx = channel.x_pixels
@@ -134,23 +148,6 @@ def _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel: SpectroscopyChan
 
     return image
 
-
-def get_target_star_detector_position(channel: SpectroscopyChannel):
-    ny = channel.y_pixels
-    x0 = int(round(channel.slit_position_x_arcsec / channel.pixel_scale))
-    y0 = int(round((ny // 2) + channel.slit_position_y_arcsec / channel.pixel_scale))
-
-    if x0 != 0:
-        logging.error("Get target star detector position failed: channel=%s x0=%d horizontal shift not supported", channel.channel_name, x0)
-        raise ValueError("Horizontal slit_position_x_arcsec not yet supported (must be 0.0)")
-
-    if y0 < 0 or y0 >= ny:
-        logging.error("Get target star detector position failed: channel=%s y0=%d ny=%d (outside detector)", channel.channel_name, y0, ny)
-        raise ValueError("slit_position_y_arcsec places spectrum outside detector")
-
-    return x0, y0
-
-
 def smear_1d_spectrum_dispersion(counts_s_px: np.ndarray, channel: SpectroscopyChannel) -> np.ndarray:
     """Apply dispersion smear while preserving total counts."""
     n_smear_steps = int(round(channel.smear_shift_pixels))
@@ -170,3 +167,35 @@ def smear_1d_spectrum_dispersion(counts_s_px: np.ndarray, channel: SpectroscopyC
         else:
             counts_smeared_px[:x_shift] += counts_smear_step_px[-x_shift:]
     return counts_smeared_px
+
+def spread_target_star_spectropolarimetry_to_2d(counts_s_pixel_convolved: np.ndarray, channel: SpectroscopyChannel, placement) -> np.ndarray:
+    # Split total flux into two beams using polarization delta.
+    # delta is defined as normalized imbalance: delta = (beam1 - beam2) / total
+    #
+    # delta = 0.0  -> 50% / 50%  (unpolarized)
+    # delta = 1.0  -> 100% / 0%  (fully polarized)
+    #
+    # Solve:
+    #     beam1 + beam2 = total
+    #     beam1 - beam2 = delta * total
+    #
+    # Result:
+    #     beam1 = total * (1 + delta) / 2
+    #     beam2 = total * (1 - delta) / 2
+
+    detector_wavelength = channel.effective_area_wavelength
+
+    delta_interp = np.interp(detector_wavelength, channel.polarization_wavelength, channel.polarization_delta)
+
+    beam1 = counts_s_pixel_convolved * (1.0 + delta_interp) / 2.0
+    beam2 = counts_s_pixel_convolved * (1.0 - delta_interp) / 2.0
+
+    image_beam1 = spread_1d_spectrum_to_2d(beam1, channel, placement, announce_user=True)
+    image_beam2 = spread_1d_spectrum_to_2d(beam2, channel, placement, announce_user=False)
+
+    separation = channel.beam_separation_pix
+
+    image_beam2_separated = np.zeros_like(image_beam2)
+    image_beam2_separated[separation:, :] = image_beam2[:-separation, :]
+
+    return image_beam1 + image_beam2_separated
