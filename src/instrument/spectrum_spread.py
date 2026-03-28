@@ -193,6 +193,12 @@ def spread_target_star_spectropolarimetry_to_2d(counts_s_pixel_convolved: np.nda
     image_beam1 = spread_1d_spectrum_to_2d(beam1, channel, placement, announce_user=True)
     image_beam2 = spread_1d_spectrum_to_2d(beam2, channel, placement, announce_user=False)
 
+    logging.info("POL TEST beam split: delta[0]=%.3f delta[mid]=%.3f delta[-1]=%.3f", delta_interp[0], delta_interp[len(delta_interp) // 2], delta_interp[-1])
+    logging.info("POL TEST counts: total[0]=%.3f beam1[0]=%.3f beam2[0]=%.3f", counts_s_pixel_convolved[0], beam1[0], beam2[0])
+    logging.info("POL TEST counts: total[mid]=%.3f beam1[mid]=%.3f beam2[mid]=%.3f", counts_s_pixel_convolved[len(counts_s_pixel_convolved) // 2], beam1[len(beam1) // 2], beam2[len(beam2) // 2])
+    logging.info("POL TEST counts: total[-1]=%.3f beam1[-1]=%.3f beam2[-1]=%.3f", counts_s_pixel_convolved[-1], beam1[-1], beam2[-1])
+
+
     separation = channel.beam_separation_pix
 
     image_beam2_separated = np.zeros_like(image_beam2)

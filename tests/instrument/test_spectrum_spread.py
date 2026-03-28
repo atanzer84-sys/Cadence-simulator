@@ -17,9 +17,9 @@ from instrument.spectrum_spread import (
     get_target_star_detector_position,
     smear_1d_spectrum_dispersion,
     spread_1d_spectrum_to_2d,
+    spread_target_star_spectropolarimetry_to_2d,
     spread_target_star_spectrum_to_2d,
 )
-
 # ---------------------------------------------------------------------------
 # get_target_star_detector_position
 # ---------------------------------------------------------------------------
@@ -755,3 +755,99 @@ def test_spread_target_star_spectrum_to_2d_respects_vertical_slit_offset(make_sp
 
     peak_y = int(np.argmax(image[:, 0]))
     assert peak_y != channel.y_pixels // 2
+
+
+
+# Tests: test_spread_target_star_spectrum_to_2d_dispatches_spectropolarimetry
+# Behavior: Spectropolarimetry mode dispatches to the dedicated helper
+def test_spread_target_star_spectrum_to_2d_dispatches_spectropolarimetry(make_spectroscopy_channel):
+    channel = make_spectroscopy_channel(
+        observation_mode="spectropolarimetry",
+        beam_separation_pix=2,
+        polarization_wavelength=np.array([200, 250, 300, 350, 400], dtype=float),
+        polarization_delta=np.array([0.0, 0.5, 1.0, 0.5, 0.0], dtype=np.float32),
+    )
+    counts = np.array([1, 2, 3, 4, 5], dtype=np.float32)
+
+    with patch("instrument.spectrum_spread.get_spectrum_placement", return_value=(0, 3.0, 0.0, 0.0)) as mock_placement, \
+         patch("instrument.spectrum_spread.spread_target_star_spectropolarimetry_to_2d", return_value=np.ones((channel.y_pixels, channel.x_pixels), dtype=np.float32)) as mock_pol:
+        image = spread_target_star_spectrum_to_2d(counts, channel)
+
+    assert image.shape == (channel.y_pixels, channel.x_pixels)
+    mock_placement.assert_called_once_with(channel)
+    mock_pol.assert_called_once_with(counts, channel, (0, 3.0, 0.0, 0.0))
+
+
+# Tests: test_spread_target_star_spectropolarimetry_to_2d_splits_flux_and_separates_beam
+# Behavior: Spectropolarimetry splits flux by delta, shifts beam 2 vertically, and preserves total flux
+def test_spread_target_star_spectropolarimetry_to_2d_splits_flux_and_separates_beam(make_spectroscopy_channel):
+    channel = make_spectroscopy_channel(
+        x_pixels=5,
+        y_pixels=6,
+        observation_mode="spectropolarimetry",
+        beam_separation_pix=2,
+        effective_area_wavelength=np.array([200, 250, 300, 350, 400], dtype=float),
+        polarization_wavelength=np.array([200, 250, 300, 350, 400], dtype=float),
+        polarization_delta=np.array([1.0, 0.0, 0.5, 1.0, 0.0], dtype=np.float32),
+    )
+    counts = np.array([10, 20, 30, 40, 50], dtype=np.float32)
+    placement = (0, 3.0, 0.0, 0.0)
+
+    def _fake_spread(counts_1d, _channel, _placement, announce_user=True):
+        image = np.zeros((_channel.y_pixels, _channel.x_pixels), dtype=np.float32)
+        image[0, :] = counts_1d
+        return image
+
+    with patch("instrument.spectrum_spread.spread_1d_spectrum_to_2d", side_effect=_fake_spread) as mock_spread:
+        image = spread_target_star_spectropolarimetry_to_2d(counts, channel, placement)
+
+    expected_delta = np.array([1.0, 0.0, 0.5, 1.0, 0.0], dtype=np.float32)
+    expected_beam1 = counts * (1.0 + expected_delta) / 2.0
+    expected_beam2 = counts * (1.0 - expected_delta) / 2.0
+
+    assert image.shape == (channel.y_pixels, channel.x_pixels)
+    assert image.dtype == np.float32
+    assert np.allclose(image[0, :], expected_beam1)
+    assert np.allclose(image[1, :], 0.0)
+    assert np.allclose(image[2, :], expected_beam2)
+    assert np.allclose(image.sum(), counts.sum())
+
+    assert mock_spread.call_count == 2
+    assert np.allclose(mock_spread.call_args_list[0].args[0], expected_beam1)
+    assert np.allclose(mock_spread.call_args_list[1].args[0], expected_beam2)
+    assert mock_spread.call_args_list[0].kwargs["announce_user"] is True
+    assert mock_spread.call_args_list[1].kwargs["announce_user"] is False
+
+
+# Tests: test_spread_target_star_spectropolarimetry_to_2d_interpolates_delta
+# Behavior: Polarization delta is interpolated onto the detector wavelength grid before beam split
+def test_spread_target_star_spectropolarimetry_to_2d_interpolates_delta(make_spectroscopy_channel):
+    channel = make_spectroscopy_channel(
+        x_pixels=5,
+        y_pixels=6,
+        observation_mode="spectropolarimetry",
+        beam_separation_pix=1,
+        effective_area_wavelength=np.array([200, 225, 250, 275, 300], dtype=float),
+        polarization_wavelength=np.array([200, 250, 300], dtype=float),
+        polarization_delta=np.array([0.0, 1.0, 0.0], dtype=np.float32),
+    )
+    counts = np.array([10, 10, 10, 10, 10], dtype=np.float32)
+    placement = (0, 3.0, 0.0, 0.0)
+
+    def _fake_spread(counts_1d, _channel, _placement, announce_user=True):
+        image = np.zeros((_channel.y_pixels, _channel.x_pixels), dtype=np.float32)
+        image[0, :] = counts_1d
+        return image
+
+    with patch("instrument.spectrum_spread.spread_1d_spectrum_to_2d", side_effect=_fake_spread) as mock_spread:
+        image = spread_target_star_spectropolarimetry_to_2d(counts, channel, placement)
+
+    expected_delta = np.array([0.0, 0.5, 1.0, 0.5, 0.0], dtype=np.float32)
+    expected_beam1 = counts * (1.0 + expected_delta) / 2.0
+    expected_beam2 = counts * (1.0 - expected_delta) / 2.0
+
+    assert np.allclose(mock_spread.call_args_list[0].args[0], expected_beam1)
+    assert np.allclose(mock_spread.call_args_list[1].args[0], expected_beam2)
+    assert np.allclose(image[0, :], expected_beam1)
+    assert np.allclose(image[1, :], expected_beam2)
+    assert np.allclose(image.sum(), counts.sum())
