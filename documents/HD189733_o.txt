@@ -1,0 +1,1630 @@
+
+andreatanzer@Andreas-MacBook-Air waltzer_old % /usr/bin/time -l /Users/andreatanzer/.venvs/shared/bin/python src/waltzer_simulator.py input/parameters/parameter_017.txt
+
+==== LOADING AND INITIALIZING WALTzER SIMULATOR =====
+Output directory created at: /Users/andreatanzer/Documents/Space Science/MasterThesis/waltzer_old/output/20260330_142211_284028
+Log file created at: /Users/andreatanzer/Documents/Space Science/MasterThesis/waltzer_old/output/20260330_142211_284028/waltzer_simulator_20260330_142211_284028.log
+User parameter file loaded: /Users/andreatanzer/Documents/Space Science/MasterThesis/waltzer_old/input/parameters/parameter_017.txt
+Configurations loaded, checked and parsed.
+
+==== Target STAR Created ====
+Star created: HD 189733
+
+==== PLANET Created ====
+Planet created: HD 189733 b
+
+==== STARTING CALCULATION FOR FLUX TO INSTRUMENT =====
+Starting to calculate Flux on Earth for target star HD 189733
+Loaded stellar model t05100g4,4/model.flx for Teff=5052 K (picked=5100 K)
+Starting to apply line core emission
+Starting ISM absorption
+/Users/andreatanzer/Documents/Space Science/MasterThesis/waltzer_old/src/flux/flux_calc.py:104: RuntimeWarning: divide by zero encountered in log10
+  nmg2 = np.log10(nh * fractionMg2 * 10.0**Mg_abn)
+/Users/andreatanzer/Documents/Space Science/MasterThesis/waltzer_old/src/flux/flux_calc.py:114: RuntimeWarning: divide by zero encountered in log10
+  nmg1 = np.log10(nh * fractionMg1 * 10.0**Mg_abn)
+/Users/andreatanzer/Documents/Space Science/MasterThesis/waltzer_old/src/flux/flux_calc.py:124: RuntimeWarning: divide by zero encountered in log10
+  nfe2 = np.log10(nh * fractionFe2 * 10.0**Fe_abn)
+Starting Flux at Earth calculation
+Starting to apply UNRED extinction correction
+
+==== STARTING CONVOLUTION TO INSTRUMENT (NUV & VIS)=====
+Spreading 1D counts to 2D detector image for channel NUV.
+Spreading 1D counts to 2D detector image for channel VIS.
+
+==== STARTING CONVOLUTION TO INSTRUMENT (NIR)=====
+Spreading 1D photometry counts to 2D detector image for channel NIR.
+
+==== STARTING BACKGROUND STAR LOOKUP VIA GAIA OR CSV =====
+Background stars loaded from CSV cache (6444 rows).
+
+==== STARTING FLUX CALCULATION FOR 312 BACKGROUND STARS =====
+Flux Calculation for Star: 1/312 for gaia_1827242816201846144
+Flux Calculation for Star: 2/312 for gaia_1827245702419983360
+Flux Calculation for Star: 3/312 for gaia_1833246561971338240
+Flux Calculation for Star: 4/312 for gaia_1827242850561599104
+Flux Calculation for Star: 5/312 for gaia_1833251509799550208
+Flux Calculation for Star: 6/312 for gaia_1827242163366856576
+Flux Calculation for Star: 7/312 for gaia_1827242713122840064
+Flux Calculation for Star: 8/312 for gaia_1827053803285232896
+Flux Calculation for Star: 9/312 for gaia_1827242266446049920
+Flux Calculation for Star: 10/312 for gaia_1827054043803399168
+Flux Calculation for Star: 11/312 for gaia_1827242644403170560
+Flux Calculation for Star: 12/312 for gaia_1833252059555460480
+Flux Calculation for Star: 13/312 for gaia_1827241132574638208
+Flux Calculation for Star: 14/312 for gaia_1827243125439542912
+Flux Calculation for Star: 15/312 for gaia_1833246596356853888
+Flux Calculation for Star: 16/312 for gaia_1833247588477839872
+Flux Calculation for Star: 17/312 for gaia_1833251578519046656
+Flux Calculation for Star: 18/312 for gaia_1833247416678641152
+Flux Calculation for Star: 19/312 for gaia_1827241884179091456
+Flux Calculation for Star: 20/312 for gaia_1827245805499196672
+Flux Calculation for Star: 21/312 for gaia_1827246183456286720
+Flux Calculation for Star: 22/312 for gaia_1827242713122661504
+Flux Calculation for Star: 23/312 for gaia_1833059129632554240
+Flux Calculation for Star: 24/312 for gaia_1827242914970419712
+Flux Calculation for Star: 25/312 for gaia_1827246454009154048
+Flux Calculation for Star: 26/312 for gaia_1833247588477839616
+Flux Calculation for Star: 27/312 for gaia_1827053562767026944
+Flux Calculation for Star: 28/312 for gaia_1827242468279506560
+Flux Calculation for Star: 29/312 for gaia_1827243056720055936
+Flux Calculation for Star: 30/312 for gaia_1827242713122667008
+Flux Calculation for Star: 31/312 for gaia_1833247077393165568
+Flux Calculation for Star: 32/312 for gaia_1833059434551892992
+Flux Calculation for Star: 33/312 for gaia_1833251230609410688
+Flux Calculation for Star: 34/312 for gaia_1827242816176111360
+Flux Calculation for Star: 35/312 for gaia_1833251264969149312
+Flux Calculation for Star: 36/312 for gaia_1827242747482398080
+Flux Calculation for Star: 37/312 for gaia_1833248314343811712
+Flux Calculation for Star: 38/312 for gaia_1833246939954240512
+Flux Calculation for Star: 39/312 for gaia_1833248172593392512
+Flux Calculation for Star: 40/312 for gaia_1827243155474271616
+Flux Calculation for Star: 41/312 for gaia_1833247936386737408
+Flux Calculation for Star: 42/312 for gaia_1833251784677508096
+Flux Calculation for Star: 43/312 for gaia_1833251475439822976
+Flux Calculation for Star: 44/312 for gaia_1827242025927851520
+Flux Calculation for Star: 45/312 for gaia_1833252059556080768
+Flux Calculation for Star: 46/312 for gaia_1833251269281456000
+Flux Calculation for Star: 47/312 for gaia_1827240887731971840
+Flux Calculation for Star: 48/312 for gaia_1833246871234789376
+Flux Calculation for Star: 49/312 for gaia_1827245839858920832
+Flux Calculation for Star: 50/312 for gaia_1827242678762906752
+Flux Calculation for Star: 51/312 for gaia_1827245805499194496
+Flux Calculation for Star: 52/312 for gaia_1833247867667232000
+Flux Calculation for Star: 53/312 for gaia_1827246183456287616
+Flux Calculation for Star: 54/312 for gaia_1833247902027004032
+Flux Calculation for Star: 55/312 for gaia_1827053219169666432
+Flux Calculation for Star: 56/312 for gaia_1833251441080135808
+Flux Calculation for Star: 57/312 for gaia_1833248314343796608
+Flux Calculation for Star: 58/312 for gaia_1833058992193618048
+Flux Calculation for Star: 59/312 for gaia_1827241613610977152
+Flux Calculation for Star: 60/312 for gaia_1833248623581487616
+Flux Calculation for Star: 61/312 for gaia_1827246252175781376
+Flux Calculation for Star: 62/312 for gaia_1827241682330449920
+Flux Calculation for Star: 63/312 for gaia_1827246458334217216
+Flux Calculation for Star: 64/312 for gaia_1827241819769424640
+Flux Calculation for Star: 65/312 for gaia_1827246046017339520
+Flux Calculation for Star: 66/312 for gaia_1833247455350328320
+Flux Calculation for Star: 67/312 for gaia_1827246011657605632
+Flux Calculation for Star: 68/312 for gaia_1833247214832094848
+Flux Calculation for Star: 69/312 for gaia_1833246561971332480
+Flux Calculation for Star: 70/312 for gaia_1827241991568106368
+Flux Calculation for Star: 71/312 for gaia_1833058579876744064
+Flux Calculation for Star: 72/312 for gaia_1833249070258024576
+Flux Calculation for Star: 73/312 for gaia_1833251063122974336
+Flux Calculation for Star: 74/312 for gaia_1827243091079789184
+Flux Calculation for Star: 75/312 for gaia_1827053768925465216
+Flux Calculation for Star: 76/312 for gaia_1827241407452569344
+Flux Calculation for Star: 77/312 for gaia_1827242747482392704
+Flux Calculation for Star: 78/312 for gaia_1827246458334226560
+Flux Calculation for Star: 79/312 for gaia_1833251028763254784
+Flux Calculation for Star: 80/312 for gaia_1833247386630831872
+Flux Calculation for Star: 81/312 for gaia_1827240887731978368
+Flux Calculation for Star: 82/312 for gaia_1833246561997088256
+Flux Calculation for Star: 83/312 for gaia_1827053906364455936
+Flux Calculation for Star: 84/312 for gaia_1833251234921696000
+Flux Calculation for Star: 85/312 for gaia_1833247317911334016
+Flux Calculation for Star: 86/312 for gaia_1833248417423042688
+Flux Calculation for Star: 87/312 for gaia_1827242713122661888
+Flux Calculation for Star: 88/312 for gaia_1833247588477383040
+Flux Calculation for Star: 89/312 for gaia_1833246561997097088
+Flux Calculation for Star: 90/312 for gaia_1833246802515310080
+Flux Calculation for Star: 91/312 for gaia_1833247867667852032
+Flux Calculation for Star: 92/312 for gaia_1833246561997101312
+Flux Calculation for Star: 93/312 for gaia_1827246660168180480
+Flux Calculation for Star: 94/312 for gaia_1833058682955949696
+Flux Calculation for Star: 95/312 for gaia_1833246871234811264
+Flux Calculation for Star: 96/312 for gaia_1827246252175786624
+Flux Calculation for Star: 97/312 for gaia_1833246630716584960
+Flux Calculation for Star: 98/312 for gaia_1827242953640847744
+Flux Calculation for Star: 99/312 for gaia_1827241544891495552
+Flux Calculation for Star: 100/312 for gaia_1833247317911335808
+Flux Calculation for Star: 101/312 for gaia_1833247936386740608
+Flux Calculation for Star: 102/312 for gaia_1833246836875043840
+Flux Calculation for Star: 103/312 for gaia_1833247043033484032
+Flux Calculation for Star: 104/312 for gaia_1827246423974488448
+Flux Calculation for Star: 105/312 for gaia_1833058992193620608
+Flux Calculation for Star: 106/312 for gaia_1827246355254990848
+Flux Calculation for Star: 107/312 for gaia_1827241407452561408
+Flux Calculation for Star: 108/312 for gaia_1827053700205972992
+Flux Calculation for Star: 109/312 for gaia_1833248348703536000
+Flux Calculation for Star: 110/312 for gaia_1833249890593305472
+Flux Calculation for Star: 111/312 for gaia_1833248073826296192
+Flux Calculation for Star: 112/312 for gaia_1833246871234804480
+Flux Calculation for Star: 113/312 for gaia_1833248314343800064
+Flux Calculation for Star: 114/312 for gaia_1833246836875027712
+Flux Calculation for Star: 115/312 for gaia_1827241544891495424
+Flux Calculation for Star: 116/312 for gaia_1827052909932110080
+Flux Calculation for Star: 117/312 for gaia_1827241373092838528
+Flux Calculation for Star: 118/312 for gaia_1833247902027016192
+Flux Calculation for Star: 119/312 for gaia_1827245977297845248
+Flux Calculation for Star: 120/312 for gaia_1827246183456286336
+Flux Calculation for Star: 121/312 for gaia_1833248520502302848
+Flux Calculation for Star: 122/312 for gaia_1827245839859053184
+Flux Calculation for Star: 123/312 for gaia_1827242403885035264
+Flux Calculation for Star: 124/312 for gaia_1827242094647361920
+Flux Calculation for Star: 125/312 for gaia_1827245461901796096
+Flux Calculation for Star: 126/312 for gaia_1827242055963213184
+Flux Calculation for Star: 127/312 for gaia_1833246561997091840
+Flux Calculation for Star: 128/312 for gaia_1833247386630838528
+Flux Calculation for Star: 129/312 for gaia_1827241819769422208
+Flux Calculation for Star: 130/312 for gaia_1827240685898113280
+Flux Calculation for Star: 131/312 for gaia_1827242846251006208
+Flux Calculation for Star: 132/312 for gaia_1827241613610982144
+Flux Calculation for Star: 133/312 for gaia_1833248039465954304
+Flux Calculation for Star: 134/312 for gaia_1827242506964253312
+Flux Calculation for Star: 135/312 for gaia_1827242781842111744
+Flux Calculation for Star: 136/312 for gaia_1833251234921698432
+Flux Calculation for Star: 137/312 for gaia_1833058579876750336
+Flux Calculation for Star: 138/312 for gaia_1833247695868563712
+Flux Calculation for Star: 139/312 for gaia_1827242816201852800
+Flux Calculation for Star: 140/312 for gaia_1833247180472390144
+Flux Calculation for Star: 141/312 for gaia_1833251166202202368
+Flux Calculation for Star: 142/312 for gaia_1827245496261537408
+Flux Calculation for Star: 143/312 for gaia_1833251299328979968
+Flux Calculation for Star: 144/312 for gaia_1827053631486516992
+Flux Calculation for Star: 145/312 for gaia_1833246974313989504
+Flux Calculation for Star: 146/312 for gaia_1827245530621258112
+Flux Calculation for Star: 147/312 for gaia_1827053803285226880
+Flux Calculation for Star: 148/312 for gaia_1827246252175780864
+Flux Calculation for Star: 149/312 for gaia_1833251166202195200
+Flux Calculation for Star: 150/312 for gaia_1833247146112652544
+Flux Calculation for Star: 151/312 for gaia_1827053700205975808
+Flux Calculation for Star: 152/312 for gaia_1833247970746515584
+Flux Calculation for Star: 153/312 for gaia_1833247764588000512
+Flux Calculation for Star: 154/312 for gaia_1833251131842470528
+Flux Calculation for Star: 155/312 for gaia_1827242472604542208
+Flux Calculation for Star: 156/312 for gaia_1833247558429535104
+Flux Calculation for Star: 157/312 for gaia_1827242335165536768
+Flux Calculation for Star: 158/312 for gaia_1833248623581475456
+Flux Calculation for Star: 159/312 for gaia_1827053936390091520
+Flux Calculation for Star: 160/312 for gaia_1827247042449795072
+Flux Calculation for Star: 161/312 for gaia_1833247833307506048
+Flux Calculation for Star: 162/312 for gaia_1833247214832108288
+Flux Calculation for Star: 163/312 for gaia_1833247867667846528
+Flux Calculation for Star: 164/312 for gaia_1827242610043634944
+Flux Calculation for Star: 165/312 for gaia_1833248520502297472
+Flux Calculation for Star: 166/312 for gaia_1827247175564277504
+Flux Calculation for Star: 167/312 for gaia_1833247386630828672
+Flux Calculation for Star: 168/312 for gaia_1833247489710045440
+Flux Calculation for Star: 169/312 for gaia_1833247524069776768
+Flux Calculation for Star: 170/312 for gaia_1833247970746511104
+Flux Calculation for Star: 171/312 for gaia_1833248554862039680
+Flux Calculation for Star: 172/312 for gaia_1827242644403169920
+Flux Calculation for Star: 173/312 for gaia_1827241579251232896
+Flux Calculation for Star: 174/312 for gaia_1833058751675428864
+Flux Calculation for Star: 175/312 for gaia_1833248383063297920
+Flux Calculation for Star: 176/312 for gaia_1833252162634662912
+Flux Calculation for Star: 177/312 for gaia_1833058889114405120
+Flux Calculation for Star: 178/312 for gaia_1833248108185453184
+Flux Calculation for Star: 179/312 for gaia_1833251475439816192
+Flux Calculation for Star: 180/312 for gaia_1827246149096557056
+Flux Calculation for Star: 181/312 for gaia_1833247524069772032
+Flux Calculation for Star: 182/312 for gaia_1833247592789277056
+Flux Calculation for Star: 183/312 for gaia_1833248176904864000
+Flux Calculation for Star: 184/312 for gaia_1833059438870216960
+Flux Calculation for Star: 185/312 for gaia_1833058609908994432
+Flux Calculation for Star: 186/312 for gaia_1827245564980995072
+Flux Calculation for Star: 187/312 for gaia_1827053661514284800
+Flux Calculation for Star: 188/312 for gaia_1827054043803400960
+Flux Calculation for Star: 189/312 for gaia_1827242025927856768
+Flux Calculation for Star: 190/312 for gaia_1833251578519060864
+Flux Calculation for Star: 191/312 for gaia_1827245564980994688
+Flux Calculation for Star: 192/312 for gaia_1833247902027009792
+Flux Calculation for Star: 193/312 for gaia_1833246871234806784
+Flux Calculation for Star: 194/312 for gaia_1827053665846240896
+Flux Calculation for Star: 195/312 for gaia_1827053494050335232
+Flux Calculation for Star: 196/312 for gaia_1827241991568101888
+Flux Calculation for Star: 197/312 for gaia_1827053287889162752
+Flux Calculation for Star: 198/312 for gaia_1827053631486520576
+Flux Calculation for Star: 199/312 for gaia_1827239788220291328
+Flux Calculation for Star: 200/312 for gaia_1827246011657601280
+Flux Calculation for Star: 201/312 for gaia_1827242610043478912
+Flux Calculation for Star: 202/312 for gaia_1833247416678652544
+Flux Calculation for Star: 203/312 for gaia_1833058614236485376
+Flux Calculation for Star: 204/312 for gaia_1833246699436049280
+Flux Calculation for Star: 205/312 for gaia_1827241751049930496
+Flux Calculation for Star: 206/312 for gaia_1833247627149067904
+Flux Calculation for Star: 207/312 for gaia_1833058820394922496
+Flux Calculation for Star: 208/312 for gaia_1827053906364454528
+Flux Calculation for Star: 209/312 for gaia_1827246458334224384
+Flux Calculation for Star: 210/312 for gaia_1833251612878761600
+Flux Calculation for Star: 211/312 for gaia_1833251509799556480
+Flux Calculation for Star: 212/312 for gaia_1833248554862035200
+Flux Calculation for Star: 213/312 for gaia_1833249001538527104
+Flux Calculation for Star: 214/312 for gaia_1827243125439538176
+Flux Calculation for Star: 215/312 for gaia_1833247214832105856
+Flux Calculation for Star: 216/312 for gaia_1827243159799271680
+Flux Calculation for Star: 217/312 for gaia_1833246768155528192
+Flux Calculation for Star: 218/312 for gaia_1827241957208365312
+Flux Calculation for Star: 219/312 for gaia_1833246665076298112
+Flux Calculation for Star: 220/312 for gaia_1833058820394926464
+Flux Calculation for Star: 221/312 for gaia_1833251058810790656
+Flux Calculation for Star: 222/312 for gaia_1827246423974483584
+Flux Calculation for Star: 223/312 for gaia_1833248657941254656
+Flux Calculation for Star: 224/312 for gaia_1827240617178616320
+Flux Calculation for Star: 225/312 for gaia_1833251131842464256
+Flux Calculation for Star: 226/312 for gaia_1827243121115112832
+Flux Calculation for Star: 227/312 for gaia_1827242060287584256
+Flux Calculation for Star: 228/312 for gaia_1827053734565838592
+Flux Calculation for Star: 229/312 for gaia_1827246458334214784
+Flux Calculation for Star: 230/312 for gaia_1833251475439820928
+Flux Calculation for Star: 231/312 for gaia_1827241304373346176
+Flux Calculation for Star: 232/312 for gaia_1833251475414327424
+Flux Calculation for Star: 233/312 for gaia_1827242266446044032
+Flux Calculation for Star: 234/312 for gaia_1827053803285221888
+Flux Calculation for Star: 235/312 for gaia_1827242747482398208
+Flux Calculation for Star: 236/312 for gaia_1833248589221755264
+Flux Calculation for Star: 237/312 for gaia_1833058992193619584
+Flux Calculation for Star: 238/312 for gaia_1827053146118177664
+Flux Calculation for Star: 239/312 for gaia_1833247043034087552
+Flux Calculation for Star: 240/312 for gaia_1833247008673737216
+Flux Calculation for Star: 241/312 for gaia_1833248005106235264
+Flux Calculation for Star: 242/312 for gaia_1827241751049928320
+Flux Calculation for Star: 243/312 for gaia_1827242502639737344
+Flux Calculation for Star: 244/312 for gaia_1827245839858936960
+Flux Calculation for Star: 245/312 for gaia_1833251372360646272
+Flux Calculation for Star: 246/312 for gaia_1833058648596216960
+Flux Calculation for Star: 247/312 for gaia_1833251131842473600
+Flux Calculation for Star: 248/312 for gaia_1827242197726590720
+Flux Calculation for Star: 249/312 for gaia_1827241957208362624
+Flux Calculation for Star: 250/312 for gaia_1833251853396993152
+Flux Calculation for Star: 251/312 for gaia_1833250994403528960
+Flux Calculation for Star: 252/312 for gaia_1827241304373358336
+Flux Calculation for Star: 253/312 for gaia_1827053700205971200
+Flux Calculation for Star: 254/312 for gaia_1833246905594540288
+Flux Calculation for Star: 255/312 for gaia_1827242094647375872
+Flux Calculation for Star: 256/312 for gaia_1833247764588006272
+Flux Calculation for Star: 257/312 for gaia_1833247420990585856
+Flux Calculation for Star: 258/312 for gaia_1827053837644965504
+Flux Calculation for Star: 259/312 for gaia_1833247008673748352
+Flux Calculation for Star: 260/312 for gaia_1833246974314606208
+Flux Calculation for Star: 261/312 for gaia_1827243056720053888
+Flux Calculation for Star: 262/312 for gaia_1833247317911328896
+Flux Calculation for Star: 263/312 for gaia_1833251578519057152
+Flux Calculation for Star: 264/312 for gaia_1833248142545192832
+Flux Calculation for Star: 265/312 for gaia_1833058923474214784
+Flux Calculation for Star: 266/312 for gaia_1833251368048460672
+Flux Calculation for Star: 267/312 for gaia_1833058992193618688
+Flux Calculation for Star: 268/312 for gaia_1833247936386756608
+Flux Calculation for Star: 269/312 for gaia_1827246355254994432
+Flux Calculation for Star: 270/312 for gaia_1827245942938111488
+Flux Calculation for Star: 271/312 for gaia_1827053494047598592
+Flux Calculation for Star: 272/312 for gaia_1833251372360645376
+Flux Calculation for Star: 273/312 for gaia_1833246630716593664
+Flux Calculation for Star: 274/312 for gaia_1827241476172062080
+Flux Calculation for Star: 275/312 for gaia_1833248176911792512
+Flux Calculation for Star: 276/312 for gaia_1827242403885045504
+Flux Calculation for Star: 277/312 for gaia_1833247798947734400
+Flux Calculation for Star: 278/312 for gaia_1833246665076305536
+Flux Calculation for Star: 279/312 for gaia_1833058957833873152
+Flux Calculation for Star: 280/312 for gaia_1827242816201849472
+Flux Calculation for Star: 281/312 for gaia_1833251338000920064
+Flux Calculation for Star: 282/312 for gaia_1833247451038387328
+Flux Calculation for Star: 283/312 for gaia_1827245908578417024
+Flux Calculation for Star: 284/312 for gaia_1833251234921699456
+Flux Calculation for Star: 285/312 for gaia_1827246389614725760
+Flux Calculation for Star: 286/312 for gaia_1827053562767028608
+Flux Calculation for Star: 287/312 for gaia_1833251784677496832
+Flux Calculation for Star: 288/312 for gaia_1827245427542050560
+Flux Calculation for Star: 289/312 for gaia_1833059129615014144
+Flux Calculation for Star: 290/312 for gaia_1833248314343804544
+Flux Calculation for Star: 291/312 for gaia_1827242919281104384
+Flux Calculation for Star: 292/312 for gaia_1833247455350325376
+Flux Calculation for Star: 293/312 for gaia_1827245530621254784
+Flux Calculation for Star: 294/312 for gaia_1827242232086320768
+Flux Calculation for Star: 295/312 for gaia_1827242335165538688
+Flux Calculation for Star: 296/312 for gaia_1827242884895630464
+Flux Calculation for Star: 297/312 for gaia_1827242300805809024
+Flux Calculation for Star: 298/312 for gaia_1827242541323982976
+Flux Calculation for Star: 299/312 for gaia_1827241574926738432
+Flux Calculation for Star: 300/312 for gaia_1833251097482709120
+Flux Calculation for Star: 301/312 for gaia_1827245564980989696
+Flux Calculation for Star: 302/312 for gaia_1833248554862042496
+Flux Calculation for Star: 303/312 for gaia_1833247798922135296
+Flux Calculation for Star: 304/312 for gaia_1827242369525302528
+Flux Calculation for Star: 305/312 for gaia_1833247077393780992
+Flux Calculation for Star: 306/312 for gaia_1827243086755371008
+Flux Calculation for Star: 307/312 for gaia_1833058682955947264
+Flux Calculation for Star: 308/312 for gaia_1833247420990590848
+Flux Calculation for Star: 309/312 for gaia_1827053390968380160
+Flux Calculation for Star: 310/312 for gaia_1827241888489110784
+Flux Calculation for Star: 311/312 for gaia_1827239792544866688
+Flux Calculation for Star: 312/312 for gaia_1833247043033476096
+Calculating Counts / px / s 1/312 for gaia_1827242816201846144 channel NUV
+Calculating Counts / px / s 2/312 for gaia_1827245702419983360 channel NUV
+Calculating Counts / px / s 3/312 for gaia_1833246561971338240 channel NUV
+Calculating Counts / px / s 4/312 for gaia_1827242850561599104 channel NUV
+Calculating Counts / px / s 5/312 for gaia_1833251509799550208 channel NUV
+Calculating Counts / px / s 6/312 for gaia_1827242163366856576 channel NUV
+Calculating Counts / px / s 7/312 for gaia_1827242713122840064 channel NUV
+Calculating Counts / px / s 8/312 for gaia_1827053803285232896 channel NUV
+Calculating Counts / px / s 9/312 for gaia_1827242266446049920 channel NUV
+Calculating Counts / px / s 10/312 for gaia_1827054043803399168 channel NUV
+Calculating Counts / px / s 11/312 for gaia_1827242644403170560 channel NUV
+Calculating Counts / px / s 12/312 for gaia_1833252059555460480 channel NUV
+Calculating Counts / px / s 13/312 for gaia_1827241132574638208 channel NUV
+Calculating Counts / px / s 14/312 for gaia_1827243125439542912 channel NUV
+Calculating Counts / px / s 15/312 for gaia_1833246596356853888 channel NUV
+Calculating Counts / px / s 16/312 for gaia_1833247588477839872 channel NUV
+Calculating Counts / px / s 17/312 for gaia_1833251578519046656 channel NUV
+Calculating Counts / px / s 18/312 for gaia_1833247416678641152 channel NUV
+Calculating Counts / px / s 19/312 for gaia_1827241884179091456 channel NUV
+Calculating Counts / px / s 20/312 for gaia_1827245805499196672 channel NUV
+Calculating Counts / px / s 21/312 for gaia_1827246183456286720 channel NUV
+Calculating Counts / px / s 22/312 for gaia_1827242713122661504 channel NUV
+Calculating Counts / px / s 23/312 for gaia_1833059129632554240 channel NUV
+Calculating Counts / px / s 24/312 for gaia_1827242914970419712 channel NUV
+Calculating Counts / px / s 25/312 for gaia_1827246454009154048 channel NUV
+Calculating Counts / px / s 26/312 for gaia_1833247588477839616 channel NUV
+Calculating Counts / px / s 27/312 for gaia_1827053562767026944 channel NUV
+Calculating Counts / px / s 28/312 for gaia_1827242468279506560 channel NUV
+Calculating Counts / px / s 29/312 for gaia_1827243056720055936 channel NUV
+Calculating Counts / px / s 30/312 for gaia_1827242713122667008 channel NUV
+Calculating Counts / px / s 31/312 for gaia_1833247077393165568 channel NUV
+Calculating Counts / px / s 32/312 for gaia_1833059434551892992 channel NUV
+Calculating Counts / px / s 33/312 for gaia_1833251230609410688 channel NUV
+Calculating Counts / px / s 34/312 for gaia_1827242816176111360 channel NUV
+Calculating Counts / px / s 35/312 for gaia_1833251264969149312 channel NUV
+Calculating Counts / px / s 36/312 for gaia_1827242747482398080 channel NUV
+Calculating Counts / px / s 37/312 for gaia_1833248314343811712 channel NUV
+Calculating Counts / px / s 38/312 for gaia_1833246939954240512 channel NUV
+Calculating Counts / px / s 39/312 for gaia_1833248172593392512 channel NUV
+Calculating Counts / px / s 40/312 for gaia_1827243155474271616 channel NUV
+Calculating Counts / px / s 41/312 for gaia_1833247936386737408 channel NUV
+Calculating Counts / px / s 42/312 for gaia_1833251784677508096 channel NUV
+Calculating Counts / px / s 43/312 for gaia_1833251475439822976 channel NUV
+Calculating Counts / px / s 44/312 for gaia_1827242025927851520 channel NUV
+Calculating Counts / px / s 45/312 for gaia_1833252059556080768 channel NUV
+Calculating Counts / px / s 46/312 for gaia_1833251269281456000 channel NUV
+Calculating Counts / px / s 47/312 for gaia_1827240887731971840 channel NUV
+Calculating Counts / px / s 48/312 for gaia_1833246871234789376 channel NUV
+Calculating Counts / px / s 49/312 for gaia_1827245839858920832 channel NUV
+Calculating Counts / px / s 50/312 for gaia_1827242678762906752 channel NUV
+Calculating Counts / px / s 51/312 for gaia_1827245805499194496 channel NUV
+Calculating Counts / px / s 52/312 for gaia_1833247867667232000 channel NUV
+Calculating Counts / px / s 53/312 for gaia_1827246183456287616 channel NUV
+Calculating Counts / px / s 54/312 for gaia_1833247902027004032 channel NUV
+Calculating Counts / px / s 55/312 for gaia_1827053219169666432 channel NUV
+Calculating Counts / px / s 56/312 for gaia_1833251441080135808 channel NUV
+Calculating Counts / px / s 57/312 for gaia_1833248314343796608 channel NUV
+Calculating Counts / px / s 58/312 for gaia_1833058992193618048 channel NUV
+Calculating Counts / px / s 59/312 for gaia_1827241613610977152 channel NUV
+Calculating Counts / px / s 60/312 for gaia_1833248623581487616 channel NUV
+Calculating Counts / px / s 61/312 for gaia_1827246252175781376 channel NUV
+Calculating Counts / px / s 62/312 for gaia_1827241682330449920 channel NUV
+Calculating Counts / px / s 63/312 for gaia_1827246458334217216 channel NUV
+Calculating Counts / px / s 64/312 for gaia_1827241819769424640 channel NUV
+Calculating Counts / px / s 65/312 for gaia_1827246046017339520 channel NUV
+Calculating Counts / px / s 66/312 for gaia_1833247455350328320 channel NUV
+Calculating Counts / px / s 67/312 for gaia_1827246011657605632 channel NUV
+Calculating Counts / px / s 68/312 for gaia_1833247214832094848 channel NUV
+Calculating Counts / px / s 69/312 for gaia_1833246561971332480 channel NUV
+Calculating Counts / px / s 70/312 for gaia_1827241991568106368 channel NUV
+Calculating Counts / px / s 71/312 for gaia_1833058579876744064 channel NUV
+Calculating Counts / px / s 72/312 for gaia_1833249070258024576 channel NUV
+Calculating Counts / px / s 73/312 for gaia_1833251063122974336 channel NUV
+Calculating Counts / px / s 74/312 for gaia_1827243091079789184 channel NUV
+Calculating Counts / px / s 75/312 for gaia_1827053768925465216 channel NUV
+Calculating Counts / px / s 76/312 for gaia_1827241407452569344 channel NUV
+Calculating Counts / px / s 77/312 for gaia_1827242747482392704 channel NUV
+Calculating Counts / px / s 78/312 for gaia_1827246458334226560 channel NUV
+Calculating Counts / px / s 79/312 for gaia_1833251028763254784 channel NUV
+Calculating Counts / px / s 80/312 for gaia_1833247386630831872 channel NUV
+Calculating Counts / px / s 81/312 for gaia_1827240887731978368 channel NUV
+Calculating Counts / px / s 82/312 for gaia_1833246561997088256 channel NUV
+Calculating Counts / px / s 83/312 for gaia_1827053906364455936 channel NUV
+Calculating Counts / px / s 84/312 for gaia_1833251234921696000 channel NUV
+Calculating Counts / px / s 85/312 for gaia_1833247317911334016 channel NUV
+Calculating Counts / px / s 86/312 for gaia_1833248417423042688 channel NUV
+Calculating Counts / px / s 87/312 for gaia_1827242713122661888 channel NUV
+Calculating Counts / px / s 88/312 for gaia_1833247588477383040 channel NUV
+Calculating Counts / px / s 89/312 for gaia_1833246561997097088 channel NUV
+Calculating Counts / px / s 90/312 for gaia_1833246802515310080 channel NUV
+Calculating Counts / px / s 91/312 for gaia_1833247867667852032 channel NUV
+Calculating Counts / px / s 92/312 for gaia_1833246561997101312 channel NUV
+Calculating Counts / px / s 93/312 for gaia_1827246660168180480 channel NUV
+Calculating Counts / px / s 94/312 for gaia_1833058682955949696 channel NUV
+Calculating Counts / px / s 95/312 for gaia_1833246871234811264 channel NUV
+Calculating Counts / px / s 96/312 for gaia_1827246252175786624 channel NUV
+Calculating Counts / px / s 97/312 for gaia_1833246630716584960 channel NUV
+Calculating Counts / px / s 98/312 for gaia_1827242953640847744 channel NUV
+Calculating Counts / px / s 99/312 for gaia_1827241544891495552 channel NUV
+Calculating Counts / px / s 100/312 for gaia_1833247317911335808 channel NUV
+Calculating Counts / px / s 101/312 for gaia_1833247936386740608 channel NUV
+Calculating Counts / px / s 102/312 for gaia_1833246836875043840 channel NUV
+Calculating Counts / px / s 103/312 for gaia_1833247043033484032 channel NUV
+Calculating Counts / px / s 104/312 for gaia_1827246423974488448 channel NUV
+Calculating Counts / px / s 105/312 for gaia_1833058992193620608 channel NUV
+Calculating Counts / px / s 106/312 for gaia_1827246355254990848 channel NUV
+Calculating Counts / px / s 107/312 for gaia_1827241407452561408 channel NUV
+Calculating Counts / px / s 108/312 for gaia_1827053700205972992 channel NUV
+Calculating Counts / px / s 109/312 for gaia_1833248348703536000 channel NUV
+Calculating Counts / px / s 110/312 for gaia_1833249890593305472 channel NUV
+Calculating Counts / px / s 111/312 for gaia_1833248073826296192 channel NUV
+Calculating Counts / px / s 112/312 for gaia_1833246871234804480 channel NUV
+Calculating Counts / px / s 113/312 for gaia_1833248314343800064 channel NUV
+Calculating Counts / px / s 114/312 for gaia_1833246836875027712 channel NUV
+Calculating Counts / px / s 115/312 for gaia_1827241544891495424 channel NUV
+Calculating Counts / px / s 116/312 for gaia_1827052909932110080 channel NUV
+Calculating Counts / px / s 117/312 for gaia_1827241373092838528 channel NUV
+Calculating Counts / px / s 118/312 for gaia_1833247902027016192 channel NUV
+Calculating Counts / px / s 119/312 for gaia_1827245977297845248 channel NUV
+Calculating Counts / px / s 120/312 for gaia_1827246183456286336 channel NUV
+Calculating Counts / px / s 121/312 for gaia_1833248520502302848 channel NUV
+Calculating Counts / px / s 122/312 for gaia_1827245839859053184 channel NUV
+Calculating Counts / px / s 123/312 for gaia_1827242403885035264 channel NUV
+Calculating Counts / px / s 124/312 for gaia_1827242094647361920 channel NUV
+Calculating Counts / px / s 125/312 for gaia_1827245461901796096 channel NUV
+Calculating Counts / px / s 126/312 for gaia_1827242055963213184 channel NUV
+Calculating Counts / px / s 127/312 for gaia_1833246561997091840 channel NUV
+Calculating Counts / px / s 128/312 for gaia_1833247386630838528 channel NUV
+Calculating Counts / px / s 129/312 for gaia_1827241819769422208 channel NUV
+Calculating Counts / px / s 130/312 for gaia_1827240685898113280 channel NUV
+Calculating Counts / px / s 131/312 for gaia_1827242846251006208 channel NUV
+Calculating Counts / px / s 132/312 for gaia_1827241613610982144 channel NUV
+Calculating Counts / px / s 133/312 for gaia_1833248039465954304 channel NUV
+Calculating Counts / px / s 134/312 for gaia_1827242506964253312 channel NUV
+Calculating Counts / px / s 135/312 for gaia_1827242781842111744 channel NUV
+Calculating Counts / px / s 136/312 for gaia_1833251234921698432 channel NUV
+Calculating Counts / px / s 137/312 for gaia_1833058579876750336 channel NUV
+Calculating Counts / px / s 138/312 for gaia_1833247695868563712 channel NUV
+Calculating Counts / px / s 139/312 for gaia_1827242816201852800 channel NUV
+Calculating Counts / px / s 140/312 for gaia_1833247180472390144 channel NUV
+Calculating Counts / px / s 141/312 for gaia_1833251166202202368 channel NUV
+Calculating Counts / px / s 142/312 for gaia_1827245496261537408 channel NUV
+Calculating Counts / px / s 143/312 for gaia_1833251299328979968 channel NUV
+Calculating Counts / px / s 144/312 for gaia_1827053631486516992 channel NUV
+Calculating Counts / px / s 145/312 for gaia_1833246974313989504 channel NUV
+Calculating Counts / px / s 146/312 for gaia_1827245530621258112 channel NUV
+Calculating Counts / px / s 147/312 for gaia_1827053803285226880 channel NUV
+Calculating Counts / px / s 148/312 for gaia_1827246252175780864 channel NUV
+Calculating Counts / px / s 149/312 for gaia_1833251166202195200 channel NUV
+Calculating Counts / px / s 150/312 for gaia_1833247146112652544 channel NUV
+Calculating Counts / px / s 151/312 for gaia_1827053700205975808 channel NUV
+Calculating Counts / px / s 152/312 for gaia_1833247970746515584 channel NUV
+Calculating Counts / px / s 153/312 for gaia_1833247764588000512 channel NUV
+Calculating Counts / px / s 154/312 for gaia_1833251131842470528 channel NUV
+Calculating Counts / px / s 155/312 for gaia_1827242472604542208 channel NUV
+Calculating Counts / px / s 156/312 for gaia_1833247558429535104 channel NUV
+Calculating Counts / px / s 157/312 for gaia_1827242335165536768 channel NUV
+Calculating Counts / px / s 158/312 for gaia_1833248623581475456 channel NUV
+Calculating Counts / px / s 159/312 for gaia_1827053936390091520 channel NUV
+Calculating Counts / px / s 160/312 for gaia_1827247042449795072 channel NUV
+Calculating Counts / px / s 161/312 for gaia_1833247833307506048 channel NUV
+Calculating Counts / px / s 162/312 for gaia_1833247214832108288 channel NUV
+Calculating Counts / px / s 163/312 for gaia_1833247867667846528 channel NUV
+Calculating Counts / px / s 164/312 for gaia_1827242610043634944 channel NUV
+Calculating Counts / px / s 165/312 for gaia_1833248520502297472 channel NUV
+Calculating Counts / px / s 166/312 for gaia_1827247175564277504 channel NUV
+Calculating Counts / px / s 167/312 for gaia_1833247386630828672 channel NUV
+Calculating Counts / px / s 168/312 for gaia_1833247489710045440 channel NUV
+Calculating Counts / px / s 169/312 for gaia_1833247524069776768 channel NUV
+Calculating Counts / px / s 170/312 for gaia_1833247970746511104 channel NUV
+Calculating Counts / px / s 171/312 for gaia_1833248554862039680 channel NUV
+Calculating Counts / px / s 172/312 for gaia_1827242644403169920 channel NUV
+Calculating Counts / px / s 173/312 for gaia_1827241579251232896 channel NUV
+Calculating Counts / px / s 174/312 for gaia_1833058751675428864 channel NUV
+Calculating Counts / px / s 175/312 for gaia_1833248383063297920 channel NUV
+Calculating Counts / px / s 176/312 for gaia_1833252162634662912 channel NUV
+Calculating Counts / px / s 177/312 for gaia_1833058889114405120 channel NUV
+Calculating Counts / px / s 178/312 for gaia_1833248108185453184 channel NUV
+Calculating Counts / px / s 179/312 for gaia_1833251475439816192 channel NUV
+Calculating Counts / px / s 180/312 for gaia_1827246149096557056 channel NUV
+Calculating Counts / px / s 181/312 for gaia_1833247524069772032 channel NUV
+Calculating Counts / px / s 182/312 for gaia_1833247592789277056 channel NUV
+Calculating Counts / px / s 183/312 for gaia_1833248176904864000 channel NUV
+Calculating Counts / px / s 184/312 for gaia_1833059438870216960 channel NUV
+Calculating Counts / px / s 185/312 for gaia_1833058609908994432 channel NUV
+Calculating Counts / px / s 186/312 for gaia_1827245564980995072 channel NUV
+Calculating Counts / px / s 187/312 for gaia_1827053661514284800 channel NUV
+Calculating Counts / px / s 188/312 for gaia_1827054043803400960 channel NUV
+Calculating Counts / px / s 189/312 for gaia_1827242025927856768 channel NUV
+Calculating Counts / px / s 190/312 for gaia_1833251578519060864 channel NUV
+Calculating Counts / px / s 191/312 for gaia_1827245564980994688 channel NUV
+Calculating Counts / px / s 192/312 for gaia_1833247902027009792 channel NUV
+Calculating Counts / px / s 193/312 for gaia_1833246871234806784 channel NUV
+Calculating Counts / px / s 194/312 for gaia_1827053665846240896 channel NUV
+Calculating Counts / px / s 195/312 for gaia_1827053494050335232 channel NUV
+Calculating Counts / px / s 196/312 for gaia_1827241991568101888 channel NUV
+Calculating Counts / px / s 197/312 for gaia_1827053287889162752 channel NUV
+Calculating Counts / px / s 198/312 for gaia_1827053631486520576 channel NUV
+Calculating Counts / px / s 199/312 for gaia_1827239788220291328 channel NUV
+Calculating Counts / px / s 200/312 for gaia_1827246011657601280 channel NUV
+Calculating Counts / px / s 201/312 for gaia_1827242610043478912 channel NUV
+Calculating Counts / px / s 202/312 for gaia_1833247416678652544 channel NUV
+Calculating Counts / px / s 203/312 for gaia_1833058614236485376 channel NUV
+Calculating Counts / px / s 204/312 for gaia_1833246699436049280 channel NUV
+Calculating Counts / px / s 205/312 for gaia_1827241751049930496 channel NUV
+Calculating Counts / px / s 206/312 for gaia_1833247627149067904 channel NUV
+Calculating Counts / px / s 207/312 for gaia_1833058820394922496 channel NUV
+Calculating Counts / px / s 208/312 for gaia_1827053906364454528 channel NUV
+Calculating Counts / px / s 209/312 for gaia_1827246458334224384 channel NUV
+Calculating Counts / px / s 210/312 for gaia_1833251612878761600 channel NUV
+Calculating Counts / px / s 211/312 for gaia_1833251509799556480 channel NUV
+Calculating Counts / px / s 212/312 for gaia_1833248554862035200 channel NUV
+Calculating Counts / px / s 213/312 for gaia_1833249001538527104 channel NUV
+Calculating Counts / px / s 214/312 for gaia_1827243125439538176 channel NUV
+Calculating Counts / px / s 215/312 for gaia_1833247214832105856 channel NUV
+Calculating Counts / px / s 216/312 for gaia_1827243159799271680 channel NUV
+Calculating Counts / px / s 217/312 for gaia_1833246768155528192 channel NUV
+Calculating Counts / px / s 218/312 for gaia_1827241957208365312 channel NUV
+Calculating Counts / px / s 219/312 for gaia_1833246665076298112 channel NUV
+Calculating Counts / px / s 220/312 for gaia_1833058820394926464 channel NUV
+Calculating Counts / px / s 221/312 for gaia_1833251058810790656 channel NUV
+Calculating Counts / px / s 222/312 for gaia_1827246423974483584 channel NUV
+Calculating Counts / px / s 223/312 for gaia_1833248657941254656 channel NUV
+Calculating Counts / px / s 224/312 for gaia_1827240617178616320 channel NUV
+Calculating Counts / px / s 225/312 for gaia_1833251131842464256 channel NUV
+Calculating Counts / px / s 226/312 for gaia_1827243121115112832 channel NUV
+Calculating Counts / px / s 227/312 for gaia_1827242060287584256 channel NUV
+Calculating Counts / px / s 228/312 for gaia_1827053734565838592 channel NUV
+Calculating Counts / px / s 229/312 for gaia_1827246458334214784 channel NUV
+Calculating Counts / px / s 230/312 for gaia_1833251475439820928 channel NUV
+Calculating Counts / px / s 231/312 for gaia_1827241304373346176 channel NUV
+Calculating Counts / px / s 232/312 for gaia_1833251475414327424 channel NUV
+Calculating Counts / px / s 233/312 for gaia_1827242266446044032 channel NUV
+Calculating Counts / px / s 234/312 for gaia_1827053803285221888 channel NUV
+Calculating Counts / px / s 235/312 for gaia_1827242747482398208 channel NUV
+Calculating Counts / px / s 236/312 for gaia_1833248589221755264 channel NUV
+Calculating Counts / px / s 237/312 for gaia_1833058992193619584 channel NUV
+Calculating Counts / px / s 238/312 for gaia_1827053146118177664 channel NUV
+Calculating Counts / px / s 239/312 for gaia_1833247043034087552 channel NUV
+Calculating Counts / px / s 240/312 for gaia_1833247008673737216 channel NUV
+Calculating Counts / px / s 241/312 for gaia_1833248005106235264 channel NUV
+Calculating Counts / px / s 242/312 for gaia_1827241751049928320 channel NUV
+Calculating Counts / px / s 243/312 for gaia_1827242502639737344 channel NUV
+Calculating Counts / px / s 244/312 for gaia_1827245839858936960 channel NUV
+Calculating Counts / px / s 245/312 for gaia_1833251372360646272 channel NUV
+Calculating Counts / px / s 246/312 for gaia_1833058648596216960 channel NUV
+Calculating Counts / px / s 247/312 for gaia_1833251131842473600 channel NUV
+Calculating Counts / px / s 248/312 for gaia_1827242197726590720 channel NUV
+Calculating Counts / px / s 249/312 for gaia_1827241957208362624 channel NUV
+Calculating Counts / px / s 250/312 for gaia_1833251853396993152 channel NUV
+Calculating Counts / px / s 251/312 for gaia_1833250994403528960 channel NUV
+Calculating Counts / px / s 252/312 for gaia_1827241304373358336 channel NUV
+Calculating Counts / px / s 253/312 for gaia_1827053700205971200 channel NUV
+Calculating Counts / px / s 254/312 for gaia_1833246905594540288 channel NUV
+Calculating Counts / px / s 255/312 for gaia_1827242094647375872 channel NUV
+Calculating Counts / px / s 256/312 for gaia_1833247764588006272 channel NUV
+Calculating Counts / px / s 257/312 for gaia_1833247420990585856 channel NUV
+Calculating Counts / px / s 258/312 for gaia_1827053837644965504 channel NUV
+Calculating Counts / px / s 259/312 for gaia_1833247008673748352 channel NUV
+Calculating Counts / px / s 260/312 for gaia_1833246974314606208 channel NUV
+Calculating Counts / px / s 261/312 for gaia_1827243056720053888 channel NUV
+Calculating Counts / px / s 262/312 for gaia_1833247317911328896 channel NUV
+Calculating Counts / px / s 263/312 for gaia_1833251578519057152 channel NUV
+Calculating Counts / px / s 264/312 for gaia_1833248142545192832 channel NUV
+Calculating Counts / px / s 265/312 for gaia_1833058923474214784 channel NUV
+Calculating Counts / px / s 266/312 for gaia_1833251368048460672 channel NUV
+Calculating Counts / px / s 267/312 for gaia_1833058992193618688 channel NUV
+Calculating Counts / px / s 268/312 for gaia_1833247936386756608 channel NUV
+Calculating Counts / px / s 269/312 for gaia_1827246355254994432 channel NUV
+Calculating Counts / px / s 270/312 for gaia_1827245942938111488 channel NUV
+Calculating Counts / px / s 271/312 for gaia_1827053494047598592 channel NUV
+Calculating Counts / px / s 272/312 for gaia_1833251372360645376 channel NUV
+Calculating Counts / px / s 273/312 for gaia_1833246630716593664 channel NUV
+Calculating Counts / px / s 274/312 for gaia_1827241476172062080 channel NUV
+Calculating Counts / px / s 275/312 for gaia_1833248176911792512 channel NUV
+Calculating Counts / px / s 276/312 for gaia_1827242403885045504 channel NUV
+Calculating Counts / px / s 277/312 for gaia_1833247798947734400 channel NUV
+Calculating Counts / px / s 278/312 for gaia_1833246665076305536 channel NUV
+Calculating Counts / px / s 279/312 for gaia_1833058957833873152 channel NUV
+Calculating Counts / px / s 280/312 for gaia_1827242816201849472 channel NUV
+Calculating Counts / px / s 281/312 for gaia_1833251338000920064 channel NUV
+Calculating Counts / px / s 282/312 for gaia_1833247451038387328 channel NUV
+Calculating Counts / px / s 283/312 for gaia_1827245908578417024 channel NUV
+Calculating Counts / px / s 284/312 for gaia_1833251234921699456 channel NUV
+Calculating Counts / px / s 285/312 for gaia_1827246389614725760 channel NUV
+Calculating Counts / px / s 286/312 for gaia_1827053562767028608 channel NUV
+Calculating Counts / px / s 287/312 for gaia_1833251784677496832 channel NUV
+Calculating Counts / px / s 288/312 for gaia_1827245427542050560 channel NUV
+Calculating Counts / px / s 289/312 for gaia_1833059129615014144 channel NUV
+Calculating Counts / px / s 290/312 for gaia_1833248314343804544 channel NUV
+Calculating Counts / px / s 291/312 for gaia_1827242919281104384 channel NUV
+Calculating Counts / px / s 292/312 for gaia_1833247455350325376 channel NUV
+Calculating Counts / px / s 293/312 for gaia_1827245530621254784 channel NUV
+Calculating Counts / px / s 294/312 for gaia_1827242232086320768 channel NUV
+Calculating Counts / px / s 295/312 for gaia_1827242335165538688 channel NUV
+Calculating Counts / px / s 296/312 for gaia_1827242884895630464 channel NUV
+Calculating Counts / px / s 297/312 for gaia_1827242300805809024 channel NUV
+Calculating Counts / px / s 298/312 for gaia_1827242541323982976 channel NUV
+Calculating Counts / px / s 299/312 for gaia_1827241574926738432 channel NUV
+Calculating Counts / px / s 300/312 for gaia_1833251097482709120 channel NUV
+Calculating Counts / px / s 301/312 for gaia_1827245564980989696 channel NUV
+Calculating Counts / px / s 302/312 for gaia_1833248554862042496 channel NUV
+Calculating Counts / px / s 303/312 for gaia_1833247798922135296 channel NUV
+Calculating Counts / px / s 304/312 for gaia_1827242369525302528 channel NUV
+Calculating Counts / px / s 305/312 for gaia_1833247077393780992 channel NUV
+Calculating Counts / px / s 306/312 for gaia_1827243086755371008 channel NUV
+Calculating Counts / px / s 307/312 for gaia_1833058682955947264 channel NUV
+Calculating Counts / px / s 308/312 for gaia_1833247420990590848 channel NUV
+Calculating Counts / px / s 309/312 for gaia_1827053390968380160 channel NUV
+Calculating Counts / px / s 310/312 for gaia_1827241888489110784 channel NUV
+Calculating Counts / px / s 311/312 for gaia_1827239792544866688 channel NUV
+Calculating Counts / px / s 312/312 for gaia_1833247043033476096 channel NUV
+Calculating Counts / px / s 1/312 for gaia_1827242816201846144 channel VIS
+Calculating Counts / px / s 2/312 for gaia_1827245702419983360 channel VIS
+Calculating Counts / px / s 3/312 for gaia_1833246561971338240 channel VIS
+Calculating Counts / px / s 4/312 for gaia_1827242850561599104 channel VIS
+Calculating Counts / px / s 5/312 for gaia_1833251509799550208 channel VIS
+Calculating Counts / px / s 6/312 for gaia_1827242163366856576 channel VIS
+Calculating Counts / px / s 7/312 for gaia_1827242713122840064 channel VIS
+Calculating Counts / px / s 8/312 for gaia_1827053803285232896 channel VIS
+Calculating Counts / px / s 9/312 for gaia_1827242266446049920 channel VIS
+Calculating Counts / px / s 10/312 for gaia_1827054043803399168 channel VIS
+Calculating Counts / px / s 11/312 for gaia_1827242644403170560 channel VIS
+Calculating Counts / px / s 12/312 for gaia_1833252059555460480 channel VIS
+Calculating Counts / px / s 13/312 for gaia_1827241132574638208 channel VIS
+Calculating Counts / px / s 14/312 for gaia_1827243125439542912 channel VIS
+Calculating Counts / px / s 15/312 for gaia_1833246596356853888 channel VIS
+Calculating Counts / px / s 16/312 for gaia_1833247588477839872 channel VIS
+Calculating Counts / px / s 17/312 for gaia_1833251578519046656 channel VIS
+Calculating Counts / px / s 18/312 for gaia_1833247416678641152 channel VIS
+Calculating Counts / px / s 19/312 for gaia_1827241884179091456 channel VIS
+Calculating Counts / px / s 20/312 for gaia_1827245805499196672 channel VIS
+Calculating Counts / px / s 21/312 for gaia_1827246183456286720 channel VIS
+Calculating Counts / px / s 22/312 for gaia_1827242713122661504 channel VIS
+Calculating Counts / px / s 23/312 for gaia_1833059129632554240 channel VIS
+Calculating Counts / px / s 24/312 for gaia_1827242914970419712 channel VIS
+Calculating Counts / px / s 25/312 for gaia_1827246454009154048 channel VIS
+Calculating Counts / px / s 26/312 for gaia_1833247588477839616 channel VIS
+Calculating Counts / px / s 27/312 for gaia_1827053562767026944 channel VIS
+Calculating Counts / px / s 28/312 for gaia_1827242468279506560 channel VIS
+Calculating Counts / px / s 29/312 for gaia_1827243056720055936 channel VIS
+Calculating Counts / px / s 30/312 for gaia_1827242713122667008 channel VIS
+Calculating Counts / px / s 31/312 for gaia_1833247077393165568 channel VIS
+Calculating Counts / px / s 32/312 for gaia_1833059434551892992 channel VIS
+Calculating Counts / px / s 33/312 for gaia_1833251230609410688 channel VIS
+Calculating Counts / px / s 34/312 for gaia_1827242816176111360 channel VIS
+Calculating Counts / px / s 35/312 for gaia_1833251264969149312 channel VIS
+Calculating Counts / px / s 36/312 for gaia_1827242747482398080 channel VIS
+Calculating Counts / px / s 37/312 for gaia_1833248314343811712 channel VIS
+Calculating Counts / px / s 38/312 for gaia_1833246939954240512 channel VIS
+Calculating Counts / px / s 39/312 for gaia_1833248172593392512 channel VIS
+Calculating Counts / px / s 40/312 for gaia_1827243155474271616 channel VIS
+Calculating Counts / px / s 41/312 for gaia_1833247936386737408 channel VIS
+Calculating Counts / px / s 42/312 for gaia_1833251784677508096 channel VIS
+Calculating Counts / px / s 43/312 for gaia_1833251475439822976 channel VIS
+Calculating Counts / px / s 44/312 for gaia_1827242025927851520 channel VIS
+Calculating Counts / px / s 45/312 for gaia_1833252059556080768 channel VIS
+Calculating Counts / px / s 46/312 for gaia_1833251269281456000 channel VIS
+Calculating Counts / px / s 47/312 for gaia_1827240887731971840 channel VIS
+Calculating Counts / px / s 48/312 for gaia_1833246871234789376 channel VIS
+Calculating Counts / px / s 49/312 for gaia_1827245839858920832 channel VIS
+Calculating Counts / px / s 50/312 for gaia_1827242678762906752 channel VIS
+Calculating Counts / px / s 51/312 for gaia_1827245805499194496 channel VIS
+Calculating Counts / px / s 52/312 for gaia_1833247867667232000 channel VIS
+Calculating Counts / px / s 53/312 for gaia_1827246183456287616 channel VIS
+Calculating Counts / px / s 54/312 for gaia_1833247902027004032 channel VIS
+Calculating Counts / px / s 55/312 for gaia_1827053219169666432 channel VIS
+Calculating Counts / px / s 56/312 for gaia_1833251441080135808 channel VIS
+Calculating Counts / px / s 57/312 for gaia_1833248314343796608 channel VIS
+Calculating Counts / px / s 58/312 for gaia_1833058992193618048 channel VIS
+Calculating Counts / px / s 59/312 for gaia_1827241613610977152 channel VIS
+Calculating Counts / px / s 60/312 for gaia_1833248623581487616 channel VIS
+Calculating Counts / px / s 61/312 for gaia_1827246252175781376 channel VIS
+Calculating Counts / px / s 62/312 for gaia_1827241682330449920 channel VIS
+Calculating Counts / px / s 63/312 for gaia_1827246458334217216 channel VIS
+Calculating Counts / px / s 64/312 for gaia_1827241819769424640 channel VIS
+Calculating Counts / px / s 65/312 for gaia_1827246046017339520 channel VIS
+Calculating Counts / px / s 66/312 for gaia_1833247455350328320 channel VIS
+Calculating Counts / px / s 67/312 for gaia_1827246011657605632 channel VIS
+Calculating Counts / px / s 68/312 for gaia_1833247214832094848 channel VIS
+Calculating Counts / px / s 69/312 for gaia_1833246561971332480 channel VIS
+Calculating Counts / px / s 70/312 for gaia_1827241991568106368 channel VIS
+Calculating Counts / px / s 71/312 for gaia_1833058579876744064 channel VIS
+Calculating Counts / px / s 72/312 for gaia_1833249070258024576 channel VIS
+Calculating Counts / px / s 73/312 for gaia_1833251063122974336 channel VIS
+Calculating Counts / px / s 74/312 for gaia_1827243091079789184 channel VIS
+Calculating Counts / px / s 75/312 for gaia_1827053768925465216 channel VIS
+Calculating Counts / px / s 76/312 for gaia_1827241407452569344 channel VIS
+Calculating Counts / px / s 77/312 for gaia_1827242747482392704 channel VIS
+Calculating Counts / px / s 78/312 for gaia_1827246458334226560 channel VIS
+Calculating Counts / px / s 79/312 for gaia_1833251028763254784 channel VIS
+Calculating Counts / px / s 80/312 for gaia_1833247386630831872 channel VIS
+Calculating Counts / px / s 81/312 for gaia_1827240887731978368 channel VIS
+Calculating Counts / px / s 82/312 for gaia_1833246561997088256 channel VIS
+Calculating Counts / px / s 83/312 for gaia_1827053906364455936 channel VIS
+Calculating Counts / px / s 84/312 for gaia_1833251234921696000 channel VIS
+Calculating Counts / px / s 85/312 for gaia_1833247317911334016 channel VIS
+Calculating Counts / px / s 86/312 for gaia_1833248417423042688 channel VIS
+Calculating Counts / px / s 87/312 for gaia_1827242713122661888 channel VIS
+Calculating Counts / px / s 88/312 for gaia_1833247588477383040 channel VIS
+Calculating Counts / px / s 89/312 for gaia_1833246561997097088 channel VIS
+Calculating Counts / px / s 90/312 for gaia_1833246802515310080 channel VIS
+Calculating Counts / px / s 91/312 for gaia_1833247867667852032 channel VIS
+Calculating Counts / px / s 92/312 for gaia_1833246561997101312 channel VIS
+Calculating Counts / px / s 93/312 for gaia_1827246660168180480 channel VIS
+Calculating Counts / px / s 94/312 for gaia_1833058682955949696 channel VIS
+Calculating Counts / px / s 95/312 for gaia_1833246871234811264 channel VIS
+Calculating Counts / px / s 96/312 for gaia_1827246252175786624 channel VIS
+Calculating Counts / px / s 97/312 for gaia_1833246630716584960 channel VIS
+Calculating Counts / px / s 98/312 for gaia_1827242953640847744 channel VIS
+Calculating Counts / px / s 99/312 for gaia_1827241544891495552 channel VIS
+Calculating Counts / px / s 100/312 for gaia_1833247317911335808 channel VIS
+Calculating Counts / px / s 101/312 for gaia_1833247936386740608 channel VIS
+Calculating Counts / px / s 102/312 for gaia_1833246836875043840 channel VIS
+Calculating Counts / px / s 103/312 for gaia_1833247043033484032 channel VIS
+Calculating Counts / px / s 104/312 for gaia_1827246423974488448 channel VIS
+Calculating Counts / px / s 105/312 for gaia_1833058992193620608 channel VIS
+Calculating Counts / px / s 106/312 for gaia_1827246355254990848 channel VIS
+Calculating Counts / px / s 107/312 for gaia_1827241407452561408 channel VIS
+Calculating Counts / px / s 108/312 for gaia_1827053700205972992 channel VIS
+Calculating Counts / px / s 109/312 for gaia_1833248348703536000 channel VIS
+Calculating Counts / px / s 110/312 for gaia_1833249890593305472 channel VIS
+Calculating Counts / px / s 111/312 for gaia_1833248073826296192 channel VIS
+Calculating Counts / px / s 112/312 for gaia_1833246871234804480 channel VIS
+Calculating Counts / px / s 113/312 for gaia_1833248314343800064 channel VIS
+Calculating Counts / px / s 114/312 for gaia_1833246836875027712 channel VIS
+Calculating Counts / px / s 115/312 for gaia_1827241544891495424 channel VIS
+Calculating Counts / px / s 116/312 for gaia_1827052909932110080 channel VIS
+Calculating Counts / px / s 117/312 for gaia_1827241373092838528 channel VIS
+Calculating Counts / px / s 118/312 for gaia_1833247902027016192 channel VIS
+Calculating Counts / px / s 119/312 for gaia_1827245977297845248 channel VIS
+Calculating Counts / px / s 120/312 for gaia_1827246183456286336 channel VIS
+Calculating Counts / px / s 121/312 for gaia_1833248520502302848 channel VIS
+Calculating Counts / px / s 122/312 for gaia_1827245839859053184 channel VIS
+Calculating Counts / px / s 123/312 for gaia_1827242403885035264 channel VIS
+Calculating Counts / px / s 124/312 for gaia_1827242094647361920 channel VIS
+Calculating Counts / px / s 125/312 for gaia_1827245461901796096 channel VIS
+Calculating Counts / px / s 126/312 for gaia_1827242055963213184 channel VIS
+Calculating Counts / px / s 127/312 for gaia_1833246561997091840 channel VIS
+Calculating Counts / px / s 128/312 for gaia_1833247386630838528 channel VIS
+Calculating Counts / px / s 129/312 for gaia_1827241819769422208 channel VIS
+Calculating Counts / px / s 130/312 for gaia_1827240685898113280 channel VIS
+Calculating Counts / px / s 131/312 for gaia_1827242846251006208 channel VIS
+Calculating Counts / px / s 132/312 for gaia_1827241613610982144 channel VIS
+Calculating Counts / px / s 133/312 for gaia_1833248039465954304 channel VIS
+Calculating Counts / px / s 134/312 for gaia_1827242506964253312 channel VIS
+Calculating Counts / px / s 135/312 for gaia_1827242781842111744 channel VIS
+Calculating Counts / px / s 136/312 for gaia_1833251234921698432 channel VIS
+Calculating Counts / px / s 137/312 for gaia_1833058579876750336 channel VIS
+Calculating Counts / px / s 138/312 for gaia_1833247695868563712 channel VIS
+Calculating Counts / px / s 139/312 for gaia_1827242816201852800 channel VIS
+Calculating Counts / px / s 140/312 for gaia_1833247180472390144 channel VIS
+Calculating Counts / px / s 141/312 for gaia_1833251166202202368 channel VIS
+Calculating Counts / px / s 142/312 for gaia_1827245496261537408 channel VIS
+Calculating Counts / px / s 143/312 for gaia_1833251299328979968 channel VIS
+Calculating Counts / px / s 144/312 for gaia_1827053631486516992 channel VIS
+Calculating Counts / px / s 145/312 for gaia_1833246974313989504 channel VIS
+Calculating Counts / px / s 146/312 for gaia_1827245530621258112 channel VIS
+Calculating Counts / px / s 147/312 for gaia_1827053803285226880 channel VIS
+Calculating Counts / px / s 148/312 for gaia_1827246252175780864 channel VIS
+Calculating Counts / px / s 149/312 for gaia_1833251166202195200 channel VIS
+Calculating Counts / px / s 150/312 for gaia_1833247146112652544 channel VIS
+Calculating Counts / px / s 151/312 for gaia_1827053700205975808 channel VIS
+Calculating Counts / px / s 152/312 for gaia_1833247970746515584 channel VIS
+Calculating Counts / px / s 153/312 for gaia_1833247764588000512 channel VIS
+Calculating Counts / px / s 154/312 for gaia_1833251131842470528 channel VIS
+Calculating Counts / px / s 155/312 for gaia_1827242472604542208 channel VIS
+Calculating Counts / px / s 156/312 for gaia_1833247558429535104 channel VIS
+Calculating Counts / px / s 157/312 for gaia_1827242335165536768 channel VIS
+Calculating Counts / px / s 158/312 for gaia_1833248623581475456 channel VIS
+Calculating Counts / px / s 159/312 for gaia_1827053936390091520 channel VIS
+Calculating Counts / px / s 160/312 for gaia_1827247042449795072 channel VIS
+Calculating Counts / px / s 161/312 for gaia_1833247833307506048 channel VIS
+Calculating Counts / px / s 162/312 for gaia_1833247214832108288 channel VIS
+Calculating Counts / px / s 163/312 for gaia_1833247867667846528 channel VIS
+Calculating Counts / px / s 164/312 for gaia_1827242610043634944 channel VIS
+Calculating Counts / px / s 165/312 for gaia_1833248520502297472 channel VIS
+Calculating Counts / px / s 166/312 for gaia_1827247175564277504 channel VIS
+Calculating Counts / px / s 167/312 for gaia_1833247386630828672 channel VIS
+Calculating Counts / px / s 168/312 for gaia_1833247489710045440 channel VIS
+Calculating Counts / px / s 169/312 for gaia_1833247524069776768 channel VIS
+Calculating Counts / px / s 170/312 for gaia_1833247970746511104 channel VIS
+Calculating Counts / px / s 171/312 for gaia_1833248554862039680 channel VIS
+Calculating Counts / px / s 172/312 for gaia_1827242644403169920 channel VIS
+Calculating Counts / px / s 173/312 for gaia_1827241579251232896 channel VIS
+Calculating Counts / px / s 174/312 for gaia_1833058751675428864 channel VIS
+Calculating Counts / px / s 175/312 for gaia_1833248383063297920 channel VIS
+Calculating Counts / px / s 176/312 for gaia_1833252162634662912 channel VIS
+Calculating Counts / px / s 177/312 for gaia_1833058889114405120 channel VIS
+Calculating Counts / px / s 178/312 for gaia_1833248108185453184 channel VIS
+Calculating Counts / px / s 179/312 for gaia_1833251475439816192 channel VIS
+Calculating Counts / px / s 180/312 for gaia_1827246149096557056 channel VIS
+Calculating Counts / px / s 181/312 for gaia_1833247524069772032 channel VIS
+Calculating Counts / px / s 182/312 for gaia_1833247592789277056 channel VIS
+Calculating Counts / px / s 183/312 for gaia_1833248176904864000 channel VIS
+Calculating Counts / px / s 184/312 for gaia_1833059438870216960 channel VIS
+Calculating Counts / px / s 185/312 for gaia_1833058609908994432 channel VIS
+Calculating Counts / px / s 186/312 for gaia_1827245564980995072 channel VIS
+Calculating Counts / px / s 187/312 for gaia_1827053661514284800 channel VIS
+Calculating Counts / px / s 188/312 for gaia_1827054043803400960 channel VIS
+Calculating Counts / px / s 189/312 for gaia_1827242025927856768 channel VIS
+Calculating Counts / px / s 190/312 for gaia_1833251578519060864 channel VIS
+Calculating Counts / px / s 191/312 for gaia_1827245564980994688 channel VIS
+Calculating Counts / px / s 192/312 for gaia_1833247902027009792 channel VIS
+Calculating Counts / px / s 193/312 for gaia_1833246871234806784 channel VIS
+Calculating Counts / px / s 194/312 for gaia_1827053665846240896 channel VIS
+Calculating Counts / px / s 195/312 for gaia_1827053494050335232 channel VIS
+Calculating Counts / px / s 196/312 for gaia_1827241991568101888 channel VIS
+Calculating Counts / px / s 197/312 for gaia_1827053287889162752 channel VIS
+Calculating Counts / px / s 198/312 for gaia_1827053631486520576 channel VIS
+Calculating Counts / px / s 199/312 for gaia_1827239788220291328 channel VIS
+Calculating Counts / px / s 200/312 for gaia_1827246011657601280 channel VIS
+Calculating Counts / px / s 201/312 for gaia_1827242610043478912 channel VIS
+Calculating Counts / px / s 202/312 for gaia_1833247416678652544 channel VIS
+Calculating Counts / px / s 203/312 for gaia_1833058614236485376 channel VIS
+Calculating Counts / px / s 204/312 for gaia_1833246699436049280 channel VIS
+Calculating Counts / px / s 205/312 for gaia_1827241751049930496 channel VIS
+Calculating Counts / px / s 206/312 for gaia_1833247627149067904 channel VIS
+Calculating Counts / px / s 207/312 for gaia_1833058820394922496 channel VIS
+Calculating Counts / px / s 208/312 for gaia_1827053906364454528 channel VIS
+Calculating Counts / px / s 209/312 for gaia_1827246458334224384 channel VIS
+Calculating Counts / px / s 210/312 for gaia_1833251612878761600 channel VIS
+Calculating Counts / px / s 211/312 for gaia_1833251509799556480 channel VIS
+Calculating Counts / px / s 212/312 for gaia_1833248554862035200 channel VIS
+Calculating Counts / px / s 213/312 for gaia_1833249001538527104 channel VIS
+Calculating Counts / px / s 214/312 for gaia_1827243125439538176 channel VIS
+Calculating Counts / px / s 215/312 for gaia_1833247214832105856 channel VIS
+Calculating Counts / px / s 216/312 for gaia_1827243159799271680 channel VIS
+Calculating Counts / px / s 217/312 for gaia_1833246768155528192 channel VIS
+Calculating Counts / px / s 218/312 for gaia_1827241957208365312 channel VIS
+Calculating Counts / px / s 219/312 for gaia_1833246665076298112 channel VIS
+Calculating Counts / px / s 220/312 for gaia_1833058820394926464 channel VIS
+Calculating Counts / px / s 221/312 for gaia_1833251058810790656 channel VIS
+Calculating Counts / px / s 222/312 for gaia_1827246423974483584 channel VIS
+Calculating Counts / px / s 223/312 for gaia_1833248657941254656 channel VIS
+Calculating Counts / px / s 224/312 for gaia_1827240617178616320 channel VIS
+Calculating Counts / px / s 225/312 for gaia_1833251131842464256 channel VIS
+Calculating Counts / px / s 226/312 for gaia_1827243121115112832 channel VIS
+Calculating Counts / px / s 227/312 for gaia_1827242060287584256 channel VIS
+Calculating Counts / px / s 228/312 for gaia_1827053734565838592 channel VIS
+Calculating Counts / px / s 229/312 for gaia_1827246458334214784 channel VIS
+Calculating Counts / px / s 230/312 for gaia_1833251475439820928 channel VIS
+Calculating Counts / px / s 231/312 for gaia_1827241304373346176 channel VIS
+Calculating Counts / px / s 232/312 for gaia_1833251475414327424 channel VIS
+Calculating Counts / px / s 233/312 for gaia_1827242266446044032 channel VIS
+Calculating Counts / px / s 234/312 for gaia_1827053803285221888 channel VIS
+Calculating Counts / px / s 235/312 for gaia_1827242747482398208 channel VIS
+Calculating Counts / px / s 236/312 for gaia_1833248589221755264 channel VIS
+Calculating Counts / px / s 237/312 for gaia_1833058992193619584 channel VIS
+Calculating Counts / px / s 238/312 for gaia_1827053146118177664 channel VIS
+Calculating Counts / px / s 239/312 for gaia_1833247043034087552 channel VIS
+Calculating Counts / px / s 240/312 for gaia_1833247008673737216 channel VIS
+Calculating Counts / px / s 241/312 for gaia_1833248005106235264 channel VIS
+Calculating Counts / px / s 242/312 for gaia_1827241751049928320 channel VIS
+Calculating Counts / px / s 243/312 for gaia_1827242502639737344 channel VIS
+Calculating Counts / px / s 244/312 for gaia_1827245839858936960 channel VIS
+Calculating Counts / px / s 245/312 for gaia_1833251372360646272 channel VIS
+Calculating Counts / px / s 246/312 for gaia_1833058648596216960 channel VIS
+Calculating Counts / px / s 247/312 for gaia_1833251131842473600 channel VIS
+Calculating Counts / px / s 248/312 for gaia_1827242197726590720 channel VIS
+Calculating Counts / px / s 249/312 for gaia_1827241957208362624 channel VIS
+Calculating Counts / px / s 250/312 for gaia_1833251853396993152 channel VIS
+Calculating Counts / px / s 251/312 for gaia_1833250994403528960 channel VIS
+Calculating Counts / px / s 252/312 for gaia_1827241304373358336 channel VIS
+Calculating Counts / px / s 253/312 for gaia_1827053700205971200 channel VIS
+Calculating Counts / px / s 254/312 for gaia_1833246905594540288 channel VIS
+Calculating Counts / px / s 255/312 for gaia_1827242094647375872 channel VIS
+Calculating Counts / px / s 256/312 for gaia_1833247764588006272 channel VIS
+Calculating Counts / px / s 257/312 for gaia_1833247420990585856 channel VIS
+Calculating Counts / px / s 258/312 for gaia_1827053837644965504 channel VIS
+Calculating Counts / px / s 259/312 for gaia_1833247008673748352 channel VIS
+Calculating Counts / px / s 260/312 for gaia_1833246974314606208 channel VIS
+Calculating Counts / px / s 261/312 for gaia_1827243056720053888 channel VIS
+Calculating Counts / px / s 262/312 for gaia_1833247317911328896 channel VIS
+Calculating Counts / px / s 263/312 for gaia_1833251578519057152 channel VIS
+Calculating Counts / px / s 264/312 for gaia_1833248142545192832 channel VIS
+Calculating Counts / px / s 265/312 for gaia_1833058923474214784 channel VIS
+Calculating Counts / px / s 266/312 for gaia_1833251368048460672 channel VIS
+Calculating Counts / px / s 267/312 for gaia_1833058992193618688 channel VIS
+Calculating Counts / px / s 268/312 for gaia_1833247936386756608 channel VIS
+Calculating Counts / px / s 269/312 for gaia_1827246355254994432 channel VIS
+Calculating Counts / px / s 270/312 for gaia_1827245942938111488 channel VIS
+Calculating Counts / px / s 271/312 for gaia_1827053494047598592 channel VIS
+Calculating Counts / px / s 272/312 for gaia_1833251372360645376 channel VIS
+Calculating Counts / px / s 273/312 for gaia_1833246630716593664 channel VIS
+Calculating Counts / px / s 274/312 for gaia_1827241476172062080 channel VIS
+Calculating Counts / px / s 275/312 for gaia_1833248176911792512 channel VIS
+Calculating Counts / px / s 276/312 for gaia_1827242403885045504 channel VIS
+Calculating Counts / px / s 277/312 for gaia_1833247798947734400 channel VIS
+Calculating Counts / px / s 278/312 for gaia_1833246665076305536 channel VIS
+Calculating Counts / px / s 279/312 for gaia_1833058957833873152 channel VIS
+Calculating Counts / px / s 280/312 for gaia_1827242816201849472 channel VIS
+Calculating Counts / px / s 281/312 for gaia_1833251338000920064 channel VIS
+Calculating Counts / px / s 282/312 for gaia_1833247451038387328 channel VIS
+Calculating Counts / px / s 283/312 for gaia_1827245908578417024 channel VIS
+Calculating Counts / px / s 284/312 for gaia_1833251234921699456 channel VIS
+Calculating Counts / px / s 285/312 for gaia_1827246389614725760 channel VIS
+Calculating Counts / px / s 286/312 for gaia_1827053562767028608 channel VIS
+Calculating Counts / px / s 287/312 for gaia_1833251784677496832 channel VIS
+Calculating Counts / px / s 288/312 for gaia_1827245427542050560 channel VIS
+Calculating Counts / px / s 289/312 for gaia_1833059129615014144 channel VIS
+Calculating Counts / px / s 290/312 for gaia_1833248314343804544 channel VIS
+Calculating Counts / px / s 291/312 for gaia_1827242919281104384 channel VIS
+Calculating Counts / px / s 292/312 for gaia_1833247455350325376 channel VIS
+Calculating Counts / px / s 293/312 for gaia_1827245530621254784 channel VIS
+Calculating Counts / px / s 294/312 for gaia_1827242232086320768 channel VIS
+Calculating Counts / px / s 295/312 for gaia_1827242335165538688 channel VIS
+Calculating Counts / px / s 296/312 for gaia_1827242884895630464 channel VIS
+Calculating Counts / px / s 297/312 for gaia_1827242300805809024 channel VIS
+Calculating Counts / px / s 298/312 for gaia_1827242541323982976 channel VIS
+Calculating Counts / px / s 299/312 for gaia_1827241574926738432 channel VIS
+Calculating Counts / px / s 300/312 for gaia_1833251097482709120 channel VIS
+Calculating Counts / px / s 301/312 for gaia_1827245564980989696 channel VIS
+Calculating Counts / px / s 302/312 for gaia_1833248554862042496 channel VIS
+Calculating Counts / px / s 303/312 for gaia_1833247798922135296 channel VIS
+Calculating Counts / px / s 304/312 for gaia_1827242369525302528 channel VIS
+Calculating Counts / px / s 305/312 for gaia_1833247077393780992 channel VIS
+Calculating Counts / px / s 306/312 for gaia_1827243086755371008 channel VIS
+Calculating Counts / px / s 307/312 for gaia_1833058682955947264 channel VIS
+Calculating Counts / px / s 308/312 for gaia_1833247420990590848 channel VIS
+Calculating Counts / px / s 309/312 for gaia_1827053390968380160 channel VIS
+Calculating Counts / px / s 310/312 for gaia_1827241888489110784 channel VIS
+Calculating Counts / px / s 311/312 for gaia_1827239792544866688 channel VIS
+Calculating Counts / px / s 312/312 for gaia_1833247043033476096 channel VIS
+Calculating Counts / px / s 1/312 for gaia_1827242816201846144 channel NIR
+Calculating Counts / px / s 2/312 for gaia_1827245702419983360 channel NIR
+Calculating Counts / px / s 3/312 for gaia_1833246561971338240 channel NIR
+Calculating Counts / px / s 4/312 for gaia_1827242850561599104 channel NIR
+Calculating Counts / px / s 5/312 for gaia_1833251509799550208 channel NIR
+Calculating Counts / px / s 6/312 for gaia_1827242163366856576 channel NIR
+Calculating Counts / px / s 7/312 for gaia_1827242713122840064 channel NIR
+Calculating Counts / px / s 8/312 for gaia_1827053803285232896 channel NIR
+Calculating Counts / px / s 9/312 for gaia_1827242266446049920 channel NIR
+Calculating Counts / px / s 10/312 for gaia_1827054043803399168 channel NIR
+Calculating Counts / px / s 11/312 for gaia_1827242644403170560 channel NIR
+Calculating Counts / px / s 12/312 for gaia_1833252059555460480 channel NIR
+Calculating Counts / px / s 13/312 for gaia_1827241132574638208 channel NIR
+Calculating Counts / px / s 14/312 for gaia_1827243125439542912 channel NIR
+Calculating Counts / px / s 15/312 for gaia_1833246596356853888 channel NIR
+Calculating Counts / px / s 16/312 for gaia_1833247588477839872 channel NIR
+Calculating Counts / px / s 17/312 for gaia_1833251578519046656 channel NIR
+Calculating Counts / px / s 18/312 for gaia_1833247416678641152 channel NIR
+Calculating Counts / px / s 19/312 for gaia_1827241884179091456 channel NIR
+Calculating Counts / px / s 20/312 for gaia_1827245805499196672 channel NIR
+Calculating Counts / px / s 21/312 for gaia_1827246183456286720 channel NIR
+Calculating Counts / px / s 22/312 for gaia_1827242713122661504 channel NIR
+Calculating Counts / px / s 23/312 for gaia_1833059129632554240 channel NIR
+Calculating Counts / px / s 24/312 for gaia_1827242914970419712 channel NIR
+Calculating Counts / px / s 25/312 for gaia_1827246454009154048 channel NIR
+Calculating Counts / px / s 26/312 for gaia_1833247588477839616 channel NIR
+Calculating Counts / px / s 27/312 for gaia_1827053562767026944 channel NIR
+Calculating Counts / px / s 28/312 for gaia_1827242468279506560 channel NIR
+Calculating Counts / px / s 29/312 for gaia_1827243056720055936 channel NIR
+Calculating Counts / px / s 30/312 for gaia_1827242713122667008 channel NIR
+Calculating Counts / px / s 31/312 for gaia_1833247077393165568 channel NIR
+Calculating Counts / px / s 32/312 for gaia_1833059434551892992 channel NIR
+Calculating Counts / px / s 33/312 for gaia_1833251230609410688 channel NIR
+Calculating Counts / px / s 34/312 for gaia_1827242816176111360 channel NIR
+Calculating Counts / px / s 35/312 for gaia_1833251264969149312 channel NIR
+Calculating Counts / px / s 36/312 for gaia_1827242747482398080 channel NIR
+Calculating Counts / px / s 37/312 for gaia_1833248314343811712 channel NIR
+Calculating Counts / px / s 38/312 for gaia_1833246939954240512 channel NIR
+Calculating Counts / px / s 39/312 for gaia_1833248172593392512 channel NIR
+Calculating Counts / px / s 40/312 for gaia_1827243155474271616 channel NIR
+Calculating Counts / px / s 41/312 for gaia_1833247936386737408 channel NIR
+Calculating Counts / px / s 42/312 for gaia_1833251784677508096 channel NIR
+Calculating Counts / px / s 43/312 for gaia_1833251475439822976 channel NIR
+Calculating Counts / px / s 44/312 for gaia_1827242025927851520 channel NIR
+Calculating Counts / px / s 45/312 for gaia_1833252059556080768 channel NIR
+Calculating Counts / px / s 46/312 for gaia_1833251269281456000 channel NIR
+Calculating Counts / px / s 47/312 for gaia_1827240887731971840 channel NIR
+Calculating Counts / px / s 48/312 for gaia_1833246871234789376 channel NIR
+Calculating Counts / px / s 49/312 for gaia_1827245839858920832 channel NIR
+Calculating Counts / px / s 50/312 for gaia_1827242678762906752 channel NIR
+Calculating Counts / px / s 51/312 for gaia_1827245805499194496 channel NIR
+Calculating Counts / px / s 52/312 for gaia_1833247867667232000 channel NIR
+Calculating Counts / px / s 53/312 for gaia_1827246183456287616 channel NIR
+Calculating Counts / px / s 54/312 for gaia_1833247902027004032 channel NIR
+Calculating Counts / px / s 55/312 for gaia_1827053219169666432 channel NIR
+Calculating Counts / px / s 56/312 for gaia_1833251441080135808 channel NIR
+Calculating Counts / px / s 57/312 for gaia_1833248314343796608 channel NIR
+Calculating Counts / px / s 58/312 for gaia_1833058992193618048 channel NIR
+Calculating Counts / px / s 59/312 for gaia_1827241613610977152 channel NIR
+Calculating Counts / px / s 60/312 for gaia_1833248623581487616 channel NIR
+Calculating Counts / px / s 61/312 for gaia_1827246252175781376 channel NIR
+Calculating Counts / px / s 62/312 for gaia_1827241682330449920 channel NIR
+Calculating Counts / px / s 63/312 for gaia_1827246458334217216 channel NIR
+Calculating Counts / px / s 64/312 for gaia_1827241819769424640 channel NIR
+Calculating Counts / px / s 65/312 for gaia_1827246046017339520 channel NIR
+Calculating Counts / px / s 66/312 for gaia_1833247455350328320 channel NIR
+Calculating Counts / px / s 67/312 for gaia_1827246011657605632 channel NIR
+Calculating Counts / px / s 68/312 for gaia_1833247214832094848 channel NIR
+Calculating Counts / px / s 69/312 for gaia_1833246561971332480 channel NIR
+Calculating Counts / px / s 70/312 for gaia_1827241991568106368 channel NIR
+Calculating Counts / px / s 71/312 for gaia_1833058579876744064 channel NIR
+Calculating Counts / px / s 72/312 for gaia_1833249070258024576 channel NIR
+Calculating Counts / px / s 73/312 for gaia_1833251063122974336 channel NIR
+Calculating Counts / px / s 74/312 for gaia_1827243091079789184 channel NIR
+Calculating Counts / px / s 75/312 for gaia_1827053768925465216 channel NIR
+Calculating Counts / px / s 76/312 for gaia_1827241407452569344 channel NIR
+Calculating Counts / px / s 77/312 for gaia_1827242747482392704 channel NIR
+Calculating Counts / px / s 78/312 for gaia_1827246458334226560 channel NIR
+Calculating Counts / px / s 79/312 for gaia_1833251028763254784 channel NIR
+Calculating Counts / px / s 80/312 for gaia_1833247386630831872 channel NIR
+Calculating Counts / px / s 81/312 for gaia_1827240887731978368 channel NIR
+Calculating Counts / px / s 82/312 for gaia_1833246561997088256 channel NIR
+Calculating Counts / px / s 83/312 for gaia_1827053906364455936 channel NIR
+Calculating Counts / px / s 84/312 for gaia_1833251234921696000 channel NIR
+Calculating Counts / px / s 85/312 for gaia_1833247317911334016 channel NIR
+Calculating Counts / px / s 86/312 for gaia_1833248417423042688 channel NIR
+Calculating Counts / px / s 87/312 for gaia_1827242713122661888 channel NIR
+Calculating Counts / px / s 88/312 for gaia_1833247588477383040 channel NIR
+Calculating Counts / px / s 89/312 for gaia_1833246561997097088 channel NIR
+Calculating Counts / px / s 90/312 for gaia_1833246802515310080 channel NIR
+Calculating Counts / px / s 91/312 for gaia_1833247867667852032 channel NIR
+Calculating Counts / px / s 92/312 for gaia_1833246561997101312 channel NIR
+Calculating Counts / px / s 93/312 for gaia_1827246660168180480 channel NIR
+Calculating Counts / px / s 94/312 for gaia_1833058682955949696 channel NIR
+Calculating Counts / px / s 95/312 for gaia_1833246871234811264 channel NIR
+Calculating Counts / px / s 96/312 for gaia_1827246252175786624 channel NIR
+Calculating Counts / px / s 97/312 for gaia_1833246630716584960 channel NIR
+Calculating Counts / px / s 98/312 for gaia_1827242953640847744 channel NIR
+Calculating Counts / px / s 99/312 for gaia_1827241544891495552 channel NIR
+Calculating Counts / px / s 100/312 for gaia_1833247317911335808 channel NIR
+Calculating Counts / px / s 101/312 for gaia_1833247936386740608 channel NIR
+Calculating Counts / px / s 102/312 for gaia_1833246836875043840 channel NIR
+Calculating Counts / px / s 103/312 for gaia_1833247043033484032 channel NIR
+Calculating Counts / px / s 104/312 for gaia_1827246423974488448 channel NIR
+Calculating Counts / px / s 105/312 for gaia_1833058992193620608 channel NIR
+Calculating Counts / px / s 106/312 for gaia_1827246355254990848 channel NIR
+Calculating Counts / px / s 107/312 for gaia_1827241407452561408 channel NIR
+Calculating Counts / px / s 108/312 for gaia_1827053700205972992 channel NIR
+Calculating Counts / px / s 109/312 for gaia_1833248348703536000 channel NIR
+Calculating Counts / px / s 110/312 for gaia_1833249890593305472 channel NIR
+Calculating Counts / px / s 111/312 for gaia_1833248073826296192 channel NIR
+Calculating Counts / px / s 112/312 for gaia_1833246871234804480 channel NIR
+Calculating Counts / px / s 113/312 for gaia_1833248314343800064 channel NIR
+Calculating Counts / px / s 114/312 for gaia_1833246836875027712 channel NIR
+Calculating Counts / px / s 115/312 for gaia_1827241544891495424 channel NIR
+Calculating Counts / px / s 116/312 for gaia_1827052909932110080 channel NIR
+Calculating Counts / px / s 117/312 for gaia_1827241373092838528 channel NIR
+Calculating Counts / px / s 118/312 for gaia_1833247902027016192 channel NIR
+Calculating Counts / px / s 119/312 for gaia_1827245977297845248 channel NIR
+Calculating Counts / px / s 120/312 for gaia_1827246183456286336 channel NIR
+Calculating Counts / px / s 121/312 for gaia_1833248520502302848 channel NIR
+Calculating Counts / px / s 122/312 for gaia_1827245839859053184 channel NIR
+Calculating Counts / px / s 123/312 for gaia_1827242403885035264 channel NIR
+Calculating Counts / px / s 124/312 for gaia_1827242094647361920 channel NIR
+Calculating Counts / px / s 125/312 for gaia_1827245461901796096 channel NIR
+Calculating Counts / px / s 126/312 for gaia_1827242055963213184 channel NIR
+Calculating Counts / px / s 127/312 for gaia_1833246561997091840 channel NIR
+Calculating Counts / px / s 128/312 for gaia_1833247386630838528 channel NIR
+Calculating Counts / px / s 129/312 for gaia_1827241819769422208 channel NIR
+Calculating Counts / px / s 130/312 for gaia_1827240685898113280 channel NIR
+Calculating Counts / px / s 131/312 for gaia_1827242846251006208 channel NIR
+Calculating Counts / px / s 132/312 for gaia_1827241613610982144 channel NIR
+Calculating Counts / px / s 133/312 for gaia_1833248039465954304 channel NIR
+Calculating Counts / px / s 134/312 for gaia_1827242506964253312 channel NIR
+Calculating Counts / px / s 135/312 for gaia_1827242781842111744 channel NIR
+Calculating Counts / px / s 136/312 for gaia_1833251234921698432 channel NIR
+Calculating Counts / px / s 137/312 for gaia_1833058579876750336 channel NIR
+Calculating Counts / px / s 138/312 for gaia_1833247695868563712 channel NIR
+Calculating Counts / px / s 139/312 for gaia_1827242816201852800 channel NIR
+Calculating Counts / px / s 140/312 for gaia_1833247180472390144 channel NIR
+Calculating Counts / px / s 141/312 for gaia_1833251166202202368 channel NIR
+Calculating Counts / px / s 142/312 for gaia_1827245496261537408 channel NIR
+Calculating Counts / px / s 143/312 for gaia_1833251299328979968 channel NIR
+Calculating Counts / px / s 144/312 for gaia_1827053631486516992 channel NIR
+Calculating Counts / px / s 145/312 for gaia_1833246974313989504 channel NIR
+Calculating Counts / px / s 146/312 for gaia_1827245530621258112 channel NIR
+Calculating Counts / px / s 147/312 for gaia_1827053803285226880 channel NIR
+Calculating Counts / px / s 148/312 for gaia_1827246252175780864 channel NIR
+Calculating Counts / px / s 149/312 for gaia_1833251166202195200 channel NIR
+Calculating Counts / px / s 150/312 for gaia_1833247146112652544 channel NIR
+Calculating Counts / px / s 151/312 for gaia_1827053700205975808 channel NIR
+Calculating Counts / px / s 152/312 for gaia_1833247970746515584 channel NIR
+Calculating Counts / px / s 153/312 for gaia_1833247764588000512 channel NIR
+Calculating Counts / px / s 154/312 for gaia_1833251131842470528 channel NIR
+Calculating Counts / px / s 155/312 for gaia_1827242472604542208 channel NIR
+Calculating Counts / px / s 156/312 for gaia_1833247558429535104 channel NIR
+Calculating Counts / px / s 157/312 for gaia_1827242335165536768 channel NIR
+Calculating Counts / px / s 158/312 for gaia_1833248623581475456 channel NIR
+Calculating Counts / px / s 159/312 for gaia_1827053936390091520 channel NIR
+Calculating Counts / px / s 160/312 for gaia_1827247042449795072 channel NIR
+Calculating Counts / px / s 161/312 for gaia_1833247833307506048 channel NIR
+Calculating Counts / px / s 162/312 for gaia_1833247214832108288 channel NIR
+Calculating Counts / px / s 163/312 for gaia_1833247867667846528 channel NIR
+Calculating Counts / px / s 164/312 for gaia_1827242610043634944 channel NIR
+Calculating Counts / px / s 165/312 for gaia_1833248520502297472 channel NIR
+Calculating Counts / px / s 166/312 for gaia_1827247175564277504 channel NIR
+Calculating Counts / px / s 167/312 for gaia_1833247386630828672 channel NIR
+Calculating Counts / px / s 168/312 for gaia_1833247489710045440 channel NIR
+Calculating Counts / px / s 169/312 for gaia_1833247524069776768 channel NIR
+Calculating Counts / px / s 170/312 for gaia_1833247970746511104 channel NIR
+Calculating Counts / px / s 171/312 for gaia_1833248554862039680 channel NIR
+Calculating Counts / px / s 172/312 for gaia_1827242644403169920 channel NIR
+Calculating Counts / px / s 173/312 for gaia_1827241579251232896 channel NIR
+Calculating Counts / px / s 174/312 for gaia_1833058751675428864 channel NIR
+Calculating Counts / px / s 175/312 for gaia_1833248383063297920 channel NIR
+Calculating Counts / px / s 176/312 for gaia_1833252162634662912 channel NIR
+Calculating Counts / px / s 177/312 for gaia_1833058889114405120 channel NIR
+Calculating Counts / px / s 178/312 for gaia_1833248108185453184 channel NIR
+Calculating Counts / px / s 179/312 for gaia_1833251475439816192 channel NIR
+Calculating Counts / px / s 180/312 for gaia_1827246149096557056 channel NIR
+Calculating Counts / px / s 181/312 for gaia_1833247524069772032 channel NIR
+Calculating Counts / px / s 182/312 for gaia_1833247592789277056 channel NIR
+Calculating Counts / px / s 183/312 for gaia_1833248176904864000 channel NIR
+Calculating Counts / px / s 184/312 for gaia_1833059438870216960 channel NIR
+Calculating Counts / px / s 185/312 for gaia_1833058609908994432 channel NIR
+Calculating Counts / px / s 186/312 for gaia_1827245564980995072 channel NIR
+Calculating Counts / px / s 187/312 for gaia_1827053661514284800 channel NIR
+Calculating Counts / px / s 188/312 for gaia_1827054043803400960 channel NIR
+Calculating Counts / px / s 189/312 for gaia_1827242025927856768 channel NIR
+Calculating Counts / px / s 190/312 for gaia_1833251578519060864 channel NIR
+Calculating Counts / px / s 191/312 for gaia_1827245564980994688 channel NIR
+Calculating Counts / px / s 192/312 for gaia_1833247902027009792 channel NIR
+Calculating Counts / px / s 193/312 for gaia_1833246871234806784 channel NIR
+Calculating Counts / px / s 194/312 for gaia_1827053665846240896 channel NIR
+Calculating Counts / px / s 195/312 for gaia_1827053494050335232 channel NIR
+Calculating Counts / px / s 196/312 for gaia_1827241991568101888 channel NIR
+Calculating Counts / px / s 197/312 for gaia_1827053287889162752 channel NIR
+Calculating Counts / px / s 198/312 for gaia_1827053631486520576 channel NIR
+Calculating Counts / px / s 199/312 for gaia_1827239788220291328 channel NIR
+Calculating Counts / px / s 200/312 for gaia_1827246011657601280 channel NIR
+Calculating Counts / px / s 201/312 for gaia_1827242610043478912 channel NIR
+Calculating Counts / px / s 202/312 for gaia_1833247416678652544 channel NIR
+Calculating Counts / px / s 203/312 for gaia_1833058614236485376 channel NIR
+Calculating Counts / px / s 204/312 for gaia_1833246699436049280 channel NIR
+Calculating Counts / px / s 205/312 for gaia_1827241751049930496 channel NIR
+Calculating Counts / px / s 206/312 for gaia_1833247627149067904 channel NIR
+Calculating Counts / px / s 207/312 for gaia_1833058820394922496 channel NIR
+Calculating Counts / px / s 208/312 for gaia_1827053906364454528 channel NIR
+Calculating Counts / px / s 209/312 for gaia_1827246458334224384 channel NIR
+Calculating Counts / px / s 210/312 for gaia_1833251612878761600 channel NIR
+Calculating Counts / px / s 211/312 for gaia_1833251509799556480 channel NIR
+Calculating Counts / px / s 212/312 for gaia_1833248554862035200 channel NIR
+Calculating Counts / px / s 213/312 for gaia_1833249001538527104 channel NIR
+Calculating Counts / px / s 214/312 for gaia_1827243125439538176 channel NIR
+Calculating Counts / px / s 215/312 for gaia_1833247214832105856 channel NIR
+Calculating Counts / px / s 216/312 for gaia_1827243159799271680 channel NIR
+Calculating Counts / px / s 217/312 for gaia_1833246768155528192 channel NIR
+Calculating Counts / px / s 218/312 for gaia_1827241957208365312 channel NIR
+Calculating Counts / px / s 219/312 for gaia_1833246665076298112 channel NIR
+Calculating Counts / px / s 220/312 for gaia_1833058820394926464 channel NIR
+Calculating Counts / px / s 221/312 for gaia_1833251058810790656 channel NIR
+Calculating Counts / px / s 222/312 for gaia_1827246423974483584 channel NIR
+Calculating Counts / px / s 223/312 for gaia_1833248657941254656 channel NIR
+Calculating Counts / px / s 224/312 for gaia_1827240617178616320 channel NIR
+Calculating Counts / px / s 225/312 for gaia_1833251131842464256 channel NIR
+Calculating Counts / px / s 226/312 for gaia_1827243121115112832 channel NIR
+Calculating Counts / px / s 227/312 for gaia_1827242060287584256 channel NIR
+Calculating Counts / px / s 228/312 for gaia_1827053734565838592 channel NIR
+Calculating Counts / px / s 229/312 for gaia_1827246458334214784 channel NIR
+Calculating Counts / px / s 230/312 for gaia_1833251475439820928 channel NIR
+Calculating Counts / px / s 231/312 for gaia_1827241304373346176 channel NIR
+Calculating Counts / px / s 232/312 for gaia_1833251475414327424 channel NIR
+Calculating Counts / px / s 233/312 for gaia_1827242266446044032 channel NIR
+Calculating Counts / px / s 234/312 for gaia_1827053803285221888 channel NIR
+Calculating Counts / px / s 235/312 for gaia_1827242747482398208 channel NIR
+Calculating Counts / px / s 236/312 for gaia_1833248589221755264 channel NIR
+Calculating Counts / px / s 237/312 for gaia_1833058992193619584 channel NIR
+Calculating Counts / px / s 238/312 for gaia_1827053146118177664 channel NIR
+Calculating Counts / px / s 239/312 for gaia_1833247043034087552 channel NIR
+Calculating Counts / px / s 240/312 for gaia_1833247008673737216 channel NIR
+Calculating Counts / px / s 241/312 for gaia_1833248005106235264 channel NIR
+Calculating Counts / px / s 242/312 for gaia_1827241751049928320 channel NIR
+Calculating Counts / px / s 243/312 for gaia_1827242502639737344 channel NIR
+Calculating Counts / px / s 244/312 for gaia_1827245839858936960 channel NIR
+Calculating Counts / px / s 245/312 for gaia_1833251372360646272 channel NIR
+Calculating Counts / px / s 246/312 for gaia_1833058648596216960 channel NIR
+Calculating Counts / px / s 247/312 for gaia_1833251131842473600 channel NIR
+Calculating Counts / px / s 248/312 for gaia_1827242197726590720 channel NIR
+Calculating Counts / px / s 249/312 for gaia_1827241957208362624 channel NIR
+Calculating Counts / px / s 250/312 for gaia_1833251853396993152 channel NIR
+Calculating Counts / px / s 251/312 for gaia_1833250994403528960 channel NIR
+Calculating Counts / px / s 252/312 for gaia_1827241304373358336 channel NIR
+Calculating Counts / px / s 253/312 for gaia_1827053700205971200 channel NIR
+Calculating Counts / px / s 254/312 for gaia_1833246905594540288 channel NIR
+Calculating Counts / px / s 255/312 for gaia_1827242094647375872 channel NIR
+Calculating Counts / px / s 256/312 for gaia_1833247764588006272 channel NIR
+Calculating Counts / px / s 257/312 for gaia_1833247420990585856 channel NIR
+Calculating Counts / px / s 258/312 for gaia_1827053837644965504 channel NIR
+Calculating Counts / px / s 259/312 for gaia_1833247008673748352 channel NIR
+Calculating Counts / px / s 260/312 for gaia_1833246974314606208 channel NIR
+Calculating Counts / px / s 261/312 for gaia_1827243056720053888 channel NIR
+Calculating Counts / px / s 262/312 for gaia_1833247317911328896 channel NIR
+Calculating Counts / px / s 263/312 for gaia_1833251578519057152 channel NIR
+Calculating Counts / px / s 264/312 for gaia_1833248142545192832 channel NIR
+Calculating Counts / px / s 265/312 for gaia_1833058923474214784 channel NIR
+Calculating Counts / px / s 266/312 for gaia_1833251368048460672 channel NIR
+Calculating Counts / px / s 267/312 for gaia_1833058992193618688 channel NIR
+Calculating Counts / px / s 268/312 for gaia_1833247936386756608 channel NIR
+Calculating Counts / px / s 269/312 for gaia_1827246355254994432 channel NIR
+Calculating Counts / px / s 270/312 for gaia_1827245942938111488 channel NIR
+Calculating Counts / px / s 271/312 for gaia_1827053494047598592 channel NIR
+Calculating Counts / px / s 272/312 for gaia_1833251372360645376 channel NIR
+Calculating Counts / px / s 273/312 for gaia_1833246630716593664 channel NIR
+Calculating Counts / px / s 274/312 for gaia_1827241476172062080 channel NIR
+Calculating Counts / px / s 275/312 for gaia_1833248176911792512 channel NIR
+Calculating Counts / px / s 276/312 for gaia_1827242403885045504 channel NIR
+Calculating Counts / px / s 277/312 for gaia_1833247798947734400 channel NIR
+Calculating Counts / px / s 278/312 for gaia_1833246665076305536 channel NIR
+Calculating Counts / px / s 279/312 for gaia_1833058957833873152 channel NIR
+Calculating Counts / px / s 280/312 for gaia_1827242816201849472 channel NIR
+Calculating Counts / px / s 281/312 for gaia_1833251338000920064 channel NIR
+Calculating Counts / px / s 282/312 for gaia_1833247451038387328 channel NIR
+Calculating Counts / px / s 283/312 for gaia_1827245908578417024 channel NIR
+Calculating Counts / px / s 284/312 for gaia_1833251234921699456 channel NIR
+Calculating Counts / px / s 285/312 for gaia_1827246389614725760 channel NIR
+Calculating Counts / px / s 286/312 for gaia_1827053562767028608 channel NIR
+Calculating Counts / px / s 287/312 for gaia_1833251784677496832 channel NIR
+Calculating Counts / px / s 288/312 for gaia_1827245427542050560 channel NIR
+Calculating Counts / px / s 289/312 for gaia_1833059129615014144 channel NIR
+Calculating Counts / px / s 290/312 for gaia_1833248314343804544 channel NIR
+Calculating Counts / px / s 291/312 for gaia_1827242919281104384 channel NIR
+Calculating Counts / px / s 292/312 for gaia_1833247455350325376 channel NIR
+Calculating Counts / px / s 293/312 for gaia_1827245530621254784 channel NIR
+Calculating Counts / px / s 294/312 for gaia_1827242232086320768 channel NIR
+Calculating Counts / px / s 295/312 for gaia_1827242335165538688 channel NIR
+Calculating Counts / px / s 296/312 for gaia_1827242884895630464 channel NIR
+Calculating Counts / px / s 297/312 for gaia_1827242300805809024 channel NIR
+Calculating Counts / px / s 298/312 for gaia_1827242541323982976 channel NIR
+Calculating Counts / px / s 299/312 for gaia_1827241574926738432 channel NIR
+Calculating Counts / px / s 300/312 for gaia_1833251097482709120 channel NIR
+Calculating Counts / px / s 301/312 for gaia_1827245564980989696 channel NIR
+Calculating Counts / px / s 302/312 for gaia_1833248554862042496 channel NIR
+Calculating Counts / px / s 303/312 for gaia_1833247798922135296 channel NIR
+Calculating Counts / px / s 304/312 for gaia_1827242369525302528 channel NIR
+Calculating Counts / px / s 305/312 for gaia_1833247077393780992 channel NIR
+Calculating Counts / px / s 306/312 for gaia_1827243086755371008 channel NIR
+Calculating Counts / px / s 307/312 for gaia_1833058682955947264 channel NIR
+Calculating Counts / px / s 308/312 for gaia_1833247420990590848 channel NIR
+Calculating Counts / px / s 309/312 for gaia_1827053390968380160 channel NIR
+Calculating Counts / px / s 310/312 for gaia_1827241888489110784 channel NIR
+Calculating Counts / px / s 311/312 for gaia_1827239792544866688 channel NIR
+Calculating Counts / px / s 312/312 for gaia_1833247043033476096 channel NIR
+
+==== STARTING SCIENCE IMAGE GENERATION (NUV) =====
+science exposure image 1/33 (roll_angle=0.00°)
+science exposure image 2/33 (roll_angle=21.33°)
+science exposure image 3/33 (roll_angle=42.67°)
+science exposure image 4/33 (roll_angle=64.00°)
+science exposure image 5/33 (roll_angle=85.33°)
+science exposure image 6/33 (roll_angle=106.67°)
+science exposure image 7/33 (roll_angle=128.00°)
+science exposure image 8/33 (roll_angle=149.33°)
+science exposure image 9/33 (roll_angle=170.67°)
+science exposure image 10/33 (roll_angle=192.00°)
+science exposure image 11/33 (roll_angle=213.33°)
+science exposure image 12/33 (roll_angle=234.67°)
+science exposure image 13/33 (roll_angle=256.00°)
+science exposure image 14/33 (roll_angle=277.33°)
+science exposure image 15/33 (roll_angle=298.67°)
+science exposure image 16/33 (roll_angle=320.00°)
+science exposure image 17/33 (roll_angle=341.33°)
+science exposure image 18/33 (roll_angle=362.67°)
+science exposure image 19/33 (roll_angle=384.00°)
+science exposure image 20/33 (roll_angle=405.33°)
+science exposure image 21/33 (roll_angle=426.67°)
+science exposure image 22/33 (roll_angle=448.00°)
+science exposure image 23/33 (roll_angle=469.33°)
+science exposure image 24/33 (roll_angle=490.67°)
+science exposure image 25/33 (roll_angle=512.00°)
+science exposure image 26/33 (roll_angle=533.33°)
+science exposure image 27/33 (roll_angle=554.67°)
+science exposure image 28/33 (roll_angle=576.00°)
+science exposure image 29/33 (roll_angle=597.33°)
+science exposure image 30/33 (roll_angle=618.67°)
+science exposure image 31/33 (roll_angle=640.00°)
+science exposure image 32/33 (roll_angle=661.33°)
+science exposure image 33/33 (roll_angle=682.67°)
+
+==== STARTING SCIENCE IMAGE GENERATION (VIS) =====
+science exposure image 1/135 (roll_angle=0.00°)
+science exposure image 2/135 (roll_angle=5.33°)
+science exposure image 3/135 (roll_angle=10.67°)
+science exposure image 4/135 (roll_angle=16.00°)
+science exposure image 5/135 (roll_angle=21.33°)
+science exposure image 6/135 (roll_angle=26.67°)
+science exposure image 7/135 (roll_angle=32.00°)
+science exposure image 8/135 (roll_angle=37.33°)
+science exposure image 9/135 (roll_angle=42.67°)
+science exposure image 10/135 (roll_angle=48.00°)
+science exposure image 11/135 (roll_angle=53.33°)
+science exposure image 12/135 (roll_angle=58.67°)
+science exposure image 13/135 (roll_angle=64.00°)
+science exposure image 14/135 (roll_angle=69.33°)
+science exposure image 15/135 (roll_angle=74.67°)
+science exposure image 16/135 (roll_angle=80.00°)
+science exposure image 17/135 (roll_angle=85.33°)
+science exposure image 18/135 (roll_angle=90.67°)
+science exposure image 19/135 (roll_angle=96.00°)
+science exposure image 20/135 (roll_angle=101.33°)
+science exposure image 21/135 (roll_angle=106.67°)
+science exposure image 22/135 (roll_angle=112.00°)
+science exposure image 23/135 (roll_angle=117.33°)
+science exposure image 24/135 (roll_angle=122.67°)
+science exposure image 25/135 (roll_angle=128.00°)
+science exposure image 26/135 (roll_angle=133.33°)
+science exposure image 27/135 (roll_angle=138.67°)
+science exposure image 28/135 (roll_angle=144.00°)
+science exposure image 29/135 (roll_angle=149.33°)
+science exposure image 30/135 (roll_angle=154.67°)
+science exposure image 31/135 (roll_angle=160.00°)
+science exposure image 32/135 (roll_angle=165.33°)
+science exposure image 33/135 (roll_angle=170.67°)
+science exposure image 34/135 (roll_angle=176.00°)
+science exposure image 35/135 (roll_angle=181.33°)
+science exposure image 36/135 (roll_angle=186.67°)
+science exposure image 37/135 (roll_angle=192.00°)
+science exposure image 38/135 (roll_angle=197.33°)
+science exposure image 39/135 (roll_angle=202.67°)
+science exposure image 40/135 (roll_angle=208.00°)
+science exposure image 41/135 (roll_angle=213.33°)
+science exposure image 42/135 (roll_angle=218.67°)
+science exposure image 43/135 (roll_angle=224.00°)
+science exposure image 44/135 (roll_angle=229.33°)
+science exposure image 45/135 (roll_angle=234.67°)
+science exposure image 46/135 (roll_angle=240.00°)
+science exposure image 47/135 (roll_angle=245.33°)
+science exposure image 48/135 (roll_angle=250.67°)
+science exposure image 49/135 (roll_angle=256.00°)
+science exposure image 50/135 (roll_angle=261.33°)
+science exposure image 51/135 (roll_angle=266.67°)
+science exposure image 52/135 (roll_angle=272.00°)
+science exposure image 53/135 (roll_angle=277.33°)
+science exposure image 54/135 (roll_angle=282.67°)
+science exposure image 55/135 (roll_angle=288.00°)
+science exposure image 56/135 (roll_angle=293.33°)
+science exposure image 57/135 (roll_angle=298.67°)
+science exposure image 58/135 (roll_angle=304.00°)
+science exposure image 59/135 (roll_angle=309.33°)
+science exposure image 60/135 (roll_angle=314.67°)
+science exposure image 61/135 (roll_angle=320.00°)
+science exposure image 62/135 (roll_angle=325.33°)
+science exposure image 63/135 (roll_angle=330.67°)
+science exposure image 64/135 (roll_angle=336.00°)
+science exposure image 65/135 (roll_angle=341.33°)
+science exposure image 66/135 (roll_angle=346.67°)
+science exposure image 67/135 (roll_angle=352.00°)
+science exposure image 68/135 (roll_angle=357.33°)
+science exposure image 69/135 (roll_angle=362.67°)
+science exposure image 70/135 (roll_angle=368.00°)
+science exposure image 71/135 (roll_angle=373.33°)
+science exposure image 72/135 (roll_angle=378.67°)
+science exposure image 73/135 (roll_angle=384.00°)
+science exposure image 74/135 (roll_angle=389.33°)
+science exposure image 75/135 (roll_angle=394.67°)
+science exposure image 76/135 (roll_angle=400.00°)
+science exposure image 77/135 (roll_angle=405.33°)
+science exposure image 78/135 (roll_angle=410.67°)
+science exposure image 79/135 (roll_angle=416.00°)
+science exposure image 80/135 (roll_angle=421.33°)
+science exposure image 81/135 (roll_angle=426.67°)
+science exposure image 82/135 (roll_angle=432.00°)
+science exposure image 83/135 (roll_angle=437.33°)
+science exposure image 84/135 (roll_angle=442.67°)
+science exposure image 85/135 (roll_angle=448.00°)
+science exposure image 86/135 (roll_angle=453.33°)
+science exposure image 87/135 (roll_angle=458.67°)
+science exposure image 88/135 (roll_angle=464.00°)
+science exposure image 89/135 (roll_angle=469.33°)
+science exposure image 90/135 (roll_angle=474.67°)
+science exposure image 91/135 (roll_angle=480.00°)
+science exposure image 92/135 (roll_angle=485.33°)
+science exposure image 93/135 (roll_angle=490.67°)
+science exposure image 94/135 (roll_angle=496.00°)
+science exposure image 95/135 (roll_angle=501.33°)
+science exposure image 96/135 (roll_angle=506.67°)
+science exposure image 97/135 (roll_angle=512.00°)
+science exposure image 98/135 (roll_angle=517.33°)
+science exposure image 99/135 (roll_angle=522.67°)
+science exposure image 100/135 (roll_angle=528.00°)
+science exposure image 101/135 (roll_angle=533.33°)
+science exposure image 102/135 (roll_angle=538.67°)
+science exposure image 103/135 (roll_angle=544.00°)
+science exposure image 104/135 (roll_angle=549.33°)
+science exposure image 105/135 (roll_angle=554.67°)
+science exposure image 106/135 (roll_angle=560.00°)
+science exposure image 107/135 (roll_angle=565.33°)
+science exposure image 108/135 (roll_angle=570.67°)
+science exposure image 109/135 (roll_angle=576.00°)
+science exposure image 110/135 (roll_angle=581.33°)
+science exposure image 111/135 (roll_angle=586.67°)
+science exposure image 112/135 (roll_angle=592.00°)
+science exposure image 113/135 (roll_angle=597.33°)
+science exposure image 114/135 (roll_angle=602.67°)
+science exposure image 115/135 (roll_angle=608.00°)
+science exposure image 116/135 (roll_angle=613.33°)
+science exposure image 117/135 (roll_angle=618.67°)
+science exposure image 118/135 (roll_angle=624.00°)
+science exposure image 119/135 (roll_angle=629.33°)
+science exposure image 120/135 (roll_angle=634.67°)
+science exposure image 121/135 (roll_angle=640.00°)
+science exposure image 122/135 (roll_angle=645.33°)
+science exposure image 123/135 (roll_angle=650.67°)
+science exposure image 124/135 (roll_angle=656.00°)
+science exposure image 125/135 (roll_angle=661.33°)
+science exposure image 126/135 (roll_angle=666.67°)
+science exposure image 127/135 (roll_angle=672.00°)
+science exposure image 128/135 (roll_angle=677.33°)
+science exposure image 129/135 (roll_angle=682.67°)
+science exposure image 130/135 (roll_angle=688.00°)
+science exposure image 131/135 (roll_angle=693.33°)
+science exposure image 132/135 (roll_angle=698.67°)
+science exposure image 133/135 (roll_angle=704.00°)
+science exposure image 134/135 (roll_angle=709.33°)
+science exposure image 135/135 (roll_angle=714.67°)
+
+==== STARTING SCIENCE IMAGE GENERATION (NIR) =====
+science exposure image 1/135 (roll_angle_start=0.00°, roll_angle_end=4.00°)
+science exposure image 2/135 (roll_angle_start=5.33°, roll_angle_end=9.33°)
+science exposure image 3/135 (roll_angle_start=10.67°, roll_angle_end=14.67°)
+science exposure image 4/135 (roll_angle_start=16.00°, roll_angle_end=20.00°)
+science exposure image 5/135 (roll_angle_start=21.33°, roll_angle_end=25.33°)
+science exposure image 6/135 (roll_angle_start=26.67°, roll_angle_end=30.67°)
+science exposure image 7/135 (roll_angle_start=32.00°, roll_angle_end=36.00°)
+science exposure image 8/135 (roll_angle_start=37.33°, roll_angle_end=41.33°)
+science exposure image 9/135 (roll_angle_start=42.67°, roll_angle_end=46.67°)
+science exposure image 10/135 (roll_angle_start=48.00°, roll_angle_end=52.00°)
+science exposure image 11/135 (roll_angle_start=53.33°, roll_angle_end=57.33°)
+science exposure image 12/135 (roll_angle_start=58.67°, roll_angle_end=62.67°)
+science exposure image 13/135 (roll_angle_start=64.00°, roll_angle_end=68.00°)
+science exposure image 14/135 (roll_angle_start=69.33°, roll_angle_end=73.33°)
+science exposure image 15/135 (roll_angle_start=74.67°, roll_angle_end=78.67°)
+science exposure image 16/135 (roll_angle_start=80.00°, roll_angle_end=84.00°)
+science exposure image 17/135 (roll_angle_start=85.33°, roll_angle_end=89.33°)
+science exposure image 18/135 (roll_angle_start=90.67°, roll_angle_end=94.67°)
+science exposure image 19/135 (roll_angle_start=96.00°, roll_angle_end=100.00°)
+science exposure image 20/135 (roll_angle_start=101.33°, roll_angle_end=105.33°)
+science exposure image 21/135 (roll_angle_start=106.67°, roll_angle_end=110.67°)
+science exposure image 22/135 (roll_angle_start=112.00°, roll_angle_end=116.00°)
+science exposure image 23/135 (roll_angle_start=117.33°, roll_angle_end=121.33°)
+science exposure image 24/135 (roll_angle_start=122.67°, roll_angle_end=126.67°)
+science exposure image 25/135 (roll_angle_start=128.00°, roll_angle_end=132.00°)
+science exposure image 26/135 (roll_angle_start=133.33°, roll_angle_end=137.33°)
+science exposure image 27/135 (roll_angle_start=138.67°, roll_angle_end=142.67°)
+science exposure image 28/135 (roll_angle_start=144.00°, roll_angle_end=148.00°)
+science exposure image 29/135 (roll_angle_start=149.33°, roll_angle_end=153.33°)
+science exposure image 30/135 (roll_angle_start=154.67°, roll_angle_end=158.67°)
+science exposure image 31/135 (roll_angle_start=160.00°, roll_angle_end=164.00°)
+science exposure image 32/135 (roll_angle_start=165.33°, roll_angle_end=169.33°)
+science exposure image 33/135 (roll_angle_start=170.67°, roll_angle_end=174.67°)
+science exposure image 34/135 (roll_angle_start=176.00°, roll_angle_end=180.00°)
+science exposure image 35/135 (roll_angle_start=181.33°, roll_angle_end=185.33°)
+science exposure image 36/135 (roll_angle_start=186.67°, roll_angle_end=190.67°)
+science exposure image 37/135 (roll_angle_start=192.00°, roll_angle_end=196.00°)
+science exposure image 38/135 (roll_angle_start=197.33°, roll_angle_end=201.33°)
+science exposure image 39/135 (roll_angle_start=202.67°, roll_angle_end=206.67°)
+science exposure image 40/135 (roll_angle_start=208.00°, roll_angle_end=212.00°)
+science exposure image 41/135 (roll_angle_start=213.33°, roll_angle_end=217.33°)
+science exposure image 42/135 (roll_angle_start=218.67°, roll_angle_end=222.67°)
+science exposure image 43/135 (roll_angle_start=224.00°, roll_angle_end=228.00°)
+science exposure image 44/135 (roll_angle_start=229.33°, roll_angle_end=233.33°)
+science exposure image 45/135 (roll_angle_start=234.67°, roll_angle_end=238.67°)
+science exposure image 46/135 (roll_angle_start=240.00°, roll_angle_end=244.00°)
+science exposure image 47/135 (roll_angle_start=245.33°, roll_angle_end=249.33°)
+science exposure image 48/135 (roll_angle_start=250.67°, roll_angle_end=254.67°)
+science exposure image 49/135 (roll_angle_start=256.00°, roll_angle_end=260.00°)
+science exposure image 50/135 (roll_angle_start=261.33°, roll_angle_end=265.33°)
+science exposure image 51/135 (roll_angle_start=266.67°, roll_angle_end=270.67°)
+science exposure image 52/135 (roll_angle_start=272.00°, roll_angle_end=276.00°)
+science exposure image 53/135 (roll_angle_start=277.33°, roll_angle_end=281.33°)
+science exposure image 54/135 (roll_angle_start=282.67°, roll_angle_end=286.67°)
+science exposure image 55/135 (roll_angle_start=288.00°, roll_angle_end=292.00°)
+science exposure image 56/135 (roll_angle_start=293.33°, roll_angle_end=297.33°)
+science exposure image 57/135 (roll_angle_start=298.67°, roll_angle_end=302.67°)
+science exposure image 58/135 (roll_angle_start=304.00°, roll_angle_end=308.00°)
+science exposure image 59/135 (roll_angle_start=309.33°, roll_angle_end=313.33°)
+science exposure image 60/135 (roll_angle_start=314.67°, roll_angle_end=318.67°)
+science exposure image 61/135 (roll_angle_start=320.00°, roll_angle_end=324.00°)
+science exposure image 62/135 (roll_angle_start=325.33°, roll_angle_end=329.33°)
+science exposure image 63/135 (roll_angle_start=330.67°, roll_angle_end=334.67°)
+science exposure image 64/135 (roll_angle_start=336.00°, roll_angle_end=340.00°)
+science exposure image 65/135 (roll_angle_start=341.33°, roll_angle_end=345.33°)
+science exposure image 66/135 (roll_angle_start=346.67°, roll_angle_end=350.67°)
+science exposure image 67/135 (roll_angle_start=352.00°, roll_angle_end=356.00°)
+science exposure image 68/135 (roll_angle_start=357.33°, roll_angle_end=361.33°)
+science exposure image 69/135 (roll_angle_start=362.67°, roll_angle_end=366.67°)
+science exposure image 70/135 (roll_angle_start=368.00°, roll_angle_end=372.00°)
+science exposure image 71/135 (roll_angle_start=373.33°, roll_angle_end=377.33°)
+science exposure image 72/135 (roll_angle_start=378.67°, roll_angle_end=382.67°)
+science exposure image 73/135 (roll_angle_start=384.00°, roll_angle_end=388.00°)
+science exposure image 74/135 (roll_angle_start=389.33°, roll_angle_end=393.33°)
+science exposure image 75/135 (roll_angle_start=394.67°, roll_angle_end=398.67°)
+science exposure image 76/135 (roll_angle_start=400.00°, roll_angle_end=404.00°)
+science exposure image 77/135 (roll_angle_start=405.33°, roll_angle_end=409.33°)
+science exposure image 78/135 (roll_angle_start=410.67°, roll_angle_end=414.67°)
+science exposure image 79/135 (roll_angle_start=416.00°, roll_angle_end=420.00°)
+science exposure image 80/135 (roll_angle_start=421.33°, roll_angle_end=425.33°)
+science exposure image 81/135 (roll_angle_start=426.67°, roll_angle_end=430.67°)
+science exposure image 82/135 (roll_angle_start=432.00°, roll_angle_end=436.00°)
+science exposure image 83/135 (roll_angle_start=437.33°, roll_angle_end=441.33°)
+science exposure image 84/135 (roll_angle_start=442.67°, roll_angle_end=446.67°)
+science exposure image 85/135 (roll_angle_start=448.00°, roll_angle_end=452.00°)
+science exposure image 86/135 (roll_angle_start=453.33°, roll_angle_end=457.33°)
+science exposure image 87/135 (roll_angle_start=458.67°, roll_angle_end=462.67°)
+science exposure image 88/135 (roll_angle_start=464.00°, roll_angle_end=468.00°)
+science exposure image 89/135 (roll_angle_start=469.33°, roll_angle_end=473.33°)
+science exposure image 90/135 (roll_angle_start=474.67°, roll_angle_end=478.67°)
+science exposure image 91/135 (roll_angle_start=480.00°, roll_angle_end=484.00°)
+science exposure image 92/135 (roll_angle_start=485.33°, roll_angle_end=489.33°)
+science exposure image 93/135 (roll_angle_start=490.67°, roll_angle_end=494.67°)
+science exposure image 94/135 (roll_angle_start=496.00°, roll_angle_end=500.00°)
+science exposure image 95/135 (roll_angle_start=501.33°, roll_angle_end=505.33°)
+science exposure image 96/135 (roll_angle_start=506.67°, roll_angle_end=510.67°)
+science exposure image 97/135 (roll_angle_start=512.00°, roll_angle_end=516.00°)
+science exposure image 98/135 (roll_angle_start=517.33°, roll_angle_end=521.33°)
+science exposure image 99/135 (roll_angle_start=522.67°, roll_angle_end=526.67°)
+science exposure image 100/135 (roll_angle_start=528.00°, roll_angle_end=532.00°)
+science exposure image 101/135 (roll_angle_start=533.33°, roll_angle_end=537.33°)
+science exposure image 102/135 (roll_angle_start=538.67°, roll_angle_end=542.67°)
+science exposure image 103/135 (roll_angle_start=544.00°, roll_angle_end=548.00°)
+science exposure image 104/135 (roll_angle_start=549.33°, roll_angle_end=553.33°)
+science exposure image 105/135 (roll_angle_start=554.67°, roll_angle_end=558.67°)
+science exposure image 106/135 (roll_angle_start=560.00°, roll_angle_end=564.00°)
+science exposure image 107/135 (roll_angle_start=565.33°, roll_angle_end=569.33°)
+science exposure image 108/135 (roll_angle_start=570.67°, roll_angle_end=574.67°)
+science exposure image 109/135 (roll_angle_start=576.00°, roll_angle_end=580.00°)
+science exposure image 110/135 (roll_angle_start=581.33°, roll_angle_end=585.33°)
+science exposure image 111/135 (roll_angle_start=586.67°, roll_angle_end=590.67°)
+science exposure image 112/135 (roll_angle_start=592.00°, roll_angle_end=596.00°)
+science exposure image 113/135 (roll_angle_start=597.33°, roll_angle_end=601.33°)
+science exposure image 114/135 (roll_angle_start=602.67°, roll_angle_end=606.67°)
+science exposure image 115/135 (roll_angle_start=608.00°, roll_angle_end=612.00°)
+science exposure image 116/135 (roll_angle_start=613.33°, roll_angle_end=617.33°)
+science exposure image 117/135 (roll_angle_start=618.67°, roll_angle_end=622.67°)
+science exposure image 118/135 (roll_angle_start=624.00°, roll_angle_end=628.00°)
+science exposure image 119/135 (roll_angle_start=629.33°, roll_angle_end=633.33°)
+science exposure image 120/135 (roll_angle_start=634.67°, roll_angle_end=638.67°)
+science exposure image 121/135 (roll_angle_start=640.00°, roll_angle_end=644.00°)
+science exposure image 122/135 (roll_angle_start=645.33°, roll_angle_end=649.33°)
+science exposure image 123/135 (roll_angle_start=650.67°, roll_angle_end=654.67°)
+science exposure image 124/135 (roll_angle_start=656.00°, roll_angle_end=660.00°)
+science exposure image 125/135 (roll_angle_start=661.33°, roll_angle_end=665.33°)
+science exposure image 126/135 (roll_angle_start=666.67°, roll_angle_end=670.67°)
+science exposure image 127/135 (roll_angle_start=672.00°, roll_angle_end=676.00°)
+science exposure image 128/135 (roll_angle_start=677.33°, roll_angle_end=681.33°)
+science exposure image 129/135 (roll_angle_start=682.67°, roll_angle_end=686.67°)
+science exposure image 130/135 (roll_angle_start=688.00°, roll_angle_end=692.00°)
+science exposure image 131/135 (roll_angle_start=693.33°, roll_angle_end=697.33°)
+science exposure image 132/135 (roll_angle_start=698.67°, roll_angle_end=702.67°)
+science exposure image 133/135 (roll_angle_start=704.00°, roll_angle_end=708.00°)
+science exposure image 134/135 (roll_angle_start=709.33°, roll_angle_end=713.33°)
+science exposure image 135/135 (roll_angle_start=714.67°, roll_angle_end=718.67°)
+
+==== STARTING FITS GENERATION (NUV & VIS & NIR) =====
+Creating BIAS Frames for channel NUV.
+Creating BIAS Frames for channel VIS.
+Creating BIAS Frames for channel NIR.
+Creating DARK Frames for channel NUV.
+Creating DARK Frames for channel VIS.
+Creating DARK Frames for channel NIR.
+Creating FITS files for calibration frames frames
+Creating SCIENCE Frames for channel NUV (33 frame(s)).
+Creating SCIENCE Frames for channel VIS (135 frame(s)).
+Creating SCIENCE Frames for channel NIR (135 frame(s)).
+Creating FITS files for science frames
+Creating PNG files for science frames
+     1197.26 real       755.57 user       102.63 sys
+          1460125696  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+            12487829  page reclaims
+                3797  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+             2595313  voluntary context switches
+             1485786  involuntary context switches
+      11536697423957  instructions retired
+       2631809031387  cycles elapsed
+         27444027776  peak memory footprint
+andreatanzer@Andreas-MacBook-Air waltzer_old % 
