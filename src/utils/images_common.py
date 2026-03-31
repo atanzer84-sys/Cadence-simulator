@@ -61,8 +61,8 @@ def build_stats_row(array: np.ndarray, channel: Channel, frame_type: str) -> tup
         "MAX": float(np.max(array)),
         "RNOISE": getattr(channel, "read_noise", None),
         "B_OFFSET": getattr(channel, "bias_offset", None),
-        "DARKVAL": getattr(channel, "dark_noise", None),
-        "DARKSIG": getattr(channel, "dark_current_sigma", None),
+        "DARKVAL": getattr(channel, "dark_current", None),
+        "DARKSIG": getattr(channel, "dark_current_noise", None),
         "EXPTIME": getattr(channel, "exposure_s", None),
     }
     return stats_values, stats_keys

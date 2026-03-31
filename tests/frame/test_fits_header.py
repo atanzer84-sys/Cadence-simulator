@@ -303,8 +303,8 @@ def test_append_channel_frame_header_appends_expected_fields(make_spectroscopy_c
         ccd_gain=1.5,
         bias_offset=200.0,
         read_noise=3.0,
-        dark_current_sigma=0.02,
-        dark_noise=1.0,
+        dark_current_noise=0.02,
+        dark_current=1.0,
     )
     exptime_s = 10.0
 
@@ -316,8 +316,8 @@ def test_append_channel_frame_header_appends_expected_fields(make_spectroscopy_c
     assert header[HDR_CCDGAIN] == channel.ccd_gain
     assert header[HDR_BIAS] == channel.bias_offset
     assert header[HDR_RNOISE] == channel.read_noise
-    assert header[HDR_DARKSIG] == channel.dark_current_sigma
-    assert header[HDR_DARKVAL] == channel.dark_noise
+    assert header[HDR_DARKSIG] == channel.dark_current_noise
+    assert header[HDR_DARKVAL] == channel.dark_current
 
 
 # Tests: append_channel_frame_header

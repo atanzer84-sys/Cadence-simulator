@@ -8,8 +8,8 @@ from instrument.dark_image import generate_dark_image
 # Behavior: Dark image has correct shape and finite values
 def test_generate_dark_image_shape_and_finite_values(make_spectroscopy_channel):
     ch = make_spectroscopy_channel(
-        dark_noise=1.0,
-        dark_current_sigma=0.5,
+        dark_current=1.0,
+        dark_current_noise=0.5,
         exposure_s=10.0,
     )
 
@@ -24,8 +24,8 @@ def test_generate_dark_image_shape_and_finite_values(make_spectroscopy_channel):
 # Behavior: Nonzero sigma produces a non-constant dark image
 def test_generate_dark_image_has_randomness_when_configured(make_spectroscopy_channel):
     ch = make_spectroscopy_channel(
-        dark_noise=1.0,
-        dark_current_sigma=0.5,
+        dark_current=1.0,
+        dark_current_noise=0.5,
         exposure_s=10.0,
     )
 
@@ -39,8 +39,8 @@ def test_generate_dark_image_has_randomness_when_configured(make_spectroscopy_ch
 # Behavior: Two generated dark images are not identical
 def test_generate_dark_image_two_calls_different(make_spectroscopy_channel):
     ch = make_spectroscopy_channel(
-        dark_noise=1.0,
-        dark_current_sigma=0.5,
+        dark_current=1.0,
+        dark_current_noise=0.5,
         exposure_s=10.0,
     )
 
@@ -54,8 +54,8 @@ def test_generate_dark_image_two_calls_different(make_spectroscopy_channel):
 # Behavior: Zero dark_noise still produces variation if sigma is nonzero
 def test_generate_dark_image_noise_only(make_spectroscopy_channel):
     ch = make_spectroscopy_channel(
-        dark_noise=0.0,
-        dark_current_sigma=1.0,
+        dark_current=0.0,
+        dark_current_noise=1.0,
         exposure_s=10.0,
     )
 
@@ -69,8 +69,8 @@ def test_generate_dark_image_noise_only(make_spectroscopy_channel):
 # Behavior: Zero sigma produces deterministic output
 def test_generate_dark_image_deterministic_when_sigma_zero(make_spectroscopy_channel):
     ch = make_spectroscopy_channel(
-        dark_noise=1.0,
-        dark_current_sigma=0.0,
+        dark_current=1.0,
+        dark_current_noise=0.0,
         exposure_s=10.0,
     )
 
@@ -84,8 +84,8 @@ def test_generate_dark_image_deterministic_when_sigma_zero(make_spectroscopy_cha
 # Behavior: Zero exposure yields base distribution only
 def test_generate_dark_image_exposure_zero(make_spectroscopy_channel):
     ch = make_spectroscopy_channel(
-        dark_noise=1.0,
-        dark_current_sigma=0.5,
+        dark_current=1.0,
+        dark_current_noise=0.5,
         exposure_s=0.0,
     )
 
@@ -101,8 +101,8 @@ def test_generate_dark_image_exposure_zero(make_spectroscopy_channel):
 # Behavior: Output dtype is float32
 def test_generate_dark_image_dtype(make_spectroscopy_channel):
     ch = make_spectroscopy_channel(
-        dark_noise=1.0,
-        dark_current_sigma=0.5,
+        dark_current=1.0,
+        dark_current_noise=0.5,
     )
 
     dark = generate_dark_image(ch)

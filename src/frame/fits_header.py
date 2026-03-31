@@ -81,8 +81,8 @@ def append_channel_frame_header(header, channel: Channel, exptime_s: float, incl
     _replace_header_card(header, "RNOISE", float(channel.read_noise), "Bias Read noise used (e-) to generate frame")
 
     if include_dark:
-        _replace_header_card(header, "DARKSIG", float(channel.dark_current_sigma), "Dark noise sigma (e-/s) used to generate frame")
-        _replace_header_card(header, "DARKVAL", float(channel.dark_noise), "Input dark value (e-/s) used to generate frame")
+        _replace_header_card(header, "DARKSIG", float(channel.dark_current_noise), "Dark noise sigma (e-/s) used to generate frame")
+        _replace_header_card(header, "DARKVAL", float(channel.dark_current), "Input dark value (e-/s) used to generate frame")
 
 
 def append_base_frame_header(base_header, filetype: str, channel: Channel, index0: int):

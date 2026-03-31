@@ -14,8 +14,8 @@ def test_generate_dark_frame_properties(make_spectroscopy_channel):
     # Create the channel with the values previously in the fixture
     channel = make_spectroscopy_channel(
         bias_offset=200.0,
-        dark_current_sigma=0.02,
-        dark_noise=1.0,
+        dark_current_noise=0.02,
+        dark_current=1.0,
         read_noise=3.0,
         ccd_gain=1.0,
     )
@@ -34,7 +34,7 @@ def test_generate_dark_frame_header_content(make_spectroscopy_channel):
 
     ch = make_spectroscopy_channel(
         bias_offset=200.0,
-        dark_current_sigma=0.02,
+        dark_current_noise=0.02,
     )
 
     header = fits.Header()

@@ -35,8 +35,8 @@ def load_common_channel(path: Path, exposure_s: float):
     x_pixels=as_int(raw["x_pixels"], key="x_pixels")
     y_pixels=as_int(raw["y_pixels"], key="y_pixels")
     resolution_factor=as_float(raw["resolution_factor"], key="resolution_factor")
-    dark_noise=as_float(raw["dark_noise"], key="dark_noise")
-    dark_current_sigma=as_float(raw["dark_current_sigma"], key="dark_current_sigma")
+    dark_current=as_float(raw["dark_current"], key="dark_current")
+    dark_current_noise=as_float(raw["dark_current_noise"], key="dark_current_noise")
     read_noise=as_float(raw["read_noise"], key="read_noise")
     bias_offset=as_float(raw.get("bias_offset", 0.0), key="bias_offset")
     ccd_gain=as_float(raw.get("ccd_gain", 1.0), key="ccd_gain")
@@ -45,7 +45,7 @@ def load_common_channel(path: Path, exposure_s: float):
     effective_area_wavelength, effective_area, pixel_scale = load_effective_area_file(effective_area_file)
 
     channel_properties = raw, channel_name, source_file
-    detector_common = x_pixels, y_pixels, resolution_factor, dark_noise, dark_current_sigma, read_noise, bias_offset, ccd_gain
+    detector_common = x_pixels, y_pixels, resolution_factor, dark_current, dark_current_noise, read_noise, bias_offset, ccd_gain
     exposure_common = exposure_s, n_science_frames
     effective_area_common = effective_area_file, effective_area_wavelength, effective_area, pixel_scale
     
@@ -55,7 +55,7 @@ def load_channel_photometry(path: Path, exposure_s: float, background: dict):
     # Common values provided by load_common_channel()
     channel_properties, detector_common, exposure_common, effective_area_common = load_common_channel(path, exposure_s)
     raw, channel_name, source_file = channel_properties
-    x_pixels, y_pixels, resolution_factor, dark_noise, dark_current_sigma, read_noise, bias_offset, ccd_gain = detector_common
+    x_pixels, y_pixels, resolution_factor, dark_current, dark_current_noise, read_noise, bias_offset, ccd_gain = detector_common
     exposure_s, n_science_frames = exposure_common
     effective_area_file, effective_area_wavelength, effective_area, pixel_scale = effective_area_common
 
@@ -72,8 +72,8 @@ def load_channel_photometry(path: Path, exposure_s: float, background: dict):
         x_pixels=x_pixels,
         y_pixels=y_pixels,
         resolution_factor=resolution_factor,
-        dark_noise=dark_noise,
-        dark_current_sigma=dark_current_sigma,
+        dark_current=dark_current,
+        dark_current_noise=dark_current_noise,
         read_noise=read_noise,
         bias_offset=bias_offset,
         ccd_gain=ccd_gain,
@@ -103,7 +103,7 @@ def load_channel_photometry(path: Path, exposure_s: float, background: dict):
 def load_channel_spectroscopy(path: Path, exposure_s: float, background: dict):
     channel_properties, detector_common, exposure_common, effective_area_common = load_common_channel(path, exposure_s)
     raw, channel_name, source_file = channel_properties
-    x_pixels, y_pixels, resolution_factor, dark_noise, dark_current_sigma, read_noise, bias_offset, ccd_gain = detector_common
+    x_pixels, y_pixels, resolution_factor, dark_current, dark_current_noise, read_noise, bias_offset, ccd_gain = detector_common
     exposure_s, n_science_frames = exposure_common
     effective_area_file, effective_area_wavelength, effective_area, pixel_scale = effective_area_common
 
@@ -144,8 +144,8 @@ def load_channel_spectroscopy(path: Path, exposure_s: float, background: dict):
         y_pixels=y_pixels,
         resolution_factor=resolution_factor,
 
-        dark_noise=dark_noise,
-        dark_current_sigma=dark_current_sigma,
+        dark_current=dark_current,
+        dark_current_noise=dark_current_noise,
         read_noise=read_noise,
         bias_offset=bias_offset,
         ccd_gain=ccd_gain,

@@ -100,8 +100,8 @@ def test_build_science_image_additive_correctness(make_spectroscopy_channel, mak
     # Setup channel with 0 read/dark noise. Patch stochastic terms below.
     channel = make_spectroscopy_channel(
         read_noise=0.0,
-        dark_noise=0.0,
-        dark_current_sigma=0.0,
+        dark_current=0.0,
+        dark_current_noise=0.0,
         bias_offset=100.0,
         ccd_gain=1.0
     )

@@ -9,8 +9,8 @@ class Channel:
     y_pixels: int
     resolution_factor: float
 
-    dark_noise: float
-    dark_current_sigma: float
+    dark_current: float
+    dark_current_noise: float
     read_noise: float
     bias_offset: float
     ccd_gain: float
