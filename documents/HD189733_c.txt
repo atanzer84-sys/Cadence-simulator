@@ -1,0 +1,20 @@
+NIR | Orbit 2/2 | Frame 135/135 | Orbit-frame 68/67 | Roll 354.67° -> 358.67°
+      358.63 real       348.30 user         7.79 sys
+          2572009472  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              452698  page reclaims
+                1613  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                6476  voluntary context switches
+               15421  involuntary context switches
+       2733919494413  instructions retired
+        696164531072  cycles elapsed
+          3565347328  peak memory footprint
+andreatanzer@Andreas-MacBook-Air WALTzER-simulator % 

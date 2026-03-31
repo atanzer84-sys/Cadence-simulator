@@ -1,5 +1,6 @@
 import logging
 import numpy as np
+from instrument.flat_image import generate_flat_image
 from loaders.run_waltzer_context import RunContext
 from configs.channel_config import SpectroscopyChannel, PhotometryChannel, Channel
 from instrument.bias_image import generate_bias_image
@@ -15,6 +16,7 @@ from instrument.photon_noise import generate_photon_noise_from_spectra2d
 from frame.fits_header import initialize_fits_header
 from frame.bias_frame import generate_bias_frame_with_index
 from frame.dark_frame import generate_dark_frame_with_index
+from frame.flat_frame import generate_flat_frame_with_index
 from frame.write_fits import write_fits_frame
 from frame.fits_header import append_image_stats_header, append_channel_frame_header, append_base_frame_header, append_photometry_header
 from frame.frame_class import Frame
@@ -53,6 +55,11 @@ def _generate_channel_calibration_frames(channel: Channel, header, ctx: RunConte
         write_fits_frame(dark_frame, ctx, i, exposure)
         if cfg.write_calibration_frame_png:
             write_calibration_frame_png(dark_frame.data, dark_frame.frame_type, channel, ctx, cfg, star=star, index=i)
+
+        flat_frame = generate_flat_frame_with_index(channel, i, header)
+        write_fits_frame(flat_frame, ctx, i, exposure)
+        if cfg.write_calibration_frame_png:
+            write_calibration_frame_png(flat_frame.data, flat_frame.frame_type, channel, ctx, cfg, star=star, index=i)
 
 
 def _create_channel_images(stellar_signal, channel: Channel, ctx: RunContext, cfg: GlobalConfig, star: Star, background_stars_catalog: StarCatalog, base_header) -> None:
@@ -115,6 +122,7 @@ def _create_per_exposure(stellar_component, background_component, channel: Chann
     return image
 
 def _build_science_image_without_bg_stars(target_star_component, background_component, channel: Channel, ctx: RunContext, cfg: GlobalConfig, star: Star, frame_index: int, base_header):
+
     image = generate_bias_image(channel).astype(np.float32)
     if frame_index < 1:
         if cfg.write_science_frame_component_png:
@@ -128,33 +136,27 @@ def _build_science_image_without_bg_stars(target_star_component, background_comp
         if cfg.write_science_frame_component_png:
             write_calibration_frame_png(image, "SCIENCE_DARK_ONLY", channel=channel, ctx=ctx, cfg=cfg, star=star, index=frame_index)
         if cfg.write_science_frame_component_fits:
-            _write_science_component_fits(dark, "SCIENCE_DARK_ONLY", channel, ctx, frame_index, base_header)
+            _write_science_component_fits(image, "SCIENCE_DARK_ONLY", channel, ctx, frame_index, base_header)
 
-
-    image += target_star_component
+    photon_noise = generate_photon_noise_from_spectra2d(target_star_component)
+    flat = generate_flat_image(channel)
+    signal = target_star_component + photon_noise + background_component
+    flat_total = signal * flat
+    image += flat_total
     if frame_index < 1:
         if cfg.write_science_frame_component_png:
             write_calibration_frame_png(target_star_component, "SCIENCE_SIGNAL_ONLY", channel=channel, ctx=ctx, cfg=cfg, star=star, index=frame_index)
-            write_calibration_frame_png(image, "SCIENCE_SPECTRA", channel=channel, ctx=ctx, cfg=cfg, star=star, index=frame_index)
+            write_calibration_frame_png(background_component, "SCIENCE_BACKGROUND_ONLY", channel=channel, ctx=ctx, cfg=cfg, star=star, index=frame_index)
+            write_calibration_frame_png(photon_noise, "SCIENCE_PHOTON_NOISE_ONLY", channel=channel, ctx=ctx, cfg=cfg, star=star, index=frame_index)
+            write_calibration_frame_png(flat, "SCIENCE_FLAT_ONLY", channel=channel, ctx=ctx, cfg=cfg, star=star, index=frame_index)
+            write_calibration_frame_png(flat_total, "SCIENCE_SPECTRA_FLAT_PHOTONNOISE_BACKG", channel=channel, ctx=ctx, cfg=cfg, star=star, index=frame_index)
+
         if cfg.write_science_frame_component_fits:
             _write_science_component_fits(target_star_component, "SCIENCE_SIGNAL_ONLY", channel, ctx, frame_index, base_header)
-            _write_science_component_fits(image, "SCIENCE_SPECTRA", channel, ctx, frame_index, base_header)
-
-
-    photon_noise = generate_photon_noise_from_spectra2d(target_star_component)
-    image += photon_noise
-    if frame_index < 1:
-        if cfg.write_science_frame_component_png:
-            write_calibration_frame_png(photon_noise, "SCIENCE_PHOTON_NOISE_ONLY", channel=channel, ctx=ctx, cfg=cfg, star=star, index=frame_index)
-        if cfg.write_science_frame_component_fits:
-            _write_science_component_fits(photon_noise, "SCIENCE_PHOTON_NOISE_ONLY", channel, ctx, frame_index, base_header)
-
-    image += background_component
-    if frame_index < 1:
-        if cfg.write_science_frame_component_png:
-            write_calibration_frame_png(background_component, "SCIENCE_BACKGROUND_ONLY", channel=channel, ctx=ctx, cfg=cfg, star=star, index=frame_index)
-        if cfg.write_science_frame_component_fits:
             _write_science_component_fits(background_component, "SCIENCE_BACKGROUND_ONLY", channel, ctx, frame_index, base_header)
+            _write_science_component_fits(photon_noise, "SCIENCE_PHOTON_NOISE_ONLY", channel, ctx, frame_index, base_header)
+            _write_science_component_fits(flat, "SCIENCE_FLAT_ONLY", channel, ctx, frame_index, base_header)
+            _write_science_component_fits(flat_total, "SCIENCE_SPECTRA_FLAT_PHOTONNOISE_BACKG", channel, ctx, frame_index, base_header)
 
     cosmic = generate_cosmic_rays(channel, cfg)
     image += cosmic
