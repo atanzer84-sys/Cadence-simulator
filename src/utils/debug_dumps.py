@@ -114,15 +114,6 @@ def dump_npz_snapshot(output_dir, filename, **arrays):
     np.savez_compressed(out_file, **converted)
     return out_file
 
-
-def dump_cropped_image_npz(output_dir, filename, image, y_center, half_height=500):
-    y_center_i = int(round(y_center))
-    y_min = max(0, y_center_i - int(half_height))
-    y_max = min(image.shape[0], y_center_i + int(half_height) + 1)
-    image_cropped = image[y_min:y_max, :].astype(np.float32, copy=False)
-    return dump_npz_snapshot(output_dir, filename, image=image_cropped, y0=np.int32(y_center_i), y_min=np.int32(y_min), y_max=np.int32(y_max))
-
-
 def dump_effective_area_txt(output_dir, channel_name, effective_area_wavelength, effective_area, pixel_scale):
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)

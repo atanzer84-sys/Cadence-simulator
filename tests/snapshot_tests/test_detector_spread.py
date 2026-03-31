@@ -1,9 +1,8 @@
 import numpy as np
 from pathlib import Path
 from instrument.prepare_detector_images import compute_counts_per_s_px_one_channel
-from instrument.spectrum_spread import spread_1d_spectrum_to_2d
+from instrument.spectrum_spread import spread_1d_spectrum_to_2d, get_spectrum_placement
 from instrument.psf_spread import spread_1d_photometry_to_2d
-
 
 SNAPSHOT_BASE = Path(__file__).parent / "snapshots"
 
@@ -65,53 +64,41 @@ def run_snapshot_convolved_counts_full_spectroscopy(star_name: str, channel: str
 
 
 def run_snapshot_spread_image_2d_nuv_profile(star_name: str, make_spectroscopy_channel):
+
     convolved = _load_npz(SNAPSHOT_BASE / f"{star_name}_NUV_convolved_counts_full.npz")
-    spread_image = _load_npz(SNAPSHOT_BASE / f"{star_name}_NUV_spread_image_2d.npz")
+    spread_image = _load_npz(SNAPSHOT_BASE / f"{star_name}_NUV_spread_image_2d_full.npz")
     spread_profile = _load_npz(SNAPSHOT_BASE / "NUV_spread_profile_full.npz")
-    effective_area_wavelength, _, _ = _load_effective_area("NUV")
+    effective_area_wavelength, _, pixel_scale = _load_effective_area("NUV")
 
-    y0 = int(spread_image["y0"])
-    y_min = int(spread_image["y_min"])
-    y_max = int(spread_image["y_max"])
+    nuv_channel = make_spectroscopy_channel(channel_name="NUV", mode=1, x_pixels=NUV_X_PIXELS, y_pixels=NUV_Y_PIXELS, pixel_scale=float(pixel_scale), effective_area_wavelength=effective_area_wavelength, spread_y_positions=spread_profile["spread_y_positions"], spread_y_weights=spread_profile["spread_y_weights"], spread_y_wavelengths=spread_profile["spread_y_wavelengths"])
 
-    nuv_channel = make_spectroscopy_channel(channel_name="NUV", mode=1, x_pixels=NUV_X_PIXELS, y_pixels=NUV_Y_PIXELS, effective_area_wavelength=effective_area_wavelength, spread_y_positions=spread_profile["spread_y_positions"], spread_y_weights=spread_profile["spread_y_weights"], spread_y_wavelengths=spread_profile["spread_y_wavelengths"])
+    placement = get_spectrum_placement(nuv_channel)
+    image_full = spread_1d_spectrum_to_2d(convolved["counts_s_px_convolved"], nuv_channel, placement, announce_user=False)
 
-    image_full = spread_1d_spectrum_to_2d(convolved["counts_s_px_convolved"], nuv_channel, (0, float(y0), 0.0, 0.0), announce_user=False)
-    image_crop = image_full[y_min:y_max, :]
-
-    np.testing.assert_allclose(image_crop, spread_image["image"], rtol=1e-3, atol=1e-2)
-
+    np.testing.assert_allclose(image_full, spread_image["image_full"], rtol=1e-3, atol=1e-2)
 
 def run_snapshot_spread_image_2d_vis_gaussian(star_name: str, make_spectroscopy_channel):
     convolved = _load_npz(SNAPSHOT_BASE / f"{star_name}_VIS_convolved_counts_full.npz")
-    spread_image = _load_npz(SNAPSHOT_BASE / f"{star_name}_VIS_spread_image_2d.npz")
+    spread_image = _load_npz(SNAPSHOT_BASE / f"{star_name}_VIS_spread_image_2d_full.npz")
+    effective_area_wavelength, _, pixel_scale = _load_effective_area("VIS")
 
-    y0 = int(spread_image["y0"])
-    y_min = int(spread_image["y_min"])
-    y_max = int(spread_image["y_max"])
+    vis_channel = make_spectroscopy_channel(channel_name="VIS", observation_mode="spectroscopy", mode=1, x_pixels=VIS_X_PIXELS, y_pixels=VIS_Y_PIXELS, pixel_scale=float(pixel_scale), effective_area_wavelength=effective_area_wavelength, spread_y_positions=None, spread_y_weights=None, spread_y_wavelengths=None, spread_half_height_pix=10)
 
-    vis_channel = make_spectroscopy_channel(channel_name="VIS", mode=1, x_pixels=VIS_X_PIXELS, y_pixels=VIS_Y_PIXELS, spread_y_positions=None, spread_y_weights=None, spread_y_wavelengths=None, spread_half_height_pix=10)
+    placement = get_spectrum_placement(vis_channel)
+    image_full = spread_1d_spectrum_to_2d(convolved["counts_s_px_convolved"], vis_channel, placement, announce_user=False)
 
-    image_full = spread_1d_spectrum_to_2d(convolved["counts_s_px_convolved"], vis_channel, (0, float(y0), 0.0, 0.0), announce_user=False)
-    image_crop = image_full[y_min:y_max, :]
-
-    np.testing.assert_allclose(image_crop, spread_image["image"], rtol=1e-6, atol=1e-6)
-
+    np.testing.assert_allclose(image_full, spread_image["image_full"], rtol=1e-6, atol=1e-6)
 
 def run_snapshot_spread_image_2d_nir_psf(star_name: str, make_photometry_channel):
     convolved = _load_npz(SNAPSHOT_BASE / f"{star_name}_NIR_convolved_counts_full.npz")
-    spread_image = _load_npz(SNAPSHOT_BASE / f"{star_name}_NIR_spread_image.npz")
+    spread_image = _load_npz(SNAPSHOT_BASE / f"{star_name}_NIR_spread_image_full.npz")
     spread_profile = _load_npz(SNAPSHOT_BASE / "NIR_psf_profile_full.npz")
-
-    y_min = int(spread_image["y_min"])
-    y_max = int(spread_image["y_max"])
 
     nir_channel = make_photometry_channel(channel_name="NIR", x_pixels=NIR_X_PIXELS, y_pixels=NIR_Y_PIXELS, psf_image=spread_profile["psf_image"], psf_center_x=int(spread_profile["psf_center_x"]), psf_center_y=int(spread_profile["psf_center_y"]), source_position_x_arcsec=float(spread_profile["source_position_x_arcsec"]), source_position_y_arcsec=float(spread_profile["source_position_y_arcsec"]))
 
     image_full = spread_1d_photometry_to_2d(convolved["counts_s_px_convolved"], nir_channel, announce_user=False)
-    image_crop = image_full[y_min:y_max, :]
 
-    np.testing.assert_allclose(image_crop, spread_image["image"], rtol=1e-6, atol=1e-6)
+    np.testing.assert_allclose(image_full, spread_image["image_full"], rtol=1e-6, atol=1e-6)
 
 
 # Tests: convolved counts full snapshots

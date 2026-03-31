@@ -24,6 +24,8 @@ from instrument.psf_spread import compute_aperture_photometry
 from utils.images_calibration_frame import write_calibration_frame_png
 from utils.images_science_frame import write_science_frame_png
 from utils.images_backgroundstar_science_panel import generate_background_star_visibility_on_science_frame
+from utils.debug_dumps import dump_npz_snapshot
+
 
 def build_science_images(stellar_signal, channel: Channel, ctx: RunContext, star: Star, background_stars_catalog: StarCatalog):
     cfg = get_global_config()
@@ -84,7 +86,6 @@ def _create_channel_images(stellar_signal, channel: Channel, ctx: RunContext, cf
         img = _create_per_exposure(stellar_component, background_component, channel, ctx, cfg, star, background_stars_catalog, frame_index, roll_angle_start, roll_angle_end, base_header)
         phot = compute_aperture_photometry(img, channel)
 
-
         _report_science_frame_progress(channel, frame_index, total_orbits, roll_angle_start, roll_angle_end)
 
         header = append_base_frame_header(base_header, filetype="SCIENCE", channel=channel, index0=frame_index)
@@ -97,6 +98,9 @@ def _create_channel_images(stellar_signal, channel: Channel, ctx: RunContext, cf
         if cfg.write_science_frames_png:
             write_science_frame_png(frame.data, channel, ctx, cfg, star=star, index=frame_index,phot=phot)
             
+    if cfg.write_intermediate_arrays:
+        dump_npz_snapshot(ctx.output_dir, f"{channel.channel_name}_background_component_full.npz", image_full=background_component)
+
     logging.info("Science image generation finished: channel=%s frames=%d exposure_s=%g orbit_duration_s=%g", channel.channel_name, n_science_frames, exposure, orbit_duration_s)
 
 def _create_per_exposure(stellar_component, background_component, channel: Channel, ctx: RunContext, cfg: GlobalConfig, star: Star, background_stars_catalog: StarCatalog, frame_index: int, roll_angle_start: float, roll_angle_end: float, base_header) -> np.ndarray:

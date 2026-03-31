@@ -5,12 +5,12 @@ from domain.star import Star
 from flux.flux_calc import calculate_flux_on_earth
 from loaders.run_waltzer_context import RunContext
 from configs.channel_config import PhotometryChannel, SpectroscopyChannel, Channel
-from instrument.spectrum_spread import spread_target_star_spectrum_to_2d, get_spectrum_placement
+from instrument.spectrum_spread import spread_target_star_spectrum_to_2d
 from instrument.spectral_convolution import counts_per_s_px_conv_per_channel, compute_broadened_channel_flux
 from utils.constants import PHOTON_ENERGY_CONVERSION_A
-from instrument.psf_spread import spread_1d_photometry_to_2d, get_photometry_placement
+from instrument.psf_spread import spread_1d_photometry_to_2d
 from instrument.wavelength_range import get_required_wavelength_range
-from utils.debug_dumps import dump_1d_for_channel, dump_effective_area_txt, dump_npz_snapshot, dump_cropped_image_npz, dump_1d_array
+from utils.debug_dumps import dump_1d_for_channel, dump_effective_area_txt, dump_npz_snapshot, dump_1d_array
 from utils.flux_image_array import plot_flux_and_photons_windows, plot_1d_for_channel
 
 def prepare_star_photon_flux_for_channels(star: Star, ctx: RunContext, nuv: SpectroscopyChannel | None, vis: SpectroscopyChannel | None, nir: PhotometryChannel | None):
@@ -43,8 +43,7 @@ def prepare_detector_image_spectroscopy(photons: np.ndarray, wavelengths: np.nda
 
     cfg = get_global_config()
     if cfg.write_intermediate_arrays:
-        placement = get_spectrum_placement(channel)
-        dump_cropped_image_npz(ctx.output_dir, f"{ctx.target_name}_{channel.channel_name}_spread_image_2d.npz", spectra_2d, placement[1], half_height=500)
+        dump_npz_snapshot(ctx.output_dir, f"{ctx.target_name}_{channel.channel_name}_spread_image_2d_full.npz", image_full=spectra_2d)
         if channel.spread_y_positions is not None and channel.spread_y_weights is not None and channel.spread_y_wavelengths is not None:
             dump_npz_snapshot(ctx.output_dir, f"{channel.channel_name}_spread_profile_full.npz", spread_y_positions=channel.spread_y_positions, spread_y_weights=channel.spread_y_weights, spread_y_wavelengths=channel.spread_y_wavelengths)
 
@@ -62,9 +61,8 @@ def prepare_detector_image_photometry(photons: np.ndarray, wavelengths: np.ndarr
     # dump spread file and image for tests or debug reasons
     cfg = get_global_config()
     if cfg.write_intermediate_arrays:
-        _, source_pixel_y = get_photometry_placement(channel)
         dump_npz_snapshot(ctx.output_dir, f"{channel.channel_name}_psf_profile_full.npz", psf_image=channel.psf_image, psf_center_x=channel.psf_center_x, psf_center_y=channel.psf_center_y, source_position_x_arcsec=channel.source_position_x_arcsec, source_position_y_arcsec=channel.source_position_y_arcsec)
-        dump_cropped_image_npz(ctx.output_dir, f"{ctx.target_name}_{channel.channel_name}_spread_image.npz", rate_image_e_s, source_pixel_y, half_height=500)
+        dump_npz_snapshot(ctx.output_dir, f"{ctx.target_name}_{channel.channel_name}_spread_image_full.npz", image_full=rate_image_e_s) 
 
 
     logging.info("Detector image prepared: channel=%s mode=photometry shape=%s", channel.channel_name, rate_image_e_s.shape)
