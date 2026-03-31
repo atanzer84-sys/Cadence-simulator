@@ -98,9 +98,6 @@ def _create_channel_images(stellar_signal, channel: Channel, ctx: RunContext, cf
         if cfg.write_science_frames_png:
             write_science_frame_png(frame.data, channel, ctx, cfg, star=star, index=frame_index,phot=phot)
             
-    if cfg.write_intermediate_arrays:
-        dump_npz_snapshot(ctx.output_dir, f"{channel.channel_name}_background_component_full.npz", image_full=background_component)
-
     logging.info("Science image generation finished: channel=%s frames=%d exposure_s=%g orbit_duration_s=%g", channel.channel_name, n_science_frames, exposure, orbit_duration_s)
 
 def _create_per_exposure(stellar_component, background_component, channel: Channel, ctx: RunContext, cfg: GlobalConfig, star: Star, background_stars_catalog: StarCatalog, frame_index: int, roll_angle_start: float, roll_angle_end: float, base_header) -> np.ndarray:
@@ -133,6 +130,8 @@ def _build_science_image_without_bg_stars(target_star_component, background_comp
             write_calibration_frame_png(image, "SCIENCE_BIAS_ONLY", channel=channel, ctx=ctx, cfg=cfg, star=star, index=frame_index)
         if cfg.write_science_frame_component_fits:
             _write_science_component_fits(image, "SCIENCE_BIAS_ONLY", channel, ctx, frame_index, base_header)
+        if cfg.write_intermediate_arrays:
+            dump_npz_snapshot(ctx.output_dir, f"{star.name}_{channel.channel_name}_bias_full.npz", image_full=image)
 
     dark = generate_dark_image(channel)
     image += dark
@@ -141,6 +140,9 @@ def _build_science_image_without_bg_stars(target_star_component, background_comp
             write_calibration_frame_png(image, "SCIENCE_DARK_ONLY", channel=channel, ctx=ctx, cfg=cfg, star=star, index=frame_index)
         if cfg.write_science_frame_component_fits:
             _write_science_component_fits(image, "SCIENCE_DARK_ONLY", channel, ctx, frame_index, base_header)
+        if cfg.write_intermediate_arrays:
+            dump_npz_snapshot(ctx.output_dir, f"{star.name}_{channel.channel_name}_dark_full.npz", image_full=dark)
+
 
     photon_noise = generate_photon_noise_from_spectra2d(target_star_component)
     flat = generate_flat_image(channel)
@@ -162,6 +164,11 @@ def _build_science_image_without_bg_stars(target_star_component, background_comp
             _write_science_component_fits(flat, "SCIENCE_FLAT_ONLY", channel, ctx, frame_index, base_header)
             _write_science_component_fits(flat_total, "SCIENCE_SPECTRA_FLAT_PHOTONNOISE_BACKG", channel, ctx, frame_index, base_header)
 
+        if cfg.write_intermediate_arrays:
+            dump_npz_snapshot(ctx.output_dir, f"{star.name}_{channel.channel_name}_photon_noise_full.npz", image_full=photon_noise)
+            dump_npz_snapshot(ctx.output_dir, f"{star.name}_{channel.channel_name}_flat_full.npz", image_full=flat)
+            dump_npz_snapshot(ctx.output_dir, f"{star.name}_{channel.channel_name}_background_component_full.npz", image_full=background_component)
+
     cosmic = generate_cosmic_rays(channel, cfg)
     image += cosmic
     if frame_index < 1:
@@ -169,6 +176,12 @@ def _build_science_image_without_bg_stars(target_star_component, background_comp
             write_calibration_frame_png(cosmic, "SCIENCE_COSMIC_ONLY", channel=channel, ctx=ctx, cfg=cfg, star=star, index=frame_index)
         if cfg.write_science_frame_component_fits:
             _write_science_component_fits(cosmic, "SCIENCE_COSMIC_ONLY", channel, ctx, frame_index, base_header)
+        if cfg.write_intermediate_arrays:
+            dump_npz_snapshot(ctx.output_dir, f"{star.name}_{channel.channel_name}_cosmic_full.npz", image_full=cosmic)
+    
+    
+    if cfg.write_intermediate_arrays and frame_index < 1:
+        dump_npz_snapshot(ctx.output_dir, f"{star.name}_{channel.channel_name}_science_image_without_bg_stars_full.npz", image_full=image)
 
     return image
 
