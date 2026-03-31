@@ -119,6 +119,9 @@ def _create_per_exposure(stellar_component, background_component, channel: Chann
 
     if cfg.write_background_star_footprint_on_science_frame:
         generate_background_star_visibility_on_science_frame(image, bg_stars, ctx, channel, star=star, index=frame_index, inverted=cfg.invert_calibration_science_frame_component, **visibility_kwargs)
+    if cfg.write_intermediate_arrays and frame_index < 1:
+        dump_npz_snapshot(ctx.output_dir, f"{star.name}_{channel.channel_name}_background_stars_component_full.npz", image_full=bg_stars)
+        dump_npz_snapshot(ctx.output_dir, f"{star.name}_{channel.channel_name}_science_image_full.npz", image_full=image)
 
     return image
 
