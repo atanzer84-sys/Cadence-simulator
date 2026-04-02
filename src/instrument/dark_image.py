@@ -15,5 +15,5 @@ def generate_dark_image(channel: Channel):
     dark_base = _rng.normal(dark_current, dark_current_noise, size=(ny, nx)).astype(np.float32)
     dark = (dark_base + (dark_current * exptime_s))
 
-    logging.info("Dark image generated: channel=%s shape=(%d,%d) exposure_s=%g mean=%g std=%g min=%g max=%g", channel.channel_name, ny, nx, exptime_s, dark.mean(), dark.std(), dark.min(), dark.max())
+    # logging.info("Dark image generated: channel=%s shape=(%d,%d) exposure_s=%g mean=%g std=%g min=%g max=%g", channel.channel_name, ny, nx, exptime_s, dark.mean(), dark.std(), dark.min(), dark.max())
     return dark

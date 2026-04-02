@@ -18,3 +18,26 @@ NIR | Orbit 2/2 | Frame 135/135 | Orbit-frame 68/67 | Roll 354.67° -> 358.67°
         915133879776  cycles elapsed
           3534348928  peak memory footprint
 andreatanzer@Andreas-MacBook-Air WALTzER-simulator % 
+
+
+2
+
+      330.71 real       285.01 user        18.93 sys
+          1036959744  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             2895175  page reclaims
+                2933  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+               28585  voluntary context switches
+              812352  involuntary context switches
+       3324400425308  instructions retired
+        921044780303  cycles elapsed
+          3722814464  peak memory footprint
+andreatanzer@Andreas-MacBook-Air WALTzER-simulator % 
