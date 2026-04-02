@@ -67,8 +67,8 @@ def _render_star_if_on_detector(star_id: str, channel: PhotometryChannel, catalo
     psf_center_y = int(channel.psf_center_y)
 
 
+    psf_stamp = channel.psf_image * flux_per_step_electrons_per_second
     for x_background_star, y_background_star in valid_positions:
-        psf_stamp = channel.psf_image * flux_per_step_electrons_per_second
         paste_psf_stamp(image, psf_stamp, x_background_star, y_background_star, psf_center_x, psf_center_y)
 
     return valid_positions
