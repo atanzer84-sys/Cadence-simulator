@@ -1,8 +1,6 @@
 
 import numpy as np
 from configs.channel_config import Channel
-import logging
-
 
 # TODO: FLAT IMPLEMENTATION HERE
 def generate_flat_image(channel: Channel):

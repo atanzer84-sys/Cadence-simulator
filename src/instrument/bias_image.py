@@ -1,7 +1,6 @@
 
 import numpy as np
 from configs.channel_config import Channel
-import logging
 
 _rng = np.random.default_rng()
 
