@@ -85,19 +85,20 @@ def convert_stellar_model_to_flux(model_data, r_star):
     Resulting quantity is stellar spectral luminosity (erg/s/A),
     later converted to flux at Earth by geometric dilution.
     '''
-    intensity_lambda = np.zeros(np.shape(model_data))
-    flux_lambda  = np.zeros(np.shape(model_data))
+    flux_lambda = np.zeros(np.shape(model_data))
+    wavelength = model_data[:, 0]
+    wavelength_sq = wavelength * wavelength
+    scale = C_LIGHT_Angst * 4 * np.pi * (r_star**2) * 4 * np.pi
+
     # we convert from frq to wavelength using lambda in Angstrom: F_lambda = F_nu * c / lambda^2
     # Unit before: erg/cm2/s/Hz, After:  ergs/cm2/s/A
-    intensity_lambda[:,1] = (C_LIGHT_Angst * model_data[:,1])/(model_data[:,0]**2)    
-    intensity_lambda[:,2] = (C_LIGHT_Angst * model_data[:,2])/(model_data[:,0]**2)
-
     # Integrate over stellar surface area (4*pi*R^2) and over solid angle (4*pi)
     # multiply with surface area of star -> ergs/cm2/s/A to ergs/s/A
     # then multiply with 4*!pi for steradian conversion
-    flux_lambda[:,0]  = model_data[:,0]
-    flux_lambda[:,1]  = intensity_lambda[:,1] * 4 * np.pi * (r_star**2) * 4 * np.pi
-    flux_lambda[:,2]  = intensity_lambda[:,2] * 4 * np.pi * (r_star**2) * 4 * np.pi
+    flux_lambda[:, 0] = wavelength
+    flux_lambda[:, 1] = model_data[:, 1] * scale / wavelength_sq
+    flux_lambda[:, 2] = model_data[:, 2] * scale / wavelength_sq
+
     logging.info("Converting intensity to luminosity for r_star=%.6e cm with %d wavelength points", r_star, model_data.shape[0])
 
     return flux_lambda
