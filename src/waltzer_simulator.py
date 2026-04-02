@@ -39,7 +39,7 @@ def main():
         build_science_images(spectra_2d_vis, vis_channel, run_ctx, star, background_stars_catalog) if vis_channel is not None else None
         build_science_images(rate_nir, nir_channel, run_ctx, star, background_stars_catalog) if nir_channel is not None else None        
 
-
+        
     except Exception as e:
         logging.exception("Fatal error")
         print(f"Input error: {e}")

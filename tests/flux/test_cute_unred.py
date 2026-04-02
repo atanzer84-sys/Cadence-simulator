@@ -12,12 +12,12 @@ def test_unred_lmc_flag_selects_coefficients(caplog):
 
     with caplog.at_level(logging.INFO):
         unred(wave, flux, ebv=0.1, R_V=3.1, LMC2=True, AVGLMC=False)
-    lmc2_log = caplog.records[-1].message
+    lmc2_log = next(record.message for record in caplog.records if "unred_base_curve:" in record.message)
 
     caplog.clear()
     with caplog.at_level(logging.INFO):
         unred(wave, flux, ebv=0.1, R_V=3.1, LMC2=False, AVGLMC=True)
-    avglmc_log = caplog.records[-1].message
+    avglmc_log = next(record.message for record in caplog.records if "unred_base_curve:" in record.message)
 
     assert "LMC2=True" in lmc2_log
     assert "AVGLMC=False" in lmc2_log

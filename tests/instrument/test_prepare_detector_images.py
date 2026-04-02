@@ -240,7 +240,7 @@ def test_compute_counts_per_s_px_one_channel_calls_dependencies(make_star, make_
         result = compute_counts_per_s_px_one_channel(photons_star, wavelengths, channel, ctx, star)
 
     assert np.array_equal(result, counts)
-    mock_broaden.assert_called_once_with(photons_star, wavelengths, channel, star)
+    mock_broaden.assert_called_once_with(photons_star, wavelengths, channel)
     mock_counts.assert_called_once_with(broadened_flux, broadened_wavelength, channel)
 
 

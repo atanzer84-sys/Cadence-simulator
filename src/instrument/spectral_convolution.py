@@ -1,9 +1,8 @@
 import numpy as np
-from domain.star import Star
 from configs.channel_config import Channel
 from instrument.wavelength_range import compute_extended_wavelength_range
 
-def compute_broadened_channel_flux(photon_flux_at_earth: np.ndarray, wavelengths_total: np.ndarray, channel: Channel, star: Star):
+def compute_broadened_channel_flux(photon_flux_at_earth: np.ndarray, wavelengths_total: np.ndarray, channel: Channel):
     # Cut up array to broaden with gauss later
     cut_photon_flux, wavelength = cut_wavelength_window_with_margin(photon_flux_at_earth, wavelengths_total, channel)
     # Gaussian Broadening of flux over wavelengths

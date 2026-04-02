@@ -78,7 +78,7 @@ def test_compute_broadened_channel_flux_extreme_hwhm_returns_mean(make_star, mak
     # Large pixel scale forces the "hwhm > 5 * range" branch in gaussbroad
     channel = make_spectroscopy_channel(pixel_scale=1000.0, effective_area_wavelength=np.array([140.0, 160.0]))
     
-    smoothed_flux, _ = compute_broadened_channel_flux(photon_flux, wavelengths_total, channel, make_star())
+    smoothed_flux, _ = compute_broadened_channel_flux(photon_flux, wavelengths_total, channel)
     
     assert np.allclose(smoothed_flux, 15.0)
 
@@ -95,7 +95,7 @@ def test_compute_broadened_channel_flux_nonpositive_hwhm(hwhm_val, make_star, ma
     channel = make_spectroscopy_channel(pixel_scale=hwhm_val, effective_area_wavelength=np.array([100.0, 101.0, 102.0]))
     
     # This currently fails in prod due to divide-by-zero
-    smoothed_flux, _ = compute_broadened_channel_flux(photon_flux, wavelengths_total, channel, make_star())
+    smoothed_flux, _ = compute_broadened_channel_flux(photon_flux, wavelengths_total, channel)
     
     assert np.array_equal(smoothed_flux, photon_flux)
 

@@ -1,9 +1,9 @@
 import numpy as np
 import scipy.interpolate as interpolate
 import logging
-
 from utils.constants import R_V as DEFAULT_R_V
 
+_UNRED_CURVE_CACHE = {}
 
 def unred(wave, flux, ebv, R_V=None, LMC2=False, AVGLMC=False):
     """
@@ -95,50 +95,61 @@ def unred(wave, flux, ebv, R_V=None, LMC2=False, AVGLMC=False):
          c1 - Intercept of the linear UV extinction component 
               (default = 2.030 - 3.007*c2
     """
+    
     if R_V is None:
         R_V = DEFAULT_R_V
 
+    #Now apply extinction correction to input flux vector
+    base_curve = _get_unred_base_curve(wave, R_V, LMC2, AVGLMC)
+    curve = base_curve * ebv
+    corrected_flux = flux * 10.**(0.4 * curve)
+
+    return corrected_flux
+
+
+def _build_unred_base_curve(wave, R_V, LMC2, AVGLMC):
     x = 10000./ wave # Convert to inverse microns 
 
     curve = np.zeros_like(x, dtype=np.float32)
     # Set some standard values:
     x0 = 4.596
-    gamma =  0.99
-    c3 =  3.23      
-    c4 =  0.41    
-    c2 = -0.824 + 4.717/R_V
-    c1 =  2.030 - 3.007*c2
-    
+    gamma = 0.99
+    c3 = 3.23
+    c4 = 0.41
+    c2 = -0.824 + 4.717 / R_V
+    c1 = 2.030 - 3.007 * c2
+
     if LMC2:
-        x0    =  4.626
-        gamma =  1.05   
-        c4   =  0.42   
-        c3    =  1.92      
-        c2    = 1.31
-        c1    =  -2.16
-    elif AVGLMC:   
-        x0 = 4.596  
+        x0 = 4.626
+        gamma = 1.05
+        c4 = 0.42
+        c3 = 1.92
+        c2 = 1.31
+        c1 = -2.16
+    elif AVGLMC:
+        x0 = 4.596
         gamma = 0.91
-        c4   =  0.64  
-        c3    =  2.73      
-        c2    = 1.11
-        c1    =  -1.28
-    
+        c4 = 0.64
+        c3 = 2.73
+        c2 = 1.11
+        c1 = -1.28
+
     # Compute UV portion of A(lambda)/E(B-V) curve using FM fitting function and 
     # R-dependent coefficients
-    xcutuv = np.array([10000.0/2700.0], dtype=np.float32)
+    xcutuv = np.array([10000.0 / 2700.0], dtype=np.float32)
     xspluv = 10000.0 / np.array([2700.0, 2600.0], dtype=np.float32)
 
     iuv = np.where(x >= xcutuv)[0]
     N_UV = len(iuv)
     iopir = np.where(x < xcutuv)[0]
+
     Nopir = len(iopir)
     if (N_UV > 0): xuv = np.concatenate((xspluv,x[iuv]))
     else:  xuv = xspluv
-    
-    yuv = c1  + c2*xuv
-    yuv = yuv + c3*xuv**2/((xuv**2-x0**2)**2 +(xuv*gamma)**2)
-    yuv = yuv + c4*(0.5392*(np.maximum(xuv,5.9)-5.9)**2+0.05644*(np.maximum(xuv,5.9)-5.9)**3)
+
+    yuv = c1 + c2 * xuv
+    yuv = yuv + c3 * xuv**2 / ((xuv**2 - x0**2)**2 + (xuv * gamma)**2)
+    yuv = yuv + c4 * (0.5392 * (np.maximum(xuv, 5.9) - 5.9)**2 + 0.05644 * (np.maximum(xuv, 5.9) - 5.9)**3)
     yuv = yuv + R_V
     yspluv  = yuv[0:2]  # save spline points
      
@@ -162,10 +173,30 @@ def unred(wave, flux, ebv, R_V=None, LMC2=False, AVGLMC=False):
     if (Nopir > 0): 
       tck = interpolate.splrep(np.concatenate((xsplopir,xspluv)),np.concatenate((ysplopir,yspluv)),s=0)
       curve[iopir] = interpolate.splev(x[iopir], tck)
-    
-    #Now apply extinction correction to input flux vector
-    curve *= ebv
-    corrected_flux = flux * 10.**(0.4*curve)
-    
-    logging.info("unred: ebv=%s R_V=%s LMC2=%s AVGLMC=%s x0=%s gamma=%s c1=%s c2=%s c3=%s c4=%s n_wave=%d wave_min=%s wave_max=%s", ebv, R_V, LMC2, AVGLMC, x0, gamma, c1, c2, c3, c4, wave.shape[0], float(np.min(wave)), float(np.max(wave)))
-    return corrected_flux
+
+    logging.info("unred_base_curve: R_V=%s LMC2=%s AVGLMC=%s x0=%s gamma=%s c1=%s c2=%s c3=%s c4=%s n_wave=%d wave_min=%s wave_max=%s", R_V, LMC2, AVGLMC, x0, gamma, c1, c2, c3, c4, wave.shape[0], float(np.min(wave)), float(np.max(wave)))
+
+    return curve
+
+def _get_unred_base_curve(wave, R_V, LMC2, AVGLMC):
+    # Cache wavelength-dependent extinction curves.
+    # The expensive part of unred is the spline-based construction of the
+    # extinction curve, which depends only on the wavelength grid and the
+    # extinction-law parameters (R_V, LMC2, AVGLMC), but not on ebv or flux.
+    # Since these inputs repeat across many calls, the base curve can be
+    # reused and the final ebv scaling applied afterward.
+
+    cache_key = (
+        wave.tobytes(),
+        float(R_V),
+        bool(LMC2),
+        bool(AVGLMC),
+    )
+
+    base_curve = _UNRED_CURVE_CACHE.get(cache_key)
+
+    if base_curve is None:
+        base_curve = _build_unred_base_curve(wave, R_V, LMC2, AVGLMC)
+        _UNRED_CURVE_CACHE[cache_key] = base_curve
+
+    return base_curve

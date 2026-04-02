@@ -3,6 +3,14 @@ import scipy.constants as sc
 import scipy.special as ss
 import numpy as np
 
+# Cache for wavelength-dependent Voigt profile factors.
+# The expensive part of voigtq (profile shape construction) depends only on
+# the wavelength grid and line parameters (B, Z, wave, gamma), but not on
+# the column density N. Since these inputs are identical across many calls,
+# the computed profile (vo / vd) can be reused. The cache avoids rebuilding
+# identical profiles repeatedly and significantly reduces runtime.
+_VOIGTQ_PROFILE_CACHE = {}
+
 def cute_ism_abs_all(flux,n_mg2,n_mg1,n_fe2):
     #Construct the ISM absorption
     n_flux=flux[:,1]/flux[:,2]
@@ -42,35 +50,63 @@ def cute_ism_abs_all(flux,n_mg2,n_mg1,n_fe2):
 
     return flux
 
-def voigtq(wavelength, absorber, line):
+def _build_voigt_profile_factor(wavelength, absorber, line):
+    
     bnorm = absorber["B"] / C_LIGHT_km_s
-    # Doppler width (Hz):
-    vd = absorber["B"]*sc.kilo / (line["wave"] * sc.angstrom)
+    # Doppler width (Hz) = 1/s:
+    vd = absorber["B"] * sc.kilo / (line["wave"] * sc.angstrom)
 
-    vel = (wavelength/(line["wave"]*(1.0+absorber["Z"])) - 1.0)  / bnorm
-    a = line["gamma"] / (4*np.pi * vd)
+    # Compute dimensionless distance from line center:
+    # 1) wavelength / line_center: normalize grid so line center = 1
+    # 2) subtract 1: shift so line center = 0
+    # 3) divide by bnorm: express offset in units of Doppler broadening scale
+    vel = (wavelength / (line["wave"] * (1.0 + absorber["Z"])) - 1.0) / bnorm
+
+    # Ratio of Lorentz width to Doppler width
+    a = line["gamma"] / (4 * np.pi * vd)
 
     idx_wings = np.abs(vel) >= 10.0
     idx_core = np.abs(vel) < 10.0
 
-    vo = vel*0.0
-    if np.any(idx_wings) > 0:
-          vel2 = vel[idx_wings]**2
-          hh1 = 0.56419/vel2 + 0.846/vel2**2
-          hh3 = -0.56/vel2**2
-          vo[idx_wings] = a * (hh1 + a**2 * hh3)
+    vo = np.zeros_like(vel)
 
-    if np.any(idx_core) > 0:
+    if np.any(idx_wings):
+        vel2 = vel[idx_wings] ** 2
+        hh1 = 0.56419 / vel2 + 0.846 / vel2 ** 2
+        hh3 = -0.56 / vel2 ** 2
+        vo[idx_wings] = a * (hh1 + a ** 2 * hh3)
+
+    if np.any(idx_core):
         x0 = 0.0
         hwhm_L = line["gamma"] / np.sqrt(2) / 2
         hwhm_G = vd * np.sqrt(np.log(2))
         voigt = Voigt(x0, hwhm_L, hwhm_G)
-        vo[idx_core] = voigt(vel[idx_core]*vd)
+        vo[idx_core] = voigt(vel[idx_core] * vd)
         vo[idx_core] /= np.amax(vo[idx_core])
 
-    tau = 0.014971475*(10.0**absorber["N"]) * line["F"] * vo/vd
+    return vo / vd
 
+
+
+def voigtq(wavelength, absorber, line):
+    cache_key = (
+        wavelength.tobytes(),
+        float(absorber["B"]),
+        float(absorber["Z"]),
+        float(line["wave"]),
+        float(line["gamma"]),
+    )
+
+    profile_factor = _VOIGTQ_PROFILE_CACHE.get(cache_key)
+
+    if profile_factor is None:
+        profile_factor = _build_voigt_profile_factor(wavelength, absorber, line)
+        _VOIGTQ_PROFILE_CACHE[cache_key] = profile_factor
+
+    tau = 0.014971475 * (10.0 ** absorber["N"]) * line["F"] * profile_factor
     return np.exp(-tau)
+
+
 
 class Voigt(object):
     """
