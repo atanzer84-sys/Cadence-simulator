@@ -40,7 +40,7 @@ def test_save_background_stars_csv_writes_file_and_emits_message(tmp_path, caplo
 # Behavior: computes diagonal reach from slit half-width and half-length
 def test_spectroscopy_radius_arcsec_uses_slit_diagonal(make_spectroscopy_channel):
     ch = make_spectroscopy_channel(slit_half_width_arcsec=3.0, slit_half_length_arcsec=4.0)
-    assert lbs._spectroscopy_radius_arcsec(ch) == 5.0
+    assert lbs.spectroscopy_radius_arcsec(ch) == 5.0
 
 
 # Tests: _photometry_radius_arcsec
@@ -48,7 +48,7 @@ def test_spectroscopy_radius_arcsec_uses_slit_diagonal(make_spectroscopy_channel
 def test_photometry_radius_arcsec_uses_detector_diagonal(make_photometry_channel):
     ch = make_photometry_channel(x_pixels=6, y_pixels=8, pixel_scale=1.0)
     # half-width=3, half-height=4 -> diagonal=5
-    assert lbs._photometry_radius_arcsec(ch) == 5.0
+    assert lbs.photometry_radius_arcsec(ch) == 5.0
 
 
 # Tests: drop_stars_outside_max_radius

@@ -13,7 +13,8 @@ from loaders.load_gaia import get_gaia_stellar_properties, gaia_lookup_for_backg
 import astropy.units as u
 from astropy.coordinates import SkyCoord
 from configs.global_config import get_global_config
-
+from instrument.background_star_spectroscopy import spectroscopy_radius_arcsec
+from instrument.background_star_photometry import photometry_radius_arcsec
 
 def lookup_background_stars(nuv: SpectroscopyChannel | None, vis: SpectroscopyChannel | None, nir: PhotometryChannel | None, ctx: RunContext, star: Star):
     print("\n==== STARTING BACKGROUND STAR LOOKUP VIA GAIA OR CSV =====")
@@ -76,10 +77,6 @@ def _load_background_csv_if_exists(star: Star, repo_root=None) -> Table | None:
     return table
 
 
-
-
-
-
 def _save_background_stars_csv(table: Table, output_dir, star_name: str) -> None:
     """Write background stars table to CSV in output_dir. Use same name as cache so it can be moved to data/BackgroundStars/."""
     csv_name = star_name.replace(" ", "_")
@@ -138,13 +135,13 @@ def _drop_stars_outside_max_radius(table: Table, nuv: SpectroscopyChannel | None
     radii_arcsec = []
 
     if nuv is not None:
-        radii_arcsec.append(_spectroscopy_radius_arcsec(nuv))
+        radii_arcsec.append(spectroscopy_radius_arcsec(nuv))
 
     if vis is not None:
-        radii_arcsec.append(_spectroscopy_radius_arcsec(vis))
+        radii_arcsec.append(spectroscopy_radius_arcsec(vis))
 
     if nir is not None:
-        radii_arcsec.append(_photometry_radius_arcsec(nir))
+        radii_arcsec.append(photometry_radius_arcsec(nir))
 
     if not radii_arcsec:
         logging.info("Background star radius filter skipped: no channels enabled; input_rows=%d",
@@ -165,15 +162,7 @@ def _drop_stars_outside_max_radius(table: Table, nuv: SpectroscopyChannel | None
 
     return result
 
-def _spectroscopy_radius_arcsec(channel: SpectroscopyChannel) -> float:
-    x = float(channel.slit_half_width_arcsec)
-    y = float(channel.slit_half_length_arcsec)
-    return (x * x + y * y) ** 0.5
 
-def _photometry_radius_arcsec(channel: PhotometryChannel) -> float:
-    half_width_arcsec = 0.5 * float(channel.x_pixels) * float(channel.pixel_scale)
-    half_height_arcsec = 0.5 * float(channel.y_pixels) * float(channel.pixel_scale)
-    return (half_width_arcsec * half_width_arcsec + half_height_arcsec * half_height_arcsec) ** 0.5
 
 def create_background_star_catalog(table: Table, cfg: GlobalConfig):
     catalog = StarCatalog()

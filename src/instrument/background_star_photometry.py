@@ -79,8 +79,6 @@ def _detector_position(x_target: int, y_target: int, u: float, v: float, channel
     y_background_star = int(round(y_target + v / channel.pixel_scale))
     return x_background_star, y_background_star
 
-
-
 def _log_background_stars_on_detector(frame_index: int, channel_name: str, roll_angle_start: float, roll_angle_stop: float, n_on_detector: int, total: int, stars_on_detector_ids: list[str], background_stars_catalog: StarCatalog, background_star_arcs: dict[str, list[tuple[int, int]]]) -> None:
     current_signature = tuple(sorted(stars_on_detector_ids))
     previous_signature = _LAST_VISIBLE_SIGNATURE_BY_CHANNEL.get(channel_name)
@@ -117,3 +115,8 @@ def _log_background_stars_on_detector(frame_index: int, channel_name: str, roll_
             logging.info("Background Stars on Detector, rendering frame with roll_angle: frame=%d channel=%s roll_angle_start=%g roll_angle_stop=%g n_on_detector=%d/%d added=[%s] removed=[%s]", frame_index, channel_name, float(roll_angle_start), float(roll_angle_stop), int(n_on_detector), int(total), " ; ".join(added_list), " ; ".join(removed_list))
 
     _LAST_VISIBLE_SIGNATURE_BY_CHANNEL[channel_name] = current_signature
+
+def photometry_radius_arcsec(channel: PhotometryChannel) -> float:
+    half_width_arcsec = 0.5 * float(channel.x_pixels) * float(channel.pixel_scale)
+    half_height_arcsec = 0.5 * float(channel.y_pixels) * float(channel.pixel_scale)
+    return (half_width_arcsec * half_width_arcsec + half_height_arcsec * half_height_arcsec) ** 0.5

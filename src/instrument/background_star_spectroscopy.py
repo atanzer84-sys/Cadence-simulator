@@ -18,8 +18,15 @@ def generate_background_star_spectroscopy_image(channel: SpectroscopyChannel, ba
     n_in_slit = 0
     stars_in_slit_log: list[StarInSlitLog] = []
     is_vis_channel = channel.channel_name.upper() == "VIS"
-
+    slit_reach_arcsec = spectroscopy_radius_arcsec(channel)
+    
     for star_id in background_stars_catalog.stars_by_id:
+        dx, dy = background_stars_catalog.get_offset_arcsec(star_id)
+        separation_arcsec = (dx * dx + dy * dy) ** 0.5
+
+        if separation_arcsec > slit_reach_arcsec:
+            continue
+
         bg_star_result = _render_star_if_in_slit(star_id, image, channel, background_stars_catalog, frame_index, spectrum_placement, roll_angle_start, roll_angle_stop)
 
         if bg_star_result is not None:
@@ -110,3 +117,7 @@ def _log_background_stars_in_slit(frame_index: int, channel_name: str, roll_angl
     logging.info("Background Stars in Slit, rendering frame with roll_angle: frame=%d channel=%s roll_angle_start=%g roll_angle_stop=%g n_in_slit=%d/%d star_ids_mag_texp_in_slit=[%s]", frame_index, channel_name, float(roll_angle_start), float(roll_angle_stop), int(n_in_slit), int(total), " ; ".join(star_ids_mag_texp_in_slit))
 
 
+def spectroscopy_radius_arcsec(channel: SpectroscopyChannel) -> float:
+    x = float(channel.slit_half_width_arcsec)
+    y = float(channel.slit_half_length_arcsec)
+    return (x * x + y * y) ** 0.5
