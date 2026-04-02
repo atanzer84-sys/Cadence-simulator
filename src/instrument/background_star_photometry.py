@@ -37,13 +37,15 @@ def _render_star_if_on_detector(star_id: str, channel: PhotometryChannel, catalo
 
     x_target, y_target = target_star_placement
     dx, dy = catalog.get_offset_arcsec(star_id)
+    separation = catalog.get_separation_arcsec(star_id)
+
     detector_half_bounds = (float(channel.x_pixels * channel.pixel_scale * 0.5), float(channel.y_pixels * channel.pixel_scale * 0.5))
 
     total_flux_electrons_per_second = get_cached_counts(star_id, catalog, channel, frame_index)
     if total_flux_electrons_per_second is None:
         return None
 
-    roll_angles = compute_roll_angle_samples(dx, dy, channel, roll_angle_start, roll_angle_stop)
+    roll_angles = compute_roll_angle_samples(separation, channel, roll_angle_start, roll_angle_stop)
     valid_positions: list[tuple[int, int]] = []
 
     for roll_angle_deg in roll_angles:

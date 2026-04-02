@@ -21,8 +21,7 @@ def generate_background_star_spectroscopy_image(channel: SpectroscopyChannel, ba
     slit_reach_arcsec = spectroscopy_radius_arcsec(channel)
     
     for star_id in background_stars_catalog.stars_by_id:
-        dx, dy = background_stars_catalog.get_offset_arcsec(star_id)
-        separation_arcsec = (dx * dx + dy * dy) ** 0.5
+        separation_arcsec = background_stars_catalog.get_separation_arcsec(star_id)
 
         if separation_arcsec > slit_reach_arcsec:
             continue
@@ -57,13 +56,15 @@ def _render_star_if_in_slit(star_id: str, image, channel: SpectroscopyChannel, c
     """Render directly into star_image and return sampled detector rows and rendered exposure in seconds."""
     x_target, y_target, slope, intercept = spectrum_placement
     dx, dy = catalog.get_offset_arcsec(star_id)
+    separation = catalog.get_separation_arcsec(star_id)
+
     slit_half_bounds = (float(channel.slit_half_width_arcsec), float(channel.slit_half_length_arcsec))
 
     counts_s_px = get_cached_counts(star_id, catalog, channel, frame_index)
     if counts_s_px is None:
         return None
         
-    roll_angles = compute_roll_angle_samples(dx, dy, channel, roll_angle_start, roll_angle_stop)
+    roll_angles = compute_roll_angle_samples(separation, channel, roll_angle_start, roll_angle_stop)
     dt_per_sample = channel.exposure_s / float(len(roll_angles))
     valid_y_positions: list[int] = []
 

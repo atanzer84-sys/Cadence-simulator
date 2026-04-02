@@ -1,11 +1,12 @@
+import logging
+import numpy as np
 from domain.star_catalog import StarCatalog
 from loaders.run_waltzer_context import RunContext
-import logging
 from configs.channel_config import SpectroscopyChannel, PhotometryChannel
 from instrument.prepare_detector_images import compute_counts_per_s_px_one_channel
-import numpy as np
 from instrument.wavelength_range import get_required_wavelength_range
 from instrument.prepare_detector_images import prepare_star_photon_flux_in_range
+from instrument.background_star_spectroscopy import spectroscopy_radius_arcsec
 
 def populate_background_star_counts(background_stars_catalog: StarCatalog, nuv: SpectroscopyChannel | None, vis: SpectroscopyChannel | None, nir: PhotometryChannel | None, ctx: RunContext) -> StarCatalog:
 
@@ -24,6 +25,8 @@ def populate_background_star_counts(background_stars_catalog: StarCatalog, nuv: 
         if i == 1 or i == total or i % 10 == 0:
             print(f"Flux Calculation and Detector Convolution for Star: {i}/{total}")
 
+        separation_arcsec = background_stars_catalog.get_separation_arcsec(star_id)
+
         photons_star, wavelengths = prepare_star_photon_flux_in_range(bg_star, ctx, wl_min_A, wl_max_A, announce_user=False, background_star=True)
 
         for channel in enabled_channels:
@@ -32,14 +35,17 @@ def populate_background_star_counts(background_stars_catalog: StarCatalog, nuv: 
                 logging.info("BG STAR skip existing counts: star_id=%s channel=%s", star_id, channel.channel_name)
                 continue
 
-            counts_s_px = compute_counts_per_s_px_one_channel(photons_star, wavelengths, channel, ctx, bg_star, background_star=True)
-
             if isinstance(channel, SpectroscopyChannel):
+                slit_radius_arcsec = spectroscopy_radius_arcsec(channel)
+                if separation_arcsec > slit_radius_arcsec:
+                    logging.info("BG STAR skip compute_counts_per_s_px_one_channel: star_id=%s channel=%s sep_arcsec=%.3f slit_radius_arcsec=%.3f", star_id, channel.channel_name, separation_arcsec, slit_radius_arcsec)
+                    continue
+
+                counts_s_px = compute_counts_per_s_px_one_channel(photons_star, wavelengths, channel, ctx, bg_star, background_star=True)
                 background_stars_catalog.counts_by_id_and_band[key] = counts_s_px.astype(np.float32)
-                # _plot_background_star_visibility_spectroscopy(channel, counts_s_px, ctx, star=bg_star)
 
             else:
+                counts_s_px = compute_counts_per_s_px_one_channel(photons_star, wavelengths, channel, ctx, bg_star, background_star=True)
                 background_stars_catalog.counts_by_id_and_band[key] = float(np.sum(counts_s_px))
-                # _plot_background_star_visibility_photometry(channel, counts_s_px, ctx, star=bg_star)
 
     return background_stars_catalog

@@ -28,6 +28,7 @@ def test_populate_background_star_counts_no_stars(make_star_catalog, make_run_co
 def test_populate_background_star_counts_stores_spectroscopy_array(make_star_catalog, make_star, make_spectroscopy_channel, make_run_context):
     star = make_star(gaia_magnitude=12.0)
     catalog = make_star_catalog(stars={"star_1": star})
+    catalog.set_offset_arcsec("star_1", 0.0, 0.0)
     ctx = make_run_context()
     nuv = make_spectroscopy_channel(channel_name="NUV")
     counts_s_px = np.array([1.0, 2.0, 3.0], dtype=float)
@@ -49,6 +50,7 @@ def test_populate_background_star_counts_stores_spectroscopy_array(make_star_cat
 def test_populate_background_star_counts_stores_photometry_scalar(make_star_catalog, make_star, make_photometry_channel, make_run_context):
     star = make_star(gaia_magnitude=12.0)
     catalog = make_star_catalog(stars={"star_1": star})
+    catalog.set_offset_arcsec("star_1", 0.0, 0.0)
     ctx = make_run_context()
     nir = make_photometry_channel(channel_name="NIR")
     counts_s_px = np.array([1.0, 2.0, 3.0], dtype=float)
@@ -69,6 +71,7 @@ def test_populate_background_star_counts_stores_photometry_scalar(make_star_cata
 def test_populate_background_star_counts_processes_multiple_channels(make_star_catalog, make_star, make_spectroscopy_channel, make_photometry_channel, make_run_context):
     star = make_star(gaia_magnitude=12.0)
     catalog = make_star_catalog(stars={"star_1": star})
+    catalog.set_offset_arcsec("star_1", 0.0, 0.0)
     ctx = make_run_context()
     nuv = make_spectroscopy_channel(channel_name="NUV")
     vis = make_spectroscopy_channel(channel_name="VIS")
@@ -111,6 +114,7 @@ def test_populate_background_star_counts_skips_existing_counts(make_star_catalog
     nir = make_photometry_channel(channel_name="NIR")
     existing = np.array([42.0], dtype=np.float32)
     catalog = make_star_catalog(stars={"star_1": star}, counts={("star_1", nuv.channel_name): existing})
+    catalog.set_offset_arcsec("star_1", 0.0, 0.0)
 
     def _fake_counts(photons_star, wavelengths, channel, ctx, bg_star, background_star=False):
         assert background_star is True
@@ -135,6 +139,8 @@ def test_populate_background_star_counts_processes_multiple_stars(make_star_cata
     star_1 = make_star(name="HD 1", gaia_magnitude=12.0)
     star_2 = make_star(name="HD 2", gaia_magnitude=13.0)
     catalog = make_star_catalog(stars={"star_1": star_1, "star_2": star_2})
+    catalog.set_offset_arcsec("star_1", 0.0, 0.0)
+    catalog.set_offset_arcsec("star_2", 0.0, 0.0)
     ctx = make_run_context()
     nuv = make_spectroscopy_channel(channel_name="NUV")
 
