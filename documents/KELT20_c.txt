@@ -41,3 +41,24 @@ andreatanzer@Andreas-MacBook-Air WALTzER-simulator %
         921044780303  cycles elapsed
           3722814464  peak memory footprint
 andreatanzer@Andreas-MacBook-Air WALTzER-simulator % 
+
+
+      249.33 real       223.53 user        12.44 sys
+          1047887872  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             1812416  page reclaims
+                 894  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                7657  voluntary context switches
+              338504  involuntary context switches
+       2638521438990  instructions retired
+        725317445151  cycles elapsed
+          3747668928  peak memory footprint
+andreatanzer@Andreas-MacBook-Air WALTzER-simulator % 

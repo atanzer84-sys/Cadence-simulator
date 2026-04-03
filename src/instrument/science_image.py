@@ -203,17 +203,13 @@ def _write_science_component_fits(data: np.ndarray, frame_type: str, channel: Ch
 
 def _report_science_frame_progress(channel, frame_index, total_orbits, roll_angle_start, roll_angle_end):
     orbit_idx = int(np.floor(roll_angle_start / 360.0)) + 1
-    frames_per_orbit = channel.n_science_frames // total_orbits
 
     start_mod = roll_angle_start % 360.0
     end_mod = roll_angle_end % 360.0
 
-    orbit_frame_idx = frame_index - (orbit_idx - 1) * frames_per_orbit + 1
-
     message = (
         f"{channel.channel_name} | Orbit {orbit_idx}/{total_orbits} | "
         f"Frame {frame_index + 1}/{channel.n_science_frames} | "
-        f"Orbit-frame {orbit_frame_idx}/{frames_per_orbit} | "
         f"Roll {start_mod:.2f}° -> {end_mod:.2f}°"
     )
 
