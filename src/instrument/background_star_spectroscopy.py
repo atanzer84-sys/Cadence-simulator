@@ -3,7 +3,7 @@ import numpy as np
 from configs.channel_config import SpectroscopyChannel
 from domain.star_catalog import StarCatalog
 from instrument.spectrum_spread import get_spectrum_placement, smear_1d_spectrum_dispersion, spread_1d_spectrum_to_2d
-from instrument.background_star_common import compute_roll_angle_samples, get_cached_counts, check_within_rotated_bounds, build_rotated_bounds
+from instrument.background_star_common import compute_roll_angle_samples, get_cached_counts, rotated_coordinates, within_rotated_bounds_mask
 
 type StarInSlitLog = dict[str, str | float | int]
 
@@ -71,23 +71,21 @@ def _render_star_if_in_slit(star_id: str, image, channel: SpectroscopyChannel, c
     # we want to remember the time per y-row. spreading is super expensive and we don't need to spread if we already spread one specific y-row
     time_per_row: dict[int, float] = {}
 
+    u, v = rotated_coordinates(dx, dy, roll_angles)
+    visible = within_rotated_bounds_mask(u, v, slit_half_bounds)
 
-    for roll_angle_deg in roll_angles:
-        slit = build_rotated_bounds(slit_half_bounds, roll_angle_deg)
-        uv = check_within_rotated_bounds(dx, dy, slit)
+    if not np.any(visible):
+        return None
 
-        if uv is None:
-            continue
-
-        _, v = uv
-        y_row = _detector_row(y_target, v, channel)
+    for v_arcsec in v[visible]:
+        y_row = _detector_row(y_target, float(v_arcsec), channel)
         valid_y_positions.append(y_row)
 
         if y_row in time_per_row:
             time_per_row[y_row] += dt_per_sample
         else:
             time_per_row[y_row] = dt_per_sample
-
+            
     if len(valid_y_positions) == 0:
         return None
 

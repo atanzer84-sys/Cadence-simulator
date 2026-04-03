@@ -3,7 +3,7 @@ from configs.channel_config import PhotometryChannel
 from domain.star_catalog import StarCatalog
 from instrument.psf_spread import get_photometry_placement, paste_psf_stamp
 import logging
-from instrument.background_star_common import compute_roll_angle_samples, get_cached_counts, check_within_rotated_bounds, build_rotated_bounds
+from instrument.background_star_common import compute_roll_angle_samples, get_cached_counts, rotated_coordinates, within_rotated_bounds_mask
 
 _LAST_VISIBLE_SIGNATURE_BY_CHANNEL: dict[str, tuple[str, ...]] = {}
 
@@ -48,15 +48,14 @@ def _render_star_if_on_detector(star_id: str, channel: PhotometryChannel, catalo
     roll_angles = compute_roll_angle_samples(separation, channel, roll_angle_start, roll_angle_stop)
     valid_positions: list[tuple[int, int]] = []
 
-    for roll_angle_deg in roll_angles:
-        detector = build_rotated_bounds(detector_half_bounds, roll_angle_deg)
-        uv = check_within_rotated_bounds(dx, dy, detector)
+    u, v = rotated_coordinates(dx, dy, roll_angles)
+    visible = within_rotated_bounds_mask(u, v, detector_half_bounds)
 
-        if uv is None:
-            continue
+    if not np.any(visible):
+        return None
 
-        u, v = uv
-        x_background_star, y_background_star = _detector_position(x_target, y_target, u, v, channel)
+    for u_i, v_i in zip(u[visible], v[visible]):
+        x_background_star, y_background_star = _detector_position(x_target, y_target, float(u_i), float(v_i), channel)
         valid_positions.append((x_background_star, y_background_star))
 
     if len(valid_positions) == 0:

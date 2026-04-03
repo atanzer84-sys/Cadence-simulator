@@ -22,23 +22,16 @@ def get_cached_counts(star_id: str, catalog: StarCatalog, channel: Channel, fram
         return None
     return catalog.counts_by_id_and_band[key]
 
-def check_within_rotated_bounds(dx: float, dy: float, bounds: tuple[float, float, float, float]) -> tuple[float, float] | None:
-    cos_roll, sin_roll, half_w, half_h = bounds
+def rotated_coordinates(dx: float, dy: float, roll_angles_deg: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    theta = np.deg2rad(roll_angles_deg.astype(np.float32))
+    cos_r = np.cos(theta)
+    sin_r = np.sin(theta)
 
-    u = dx * cos_roll + dy * sin_roll
-    v = -dx * sin_roll + dy * cos_roll
-    if abs(u) > half_w or abs(v) > half_h:
-        return None
+    u = dx * cos_r + dy * sin_r
+    v = -dx * sin_r + dy * cos_r
+
     return u, v
 
-
-def build_rotated_bounds(half_bounds: tuple[float, float], roll_angle_deg: float) -> tuple[float, float, float, float]:
+def within_rotated_bounds_mask(u: np.ndarray, v: np.ndarray, half_bounds: tuple[float, float]) -> np.ndarray:
     half_w, half_h = half_bounds
-
-    rad = np.deg2rad(float(roll_angle_deg))
-    cos_roll = float(np.cos(rad))
-    sin_roll = float(np.sin(rad))
-
-    return cos_roll, sin_roll, half_w, half_h
-
-
+    return (np.abs(u) <= half_w) & (np.abs(v) <= half_h)

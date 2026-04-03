@@ -1,6 +1,7 @@
 Creating PNG files for science frames
      2209.38 real      1636.00 user       160.59 sys
           2674917376  maximum resident set size
+         37831440064  peak memory footprint
                    0  average shared memory size
                    0  average unshared data size
                    0  average unshared stack size
@@ -16,5 +17,4 @@ Creating PNG files for science frames
               392074  involuntary context switches
       17132627842754  instructions retired
        3512193553605  cycles elapsed
-         37831440064  peak memory footprint
 andreatanzer@Andreas-MacBook-Air waltzer_old % 
