@@ -26,6 +26,21 @@ _BBOX_INCHES = None
 _PERCENTILE_MAX_PIXELS = 250_000
 
 
+def _imshow_science_array(ax, array: np.ndarray, vmin: float, vmax: float, y_detector_lo: int | None = None) -> None:
+    """Plot detector array with pixel-centered coordinates; if y_detector_lo is set (cropped strip), y-axis is full-detector row index."""
+    ny, nx = array.shape
+    if y_detector_lo is None:
+        ax.imshow(array, origin="lower", aspect="equal", cmap="gray", vmin=vmin, vmax=vmax)
+        ax.set_xlim(-0.5, nx - 0.5)
+        ax.set_ylim(-0.5, ny - 0.5)
+    else:
+        y_hi_det = y_detector_lo + ny
+        extent = (-0.5, nx - 0.5, y_detector_lo - 0.5, y_hi_det - 0.5)
+        ax.imshow(array, origin="lower", aspect="equal", cmap="gray", vmin=vmin, vmax=vmax, extent=extent)
+        ax.set_xlim(-0.5, nx - 0.5)
+        ax.set_ylim(y_detector_lo - 0.5, y_hi_det - 0.5)
+
+
 def write_science_frame_png(detector_data, channel: Channel, ctx: RunContext, cfg: GlobalConfig, star: Star, phot=None, index: int | None = None) -> None:
     filetype = "science"
     channel_name = channel.channel_name
@@ -33,6 +48,7 @@ def write_science_frame_png(detector_data, channel: Channel, ctx: RunContext, cf
 
     # Prepare data for PNG: optionally crop to spectrum strip for spectroscopy
     data_for_png = detector_data
+    y_detector_lo: int | None = None
     if cfg.science_frame_png_crop_spectrum_region and isinstance(channel, SpectroscopyChannel):
         ny = channel.y_pixels
         _, y0 = get_target_star_detector_position(channel)  # same position used when placing spectrum on detector
@@ -43,6 +59,7 @@ def write_science_frame_png(detector_data, channel: Channel, ctx: RunContext, cf
         y_lo = max(0, y0 - half_height)
         y_hi = min(ny, y0 + half_height + 1)
         data_for_png = detector_data[y_lo:y_hi, :]
+        y_detector_lo = y_lo
 
     title = format_frame_title(channel_name, filetype, star)
 
@@ -54,13 +71,13 @@ def write_science_frame_png(detector_data, channel: Channel, ctx: RunContext, cf
 
     if channel_name == "VIS":
         if cfg.science_frame_png_crop_spectrum_region:
-            save_single_frame_png_VIS_cropped(frame_to_plot, filename, title, stats_text)
+            save_single_frame_png_VIS_cropped(frame_to_plot, filename, title, stats_text, y_detector_lo)
         else:
-            save_single_frame_png_VIS(frame_to_plot, filename, title, stats_text)
+            save_single_frame_png_VIS(frame_to_plot, filename, title, stats_text, y_detector_lo)
     elif channel_name == "NIR":
         save_single_frame_png_NIR(frame_to_plot, filename, title, stats_text, phot=phot, draw_aperture_photometry_overlay=channel.draw_aperture_photometry_overlay)
     elif channel_name == "NUV":
-        save_single_frame_png_NUV(frame_to_plot, filename, title, stats_text)
+        save_single_frame_png_NUV(frame_to_plot, filename, title, stats_text, y_detector_lo)
     else:
         raise ValueError(f"Unsupported channel for science PNG: {channel_name}")
 
@@ -143,7 +160,7 @@ def save_single_frame_png_NIR(array: np.ndarray, filename: Path, title: str, sta
     plt.close(fig)
     logging.debug("Wrote %s", filename)
 
-def save_single_frame_png_NUV(array: np.ndarray, filename: Path, title: str, stats_text: str) -> None:
+def save_single_frame_png_NUV(array: np.ndarray, filename: Path, title: str, stats_text: str, y_detector_lo: int | None = None) -> None:
     
     ny, nx = array.shape
     img_h_in = max(2.0, _WIDTH_IN * (ny / nx))
@@ -153,9 +170,7 @@ def save_single_frame_png_NUV(array: np.ndarray, filename: Path, title: str, sta
 
     ax = fig.add_subplot(gs[0, 0])
     vmin, vmax = _calculate_percentile_scales(array)
-    ax.imshow(array, origin="lower", aspect="equal", cmap="gray", vmin=vmin, vmax=vmax)
-    ax.set_xlim(-0.5, nx - 0.5)
-    ax.set_ylim(-0.5, ny - 0.5)
+    _imshow_science_array(ax, array, vmin, vmax, y_detector_lo)
 
     ax.set_xlabel("pixels", labelpad=8)
     ax.set_ylabel("pixels", labelpad=8)
@@ -170,7 +185,7 @@ def save_single_frame_png_NUV(array: np.ndarray, filename: Path, title: str, sta
     plt.close(fig)
     logging.debug("Wrote %s", filename)
 
-def save_single_frame_png_VIS(array: np.ndarray, filename: Path, title: str, stats_text: str) -> None:
+def save_single_frame_png_VIS(array: np.ndarray, filename: Path, title: str, stats_text: str, y_detector_lo: int | None = None) -> None:
     
     ny, nx = array.shape
     img_h_in = max(2.0, _WIDTH_IN * (ny / nx))
@@ -180,9 +195,7 @@ def save_single_frame_png_VIS(array: np.ndarray, filename: Path, title: str, sta
 
     ax = fig.add_subplot(gs[0, 0])
     vmin, vmax = _calculate_percentile_scales(array)
-    ax.imshow(array, origin="lower", aspect="equal", cmap="gray", vmin=vmin, vmax=vmax)
-    ax.set_xlim(-0.5, nx - 0.5)
-    ax.set_ylim(-0.5, ny - 0.5)
+    _imshow_science_array(ax, array, vmin, vmax, y_detector_lo)
 
     ax.set_xlabel("pixels", labelpad=8)
     ax.set_ylabel("pixels", labelpad=8)
@@ -197,7 +210,7 @@ def save_single_frame_png_VIS(array: np.ndarray, filename: Path, title: str, sta
     plt.close(fig)
     logging.debug("Wrote %s", filename)
 
-def save_single_frame_png_VIS_cropped(array: np.ndarray, filename: Path, title: str, stats_text: str) -> None:
+def save_single_frame_png_VIS_cropped(array: np.ndarray, filename: Path, title: str, stats_text: str, y_detector_lo: int | None = None) -> None:
     GAP_IN_VIS = 0.8
     TEXT_H_IN_VIS = 0.28
 
@@ -209,9 +222,7 @@ def save_single_frame_png_VIS_cropped(array: np.ndarray, filename: Path, title: 
 
     ax = fig.add_subplot(gs[0, 0])
     vmin, vmax = _calculate_percentile_scales(array)
-    ax.imshow(array, origin="lower", aspect="equal", cmap="gray", vmin=vmin, vmax=vmax)
-    ax.set_xlim(-0.5, nx - 0.5)
-    ax.set_ylim(-0.5, ny - 0.5)
+    _imshow_science_array(ax, array, vmin, vmax, y_detector_lo)
 
     ax.set_xlabel("pixels", labelpad=6)
     ax.set_ylabel("pixels", labelpad=6)

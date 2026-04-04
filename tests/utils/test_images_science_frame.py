@@ -27,12 +27,13 @@ def science_png_recorders(monkeypatch):
     calls = {}
 
     def _recorder(key):
-        def _save(frame_to_plot, filename, title, stats_text, **kwargs):
+        def _save(frame_to_plot, filename, title, stats_text, y_detector_lo=None, **kwargs):
             calls[key] = {
                 "frame_to_plot": frame_to_plot,
                 "filename": filename,
                 "title": title,
                 "stats_text": stats_text,
+                "y_detector_lo": y_detector_lo,
                 **kwargs,
             }
         return _save
@@ -83,6 +84,7 @@ def test_write_science_frame_png_vis_uses_standard_vis_writer(
 
     call = science_png_recorders["VIS"]
     np.testing.assert_array_equal(call["frame_to_plot"], detector_data)
+    assert call["y_detector_lo"] is None
     assert call["filename"] is not None
     assert call["title"] is not None
     assert call["stats_text"] is not None
@@ -174,6 +176,7 @@ def test_write_science_frame_png_vis_spectroscopy_uses_cropped_writer(
     # y0 = 4  -> rows 1:8
     expected = detector_data[1:8, :]
     np.testing.assert_array_equal(call["frame_to_plot"], expected)
+    assert call["y_detector_lo"] == 1
 
 # Tests: write_science_frame_png
 # Behavior: applies inversion and forwards photometry inputs to the NIR writer
