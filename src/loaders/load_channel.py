@@ -23,7 +23,7 @@ def load_channels_config(user_cfg: UserConfig):
     if cfg.run_vis:
         vis_channel = load_channel_spectroscopy(repo_root / "configs" / "waltzer_vis.cfg", user_cfg.exposure_VIS_s, background)
     if cfg.run_nir:
-        nir_channel = load_channel_photometry(repo_root / "configs" / "waltzer_nir.cfg", user_cfg.exposure_IR_s, background)
+        nir_channel = load_channel_photometry(repo_root / "configs" / "waltzer_nir.cfg", user_cfg.exposure_NIR_s, background)
     
     return nuv_channel, vis_channel, nir_channel
 

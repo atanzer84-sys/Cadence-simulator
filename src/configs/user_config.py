@@ -10,7 +10,7 @@ class UserConfig:
     total_observation_length_h: float
     exposure_NUV_s: float
     exposure_VIS_s: float
-    exposure_IR_s: float
+    exposure_NIR_s: float
 
 
 _USER: UserConfig | None = None
@@ -42,7 +42,7 @@ def _read_user_cfg(path: Path) -> UserConfig:
             total_observation_length_h=as_float(raw["total_observation_length_h"], key="total_observation_length_h"),
             exposure_NUV_s=as_float(raw["exposure_NUV_s"], key="exposure_NUV_s"),
             exposure_VIS_s=as_float(raw["exposure_VIS_s"], key="exposure_VIS_s"),
-            exposure_IR_s=as_float(raw["exposure_IR_s"], key="exposure_IR_s"),
+            exposure_NIR_s=as_float(raw["exposure_NIR_s"], key="exposure_NIR_s"),
         )
         logging.info("User config loaded: %s", cfg)
         return cfg

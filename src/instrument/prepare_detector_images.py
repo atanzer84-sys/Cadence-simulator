@@ -79,7 +79,6 @@ def compute_counts_per_s_px_one_channel(photons_star: np.ndarray, wavelengths: n
 
 def convert_flux_to_photons(flux_unred, wavelengths):
     photon_flux = flux_unred * PHOTON_ENERGY_CONVERSION_A * wavelengths #from ergs/s/cm2/A to photons/s/cm2/A
-
     return photon_flux
 
 

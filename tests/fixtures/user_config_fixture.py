@@ -10,7 +10,7 @@ def make_user_config():
             total_observation_length_h=20.0,
             exposure_NUV_s=3.0,
             exposure_VIS_s=4.0,
-            exposure_IR_s=10.0,
+            exposure_NIR_s=10.0,
         )
         base.update(overrides)
         return UserConfig(**base)

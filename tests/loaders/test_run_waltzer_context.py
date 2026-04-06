@@ -373,7 +373,7 @@ def test_invalid_params_raises_value_error(monkeypatch, tmp_path):
         "total_observation_length_h = not_a_number\n"
         "exposure_NUV_s = 1\n"
         "exposure_VIS_s = 1\n"
-        "exposure_IR_s = 1\n",
+        "exposure_NIR_s = 1\n",
         encoding="utf-8",
     )
 

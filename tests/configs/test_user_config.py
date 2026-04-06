@@ -23,7 +23,7 @@ def _make_user_cfg_text(**overrides) -> str:
         total_observation_length_h="20.5",
         exposure_NUV_s="3",
         exposure_VIS_s="4.25",
-        exposure_IR_s="10",
+        exposure_NIR_s="10",
     )
     base.update(overrides)
     return "\n".join(f"{k} = {v}" for k, v in base.items())
@@ -89,7 +89,7 @@ def test_load_user_config_valid_full(tmp_path):
         total_observation_length_h="20.5",
         exposure_NUV_s="3",
         exposure_VIS_s="4.25",
-        exposure_IR_s="10",
+        exposure_NIR_s="10",
     )
     path = _write_params(tmp_path, content)
 
@@ -100,7 +100,7 @@ def test_load_user_config_valid_full(tmp_path):
     assert cfg.total_observation_length_h == 20.5
     assert cfg.exposure_NUV_s == 3.0
     assert cfg.exposure_VIS_s == 4.25
-    assert cfg.exposure_IR_s == 10.0
+    assert cfg.exposure_NIR_s == 10.0
 
 
 # ----------------------------------------------------------------------
@@ -115,7 +115,7 @@ def test_load_user_config_valid_full(tmp_path):
     "total_observation_length_h",
     "exposure_NUV_s",
     "exposure_VIS_s",
-    "exposure_IR_s",
+    "exposure_NIR_s",
 ])
 def test_load_user_config_missing_required_raises(tmp_path, missing_key):
     base = _make_user_cfg_text().splitlines()
@@ -138,14 +138,14 @@ def test_missing_required_key_hits_keyerror_block(tmp_path):
     total_observation_length_h = 1
     exposure_NUV_s = 1
     exposure_VIS_s = 1
-    # exposure_IR_s missing
+    # exposure_NIR_s missing
     """
     path = _write_params(tmp_path, content)
 
     with pytest.raises(ValueError) as exc:
         user_config.load_user_config(path)
 
-    assert "exposure_IR_s" in str(exc.value)
+    assert "exposure_NIR_s" in str(exc.value)
 
 
 # ----------------------------------------------------------------------
@@ -159,7 +159,7 @@ def test_missing_required_key_hits_keyerror_block(tmp_path):
     "total_observation_length_h",
     "exposure_NUV_s",
     "exposure_VIS_s",
-    "exposure_IR_s",
+    "exposure_NIR_s",
 ])
 def test_load_user_config_invalid_number_raises(tmp_path, bad_key):
     overrides = {
@@ -167,7 +167,7 @@ def test_load_user_config_invalid_number_raises(tmp_path, bad_key):
         "total_observation_length_h": "1",
         "exposure_NUV_s": "1",
         "exposure_VIS_s": "1",
-        "exposure_IR_s": "1",
+        "exposure_NIR_s": "1",
     }
     overrides[bad_key] = "not_a_number"
     content = _make_user_cfg_text(**overrides)

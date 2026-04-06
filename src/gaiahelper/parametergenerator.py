@@ -18,7 +18,7 @@ total_observation_length_h = 11.11
 # Exposure time of the Channels in seconds
 exposure_NUV_s = 300.0
 exposure_VIS_s = 60.0
-exposure_IR_s = {exposure_ir}
+exposure_NIR_s = {exposure_ir}
 """
 
 for target in targets:

@@ -146,7 +146,7 @@ def test_load_channels_config_only_nir_enabled(
     assert nir_channel is not None
     assert len(calls_photo) == 1
     assert calls_photo[0][0] == Path("/repo/configs/waltzer_nir.cfg")
-    assert calls_photo[0][1] == user_cfg.exposure_IR_s
+    assert calls_photo[0][1] == user_cfg.exposure_NIR_s
     assert calls_photo[0][2] is background
     assert calls_spectro == []
 
