@@ -42,12 +42,15 @@ def test_bg_spec_single_star(make_spectroscopy_channel, make_star_catalog, make_
         counts={("star_1", channel.channel_name): np.array([1.0, 2.0, 3.0])},
     )
 
+    def _mock_spread(image, counts_s_pixel_convolved, channel, placement, announce_user=False):
+        image += np.ones_like(image, dtype=np.float32)
+
     with patch(
         "instrument.background_star_spectroscopy.get_spectrum_placement",
         return_value=(10, 16.0, 0.0, 16.0),
     ), patch(
-        "instrument.background_star_spectroscopy._render_spectrum_to_2d",
-        return_value=np.ones((32, 32), dtype=np.float32),
+        "instrument.background_star_spectroscopy.spread_1d_spectrum_to_2d",
+        side_effect=_mock_spread,
     ):
         image, bands = generate_background_star_spectroscopy_image(
             channel,
@@ -77,12 +80,15 @@ def test_bg_spec_multiple_stars(make_spectroscopy_channel, make_star_catalog, ma
         },
     )
 
+    def _mock_spread(image, counts_s_pixel_convolved, channel, placement, announce_user=False):
+        image += np.ones_like(image, dtype=np.float32)
+
     with patch(
         "instrument.background_star_spectroscopy.get_spectrum_placement",
         return_value=(10, 16.0, 0.0, 16.0),
     ), patch(
-        "instrument.background_star_spectroscopy._render_spectrum_to_2d",
-        return_value=np.ones((32, 32), dtype=np.float32),
+        "instrument.background_star_spectroscopy.spread_1d_spectrum_to_2d",
+        side_effect=_mock_spread,
     ):
         image, bands = generate_background_star_spectroscopy_image(
             channel,
@@ -111,12 +117,15 @@ def test_bg_spec_vis_bands(make_spectroscopy_channel, make_star_catalog, make_st
         counts={("star_1", channel.channel_name): np.array([1.0, 2.0, 3.0])},
     )
 
+    def _mock_spread(image, counts_s_pixel_convolved, channel, placement, announce_user=False):
+        image += np.ones_like(image, dtype=np.float32)
+
     with patch(
         "instrument.background_star_spectroscopy.get_spectrum_placement",
         return_value=(10, 16.0, 0.0, 16.0),
     ), patch(
-        "instrument.background_star_spectroscopy._render_spectrum_to_2d",
-        return_value=np.ones((32, 32), dtype=np.float32),
+        "instrument.background_star_spectroscopy.spread_1d_spectrum_to_2d",
+        side_effect=_mock_spread,
     ):
         image, bands = generate_background_star_spectroscopy_image(
             channel,

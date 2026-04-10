@@ -74,7 +74,8 @@ def run_snapshot_spread_image_2d_nuv_profile(star_name: str, make_spectroscopy_c
     nuv_channel = make_spectroscopy_channel(channel_name="NUV", mode=1, x_pixels=NUV_X_PIXELS, y_pixels=NUV_Y_PIXELS, pixel_scale=float(pixel_scale), effective_area_wavelength=effective_area_wavelength, spread_y_positions=spread_profile["spread_y_positions"], spread_y_weights=spread_profile["spread_y_weights"], spread_y_wavelengths=spread_profile["spread_y_wavelengths"])
 
     placement = get_spectrum_placement(nuv_channel)
-    image_full = spread_1d_spectrum_to_2d(convolved["counts_s_px_convolved"], nuv_channel, placement, announce_user=False)
+    image_full = np.zeros((nuv_channel.y_pixels, nuv_channel.x_pixels), dtype=np.float32)
+    spread_1d_spectrum_to_2d(image_full, convolved["counts_s_px_convolved"], nuv_channel, placement, announce_user=False)
 
     np.testing.assert_allclose(image_full, spread_image["image_full"], rtol=1e-3, atol=1e-2)
 
@@ -86,7 +87,8 @@ def run_snapshot_spread_image_2d_vis_gaussian(star_name: str, make_spectroscopy_
     vis_channel = make_spectroscopy_channel(channel_name="VIS", observation_mode="spectroscopy", mode=1, x_pixels=VIS_X_PIXELS, y_pixels=VIS_Y_PIXELS, pixel_scale=float(pixel_scale), effective_area_wavelength=effective_area_wavelength, spread_y_positions=None, spread_y_weights=None, spread_y_wavelengths=None, spread_half_height_pix=10)
 
     placement = get_spectrum_placement(vis_channel)
-    image_full = spread_1d_spectrum_to_2d(convolved["counts_s_px_convolved"], vis_channel, placement, announce_user=False)
+    image_full = np.zeros((vis_channel.y_pixels, vis_channel.x_pixels), dtype=np.float32)
+    spread_1d_spectrum_to_2d(image_full, convolved["counts_s_px_convolved"], vis_channel, placement, announce_user=False)
 
     np.testing.assert_allclose(image_full, spread_image["image_full"], rtol=1e-6, atol=1e-6)
 

@@ -4,7 +4,7 @@ from configs.channel_config import Channel
 from domain.star_catalog import StarCatalog
 
 
-def compute_roll_angle_samples(separation: float, channel: Channel, roll_angle_start: float, roll_angle_stop: float, max_motion_per_step_px: float = 0.25) -> np.ndarray:
+def compute_roll_angle_samples(separation: float, channel: Channel, roll_angle_start: float, roll_angle_stop: float, max_motion_per_step_px: float = 0.75) -> np.ndarray:
     delta_angle_rad = float(abs(np.deg2rad(roll_angle_stop - roll_angle_start)))
     arc_length_arcsec = separation * delta_angle_rad
     arc_length_px = arc_length_arcsec / float(channel.pixel_scale)

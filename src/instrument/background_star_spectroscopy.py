@@ -89,10 +89,13 @@ def _render_star_if_in_slit(star_id: str, image, channel: SpectroscopyChannel, c
     if len(valid_y_positions) == 0:
         return None
 
+    counts_smeared_per_second = smear_1d_spectrum_dispersion(counts_s_px, channel)
+
     for y_row, total_time in time_per_row.items():
-        counts_this_step = counts_s_px * total_time
-        img = _render_spectrum_to_2d(counts_this_step, channel, x_target, y_row, slope, intercept)
-        image += img
+        counts_this_step = counts_smeared_per_second * total_time
+
+        spread_1d_spectrum_to_2d(image, counts_this_step, channel, (x_target, float(y_row), slope, intercept), announce_user=False)
+
 
     rendered_exposure_s = len(valid_y_positions) * dt_per_sample
     return valid_y_positions, rendered_exposure_s
@@ -102,11 +105,6 @@ def _detector_row(y_target: float, v_arcsec: float, channel: SpectroscopyChannel
     y_offset_pix = v_arcsec / channel.pixel_scale
     y_row = int(round(y_target + y_offset_pix))
     return y_row
-
-
-def _render_spectrum_to_2d(counts_px: np.ndarray, channel: SpectroscopyChannel, x_target: int, y_row: int, slope: float, intercept: float) -> np.ndarray:
-    counts_smeared = smear_1d_spectrum_dispersion(counts_px, channel)
-    return spread_1d_spectrum_to_2d(counts_smeared, channel, (x_target, float(y_row), slope, intercept), announce_user=False)
 
 
 def _log_background_stars_in_slit(frame_index: int, channel_name: str, roll_angle_start: float, roll_angle_stop: float, n_in_slit: int, total: int, stars_in_slit_log: list[StarInSlitLog]) -> None:

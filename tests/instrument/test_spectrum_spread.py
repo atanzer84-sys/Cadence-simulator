@@ -7,7 +7,7 @@ entry point that composes placement + spread.
 import logging
 import numpy as np
 import pytest
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
 from instrument.spectrum_spread import (
     _gaussian_vertical_profile,
@@ -250,7 +250,8 @@ def test_spread_1d_to_2d_gaussian_basic(make_spectroscopy_channel):
     counts = np.array([1, 2, 3, 4, 5], dtype=np.float32)
     placement = get_spectrum_placement(channel)
 
-    image = _spread_1d_to_2d_gaussian(counts, channel, placement)
+    image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
+    _spread_1d_to_2d_gaussian(image, counts, channel, placement)
 
     assert image.shape == (channel.y_pixels, channel.x_pixels)
     assert image.dtype == np.float32
@@ -274,13 +275,14 @@ def test_spread_1d_to_2d_gaussian_rejects_missing_spread_height(make_spectroscop
     counts = np.ones(channel.x_pixels, dtype=np.float32)
     placement = get_spectrum_placement(channel)
 
+    image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
     with pytest.raises(ValueError, match="No cross-dispersion spreading configured"):
-        _spread_1d_to_2d_gaussian(counts, channel, placement)
+        _spread_1d_to_2d_gaussian(image, counts, channel, placement)
 
 
-# Tests: test_spread_1d_to_2d_gaussian_column_sum_mismatch_raises
-# Behavior: Gaussian spread raises when conservation check fails
-def test_spread_1d_to_2d_gaussian_column_sum_mismatch_raises(make_spectroscopy_channel):
+# Tests: test_spread_1d_to_2d_gaussian_preserves_column_sums
+# Behavior: Gaussian spread conserves per-column counts
+def test_spread_1d_to_2d_gaussian_preserves_column_sums(make_spectroscopy_channel):
     channel = make_spectroscopy_channel(
         x_pixels=5,
         y_pixels=7,
@@ -294,9 +296,9 @@ def test_spread_1d_to_2d_gaussian_column_sum_mismatch_raises(make_spectroscopy_c
     counts = np.array([1, 2, 3, 4, 5], dtype=np.float32)
     placement = get_spectrum_placement(channel)
 
-    with patch("instrument.spectrum_spread.np.allclose", return_value=False):
-        with pytest.raises(ValueError, match="Gaussian spread column sum mismatch"):
-            _spread_1d_to_2d_gaussian(counts, channel, placement)
+    image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
+    _spread_1d_to_2d_gaussian(image, counts, channel, placement)
+    assert np.allclose(image.sum(axis=0), counts)
 
 
 # Tests: test_spread_1d_to_2d_gaussian_nonzero_slope_path
@@ -312,7 +314,8 @@ def test_spread_1d_to_2d_gaussian_nonzero_slope_path(make_spectroscopy_channel):
     )
     counts = np.array([1, 2, 3, 4, 5], dtype=np.float32)
 
-    image = _spread_1d_to_2d_gaussian(counts, channel, (0, 4.0, 0.5, 0.0))
+    image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
+    _spread_1d_to_2d_gaussian(image, counts, channel, (0, 4.0, 0.5, 0.0))
 
     assert image.shape == (channel.y_pixels, channel.x_pixels)
     assert np.allclose(image.sum(axis=0), counts)
@@ -343,7 +346,8 @@ def test_spread_1d_to_2d_profile_basic(make_spectroscopy_channel):
     counts = np.array([10, 20, 30, 40, 50], dtype=np.float32)
     placement = get_spectrum_placement(channel)
 
-    image = _spread_1d_to_2d_profile(counts, channel, placement)
+    image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
+    _spread_1d_to_2d_profile(image, counts, channel, placement)
 
     assert image.shape == (channel.y_pixels, channel.x_pixels)
     assert image.dtype == np.float32
@@ -367,8 +371,9 @@ def test_spread_1d_to_2d_profile_detector_wavelength_mismatch(make_spectroscopy_
     counts = np.ones(channel.x_pixels, dtype=np.float32)
     placement = get_spectrum_placement(channel)
 
+    image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
     with pytest.raises(ValueError, match="Detector wavelength grid length mismatch"):
-        _spread_1d_to_2d_profile(counts, channel, placement)
+        _spread_1d_to_2d_profile(image, counts, channel, placement)
 
 
 # Tests: test_spread_1d_to_2d_profile_out_of_bounds_y_positions
@@ -387,8 +392,9 @@ def test_spread_1d_to_2d_profile_out_of_bounds_y_positions(make_spectroscopy_cha
     counts = np.ones(channel.x_pixels, dtype=np.float32)
     placement = get_spectrum_placement(channel)
 
+    image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
     with caplog.at_level(logging.WARNING):
-        _spread_1d_to_2d_profile(counts, channel, placement)
+        _spread_1d_to_2d_profile(image, counts, channel, placement)
     assert any("PROFILE SPREAD CHECK WARN" in r.getMessage() for r in caplog.records)
 
 
@@ -408,8 +414,9 @@ def test_spread_1d_to_2d_profile_weight_shape_mismatch(make_spectroscopy_channel
     counts = np.ones(channel.x_pixels, dtype=np.float32)
     placement = get_spectrum_placement(channel)
 
+    image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
     with pytest.raises(IndexError):
-        _spread_1d_to_2d_profile(counts, channel, placement)
+        _spread_1d_to_2d_profile(image, counts, channel, placement)
 
 
 # ---------------------------------------------------------------------------
@@ -430,13 +437,14 @@ def test_spread_1d_spectrum_to_2d_dispatches_gaussian(make_spectroscopy_channel)
     )
     counts = np.array([1, 2, 3, 4, 5], dtype=np.float32)
 
+    image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
     with patch("instrument.spectrum_spread.announce"), \
-         patch("instrument.spectrum_spread._spread_1d_to_2d_gaussian", return_value=np.ones((7, 5), dtype=np.float32)) as mock_gaussian, \
+         patch("instrument.spectrum_spread._spread_1d_to_2d_gaussian") as mock_gaussian, \
          patch("instrument.spectrum_spread._spread_1d_to_2d_profile") as mock_profile:
-        image = spread_1d_spectrum_to_2d(counts, channel, (0, 3.0, 0.0, 0.0))
+        spread_1d_spectrum_to_2d(image, counts, channel, (0, 3.0, 0.0, 0.0))
 
     assert image.shape == (7, 5)
-    mock_gaussian.assert_called_once_with(counts, channel, (0, 3.0, 0.0, 0.0))
+    mock_gaussian.assert_called_once_with(image, counts, channel, (0, 3.0, 0.0, 0.0))
     mock_profile.assert_not_called()
 
 
@@ -453,13 +461,14 @@ def test_spread_1d_spectrum_to_2d_dispatches_profile(make_spectroscopy_channel):
     )
     counts = np.array([1, 2, 3, 4, 5], dtype=np.float32)
 
+    image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
     with patch("instrument.spectrum_spread.announce"), \
-         patch("instrument.spectrum_spread._spread_1d_to_2d_profile", return_value=np.ones((7, 5), dtype=np.float32)) as mock_profile, \
+         patch("instrument.spectrum_spread._spread_1d_to_2d_profile") as mock_profile, \
          patch("instrument.spectrum_spread._spread_1d_to_2d_gaussian") as mock_gaussian:
-        image = spread_1d_spectrum_to_2d(counts, channel, (0, 3.0, 0.0, 0.0))
+        spread_1d_spectrum_to_2d(image, counts, channel, (0, 3.0, 0.0, 0.0))
 
     assert image.shape == (7, 5)
-    mock_profile.assert_called_once_with(counts, channel, (0, 3.0, 0.0, 0.0))
+    mock_profile.assert_called_once_with(image, counts, channel, (0, 3.0, 0.0, 0.0))
     mock_gaussian.assert_not_called()
 
 
@@ -476,9 +485,10 @@ def test_spread_1d_spectrum_to_2d_counts_length_mismatch(make_spectroscopy_chann
     )
     counts = np.array([1, 2, 3], dtype=np.float32)
 
+    image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
     with patch("instrument.spectrum_spread.announce"):
         with pytest.raises(ValueError, match="Counts length 3 does not match nx 5"):
-            spread_1d_spectrum_to_2d(counts, channel, (0, 3.0, 0.0, 0.0))
+            spread_1d_spectrum_to_2d(image, counts, channel, (0, 3.0, 0.0, 0.0))
 
 
 # Tests: test_spread_1d_spectrum_to_2d_mode_not_implemented
@@ -494,9 +504,10 @@ def test_spread_1d_spectrum_to_2d_mode_not_implemented(make_spectroscopy_channel
     )
     counts = np.ones(5, dtype=np.float32)
 
+    image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
     with patch("instrument.spectrum_spread.announce"):
         with pytest.raises(NotImplementedError, match="mode=2 not implemented"):
-            spread_1d_spectrum_to_2d(counts, channel, (0, 3.0, 0.0, 0.0))
+            spread_1d_spectrum_to_2d(image, counts, channel, (0, 3.0, 0.0, 0.0))
 
 
 # Tests: test_spread_1d_spectrum_to_2d_announces_by_default
@@ -512,9 +523,10 @@ def test_spread_1d_spectrum_to_2d_announces_by_default(make_spectroscopy_channel
     )
     counts = np.ones(5, dtype=np.float32)
 
+    image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
     with patch("instrument.spectrum_spread.announce") as mock_announce, \
-         patch("instrument.spectrum_spread._spread_1d_to_2d_gaussian", return_value=np.ones((7, 5), dtype=np.float32)):
-        spread_1d_spectrum_to_2d(counts, channel, (0, 3.0, 0.0, 0.0))
+         patch("instrument.spectrum_spread._spread_1d_to_2d_gaussian"):
+        spread_1d_spectrum_to_2d(image, counts, channel, (0, 3.0, 0.0, 0.0))
 
     mock_announce.assert_called_once_with(
         f"Spreading 1D counts to 2D detector image for channel {channel.channel_name}.",
@@ -535,9 +547,10 @@ def test_spread_1d_spectrum_to_2d_suppresses_user_announce(make_spectroscopy_cha
     )
     counts = np.ones(5, dtype=np.float32)
 
+    image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
     with patch("instrument.spectrum_spread.announce") as mock_announce, \
-         patch("instrument.spectrum_spread._spread_1d_to_2d_gaussian", return_value=np.ones((7, 5), dtype=np.float32)):
-        spread_1d_spectrum_to_2d(counts, channel, (0, 3.0, 0.0, 0.0), announce_user=False)
+         patch("instrument.spectrum_spread._spread_1d_to_2d_gaussian"):
+        spread_1d_spectrum_to_2d(image, counts, channel, (0, 3.0, 0.0, 0.0), announce_user=False)
 
     mock_announce.assert_called_once_with(
         f"Spreading 1D counts to 2D detector image for channel {channel.channel_name}.",
@@ -775,7 +788,7 @@ def test_spread_target_star_spectrum_to_2d_dispatches_spectropolarimetry(make_sp
 
     assert image.shape == (channel.y_pixels, channel.x_pixels)
     mock_placement.assert_called_once_with(channel)
-    mock_pol.assert_called_once_with(counts, channel, (0, 3.0, 0.0, 0.0))
+    mock_pol.assert_called_once_with(ANY, counts, channel, (0, 3.0, 0.0, 0.0))
 
 
 # Tests: test_spread_target_star_spectropolarimetry_to_2d_splits_flux_and_separates_beam
@@ -793,13 +806,12 @@ def test_spread_target_star_spectropolarimetry_to_2d_splits_flux_and_separates_b
     counts = np.array([10, 20, 30, 40, 50], dtype=np.float32)
     placement = (0, 3.0, 0.0, 0.0)
 
-    def _fake_spread(counts_1d, _channel, _placement, announce_user=True):
-        image = np.zeros((_channel.y_pixels, _channel.x_pixels), dtype=np.float32)
+    def _fake_spread(image, counts_1d, _channel, _placement, announce_user=True):
         image[0, :] = counts_1d
-        return image
 
     with patch("instrument.spectrum_spread.spread_1d_spectrum_to_2d", side_effect=_fake_spread) as mock_spread:
-        image = spread_target_star_spectropolarimetry_to_2d(counts, channel, placement)
+        image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
+        spread_target_star_spectropolarimetry_to_2d(image, counts, channel, placement)
 
     expected_delta = np.array([1.0, 0.0, 0.5, 1.0, 0.0], dtype=np.float32)
     expected_beam1 = counts * (1.0 + expected_delta) / 2.0
@@ -813,8 +825,8 @@ def test_spread_target_star_spectropolarimetry_to_2d_splits_flux_and_separates_b
     assert np.allclose(image.sum(), counts.sum())
 
     assert mock_spread.call_count == 2
-    assert np.allclose(mock_spread.call_args_list[0].args[0], expected_beam1)
-    assert np.allclose(mock_spread.call_args_list[1].args[0], expected_beam2)
+    assert np.allclose(mock_spread.call_args_list[0].args[1], expected_beam1)
+    assert np.allclose(mock_spread.call_args_list[1].args[1], expected_beam2)
     assert mock_spread.call_args_list[0].kwargs["announce_user"] is True
     assert mock_spread.call_args_list[1].kwargs["announce_user"] is False
 
@@ -834,20 +846,19 @@ def test_spread_target_star_spectropolarimetry_to_2d_interpolates_delta(make_spe
     counts = np.array([10, 10, 10, 10, 10], dtype=np.float32)
     placement = (0, 3.0, 0.0, 0.0)
 
-    def _fake_spread(counts_1d, _channel, _placement, announce_user=True):
-        image = np.zeros((_channel.y_pixels, _channel.x_pixels), dtype=np.float32)
+    def _fake_spread(image, counts_1d, _channel, _placement, announce_user=True):
         image[0, :] = counts_1d
-        return image
 
     with patch("instrument.spectrum_spread.spread_1d_spectrum_to_2d", side_effect=_fake_spread) as mock_spread:
-        image = spread_target_star_spectropolarimetry_to_2d(counts, channel, placement)
+        image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
+        spread_target_star_spectropolarimetry_to_2d(image, counts, channel, placement)
 
     expected_delta = np.array([0.0, 0.5, 1.0, 0.5, 0.0], dtype=np.float32)
     expected_beam1 = counts * (1.0 + expected_delta) / 2.0
     expected_beam2 = counts * (1.0 - expected_delta) / 2.0
 
-    assert np.allclose(mock_spread.call_args_list[0].args[0], expected_beam1)
-    assert np.allclose(mock_spread.call_args_list[1].args[0], expected_beam2)
+    assert np.allclose(mock_spread.call_args_list[0].args[1], expected_beam1)
+    assert np.allclose(mock_spread.call_args_list[1].args[1], expected_beam2)
     assert np.allclose(image[0, :], expected_beam1)
     assert np.allclose(image[1, :], expected_beam2)
     assert np.allclose(image.sum(), counts.sum())

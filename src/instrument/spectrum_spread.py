@@ -11,10 +11,13 @@ _PROFILE_SPREAD_WARN_THRESHOLD = 5e-2
 def spread_target_star_spectrum_to_2d(counts_s_pixel_convolved, channel: SpectroscopyChannel):
     """Entry point for target star: derive spatial info and spread 1D spectrum to 2D."""
     placement = get_spectrum_placement(channel)
+    image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
     if channel.observation_mode == "spectroscopy":
-        return spread_1d_spectrum_to_2d(counts_s_pixel_convolved, channel, placement)
+        spread_1d_spectrum_to_2d(image, counts_s_pixel_convolved, channel, placement)
+        return image
     if channel.observation_mode == "spectropolarimetry":
-        return spread_target_star_spectropolarimetry_to_2d(counts_s_pixel_convolved, channel, placement)
+        spread_target_star_spectropolarimetry_to_2d(image, counts_s_pixel_convolved, channel, placement)
+        return image
 
 def get_spectrum_placement(channel: SpectroscopyChannel) -> tuple[int, float, float, float]:
     """Return (x0, y0, slope, intercept_pixels) for target star. For background stars: use x0, slope, intercept; supply y0 per star."""
@@ -40,7 +43,7 @@ def get_target_star_detector_position(channel: SpectroscopyChannel):
 
     return x0, y0
 
-def spread_1d_spectrum_to_2d(counts_s_pixel_convolved, channel: SpectroscopyChannel, placement, announce_user: bool = True):
+def spread_1d_spectrum_to_2d(image: np.ndarray, counts_s_pixel_convolved, channel: SpectroscopyChannel, placement, announce_user: bool = True):
     """Spread 1D spectrum to 2D. Caller provides placement (x0, y0, slope, intercept). For background stars: x0, _, slope, intercept = get_spectrum_placement(channel); y0 = y_background_star."""
     announce(f"Spreading 1D counts to 2D detector image for channel {channel.channel_name}.", to_user=announce_user)
     nx = channel.x_pixels
@@ -63,11 +66,11 @@ def spread_1d_spectrum_to_2d(counts_s_pixel_convolved, channel: SpectroscopyChan
         and channel.spread_y_weights is not None
         and channel.spread_y_wavelengths is not None
     ):
-        return _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel, placement)
+        return _spread_1d_to_2d_profile(image, counts_s_pixel_convolved, channel, placement)
     else:
-        return _spread_1d_to_2d_gaussian(counts_s_pixel_convolved, channel, placement)
+        return _spread_1d_to_2d_gaussian(image, counts_s_pixel_convolved, channel, placement)
 
-def _spread_1d_to_2d_gaussian(counts_s_pixel_convolved, channel: SpectroscopyChannel, placement):
+def _spread_1d_to_2d_gaussian(image: np.ndarray, counts_s_pixel_convolved, channel: SpectroscopyChannel, placement):
     nx = channel.x_pixels
     ny = channel.y_pixels
     x0, y0, slope, intercept = placement
@@ -83,24 +86,16 @@ def _spread_1d_to_2d_gaussian(counts_s_pixel_convolved, channel: SpectroscopyCha
     if slope == 0.0 and intercept == 0.0:
         counts = counts_s_pixel_convolved.astype(np.float32, copy=False)
         w = _gaussian_vertical_profile(ny, y0, spatial_sigma_pix).astype(np.float32, copy=False)
-        image = np.outer(w, counts).astype(np.float32)
+        image += np.outer(w, counts).astype(np.float32)
     else:
-        image = np.zeros((ny, nx), dtype=np.float32)
         for i in range(nx):
             x = x0 + i
             if 0 <= x < nx:
                 y_center = y0 + intercept + slope * (x - x0)
                 w = _gaussian_vertical_profile(ny, y_center, spatial_sigma_pix)
-                image[:, x] = counts_s_pixel_convolved[i] * w
+                image[:, x] += counts_s_pixel_convolved[i] * w
 
-    col_sums = image.sum(axis=0)
-
-    if not np.allclose(col_sums, counts_s_pixel_convolved, rtol=1e-2, atol=1e-3):
-        logging.error("GAUSSIAN SPREAD CHECK FAILED: channel=%s column sums do not match input counts", channel.channel_name)
-        raise ValueError("Gaussian spread column sum mismatch")
     
-    return image
-
 def _gaussian_vertical_profile(ny: int, y_center: float, sigma: float) -> np.ndarray:
     """Normalized 1D Gaussian profile along y. Returns shape (ny,)."""
     y_coords = np.arange(ny, dtype=np.float64) - y_center
@@ -110,7 +105,7 @@ def _gaussian_vertical_profile(ny: int, y_center: float, sigma: float) -> np.nda
         raise ValueError("vertical profile sum <= 0")
     return w / w_sum
 
-def _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel: SpectroscopyChannel, placement):
+def _spread_1d_to_2d_profile(image: np.ndarray, counts_s_pixel_convolved, channel: SpectroscopyChannel, placement):
     """Vectorized wavelength-dependent profile spread."""
     nx = channel.x_pixels
     ny = channel.y_pixels
@@ -126,8 +121,6 @@ def _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel: SpectroscopyChan
         raise ValueError("Detector wavelength grid length mismatch")
 
     dy = np.round(spread_y_pos).astype(np.int64)
-
-    image = np.zeros((ny, nx), dtype=np.float32)
 
     x_indices = np.arange(nx, dtype=np.int64)
     y_centers = y0 + intercept + slope * (x_indices - x0)
@@ -145,8 +138,6 @@ def _spread_1d_to_2d_profile(counts_s_pixel_convolved, channel: SpectroscopyChan
     if m > _PROFILE_SPREAD_WARN_THRESHOLD and channel.channel_name not in _PROFILE_SPREAD_WARNED_CHANNELS:
         _PROFILE_SPREAD_WARNED_CHANNELS.add(channel.channel_name)
         logging.warning("PROFILE SPREAD CHECK WARN | channel=%s | max_rel_diff=%g | threshold=%g (logged once per channel)", channel.channel_name, m, _PROFILE_SPREAD_WARN_THRESHOLD)
-
-    return image
 
 def smear_1d_spectrum_dispersion(counts_s_px: np.ndarray, channel: SpectroscopyChannel) -> np.ndarray:
     """Apply dispersion smear while preserving total counts."""
@@ -168,7 +159,7 @@ def smear_1d_spectrum_dispersion(counts_s_px: np.ndarray, channel: SpectroscopyC
             counts_smeared_px[:x_shift] += counts_smear_step_px[-x_shift:]
     return counts_smeared_px
 
-def spread_target_star_spectropolarimetry_to_2d(counts_s_pixel_convolved: np.ndarray, channel: SpectroscopyChannel, placement) -> np.ndarray:
+def spread_target_star_spectropolarimetry_to_2d(image: np.ndarray, counts_s_pixel_convolved: np.ndarray, channel: SpectroscopyChannel, placement) -> np.ndarray:
     # Split total flux into two beams using polarization delta.
     # delta is defined as normalized imbalance: delta = (beam1 - beam2) / total
     #
@@ -190,8 +181,9 @@ def spread_target_star_spectropolarimetry_to_2d(counts_s_pixel_convolved: np.nda
     beam1 = counts_s_pixel_convolved * (1.0 + delta_interp) / 2.0
     beam2 = counts_s_pixel_convolved * (1.0 - delta_interp) / 2.0
 
-    image_beam1 = spread_1d_spectrum_to_2d(beam1, channel, placement, announce_user=True)
-    image_beam2 = spread_1d_spectrum_to_2d(beam2, channel, placement, announce_user=False)
+    image_beam2 = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
+    spread_1d_spectrum_to_2d(image, beam1, channel, placement, announce_user=True)
+    spread_1d_spectrum_to_2d(image_beam2, beam2, channel, placement, announce_user=False)
 
     logging.info("POL TEST beam split: delta[0]=%.3f delta[mid]=%.3f delta[-1]=%.3f", delta_interp[0], delta_interp[len(delta_interp) // 2], delta_interp[-1])
     logging.info("POL TEST counts: total[0]=%.3f beam1[0]=%.3f beam2[0]=%.3f", counts_s_pixel_convolved[0], beam1[0], beam2[0])
@@ -203,5 +195,6 @@ def spread_target_star_spectropolarimetry_to_2d(counts_s_pixel_convolved: np.nda
 
     image_beam2_separated = np.zeros_like(image_beam2)
     image_beam2_separated[separation:, :] = image_beam2[:-separation, :]
-
-    return image_beam1 + image_beam2_separated
+    
+    image += image_beam2_separated
+    return image
