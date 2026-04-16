@@ -1,6 +1,6 @@
 import logging
 import numpy as np
-from configs.channel_config import SpectroscopyChannel
+from configs.channel_config import Channel
 from domain.star import Star
 from instrument.prepare_detector_images import convert_flux_to_photons
 from utils.constants import ARCSEC2_PER_SR
@@ -10,11 +10,10 @@ from scipy.interpolate import CubicSpline
 from astropy.time import Time
 from instrument.spectrum_spread import get_target_star_detector_position
 
-def generate_background_image(channel: SpectroscopyChannel, star: Star ) -> np.ndarray:
+def generate_background_image(channel: Channel, star: Star ) -> np.ndarray:
 
     nx = channel.x_pixels
     ny = channel.y_pixels
-
 
     image = np.zeros((ny, nx), dtype=np.float32)
 
@@ -54,7 +53,7 @@ def generate_background_image(channel: SpectroscopyChannel, star: Star ) -> np.n
     return image
 
 
-def generate_background_default_image(channel: SpectroscopyChannel):
+def generate_background_default_image(channel: Channel):
     wl_bg = channel.background_wavelength # Å
     flux_bg = channel.background_flux # erg / s / cm² / Å
     logging.info("Background type 'default': using background spectrum with %d wavelength points and %d flux points.", wl_bg.size, flux_bg.size)
@@ -74,7 +73,7 @@ def generate_background_default_image(channel: SpectroscopyChannel):
     return background
 
 
-def generate_background_calculated_image(channel: SpectroscopyChannel, star: Star):
+def generate_background_calculated_image(channel: Channel, star: Star):
 
     jd = float(Time.now().utc.jd)
     # jd = 2457095.5
