@@ -1,6 +1,6 @@
 # Name of the target star. Its properties are read from the Excel file in the project root.
 # If a property is missing there, it will be retrieved from GAIA.
-target_name = TOI-6038 A
+target_name = TOI-6038
 
 # Total duration of the simulated observation, in hours.
 # The transit is centered in this window, with half of the time before and half after the transit.
