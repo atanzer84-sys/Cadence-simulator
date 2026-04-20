@@ -28,7 +28,7 @@ def calculate_flux_on_earth(star: Star, ctx: RunContext, wl_min_A: float, wl_max
 
     flux_lambda_original = convert_stellar_model_to_flux(model_data, star.radius_sun_cm)
     # keep undiluted flux
-    flux_lambda_diluted = flux_lambda_original
+    flux_lambda_diluted = flux_lambda_original.copy()
     wavelengths = flux_lambda_original[:, 0]
 
     if dump_arrays:
