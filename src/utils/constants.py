@@ -42,12 +42,12 @@ PHOTON_ENERGY_CONVERSION_A = (1.0 / (H_PLANCK * C_LIGHT_Angst))
 ARCSEC2_PER_SR = (1 * u.sr).to(u.arcsec**2).value
 
 #Parameters for MgII
-MgII1w      = 2795.5280 #MgIIh wavelength 
-MgII1_loggf = 0.100     #MgIIh loggf
-MgII1_stark = -5.680    #MgIIh stark
-MgII2w      = 2802.7050 #MgIIk wavelength
-MgII2_loggf = -0.210    #MgIIk loggf
-MgII2_stark =-5.680     #MgIIkStark damping constant
+MgII1w      = 2795.5280 #MgIIk wavelength 
+MgII1_loggf = 0.100     #MgIIk loggf
+MgII1_stark = -5.680    #MgIIk stark
+MgII2w      = 2802.7050 #MgIIh wavelength
+MgII2_loggf = -0.210    #MgIIh loggf
+MgII2_stark =-5.680     #MgIIhStark damping constant
 Mgaratio_loggf2to1=(10**MgII2_loggf)/(10**MgII1_loggf)
 
 ##Parameters for MgI
