@@ -75,7 +75,7 @@ debug_wavelength_range_nuv = [2390, 3260]
 debug_wavelength_range_vis = [4450, 8250]
 debug_wavelength_range_ir = [8250, 18000]
 # wavelengths for test_dumps and comparisons in A
-DEBUG_WL_A_NUV = (2790.0, 2850.0)
+DEBUG_WL_A_NUV = (2790.0, 2805.0)
 DEBUG_WL_A_VIS = (5550.0, 5630.0)
 DEBUG_WL_A_NIR  = (11000.0, 11100.0)
 
