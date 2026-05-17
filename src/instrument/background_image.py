@@ -2,7 +2,7 @@ import logging
 import numpy as np
 from configs.channel_config import Channel
 from domain.star import Star
-from flux.flux_calc import convert_flux_to_photons
+from flux.photon_flux_pipeline import convert_flux_to_photons
 from utils.constants import ARCSEC2_PER_SR
 from astropy.coordinates import SkyCoord, get_sun, BarycentricTrueEcliptic
 import astropy.units as u

@@ -5,12 +5,12 @@ from instrument.prepare_detector_images import calculate_photon_flux_density_on_
 from instrument.prepare_detector_images import prepare_detector_image_spectroscopy
 from instrument.prepare_detector_images import prepare_detector_image_photometry
 from instrument.prepare_detector_images import compute_counts_per_s_px_one_channel
-from flux.flux_calc import convert_flux_to_photons
+from flux.photon_flux_pipeline import convert_flux_to_photons
 from utils.constants import PHOTON_ENERGY_CONVERSION_A
 
 
 # Tests: calculate_photon_flux_density_on_Earth
-# Behavior: required wavelength range is passed through; result comes from calculate_flux_on_earth (float32 photon flux)
+# Behavior: required wavelength range is passed through; result comes from run_photon_flux_density_pipeline (float32 photon flux)
 def test_calculate_photon_flux_density_on_Earth_converts_and_calls_outputs(
     make_star, make_run_context, make_spectroscopy_channel, make_photometry_channel
 ):
@@ -27,7 +27,7 @@ def test_calculate_photon_flux_density_on_Earth_converts_and_calls_outputs(
     with patch(
         "instrument.prepare_detector_images.get_required_wavelength_range", return_value=(100.0, 300.0)
     ) as mock_range, patch(
-        "instrument.prepare_detector_images.calculate_flux_on_earth", return_value=(photons_from_earth, wavelengths.astype(np.float32))
+        "instrument.prepare_detector_images.run_photon_flux_density_pipeline", return_value=(photons_from_earth, wavelengths.astype(np.float32))
     ) as mock_flux:
         photons_star, wavelengths_total = calculate_photon_flux_density_on_Earth(star, ctx, nuv, vis, nir, announce_user=False)
 

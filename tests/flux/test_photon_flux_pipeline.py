@@ -1,11 +1,11 @@
 import numpy as np
 
-from flux.flux_calc import (
+from flux.photon_flux_pipeline import (
     convert_stellar_model_to_flux,
     compute_flux_at_earth,
     compute_ebv_av,
     apply_unred,
-    calculate_flux_on_earth,
+    run_photon_flux_density_pipeline,
 )
 from utils.constants import C_LIGHT_Angst, PARSEC_CM, PHOTON_ENERGY_CONVERSION_A
 
@@ -58,7 +58,7 @@ def test_apply_unred_flips_ebv(monkeypatch):
         called["ebv"] = ebv
         return f
 
-    monkeypatch.setattr("flux.flux_calc.unred", fake_unred)
+    monkeypatch.setattr("flux.photon_flux_pipeline.unred", fake_unred)
 
     wavelengths = np.array([100.0])
     flux = np.array([1.0])
@@ -86,8 +86,8 @@ def test_compute_ebv_av_converts_distance_and_forwards_coords(monkeypatch):
         called["distance_kpc"] = distance_kpc
         return 0.12, 0.34
 
-    monkeypatch.setattr("flux.flux_calc.calculate_glon_glat", fake_calc_glon_glat)
-    monkeypatch.setattr("flux.flux_calc.extinction_amores", fake_extinction_amores)
+    monkeypatch.setattr("flux.photon_flux_pipeline.calculate_glon_glat", fake_calc_glon_glat)
+    monkeypatch.setattr("flux.photon_flux_pipeline.extinction_amores", fake_extinction_amores)
 
     ebv, av = compute_ebv_av(10.0, 20.0, 2500.0)
 
@@ -100,20 +100,20 @@ def test_compute_ebv_av_converts_distance_and_forwards_coords(monkeypatch):
     assert called["distance_kpc"] == 2.5
 
 
-# Tests: calculate_flux_on_earth
+# Tests: run_photon_flux_density_pipeline
 # Behavior: optional steps skipped when flags are False
-def test_calculate_flux_on_earth_no_optional_steps_called(make_star, make_global_config, make_run_context, monkeypatch):
+def test_run_photon_flux_density_pipeline_no_optional_steps_called(make_star, make_global_config, make_run_context, monkeypatch):
     monkeypatch.setattr(
-        "flux.flux_calc.load_model_for_temperature",
+        "flux.photon_flux_pipeline.load_model_for_temperature",
         lambda _t, _wl_min, _wl_max, announce_user=False: np.array([[5000.0, 1.0, 1.0]])
     )
-    monkeypatch.setattr("flux.flux_calc.convert_stellar_model_to_flux", lambda d, _: d)
-    monkeypatch.setattr("flux.flux_calc.compute_ebv_av", lambda *_: (0.0, 0.0))
-    monkeypatch.setattr("flux.flux_calc.compute_flux_at_earth", lambda d, _dist, announce_user=False: d[:, 1])
-    monkeypatch.setattr("flux.flux_calc.apply_unred", lambda w, f, e, announce_user=False: f)
+    monkeypatch.setattr("flux.photon_flux_pipeline.convert_stellar_model_to_flux", lambda d, _: d)
+    monkeypatch.setattr("flux.photon_flux_pipeline.compute_ebv_av", lambda *_: (0.0, 0.0))
+    monkeypatch.setattr("flux.photon_flux_pipeline.compute_flux_at_earth", lambda d, _dist, announce_user=False: d[:, 1])
+    monkeypatch.setattr("flux.photon_flux_pipeline.apply_unred", lambda w, f, e, announce_user=False: f)
 
     cfg = make_global_config(line_core_emission=0, interstellar_absorption=0)
-    monkeypatch.setattr("flux.flux_calc.get_global_config", lambda: cfg)
+    monkeypatch.setattr("flux.photon_flux_pipeline.get_global_config", lambda: cfg)
 
     star = make_star(
         effective_temperature=5000,
@@ -127,30 +127,30 @@ def test_calculate_flux_on_earth_no_optional_steps_called(make_star, make_global
 
     ctx = make_run_context()
 
-    flux, wavelengths = calculate_flux_on_earth(star, ctx, 3400.0, 18000.0)
+    flux, wavelengths = run_photon_flux_density_pipeline(star, ctx, 3400.0, 18000.0)
 
     np.testing.assert_allclose(flux[0], 1.0 * PHOTON_ENERGY_CONVERSION_A * 5000.0)
     assert wavelengths[0] == 5000.0
 
 
-# Tests: calculate_flux_on_earth
+# Tests: run_photon_flux_density_pipeline
 # Behavior: optional steps applied when flags are True
-def test_calculate_flux_on_earth_optional_steps_called(make_star, make_global_config, make_run_context, monkeypatch):
+def test_run_photon_flux_density_pipeline_optional_steps_called(make_star, make_global_config, make_run_context, monkeypatch):
     # wavelength must be inside 3400–18000 Å
     monkeypatch.setattr(
-        "flux.flux_calc.load_model_for_temperature",
+        "flux.photon_flux_pipeline.load_model_for_temperature",
         lambda _t, _wl_min, _wl_max, announce_user=False: np.array([[5000.0, 1.0, 1.0]])
     )
-    monkeypatch.setattr("flux.flux_calc.convert_stellar_model_to_flux", lambda d, _: d)
-    monkeypatch.setattr("flux.flux_calc.compute_ebv_av", lambda *_: (0.1, 0.0))
-    monkeypatch.setattr("flux.flux_calc.compute_flux_at_earth", lambda d, _dist, announce_user=False: d[:, 1])
+    monkeypatch.setattr("flux.photon_flux_pipeline.convert_stellar_model_to_flux", lambda d, _: d)
+    monkeypatch.setattr("flux.photon_flux_pipeline.compute_ebv_av", lambda *_: (0.1, 0.0))
+    monkeypatch.setattr("flux.photon_flux_pipeline.compute_flux_at_earth", lambda d, _dist, announce_user=False: d[:, 1])
 
-    monkeypatch.setattr("flux.flux_calc.apply_line_core_emission", lambda d, *a, **k: d * 2.0)
-    monkeypatch.setattr("flux.flux_calc.apply_ism_absorption", lambda d, *a, **k: d * 3.0)
-    monkeypatch.setattr("flux.flux_calc.apply_unred", lambda w, f, e, announce_user=False: f)
+    monkeypatch.setattr("flux.photon_flux_pipeline.apply_line_core_emission", lambda d, *a, **k: d * 2.0)
+    monkeypatch.setattr("flux.photon_flux_pipeline.apply_ism_absorption", lambda d, *a, **k: d * 3.0)
+    monkeypatch.setattr("flux.photon_flux_pipeline.apply_unred", lambda w, f, e, announce_user=False: f)
 
     cfg = make_global_config(line_core_emission=1, interstellar_absorption=1)
-    monkeypatch.setattr("flux.flux_calc.get_global_config", lambda: cfg)
+    monkeypatch.setattr("flux.photon_flux_pipeline.get_global_config", lambda: cfg)
 
     star = make_star(
         effective_temperature=5000,
@@ -164,26 +164,26 @@ def test_calculate_flux_on_earth_optional_steps_called(make_star, make_global_co
 
     ctx = make_run_context()
 
-    flux, wavelengths = calculate_flux_on_earth(star, ctx, 3400.0, 18000.0)
+    flux, wavelengths = run_photon_flux_density_pipeline(star, ctx, 3400.0, 18000.0)
 
     np.testing.assert_allclose(flux[0], 6.0 * PHOTON_ENERGY_CONVERSION_A * 5000.0)
     assert wavelengths[0] == 5000.0
 
 
-# Tests: calculate_flux_on_earth
+# Tests: run_photon_flux_density_pipeline
 # Behavior: output arrays have same length and finite values
-def test_calculate_flux_on_earth_returns_photons_and_wavelengths_same_length(make_star, make_global_config, make_run_context, monkeypatch):
+def test_run_photon_flux_density_pipeline_returns_photons_and_wavelengths_same_length(make_star, make_global_config, make_run_context, monkeypatch):
     monkeypatch.setattr(
-        "flux.flux_calc.load_model_for_temperature",
+        "flux.photon_flux_pipeline.load_model_for_temperature",
         lambda _t, _wl_min, _wl_max, announce_user=False: np.array([[100.0, 1.0, 1.0]])
     )
-    monkeypatch.setattr("flux.flux_calc.convert_stellar_model_to_flux", lambda d, _: d)
-    monkeypatch.setattr("flux.flux_calc.compute_ebv_av", lambda *_: (0.0, 0.0))
-    monkeypatch.setattr("flux.flux_calc.compute_flux_at_earth", lambda d, _dist, announce_user=False: d[:, 1])
-    monkeypatch.setattr("flux.flux_calc.apply_unred", lambda w, f, e, announce_user=False: f)
+    monkeypatch.setattr("flux.photon_flux_pipeline.convert_stellar_model_to_flux", lambda d, _: d)
+    monkeypatch.setattr("flux.photon_flux_pipeline.compute_ebv_av", lambda *_: (0.0, 0.0))
+    monkeypatch.setattr("flux.photon_flux_pipeline.compute_flux_at_earth", lambda d, _dist, announce_user=False: d[:, 1])
+    monkeypatch.setattr("flux.photon_flux_pipeline.apply_unred", lambda w, f, e, announce_user=False: f)
 
     cfg = make_global_config(line_core_emission=0, interstellar_absorption=0)
-    monkeypatch.setattr("flux.flux_calc.get_global_config", lambda: cfg)
+    monkeypatch.setattr("flux.photon_flux_pipeline.get_global_config", lambda: cfg)
 
     star = make_star(
         effective_temperature=5000,
@@ -197,7 +197,7 @@ def test_calculate_flux_on_earth_returns_photons_and_wavelengths_same_length(mak
 
     ctx = make_run_context()
 
-    flux, wavelengths = calculate_flux_on_earth(star, ctx, 3400.0, 18000.0)
+    flux, wavelengths = run_photon_flux_density_pipeline(star, ctx, 3400.0, 18000.0)
 
     assert len(flux) == len(wavelengths)
     assert np.all(np.isfinite(flux))
@@ -205,9 +205,9 @@ def test_calculate_flux_on_earth_returns_photons_and_wavelengths_same_length(mak
     np.testing.assert_allclose(flux[0], 1.0 * PHOTON_ENERGY_CONVERSION_A * 100.0)
 
 
-# Tests: calculate_flux_on_earth
+# Tests: run_photon_flux_density_pipeline
 # Behavior: instrumentation triggers at least one dump
-def test_calculate_flux_on_earth_executes_write_intermediate_arrays_instrumentation(make_star, make_global_config, make_run_context, monkeypatch):
+def test_run_photon_flux_density_pipeline_executes_write_intermediate_arrays_instrumentation(make_star, make_global_config, make_run_context, monkeypatch):
     called = {"dumped": 0}
 
     def fake_dump_3d_array(*args, **kwargs):
@@ -217,18 +217,18 @@ def test_calculate_flux_on_earth_executes_write_intermediate_arrays_instrumentat
         called["dumped"] += 1
 
     monkeypatch.setattr(
-        "flux.flux_calc.load_model_for_temperature",
+        "flux.photon_flux_pipeline.load_model_for_temperature",
         lambda _t, _wl_min, _wl_max, announce_user=False: np.array([[5000.0, 1.0, 1.0]])
     )
-    monkeypatch.setattr("flux.flux_calc.convert_stellar_model_to_flux", lambda d, _: d)
-    monkeypatch.setattr("flux.flux_calc.compute_ebv_av", lambda *_: (0.0, 0.0))
-    monkeypatch.setattr("flux.flux_calc.compute_flux_at_earth", lambda d, _dist, announce_user=False: d[:, 1])
-    monkeypatch.setattr("flux.flux_calc.apply_unred", lambda w, f, e, announce_user=False: f)
+    monkeypatch.setattr("flux.photon_flux_pipeline.convert_stellar_model_to_flux", lambda d, _: d)
+    monkeypatch.setattr("flux.photon_flux_pipeline.compute_ebv_av", lambda *_: (0.0, 0.0))
+    monkeypatch.setattr("flux.photon_flux_pipeline.compute_flux_at_earth", lambda d, _dist, announce_user=False: d[:, 1])
+    monkeypatch.setattr("flux.photon_flux_pipeline.apply_unred", lambda w, f, e, announce_user=False: f)
 
     cfg = make_global_config(write_intermediate_arrays=True)
-    monkeypatch.setattr("flux.flux_calc.get_global_config", lambda: cfg)
-    monkeypatch.setattr("flux.flux_calc.dump_3d_array", fake_dump_3d_array)
-    monkeypatch.setattr("flux.flux_calc.dump_1d_array", fake_dump_1d_array)
+    monkeypatch.setattr("flux.photon_flux_pipeline.get_global_config", lambda: cfg)
+    monkeypatch.setattr("flux.photon_flux_pipeline.dump_3d_array", fake_dump_3d_array)
+    monkeypatch.setattr("flux.photon_flux_pipeline.dump_1d_array", fake_dump_1d_array)
 
     star = make_star(
         name="Star",
@@ -244,39 +244,39 @@ def test_calculate_flux_on_earth_executes_write_intermediate_arrays_instrumentat
 
     ctx = make_run_context()
 
-    calculate_flux_on_earth(star, ctx, 3400.0, 18000.0)
+    run_photon_flux_density_pipeline(star, ctx, 3400.0, 18000.0)
 
     assert called["dumped"] > 0
 
 
-# Tests: calculate_flux_on_earth
+# Tests: run_photon_flux_density_pipeline
 # Behavior: enforces wavelength cut via _cut_model_wavelength_range
-def test_calculate_flux_on_earth_applies_wavelength_cut(make_star, make_global_config, make_run_context, monkeypatch):
+def test_run_photon_flux_density_pipeline_applies_wavelength_cut(make_star, make_global_config, make_run_context, monkeypatch):
     requested = {"wl_min_A": None, "wl_max_A": None}
     # Loader now owns wavelength cutting; simulate already-cut model output.
     cut_model = np.array([[5000.0, 2.0, 1.0]])
 
     monkeypatch.setattr(
-        "flux.flux_calc.load_model_for_temperature",
+        "flux.photon_flux_pipeline.load_model_for_temperature",
         lambda _t, _wl_min, _wl_max, announce_user=False: (
             requested.__setitem__("wl_min_A", _wl_min),
             requested.__setitem__("wl_max_A", _wl_max),
             cut_model,
         )[2]
     )
-    monkeypatch.setattr("flux.flux_calc.convert_stellar_model_to_flux", lambda d, _: d)
-    monkeypatch.setattr("flux.flux_calc.compute_ebv_av", lambda *_: (0.0, 0.0))
-    monkeypatch.setattr("flux.flux_calc.compute_flux_at_earth", lambda d, dist, announce_user=False: d[:, 1])
-    monkeypatch.setattr("flux.flux_calc.apply_unred", lambda w, f, e, **k: f)
+    monkeypatch.setattr("flux.photon_flux_pipeline.convert_stellar_model_to_flux", lambda d, _: d)
+    monkeypatch.setattr("flux.photon_flux_pipeline.compute_ebv_av", lambda *_: (0.0, 0.0))
+    monkeypatch.setattr("flux.photon_flux_pipeline.compute_flux_at_earth", lambda d, dist, announce_user=False: d[:, 1])
+    monkeypatch.setattr("flux.photon_flux_pipeline.apply_unred", lambda w, f, e, **k: f)
 
     cfg = make_global_config()
-    monkeypatch.setattr("flux.flux_calc.get_global_config", lambda: cfg)
+    monkeypatch.setattr("flux.photon_flux_pipeline.get_global_config", lambda: cfg)
 
     star = make_star(effective_temperature=5000, distance_pc=10)
 
     ctx = make_run_context()
 
-    flux, wavelengths = calculate_flux_on_earth(star, ctx, 4000.0, 18000.0)
+    flux, wavelengths = run_photon_flux_density_pipeline(star, ctx, 4000.0, 18000.0)
 
     assert requested["wl_min_A"] == 4000.0
     assert requested["wl_max_A"] == 18000.0
@@ -299,14 +299,14 @@ def test_apply_ism_absorption_derived_columns(make_global_config, monkeypatch):
         out[:, 1] *= 10
         return out
 
-    monkeypatch.setattr("flux.flux_calc.cute_ism_abs_all", fake_cute_ism_abs_all)
+    monkeypatch.setattr("flux.photon_flux_pipeline.cute_ism_abs_all", fake_cute_ism_abs_all)
 
     cfg = make_global_config(mg2_col=None, mg1_col=None, fe2_col=None)
-    monkeypatch.setattr("flux.flux_calc.get_global_config", lambda: cfg)
+    monkeypatch.setattr("flux.photon_flux_pipeline.get_global_config", lambda: cfg)
 
     flux_lambda = np.array([[5000.0, 1.0]])
 
-    from flux.flux_calc import apply_ism_absorption
+    from flux.photon_flux_pipeline import apply_ism_absorption
     out = apply_ism_absorption(flux_lambda, 0.0, cfg)
 
     assert isinstance(called["mg2"], float)
@@ -328,14 +328,14 @@ def test_apply_ism_absorption_explicit_columns(make_global_config, monkeypatch):
         out[:, 1] *= 5
         return out
 
-    monkeypatch.setattr("flux.flux_calc.cute_ism_abs_all", fake_cute_ism_abs_all)
+    monkeypatch.setattr("flux.photon_flux_pipeline.cute_ism_abs_all", fake_cute_ism_abs_all)
 
     cfg = make_global_config(mg2_col=12.5, mg1_col=3.0, fe2_col=0.001)
-    monkeypatch.setattr("flux.flux_calc.get_global_config", lambda: cfg)
+    monkeypatch.setattr("flux.photon_flux_pipeline.get_global_config", lambda: cfg)
 
     flux_lambda = np.array([[5000.0, 1.0]])
 
-    from flux.flux_calc import apply_ism_absorption
+    from flux.photon_flux_pipeline import apply_ism_absorption
     out = apply_ism_absorption(flux_lambda, 0.0, cfg)
 
     assert called["mg2"] == 12.5

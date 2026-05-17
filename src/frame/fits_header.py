@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from domain.star import Star
-from flux.flux_calc import calculate_glon_glat
+from flux.photon_flux_pipeline import calculate_glon_glat
 from astropy.time import Time
 from astropy.coordinates import Angle
 from astropy.io import fits

@@ -1,7 +1,24 @@
+"""Spectral modelling: stellar atmosphere to photon flux density at the observer.
+
+This module implements run_photon_flux_density_pipeline, which goes from a 1D temperature
+model through geometric dilution, optional line-core and ISM steps, reddening correction
+(unred), and finally conversion to spectral photon flux density. The input star may be
+the science target or a background field star; the caller passes background_star when
+dropping some optional diagnostics.
+
+Typical use from the simulator is instrument.prepare_detector_images.calculate_photon_flux_density_on_Earth,
+which chooses wl_min_A / wl_max_A from the enabled channel configs and then calls
+run_photon_flux_density_pipeline.
+
+Outputs are aligned float32 arrays: photon flux density in photons per second per cm² per
+angstrom, and wavelength in angstroms. Intermediate products written as FluxCalc_* dumps
+are still in cgs-style spectral energy flux where the filenames indicate that; the
+pipeline converts unreddened erg s⁻¹ cm⁻² Å⁻¹ to photons using convert_flux_to_photons.
+"""
 import logging
 import numpy as np
 from domain.star import Star
-from utils.constants import C_LIGHT_Angst, PARSEC_CM, R_V, MgII1w, C_LIGHT_km_s, MgII1w, vr_ISM, MgII2w, MgIw, FeIIw, PHOTON_ENERGY_CONVERSION_A
+from utils.constants import C_LIGHT_Angst, PARSEC_CM, R_V, PHOTON_ENERGY_CONVERSION_A
 from configs.global_config import get_global_config, GlobalConfig
 from flux.cute_line_core_emission import apply_line_core_emission
 from flux.cute_extinction import extinction_amores
@@ -13,16 +30,45 @@ from loaders.run_waltzer_context import RunContext
 from loaders.load_model_temperature import load_model_for_temperature
 from utils.debug_dumps import dump_1d_array, dump_3d_array
 from utils.helpers import announce
-from utils.flux_image_array import plot_flux_and_photons_windows, plot_model_input, plot_lce_comparison_four_panel, plot_two_line_comparison_four_panel
+from utils.flux_image_array import plot_flux_and_photons_windows, plot_model_input
 
 
 def convert_flux_to_photons(flux_unred, wavelengths):
+    """ Converts unreddened f_lambda to photon flux per unit wavelength interval.
+
+    Parameters
+    ----------
+    flux_unred : array-like
+        Spectral energy flux F_λ at the observer, erg s⁻¹ cm⁻² Å⁻¹. Must be
+        compatible with ``wavelengths``.
+    wavelengths : array-like
+        Wavelength λ in angstroms (Å), same shape as ``flux_unred``.
+
+    Returns
+    -------
+    ndarray
+        Spectral photon flux density: photons s⁻¹ cm⁻² Å⁻¹.
+
+    Notes
+    -----
+    With wavelength in Å, ``photon_flux = flux_unred * PHOTON_ENERGY_CONVERSION_A * wavelengths``.
+    Here ``PHOTON_ENERGY_CONVERSION_A = 1 / (H_PLANCK * C_LIGHT_Angst)`` (see ``utils.constants``):
+    this is the usual F_λ → photon flux per Å relation using E_photon = hc/λ.
+    """
     photon_flux = flux_unred * PHOTON_ENERGY_CONVERSION_A * wavelengths  # from ergs/s/cm2/A to photons/s/cm2/A
     return photon_flux
 
 
-def calculate_flux_on_earth(star: Star, ctx: RunContext, wl_min_A: float, wl_max_A: float, announce_user: bool = False, background_star: bool = False):
-    announce(f"Starting to calculate Flux on Earth for target star {star.name}", announce_user)
+def run_photon_flux_density_pipeline(
+    star: Star, ctx: RunContext, wl_min_A: float, wl_max_A: float, announce_user: bool = False, background_star: bool = False
+):
+    """Return photon flux density at the observer and the wavelength grid (both float32).
+
+    Runs the per-wavelength pipeline (model, extinction, unred), then converts to photon
+    flux density. The first array is photons s⁻¹ cm⁻² Å⁻¹; the second is wavelength in Å;
+    same length.
+    """
+    announce(f"Starting photon flux density pipeline for star {star.name}", announce_user)
     cfg = get_global_config()
     dump_arrays = cfg.write_intermediate_arrays and not background_star
     dump_plots = cfg.produce_flux_convolution_plots and not background_star
@@ -52,12 +98,6 @@ def calculate_flux_on_earth(star: Star, ctx: RunContext, wl_min_A: float, wl_max
 
         if dump_arrays:
             dump_3d_array(flux_lambda_diluted, ctx.output_dir, star.name, "FluxCalc_3_after_line_core_emission", perChannel=True, zoom=True)
-        if not background_star and dump_plots:
-            # plot_lce_comparison_four_panel(flux_lambda_original[:, 0], flux_lambda_original[:, 1], flux_lambda_diluted[:, 1], ctx.output_dir, star, 2794.5, 2796.0, 2802.0, 2803.3, filename_tag="FluxCalc_3_LCE_comparison_4panel", title_text="Mg II Line Core Emission")
-            plot_lce_comparison_four_panel(flux_lambda_original[:,0], flux_lambda_original[:,1], flux_lambda_diluted[:,1], ctx.output_dir, star, 2794.5, 2796.5, 2801.70, 2803.70, "FluxCalc_3_LCE_comparison_4panel", "Mg II Line Core Emission", cfg.sigmaMg21, cfg.sigmaMg22)
-            # MgII1w      = 2795.5280 #MgIIk wavelength 
-            # MgII2w      = 2802.7050 #MgIIh wavelength
-
 
     else:
         logging.info("Line Core Emission not applied!")
@@ -67,20 +107,10 @@ def calculate_flux_on_earth(star: Star, ctx: RunContext, wl_min_A: float, wl_max
 
     if cfg.interstellar_absorption:
         # ACTUAL ISM_ABS CALL
-        flux_before_ism = flux_lambda_diluted.copy()
         flux_lambda_diluted = apply_ism_absorption(flux_lambda_diluted, ebv, cfg, announce_user=announce_user)
 
         if dump_arrays:
             dump_3d_array(flux_lambda_diluted, ctx.output_dir, star.name, "FluxCalc_4_after_ISM", perChannel=True, zoom=True)
-        if not background_star and dump_plots:
-            mgii1_ism_w = MgII1w + MgII1w * vr_ISM / C_LIGHT_km_s
-            mgii2_ism_w = MgII2w + MgII2w * vr_ISM / C_LIGHT_km_s
-            mgi_ism_w   = MgIw   + MgIw   * vr_ISM / C_LIGHT_km_s
-            feii_ism_w  = FeIIw  + FeIIw  * vr_ISM / C_LIGHT_km_s
-            # plot_model_input(flux_lambda_original, 2700, 2900, ctx.output_dir, star, filename_tag="FluxCalc_4_FluxPLot", title_text="ISM Transmission")
-            plot_two_line_comparison_four_panel(flux_before_ism[:,0], flux_before_ism[:,1], flux_lambda_diluted[:,1], ctx.output_dir, star, 2794.5, 2796.0, mgii1_ism_w, "Mg II k", 2802.0, 2803.3, mgii2_ism_w, "Mg II h", filename_tag="FluxCalc_4_ISM_comparison_4panel_MGII", title_text="Mg II Interstellar Medium Absorption")
-            plot_two_line_comparison_four_panel(flux_before_ism[:,0], flux_before_ism[:,1], flux_lambda_diluted[:,1], ctx.output_dir, star, 2794.5, 2796.0, mgii1_ism_w, "Mg II k", 2802.0, 2803.3, mgii2_ism_w, "Mg II h", filename_tag="FluxCalc_4_ISM_comparison_4panel_MGIFE", title_text="Mg II Interstellar Medium Absorption")
-            plot_two_line_comparison_four_panel(flux_before_ism[:,0], flux_before_ism[:,1], flux_lambda_diluted[:,1], ctx.output_dir, star, 2598.5, 2600.3, feii_ism_w, "Fe II", 2851.5, 2852.8, mgi_ism_w, "Mg I", filename_tag="FluxCalc_4_ISM_MgI_FeII_4panel", title_text="Mg I and Fe II Interstellar Medium Absorption")
 
     else:
         logging.info("Interstellar Medium absorption not applied!")
@@ -117,23 +147,43 @@ def calculate_flux_on_earth(star: Star, ctx: RunContext, wl_min_A: float, wl_max
 
 
 def convert_stellar_model_to_flux(model_data, r_star):
-    '''
-    Legacy model flux:
-    frequency-based stellar model quantity, converted to per-wavelength
-    and integrated over stellar surface and solid angle.
-    Resulting quantity is stellar spectral luminosity (erg/s/A),
-    later converted to flux at Earth by geometric dilution.
-    '''
+    """Map the loaded stellar grid from F_ν at the surface to L_λ (spectral luminosity).
+
+    The model file supplies wavelength and surface flux density per unit frequency.
+    This routine applies F_ν → F_λ (using c in Å/s), multiplies by the emitting area
+    4πR², and by 4π steradians so the result is integrated stellar spectral luminosity
+    in two parallel columns (same units as each other).
+
+    Parameters
+    ----------
+    model_data : ndarray, shape (n, 3)
+        Column 0: wavelength λ in angstroms (Å).
+        Columns 1 and 2: surface flux density F_ν in erg cm⁻² s⁻¹ Hz⁻¹ (two components,
+        e.g. from the atmosphere grid).
+    r_star : float
+        Stellar radius in cm.
+
+    Returns
+    -------
+    flux_lambda : ndarray, shape (n, 3)
+        Column 0: λ (Å), copied from the input.
+        Columns 1 and 2: spectral luminosity L_λ in erg s⁻¹ Å⁻¹ per component (integrated
+        over the stellar surface and full solid angle as encoded in the scale factor).
+
+    Notes
+    -----
+    Uses F_λ = F_ν · c / λ² with c = C_LIGHT_Angst (Å/s). The factor
+    ``C_LIGHT_Angst * 4π R² * 4π / λ²`` matches the existing implementation of surface
+    area and steradian bookkeeping described in the inline comments below.
+    """
     flux_lambda = np.zeros(np.shape(model_data))
     wavelength = model_data[:, 0]
     wavelength_sq = wavelength * wavelength
     scale = C_LIGHT_Angst * 4 * np.pi * (r_star**2) * 4 * np.pi
 
-    # we convert from frq to wavelength using lambda in Angstrom: F_lambda = F_nu * c / lambda^2
-    # Unit before: erg/cm2/s/Hz, After:  ergs/cm2/s/A
-    # Integrate over stellar surface area (4*pi*R^2) and over solid angle (4*pi)
-    # multiply with surface area of star -> ergs/cm2/s/A to ergs/s/A
-    # then multiply with 4*!pi for steradian conversion
+    # F_nu (erg/cm^2/s/Hz) -> F_lambda (erg/cm^2/s/A) on the surface: F_lambda = F_nu * c / lambda^2
+    # Then: surface flux (erg/cm^2/s/A) * (4*pi*R^2) cm^2 -> erg/s/A emitted over the disk;
+    # the extra 4*pi is the legacy solid-angle convention used here per original comments.
     flux_lambda[:, 0] = wavelength
     flux_lambda[:, 1] = model_data[:, 1] * scale / wavelength_sq
     flux_lambda[:, 2] = model_data[:, 2] * scale / wavelength_sq
@@ -199,6 +249,27 @@ def calculate_glon_glat(right_ascension, declination):
     return glon, glat
 
 def compute_flux_at_earth(flux_lambda_diluted, distance_pc, announce_user: bool = False):
+    """Geometric dilution: spectral luminosity to spectral flux at Earth.
+
+    Applies the inverse-square law F_λ = L_λ / (4π d²) using the second column of the
+    diluted luminosity array and the star–observer distance in parsecs.
+
+    Parameters
+    ----------
+    flux_lambda_diluted : ndarray, shape (n, at least 2)
+        Column 0: wavelength (Å), unused here.
+        Column 1: spectral luminosity L_λ in erg s⁻¹ Å⁻¹ (same convention as after
+        line-core / ISM processing in the pipeline).
+    distance_pc : float
+        Distance to the star in parsecs (pc).
+    announce_user : bool
+        Passed to ``announce`` for optional progress text.
+
+    Returns
+    -------
+    ndarray, shape (n,)
+        Spectral energy flux at Earth, F_λ in erg s⁻¹ cm⁻² Å⁻¹, one value per row.
+    """
     announce("Starting Flux at Earth calculation", announce_user)
     flux_di = flux_lambda_diluted[:,1]
     flux_at_earth = flux_di / (4.0 * np.pi * (distance_pc * PARSEC_CM) ** 2)
