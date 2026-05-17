@@ -88,7 +88,7 @@ def save_single_frame_png_NIR(array: np.ndarray, filename: Path, title: str, sta
     TITLE_FONTSIZE_NIR = 18
     GAP_IN_NIR = 0.35
     TEXT_H_IN_NIR = 0.9
-    NIR_LABEL_FONTSIZE = 16
+    NIR_LABEL_FONTSIZE = 12
     _FIGURE_NIR_DPI = 100
 
 

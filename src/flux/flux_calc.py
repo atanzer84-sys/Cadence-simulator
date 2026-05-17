@@ -1,7 +1,8 @@
 import logging
 import numpy as np
 from domain.star import Star
-from utils.constants import C_LIGHT_Angst, PARSEC_CM, R_V
+from utils.constants import C_LIGHT_Angst, PARSEC_CM, R_V, MgII1w, C_LIGHT_km_s, MgII1w, vr_ISM, MgII2w, MgIw, FeIIw
+
 from configs.global_config import get_global_config, GlobalConfig
 from flux.cute_line_core_emission import apply_line_core_emission
 from flux.cute_extinction import extinction_amores
@@ -13,7 +14,7 @@ from loaders.run_waltzer_context import RunContext
 from loaders.load_model_temperature import load_model_for_temperature
 from utils.debug_dumps import dump_1d_array, dump_3d_array
 from utils.helpers import announce
-from utils.flux_image_array import plot_flux_and_photons_windows
+from utils.flux_image_array import plot_flux_and_photons_windows, plot_model_input, plot_lce_comparison_four_panel, plot_two_line_comparison_four_panel
 
 def calculate_flux_on_earth(star: Star, ctx: RunContext, wl_min_A: float, wl_max_A: float, announce_user: bool = False, background_star: bool = False):
     announce(f"Starting to calculate Flux on Earth for target star {star.name}", announce_user)
@@ -25,8 +26,14 @@ def calculate_flux_on_earth(star: Star, ctx: RunContext, wl_min_A: float, wl_max
 
     if dump_arrays:
         dump_3d_array(model_data, ctx.output_dir, star.name, "FluxCalc_1_model_input", perChannel=True, zoom=True)
+    if not background_star and dump_plots:
+        plot_model_input(model_data, wl_min_A, wl_max_A, ctx.output_dir, star, filename_tag="FluxCalc_1_model_input", title_text="Model Input Spectrum")
+        plot_flux_and_photons_windows(model_data[:, 0], model_data[:, 1], ctx.output_dir, star, "FluxCalc_1_model_input", "Model Input Spectrum (linear windows)", "Model flux [erg s⁻¹ cm⁻² Hz⁻¹]")
 
     flux_lambda_original = convert_stellar_model_to_flux(model_data, star.radius_sun_cm)
+    if not background_star and dump_plots:
+        plot_model_input(flux_lambda_original, wl_min_A, wl_max_A, ctx.output_dir, star, filename_tag="FluxCalc_2_convert_stellar_model_to_flux", title_text="Flux After Stellar Model Conversion")
+
     # keep undiluted flux
     flux_lambda_diluted = flux_lambda_original.copy()
     wavelengths = flux_lambda_original[:, 0]
@@ -40,6 +47,13 @@ def calculate_flux_on_earth(star: Star, ctx: RunContext, wl_min_A: float, wl_max
 
         if dump_arrays:
             dump_3d_array(flux_lambda_diluted, ctx.output_dir, star.name, "FluxCalc_3_after_line_core_emission", perChannel=True, zoom=True)
+        if not background_star and dump_plots:
+            # plot_lce_comparison_four_panel(flux_lambda_original[:, 0], flux_lambda_original[:, 1], flux_lambda_diluted[:, 1], ctx.output_dir, star, 2794.5, 2796.0, 2802.0, 2803.3, filename_tag="FluxCalc_3_LCE_comparison_4panel", title_text="Mg II Line Core Emission")
+            plot_lce_comparison_four_panel(flux_lambda_original[:,0], flux_lambda_original[:,1], flux_lambda_diluted[:,1], ctx.output_dir, star, 2794.5, 2796.5, 2801.70, 2803.70, "FluxCalc_3_LCE_comparison_4panel", "Mg II Line Core Emission", cfg.sigmaMg21, cfg.sigmaMg22)
+            # MgII1w      = 2795.5280 #MgIIk wavelength 
+            # MgII2w      = 2802.7050 #MgIIh wavelength
+
+
     else:
         logging.info("Line Core Emission not applied!")
 
@@ -48,10 +62,21 @@ def calculate_flux_on_earth(star: Star, ctx: RunContext, wl_min_A: float, wl_max
 
     if cfg.interstellar_absorption:
         # ACTUAL ISM_ABS CALL
+        flux_before_ism = flux_lambda_diluted.copy()
         flux_lambda_diluted = apply_ism_absorption(flux_lambda_diluted, ebv, cfg, announce_user=announce_user)
 
         if dump_arrays:
             dump_3d_array(flux_lambda_diluted, ctx.output_dir, star.name, "FluxCalc_4_after_ISM", perChannel=True, zoom=True)
+        if not background_star and dump_plots:
+            mgii1_ism_w = MgII1w + MgII1w * vr_ISM / C_LIGHT_km_s
+            mgii2_ism_w = MgII2w + MgII2w * vr_ISM / C_LIGHT_km_s
+            mgi_ism_w   = MgIw   + MgIw   * vr_ISM / C_LIGHT_km_s
+            feii_ism_w  = FeIIw  + FeIIw  * vr_ISM / C_LIGHT_km_s
+            # plot_model_input(flux_lambda_original, 2700, 2900, ctx.output_dir, star, filename_tag="FluxCalc_4_FluxPLot", title_text="ISM Transmission")
+            plot_two_line_comparison_four_panel(flux_before_ism[:,0], flux_before_ism[:,1], flux_lambda_diluted[:,1], ctx.output_dir, star, 2794.5, 2796.0, mgii1_ism_w, "Mg II k", 2802.0, 2803.3, mgii2_ism_w, "Mg II h", filename_tag="FluxCalc_4_ISM_comparison_4panel_MGII", title_text="Mg II Interstellar Medium Absorption")
+            plot_two_line_comparison_four_panel(flux_before_ism[:,0], flux_before_ism[:,1], flux_lambda_diluted[:,1], ctx.output_dir, star, 2794.5, 2796.0, mgii1_ism_w, "Mg II k", 2802.0, 2803.3, mgii2_ism_w, "Mg II h", filename_tag="FluxCalc_4_ISM_comparison_4panel_MGIFE", title_text="Mg II Interstellar Medium Absorption")
+            plot_two_line_comparison_four_panel(flux_before_ism[:,0], flux_before_ism[:,1], flux_lambda_diluted[:,1], ctx.output_dir, star, 2598.5, 2600.3, feii_ism_w, "Fe II", 2851.5, 2852.8, mgi_ism_w, "Mg I", filename_tag="FluxCalc_4_ISM_MgI_FeII_4panel", title_text="Mg I and Fe II Interstellar Medium Absorption")
+
     else:
         logging.info("Interstellar Medium absorption not applied!")
 
@@ -106,7 +131,7 @@ def convert_stellar_model_to_flux(model_data, r_star):
 def apply_ism_absorption(data, ebv, cfg: GlobalConfig, announce_user: bool = False):
     announce("Starting ISM absorption", announce_user)
     if cfg.mg2_col is None:
-        nh = 5.8e21 * ebv  # The Mg2 column density is
+        nh = 5.8e21 * ebv  # is the total hydrogen column density
         fractionMg2 = 0.825  # (Frisch & Slavin 2003; this is the fraction of Mg in the ISM that is singly ionised)
         Mg_abn = -5.33  # (Frisch & Slavin 2003; this is the ISM abundance of Mg)
         # Safe runtime path: keep physically correct -inf for zero columns without triggering log10(0) warnings.
@@ -118,7 +143,7 @@ def apply_ism_absorption(data, ebv, cfg: GlobalConfig, announce_user: bool = Fal
         nmg2_source = "cfg"
 
     if cfg.mg1_col is None:
-        nh = 5.8e21 * ebv  # The Mg1 column density is
+        nh = 5.8e21 * ebv   # is the total hydrogen column density
         fractionMg1 = 0.00214  # (Frisch & Slavin 2003; this is the fraction of Mg in the ISM that is singly ionised)
         Mg_abn = -5.33  # (Frisch & Slavin 2003; this is the ISM abundance of Mg)
         mg1_col_linear = nh * fractionMg1 * 10.0**Mg_abn
@@ -129,7 +154,7 @@ def apply_ism_absorption(data, ebv, cfg: GlobalConfig, announce_user: bool = Fal
         nmg1_source = "cfg"
 
     if cfg.fe2_col is None:
-        nh = 5.8e21 * ebv  # The Fe2 column density is
+        nh = 5.8e21 * ebv   # is the total hydrogen column density
         fractionFe2 = 0.967  # (Frisch & Slavin 2003; this is the fraction of Fe in the ISM that is singly ionised)
         Fe_abn = -5.73  # (Frisch & Slavin 2003; this is the ISM abundance of Fe)
         fe2_col_linear = nh * fractionFe2 * 10.0**Fe_abn

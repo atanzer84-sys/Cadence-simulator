@@ -92,4 +92,10 @@ def _dump_convolved_counts(ctx: RunContext, star: Star, channel: Channel, counts
         dump_effective_area_txt(ctx.output_dir, channel.channel_name, channel.effective_area_wavelength, channel.effective_area, channel.pixel_scale)
         dump_npz_snapshot(ctx.output_dir, f"{star.name}_{channel.channel_name}_convolved_counts_full.npz", counts_s_px_convolved=counts_s_px_convolved)
     if dump_plots:
-        plot_1d_for_channel(channel.effective_area_wavelength, counts_s_px_convolved, ctx.output_dir, star, filename_tag="Detector_counts_s_px_convolved", title_text="Convolved Counts", y_label="Counts s⁻¹ pixel⁻¹", channel_name=channel.channel_name, full=True)
+        plot_1d_for_channel(channel.effective_area_wavelength, counts_s_px_convolved, ctx.output_dir, star, filename_tag="Detector_counts_s_px_convolved", title_text="Convolved Counts", y_label=r"Counts s$^{-1}$ pixel$^{-1}$", channel_name=channel.channel_name, full=True)
+
+        noise_floor = channel.bias_offset + channel.dark_current * channel.exposure_s
+        total_counts = counts_s_px_convolved * channel.exposure_s + noise_floor
+
+        plot_1d_for_channel(channel.effective_area_wavelength, total_counts, ctx.output_dir, star, filename_tag="Detector_counts_s_px_convolved_noise_floor", title_text=f"Simulated Pixel Values ({channel.exposure_s:.0f} s) — bias + dark + signal", y_label=r"Counts pixel$^{-1}$", channel_name=channel.channel_name, full=True, noise_floor=noise_floor)
+

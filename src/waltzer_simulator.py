@@ -15,7 +15,7 @@ def main():
     try:
         
         run_ctx, user_cfg = initialize_waltzer_runtime_context()
-        nuv_channel, vis_channel, nir_channel = load_channels_config(user_cfg)
+        nuv_channel, vis_channel, nir_channel = load_channels_config(user_cfg, run_ctx)
 
         planet_param, stellar_param, required_planetary_parameters, required_stellar_parameters = load_stellar_and_planetary_properties(user_cfg.target_name)
 
