@@ -324,7 +324,7 @@ def run_snapshot_science_image_with_bg_stars_nuv(star_name: str, tmp_path: Path,
 
     channel = make_spectroscopy_channel(channel_name="NUV", mode=1, x_pixels=NUV_X_PIXELS, y_pixels=NUV_Y_PIXELS, pixel_scale=float(pixel_scale), effective_area_wavelength=effective_area_wavelength, spread_y_positions=spread_profile["spread_y_positions"], spread_y_weights=spread_profile["spread_y_weights"], spread_y_wavelengths=spread_profile["spread_y_wavelengths"], exposure_s=300.0)
 
-    cfg = make_global_config(write_science_frame_component_png=False, write_science_frame_component_fits=False, write_background_star_footprint_on_science_frame=False)
+    cfg = make_global_config(write_science_frame_component_png=False, write_science_frame_component_fits=False)
 
     ctx = make_run_context(output_dir=tmp_path, target_name=star_name.replace(" ", "_"))
 
@@ -339,13 +339,12 @@ def run_snapshot_science_image_with_bg_stars_nuv(star_name: str, tmp_path: Path,
     roll_angle_start = 360.0 * (time_s / orbit_duration_s)
     roll_angle_end = 360.0 * ((time_s + exposure) / orbit_duration_s)
 
-    monkeypatch.setattr("instrument.science_image.generate_background_star_visibility_on_science_frame", lambda *args, **kwargs: None)
     monkeypatch.setattr("instrument.science_image.generate_bias_image", lambda channel: bias["image_full"])
     monkeypatch.setattr("instrument.science_image.generate_dark_image", lambda channel: dark["image_full"])
     monkeypatch.setattr("instrument.science_image.generate_photon_noise_from_spectra2d", lambda target_star_component: photon_noise["image_full"])
     monkeypatch.setattr("instrument.science_image.generate_flat_image", lambda channel: flat["image_full"])
     monkeypatch.setattr("instrument.science_image.generate_cosmic_rays", lambda channel, cfg: cosmic["image_full"])
-    monkeypatch.setattr("instrument.science_image.generate_background_star_spectroscopy_image", lambda channel, background_stars_catalog, roll_angle_start, roll_angle_end, frame_index: (background_stars["image_full"], {}))
+    monkeypatch.setattr("instrument.science_image.generate_background_star_spectroscopy_image", lambda channel, background_stars_catalog, roll_angle_start, roll_angle_end, frame_index: background_stars["image_full"])
 
     stellar_component = stellar["image_full"] * exposure
     image_full = _create_per_exposure(stellar_component, background["image_full"], channel, ctx, cfg, star, None, frame_index, roll_angle_start, roll_angle_end, base_header)
@@ -367,7 +366,7 @@ def run_snapshot_science_image_with_bg_stars_vis(star_name: str, tmp_path: Path,
 
     channel = make_spectroscopy_channel(channel_name="VIS", observation_mode="spectroscopy", mode=1, x_pixels=VIS_X_PIXELS, y_pixels=VIS_Y_PIXELS, pixel_scale=float(pixel_scale), effective_area_wavelength=effective_area_wavelength, spread_y_positions=None, spread_y_weights=None, spread_y_wavelengths=None, spread_half_height_pix=10, exposure_s=60.0)
     
-    cfg = make_global_config(write_science_frame_component_png=False, write_science_frame_component_fits=False, write_background_star_footprint_on_science_frame=False)
+    cfg = make_global_config(write_science_frame_component_png=False, write_science_frame_component_fits=False)
     
     ctx = make_run_context(output_dir=tmp_path, target_name=star_name.replace(" ", "_"))
     
@@ -381,13 +380,12 @@ def run_snapshot_science_image_with_bg_stars_vis(star_name: str, tmp_path: Path,
     roll_angle_start = 360.0 * (time_s / orbit_duration_s)
     roll_angle_end = 360.0 * ((time_s + exposure) / orbit_duration_s)
 
-    monkeypatch.setattr("instrument.science_image.generate_background_star_visibility_on_science_frame", lambda *args, **kwargs: None)
     monkeypatch.setattr("instrument.science_image.generate_bias_image", lambda channel: bias["image_full"])
     monkeypatch.setattr("instrument.science_image.generate_dark_image", lambda channel: dark["image_full"])
     monkeypatch.setattr("instrument.science_image.generate_photon_noise_from_spectra2d", lambda target_star_component: photon_noise["image_full"])
     monkeypatch.setattr("instrument.science_image.generate_flat_image", lambda channel: flat["image_full"])
     monkeypatch.setattr("instrument.science_image.generate_cosmic_rays", lambda channel, cfg: cosmic["image_full"])
-    monkeypatch.setattr("instrument.science_image.generate_background_star_spectroscopy_image", lambda channel, background_stars_catalog, roll_angle_start, roll_angle_end, frame_index: (background_stars["image_full"], {}))
+    monkeypatch.setattr("instrument.science_image.generate_background_star_spectroscopy_image", lambda channel, background_stars_catalog, roll_angle_start, roll_angle_end, frame_index: background_stars["image_full"])
 
     stellar_component = stellar["image_full"] * exposure
     image_full = _create_per_exposure(stellar_component, background["image_full"], channel, ctx, cfg, star, None, frame_index, roll_angle_start, roll_angle_end, base_header)
@@ -410,7 +408,7 @@ def run_snapshot_science_image_with_bg_stars_nir(star_name: str, tmp_path: Path,
 
     channel = make_photometry_channel(channel_name="NIR", x_pixels=NIR_X_PIXELS, y_pixels=NIR_Y_PIXELS, pixel_scale=float(pixel_scale), effective_area_wavelength=effective_area_wavelength, psf_image=spread_profile["psf_image"], psf_center_x=int(spread_profile["psf_center_x"]), psf_center_y=int(spread_profile["psf_center_y"]), source_position_x_arcsec=float(spread_profile["source_position_x_arcsec"]), source_position_y_arcsec=float(spread_profile["source_position_y_arcsec"]), exposure_s=60.0)
 
-    cfg = make_global_config(write_science_frame_component_png=False, write_science_frame_component_fits=False, write_background_star_footprint_on_science_frame=False)
+    cfg = make_global_config(write_science_frame_component_png=False, write_science_frame_component_fits=False)
 
     ctx = make_run_context(output_dir=tmp_path, target_name=star_name.replace(" ", "_"))
 
@@ -425,13 +423,12 @@ def run_snapshot_science_image_with_bg_stars_nir(star_name: str, tmp_path: Path,
     roll_angle_start = 360.0 * (time_s / orbit_duration_s)
     roll_angle_end = 360.0 * ((time_s + exposure) / orbit_duration_s)
 
-    monkeypatch.setattr("instrument.science_image.generate_background_star_visibility_on_science_frame", lambda *args, **kwargs: None)
     monkeypatch.setattr("instrument.science_image.generate_bias_image", lambda channel: bias["image_full"])
     monkeypatch.setattr("instrument.science_image.generate_dark_image", lambda channel: dark["image_full"])
     monkeypatch.setattr("instrument.science_image.generate_photon_noise_from_spectra2d", lambda target_star_component: photon_noise["image_full"])
     monkeypatch.setattr("instrument.science_image.generate_flat_image", lambda channel: flat["image_full"])
     monkeypatch.setattr("instrument.science_image.generate_cosmic_rays", lambda channel, cfg: cosmic["image_full"])
-    monkeypatch.setattr("instrument.science_image.generate_background_star_photometry_image", lambda channel, background_stars_catalog, roll_angle_start, roll_angle_end, frame_index: (background_stars["image_full"], {}))
+    monkeypatch.setattr("instrument.science_image.generate_background_star_photometry_image", lambda channel, background_stars_catalog, roll_angle_start, roll_angle_end, frame_index: background_stars["image_full"])
 
     stellar_component = stellar["image_full"] * exposure
     image_full = _create_per_exposure(stellar_component, background["image_full"], channel, ctx, cfg, star, None, frame_index, roll_angle_start, roll_angle_end, base_header)

@@ -1,6 +1,5 @@
 import numpy as np
 from unittest.mock import patch
-from unittest.mock import Mock
 import pytest
 from instrument.science_image import build_science_images, _build_science_image_without_bg_stars, _generate_channel_calibration_frames, _create_channel_images, _create_per_exposure
 
@@ -278,27 +277,23 @@ def test_create_channel_images_reports_wrapped_angles_and_orbit_for_multi_orbit(
 
 
 # Tests: _create_per_exposure
-# Behavior: spectroscopy branch adds background stars, applies gain, and forwards visibility bands.
+# Behavior: spectroscopy branch adds background stars and applies gain.
 def test_create_per_exposure_spectroscopy_branch(make_spectroscopy_channel, make_run_context, make_global_config, make_star, make_header):
     channel = make_spectroscopy_channel(x_pixels=3, y_pixels=2, ccd_gain=2.0)
-    visibility_mock = Mock()
     ctx = make_run_context()
     cfg = make_global_config(
         invert_calibration_science_frame_component=False,
-        write_background_star_footprint_on_science_frame=True,
     )
     star = make_star()
     base_header = make_header()
 
     base_img = np.full((2, 3), 10.0, dtype=np.float32)
     bg_stars = np.full((2, 3), 1.5, dtype=np.float32)
-    bands = {"dummy": np.array([1, 2, 3])}
     expected = (base_img + bg_stars) * channel.ccd_gain
 
     with patch("instrument.science_image._build_science_image_without_bg_stars", return_value=base_img) as mock_build, \
-         patch("instrument.science_image.generate_background_star_spectroscopy_image", return_value=(bg_stars, bands)) as mock_bg_spec, \
-         patch("instrument.science_image.generate_background_star_photometry_image") as mock_bg_phot, \
-         patch("instrument.science_image.generate_background_star_visibility_on_science_frame", visibility_mock):
+         patch("instrument.science_image.generate_background_star_spectroscopy_image", return_value=bg_stars) as mock_bg_spec, \
+         patch("instrument.science_image.generate_background_star_photometry_image") as mock_bg_phot:
         result = _create_per_exposure(
             stellar_component=np.zeros_like(base_img),
             background_component=np.zeros_like(base_img),
@@ -319,38 +314,25 @@ def test_create_per_exposure_spectroscopy_branch(make_spectroscopy_channel, make
 
     np.testing.assert_allclose(result, expected)
 
-    call = visibility_mock.call_args
-    assert call.args[2] is ctx
-    assert call.args[3] is channel
-    assert call.kwargs["star"] is star
-    assert call.kwargs["index"] == 3
-    assert call.kwargs["inverted"] is False
-    assert "background_star_bands" in call.kwargs
-    assert call.kwargs["background_star_bands"] is bands
-
 
 # Tests: _create_per_exposure
-# Behavior: photometry branch forwards arc visibility payload.
+# Behavior: photometry branch adds background stars and applies gain.
 def test_create_per_exposure_photometry_branch(make_photometry_channel, make_run_context, make_global_config, make_star, make_header):
     channel = make_photometry_channel(x_pixels=3, y_pixels=2, ccd_gain=1.0)
-    visibility_mock = Mock()
     ctx = make_run_context()
     cfg = make_global_config(
         invert_calibration_science_frame_component=True,
-        write_background_star_footprint_on_science_frame=True,
     )
     star = make_star()
     base_header = make_header()
 
     base_img = np.full((2, 3), 5.0, dtype=np.float32)
     bg_stars = np.full((2, 3), 2.0, dtype=np.float32)
-    arcs = {"arcs": [0, 1]}
     expected = base_img + bg_stars
 
     with patch("instrument.science_image._build_science_image_without_bg_stars", return_value=base_img), \
-         patch("instrument.science_image.generate_background_star_photometry_image", return_value=(bg_stars, arcs)) as mock_bg_phot, \
-         patch("instrument.science_image.generate_background_star_spectroscopy_image") as mock_bg_spec, \
-         patch("instrument.science_image.generate_background_star_visibility_on_science_frame", visibility_mock):
+         patch("instrument.science_image.generate_background_star_photometry_image", return_value=bg_stars) as mock_bg_phot, \
+         patch("instrument.science_image.generate_background_star_spectroscopy_image") as mock_bg_spec:
         result = _create_per_exposure(
             stellar_component=np.zeros_like(base_img),
             background_component=np.zeros_like(base_img),
@@ -368,11 +350,6 @@ def test_create_per_exposure_photometry_branch(make_photometry_channel, make_run
     mock_bg_phot.assert_called_once_with(channel, None, 0.0, 1.0, 0)
     mock_bg_spec.assert_not_called()
     np.testing.assert_allclose(result, expected)
-
-    call = visibility_mock.call_args
-    assert call.kwargs["inverted"] is True
-    assert "background_star_arcs" in call.kwargs
-    assert call.kwargs["background_star_arcs"] is arcs
 
 
 # Tests: _create_per_exposure

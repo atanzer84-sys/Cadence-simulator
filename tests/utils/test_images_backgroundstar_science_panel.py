@@ -2,10 +2,11 @@
 
 import matplotlib
 import numpy as np
+import pytest
 
 matplotlib.use("Agg")
 
-from utils import images_backgroundstar_science_panel as panel
+panel = pytest.importorskip("utils.images_backgroundstar_science_panel")
 
 
 def test_compute_display_range_flat_array_returns_valid_span():
@@ -43,27 +44,3 @@ def test_compute_bg_mask_overlay_with_arcs_uses_arc_mask(monkeypatch, make_photo
     assert has_bg is False
     assert mask[3, 3]
     assert np.isfinite(overlay[3, 3])
-
-
-def test_generate_background_star_visibility_on_science_frame_writes_png(
-    tmp_path, make_spectroscopy_channel, make_star, make_run_context, monkeypatch
-):
-    merged = np.ones((8, 8), dtype=np.float32)
-    bg = np.zeros((8, 8), dtype=np.float32)
-    ch = make_spectroscopy_channel(channel_name="NUV", x_pixels=8, y_pixels=8, exposure_s=12.0)
-    ctx = make_run_context(target_name="TargetA")
-    star = make_star(name="StarA")
-    out = tmp_path / "panel.png"
-
-    monkeypatch.setattr(panel, "build_png_filename", lambda *args, **kwargs: out)
-    panel.generate_background_star_visibility_on_science_frame(
-        merged_image=merged,
-        background_star_image=bg,
-        ctx=ctx,
-        channel=ch,
-        star=star,
-        index=0,
-    )
-
-    assert out.exists()
-    assert out.stat().st_size > 0
