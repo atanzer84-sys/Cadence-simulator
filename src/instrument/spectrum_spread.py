@@ -160,19 +160,21 @@ def smear_1d_spectrum_dispersion(counts_s_px: np.ndarray, channel: SpectroscopyC
     return counts_smeared_px
 
 def spread_target_star_spectropolarimetry_to_2d(image: np.ndarray, counts_s_pixel_convolved: np.ndarray, channel: SpectroscopyChannel, placement) -> np.ndarray:
-    # Split total flux into two beams using polarization delta.
-    # delta is defined as normalized imbalance: delta = (beam1 - beam2) / total
-    #
-    # delta = 0.0  -> 50% / 50%  (unpolarized)
-    # delta = 1.0  -> 100% / 0%  (fully polarized)
-    #
-    # Solve:
-    #     beam1 + beam2 = total
-    #     beam1 - beam2 = delta * total
-    #
-    # Result:
-    #     beam1 = total * (1 + delta) / 2
-    #     beam2 = total * (1 - delta) / 2
+    """Spread spectropolarimetry counts into two beams on the detector and merge into the output image.
+
+    Let ``total`` be the convolved counts per dispersion pixel and ``delta`` the normalized imbalance between beams:
+
+        delta = (beam1 - beam2) / total
+
+    with ``beam1 + beam2 = total``. Then:
+
+        beam1 = total * (1 + delta) / 2
+        beam2 = total * (1 - delta) / 2
+
+    So ``delta = 0`` is 50/50 (unpolarized) and ``delta = 1`` sends all flux to beam1. ``delta`` is interpolated from
+    ``channel.polarization_*`` onto the detector wavelengths. Each beam is spread with ``spread_1d_spectrum_to_2d``;
+    beam2 is shifted by ``channel.beam_separation_pix`` rows before adding into ``image``.
+    """
 
     detector_wavelength = channel.effective_area_wavelength
 
@@ -185,11 +187,10 @@ def spread_target_star_spectropolarimetry_to_2d(image: np.ndarray, counts_s_pixe
     spread_1d_spectrum_to_2d(image, beam1, channel, placement, announce_user=True)
     spread_1d_spectrum_to_2d(image_beam2, beam2, channel, placement, announce_user=False)
 
-    logging.info("POL TEST beam split: delta[0]=%.3f delta[mid]=%.3f delta[-1]=%.3f", delta_interp[0], delta_interp[len(delta_interp) // 2], delta_interp[-1])
-    logging.info("POL TEST counts: total[0]=%.3f beam1[0]=%.3f beam2[0]=%.3f", counts_s_pixel_convolved[0], beam1[0], beam2[0])
-    logging.info("POL TEST counts: total[mid]=%.3f beam1[mid]=%.3f beam2[mid]=%.3f", counts_s_pixel_convolved[len(counts_s_pixel_convolved) // 2], beam1[len(beam1) // 2], beam2[len(beam2) // 2])
-    logging.info("POL TEST counts: total[-1]=%.3f beam1[-1]=%.3f beam2[-1]=%.3f", counts_s_pixel_convolved[-1], beam1[-1], beam2[-1])
-
+    total_in = float(np.sum(counts_s_pixel_convolved))
+    sum_b1 = float(np.sum(beam1))
+    sum_b2 = float(np.sum(beam2))
+    logging.info( "Spectropolarimetry channel=%s: polarization delta on detector spans %.4f–%.4f (%d spectral bins); partitioned flux %.6g + %.6g = %.6g (input %.6g); beam2 cross-dispersion offset %d px.", channel.channel_name, float(np.min(delta_interp)), float(np.max(delta_interp)), int(delta_interp.size), sum_b1, sum_b2, sum_b1 + sum_b2, total_in, int(channel.beam_separation_pix))
 
     separation = channel.beam_separation_pix
 
