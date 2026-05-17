@@ -4,6 +4,7 @@ Behavior: selects channels from global config flags
 """
 
 from pathlib import Path
+from types import SimpleNamespace
 import numpy as np
 import pytest
 from configs.channel_config import PhotometryChannel, SpectroscopyChannel
@@ -22,6 +23,7 @@ def test_load_channels_config_all_channels_disabled_returns_none(
     make_user_config,
     make_global_config,
     monkeypatch,
+    tmp_path,
 ):
     user_cfg = make_user_config()
     cfg = make_global_config(run_nuv=False, run_vis=False, run_nir=False)
@@ -34,7 +36,9 @@ def test_load_channels_config_all_channels_disabled_returns_none(
     monkeypatch.setattr("loaders.load_channel.load_channel_spectroscopy", lambda *args: calls_spectro.append(args))
     monkeypatch.setattr("loaders.load_channel.load_channel_photometry", lambda *args: calls_photo.append(args))
 
-    nuv_channel, vis_channel, nir_channel = load_channels_config(user_cfg)
+    run_ctx = SimpleNamespace(output_dir=tmp_path)
+
+    nuv_channel, vis_channel, nir_channel = load_channels_config(user_cfg, run_ctx)
 
     assert nuv_channel is None
     assert vis_channel is None
@@ -49,6 +53,7 @@ def test_load_channels_config_only_nuv_enabled(
     make_user_config,
     make_global_config,
     monkeypatch,
+    tmp_path,
 ):
     user_cfg = make_user_config()
     cfg = make_global_config(run_nuv=True, run_vis=False, run_nir=False)
@@ -59,6 +64,11 @@ def test_load_channels_config_only_nuv_enabled(
     monkeypatch.setattr("loaders.load_channel.get_global_config", lambda: cfg)
     monkeypatch.setattr("loaders.load_channel.get_repo_root", lambda: Path("/repo"))
     monkeypatch.setattr("loaders.load_channel.load_background_from_global_cfg", lambda: background)
+    monkeypatch.setattr("loaders.load_channel.plot_effective_area", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        "loaders.load_channel.plot_effective_area_all_channels",
+        lambda *args, **kwargs: None,
+    )
 
     def _load_channel_spectroscopy(path, exposure_s, bg):
         calls_spectro.append((path, exposure_s, bg))
@@ -67,7 +77,9 @@ def test_load_channels_config_only_nuv_enabled(
     monkeypatch.setattr("loaders.load_channel.load_channel_spectroscopy", _load_channel_spectroscopy)
     monkeypatch.setattr("loaders.load_channel.load_channel_photometry", lambda *args: calls_photo.append(args))
 
-    nuv_channel, vis_channel, nir_channel = load_channels_config(user_cfg)
+    run_ctx = SimpleNamespace(output_dir=tmp_path)
+
+    nuv_channel, vis_channel, nir_channel = load_channels_config(user_cfg, run_ctx)
 
     assert nuv_channel is not None
     assert vis_channel is None
@@ -85,6 +97,7 @@ def test_load_channels_config_only_vis_enabled(
     make_user_config,
     make_global_config,
     monkeypatch,
+    tmp_path,
 ):
     user_cfg = make_user_config()
     cfg = make_global_config(run_nuv=False, run_vis=True, run_nir=False)
@@ -95,6 +108,11 @@ def test_load_channels_config_only_vis_enabled(
     monkeypatch.setattr("loaders.load_channel.get_global_config", lambda: cfg)
     monkeypatch.setattr("loaders.load_channel.get_repo_root", lambda: Path("/repo"))
     monkeypatch.setattr("loaders.load_channel.load_background_from_global_cfg", lambda: background)
+    monkeypatch.setattr("loaders.load_channel.plot_effective_area", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        "loaders.load_channel.plot_effective_area_all_channels",
+        lambda *args, **kwargs: None,
+    )
 
     def _load_channel_spectroscopy(path, exposure_s, bg):
         calls_spectro.append((path, exposure_s, bg))
@@ -103,7 +121,9 @@ def test_load_channels_config_only_vis_enabled(
     monkeypatch.setattr("loaders.load_channel.load_channel_spectroscopy", _load_channel_spectroscopy)
     monkeypatch.setattr("loaders.load_channel.load_channel_photometry", lambda *args: calls_photo.append(args))
 
-    nuv_channel, vis_channel, nir_channel = load_channels_config(user_cfg)
+    run_ctx = SimpleNamespace(output_dir=tmp_path)
+
+    nuv_channel, vis_channel, nir_channel = load_channels_config(user_cfg, run_ctx)
 
     assert nuv_channel is None
     assert vis_channel is not None
@@ -121,6 +141,7 @@ def test_load_channels_config_only_nir_enabled(
     make_user_config,
     make_global_config,
     monkeypatch,
+    tmp_path,
 ):
     user_cfg = make_user_config()
     cfg = make_global_config(run_nuv=False, run_vis=False, run_nir=True)
@@ -131,6 +152,11 @@ def test_load_channels_config_only_nir_enabled(
     monkeypatch.setattr("loaders.load_channel.get_global_config", lambda: cfg)
     monkeypatch.setattr("loaders.load_channel.get_repo_root", lambda: Path("/repo"))
     monkeypatch.setattr("loaders.load_channel.load_background_from_global_cfg", lambda: background)
+    monkeypatch.setattr("loaders.load_channel.plot_effective_area", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        "loaders.load_channel.plot_effective_area_all_channels",
+        lambda *args, **kwargs: None,
+    )
 
     def _load_channel_photometry(path, exposure_s, bg):
         calls_photo.append((path, exposure_s, bg))
@@ -139,7 +165,9 @@ def test_load_channels_config_only_nir_enabled(
     monkeypatch.setattr("loaders.load_channel.load_channel_photometry", _load_channel_photometry)
     monkeypatch.setattr("loaders.load_channel.load_channel_spectroscopy", lambda *args: calls_spectro.append(args))
 
-    nuv_channel, vis_channel, nir_channel = load_channels_config(user_cfg)
+    run_ctx = SimpleNamespace(output_dir=tmp_path)
+
+    nuv_channel, vis_channel, nir_channel = load_channels_config(user_cfg, run_ctx)
 
     assert nuv_channel is None
     assert vis_channel is None
