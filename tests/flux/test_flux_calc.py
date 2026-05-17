@@ -7,7 +7,7 @@ from flux.flux_calc import (
     apply_unred,
     calculate_flux_on_earth,
 )
-from utils.constants import C_LIGHT_Angst, PARSEC_CM
+from utils.constants import C_LIGHT_Angst, PARSEC_CM, PHOTON_ENERGY_CONVERSION_A
 
 
 # Tests: convert_stellar_model_to_flux
@@ -129,7 +129,7 @@ def test_calculate_flux_on_earth_no_optional_steps_called(make_star, make_global
 
     flux, wavelengths = calculate_flux_on_earth(star, ctx, 3400.0, 18000.0)
 
-    assert flux[0] == 1.0
+    np.testing.assert_allclose(flux[0], 1.0 * PHOTON_ENERGY_CONVERSION_A * 5000.0)
     assert wavelengths[0] == 5000.0
 
 
@@ -166,7 +166,7 @@ def test_calculate_flux_on_earth_optional_steps_called(make_star, make_global_co
 
     flux, wavelengths = calculate_flux_on_earth(star, ctx, 3400.0, 18000.0)
 
-    assert flux[0] == 6.0
+    np.testing.assert_allclose(flux[0], 6.0 * PHOTON_ENERGY_CONVERSION_A * 5000.0)
     assert wavelengths[0] == 5000.0
 
 
@@ -202,6 +202,7 @@ def test_calculate_flux_on_earth_returns_photons_and_wavelengths_same_length(mak
     assert len(flux) == len(wavelengths)
     assert np.all(np.isfinite(flux))
     assert np.all(np.isfinite(wavelengths))
+    np.testing.assert_allclose(flux[0], 1.0 * PHOTON_ENERGY_CONVERSION_A * 100.0)
 
 
 # Tests: calculate_flux_on_earth
@@ -280,7 +281,7 @@ def test_calculate_flux_on_earth_applies_wavelength_cut(make_star, make_global_c
     assert requested["wl_min_A"] == 4000.0
     assert requested["wl_max_A"] == 18000.0
     assert np.allclose(wavelengths, [5000.0])
-    assert np.allclose(flux, [2.0])
+    assert np.allclose(flux, [2.0 * PHOTON_ENERGY_CONVERSION_A * 5000.0])
 
 
 

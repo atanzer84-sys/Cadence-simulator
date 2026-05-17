@@ -1,61 +1,43 @@
 import numpy as np
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 import pytest
-from instrument.prepare_detector_images import prepare_star_photon_flux_for_channels
-from instrument.prepare_detector_images import prepare_star_photon_flux_in_range
+from instrument.prepare_detector_images import calculate_photon_flux_density_on_Earth
 from instrument.prepare_detector_images import prepare_detector_image_spectroscopy
 from instrument.prepare_detector_images import prepare_detector_image_photometry
 from instrument.prepare_detector_images import compute_counts_per_s_px_one_channel
-from instrument.prepare_detector_images import convert_flux_to_photons
+from flux.flux_calc import convert_flux_to_photons
 from utils.constants import PHOTON_ENERGY_CONVERSION_A
 
 
-# Tests: prepare_star_photon_flux_for_channels
-# Behavior: uses required wavelength range for channel preparation
-def test_prepare_star_photon_flux_for_channels_uses_required_range(make_star, make_run_context, make_spectroscopy_channel, make_photometry_channel):
-    star = make_star()
+# Tests: calculate_photon_flux_density_on_Earth
+# Behavior: required wavelength range is passed through; result comes from calculate_flux_on_earth (float32 photon flux)
+def test_calculate_photon_flux_density_on_Earth_converts_and_calls_outputs(
+    make_star, make_run_context, make_spectroscopy_channel, make_photometry_channel
+):
+    star = make_star(name="TestStar")
     ctx = make_run_context()
     nuv = make_spectroscopy_channel(channel_name="NUV")
     vis = make_spectroscopy_channel(channel_name="VIS")
     nir = make_photometry_channel(channel_name="NIR")
 
-    photons = np.array([1.0, 2.0, 3.0], dtype=np.float32)
-    wavelengths = np.array([100.0, 200.0, 300.0], dtype=np.float32)
-
-    with patch("instrument.prepare_detector_images.get_required_wavelength_range", return_value=(100.0, 300.0)) as mock_get_range, patch("instrument.prepare_detector_images.prepare_star_photon_flux_in_range", return_value=(photons, wavelengths)) as mock_prepare:
-        photons_star, wavelengths_total = prepare_star_photon_flux_for_channels(star, ctx, nuv, vis, nir)
-
-    assert np.array_equal(photons_star, photons)
-    assert np.array_equal(wavelengths_total, wavelengths)
-    mock_get_range.assert_called_once_with(nuv, vis, nir)
-    mock_prepare.assert_called_once_with(star, ctx, 100.0, 300.0, announce_user=True)
-
-
-# Tests: prepare_star_photon_flux_in_range
-# Behavior: converts outputs to float32 and writes diagnostic outputs
-def test_prepare_star_photon_flux_in_range_converts_and_calls_outputs(make_star, make_run_context, make_global_config):
-    plot_mock = Mock()
-    dump_1d_mock = Mock()
-    cfg = make_global_config(write_intermediate_arrays=True, produce_flux_convolution_plots=True)
-
-    star = make_star(name="TestStar")
-    ctx = make_run_context()
-
     flux = np.array([2.0, 4.0, 6.0], dtype=np.float64)
     wavelengths = np.array([100.0, 200.0, 300.0], dtype=np.float64)
+    photons_from_earth = (flux * PHOTON_ENERGY_CONVERSION_A * wavelengths).astype(np.float32)
 
-    with patch("instrument.prepare_detector_images.calculate_flux_on_earth", return_value=(flux, wavelengths)), patch("instrument.prepare_detector_images.get_global_config", return_value=cfg), patch("instrument.prepare_detector_images.plot_flux_and_photons_windows", plot_mock), patch("instrument.prepare_detector_images.dump_1d_array", dump_1d_mock):
-        photons_star, wavelengths_total = prepare_star_photon_flux_in_range(star, ctx, 100.0, 300.0, announce_user=False)
+    with patch(
+        "instrument.prepare_detector_images.get_required_wavelength_range", return_value=(100.0, 300.0)
+    ) as mock_range, patch(
+        "instrument.prepare_detector_images.calculate_flux_on_earth", return_value=(photons_from_earth, wavelengths.astype(np.float32))
+    ) as mock_flux:
+        photons_star, wavelengths_total = calculate_photon_flux_density_on_Earth(star, ctx, nuv, vis, nir, announce_user=False)
 
-    expected_photons = (flux * PHOTON_ENERGY_CONVERSION_A * wavelengths).astype(np.float32)
+    mock_range.assert_called_once_with(nuv, vis, nir)
+    mock_flux.assert_called_once_with(star, ctx, 100.0, 300.0, announce_user=False, background_star=False)
 
     assert photons_star.dtype == np.float32
     assert wavelengths_total.dtype == np.float32
-    assert np.allclose(photons_star, expected_photons)
-    assert np.allclose(wavelengths_total, wavelengths.astype(np.float32))
-
-    plot_mock.assert_called_once()
-    dump_1d_mock.assert_called_once()
+    np.testing.assert_allclose(photons_star, photons_from_earth)
+    np.testing.assert_allclose(wavelengths_total, wavelengths.astype(np.float32))
 
 
 # Tests: prepare_detector_image_spectroscopy

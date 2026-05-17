@@ -1,8 +1,7 @@
 import logging
 import numpy as np
 from domain.star import Star
-from utils.constants import C_LIGHT_Angst, PARSEC_CM, R_V, MgII1w, C_LIGHT_km_s, MgII1w, vr_ISM, MgII2w, MgIw, FeIIw
-
+from utils.constants import C_LIGHT_Angst, PARSEC_CM, R_V, MgII1w, C_LIGHT_km_s, MgII1w, vr_ISM, MgII2w, MgIw, FeIIw, PHOTON_ENERGY_CONVERSION_A
 from configs.global_config import get_global_config, GlobalConfig
 from flux.cute_line_core_emission import apply_line_core_emission
 from flux.cute_extinction import extinction_amores
@@ -15,6 +14,12 @@ from loaders.load_model_temperature import load_model_for_temperature
 from utils.debug_dumps import dump_1d_array, dump_3d_array
 from utils.helpers import announce
 from utils.flux_image_array import plot_flux_and_photons_windows, plot_model_input, plot_lce_comparison_four_panel, plot_two_line_comparison_four_panel
+
+
+def convert_flux_to_photons(flux_unred, wavelengths):
+    photon_flux = flux_unred * PHOTON_ENERGY_CONVERSION_A * wavelengths  # from ergs/s/cm2/A to photons/s/cm2/A
+    return photon_flux
+
 
 def calculate_flux_on_earth(star: Star, ctx: RunContext, wl_min_A: float, wl_max_A: float, announce_user: bool = False, background_star: bool = False):
     announce(f"Starting to calculate Flux on Earth for target star {star.name}", announce_user)
@@ -99,7 +104,16 @@ def calculate_flux_on_earth(star: Star, ctx: RunContext, wl_min_A: float, wl_max
     if dump_plots:
         plot_flux_and_photons_windows(wavelengths, flux_unred, ctx.output_dir, star, "FluxCalc_1_Flux", "Flux", "Flux [erg s⁻¹ cm⁻² Å⁻¹]")
 
-    return flux_unred, wavelengths
+    photon_flux = convert_flux_to_photons(flux_unred, wavelengths)
+    photon_flux = np.asarray(photon_flux, dtype=np.float32)
+    wavelengths = np.asarray(wavelengths, dtype=np.float32)
+
+    if dump_arrays:
+        dump_1d_array(wavelengths, photon_flux, ctx.output_dir, star.name, "FluxCalc_8_photons_star", perChannel=True, zoom=True)
+    if dump_plots:
+        plot_flux_and_photons_windows(wavelengths, photon_flux, ctx.output_dir, star, "FluxCalc_photons", "Photon Flux", "Photon flux [photons s⁻¹ cm⁻² Å⁻¹]")
+
+    return photon_flux, wavelengths
 
 
 def convert_stellar_model_to_flux(model_data, r_star):
@@ -195,4 +209,3 @@ def apply_unred(wavelengths, flux_at_earth, ebv, announce_user: bool = False):
     ebv = -1.0 * ebv
     flux_unred = unred(wavelengths, flux_at_earth, ebv=ebv, R_V=R_V)
     return flux_unred
-

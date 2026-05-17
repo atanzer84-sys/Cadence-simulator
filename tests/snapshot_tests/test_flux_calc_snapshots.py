@@ -2,7 +2,7 @@ import numpy as np
 from pathlib import Path
 import pytest
 from flux.flux_calc import convert_stellar_model_to_flux, apply_line_core_emission, apply_ism_absorption, compute_flux_at_earth, apply_unred
-from instrument.prepare_detector_images import convert_flux_to_photons
+from flux.flux_calc import convert_flux_to_photons
 
 from utils.constants import R_SUN_cm
 
