@@ -1,6 +1,6 @@
 # WALTzER simulator
 
-Spectral and detector simulation for the WALTzER instrument. The main entry point is `src/waltzer_simulator.py`.
+This repository simulates **WALTzER** observations in software: whichever channels are turned on in config, it can model **NUV and VIS spectroscopy** and **NIR photometry** in the same run. A typical simulation loads target (and planetary) inputs, builds **spectral photon flux density at Earth** from stellar atmosphere grids with optional extinction, ISM absorption, and line-core treatment, then **folds through the instrument** (dispersion, spreading, efficiencies) to produce synthetic **detector science images**. The main executable is `src/waltzer_simulator.py`.
 
 ## Required components
 
