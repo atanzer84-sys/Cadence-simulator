@@ -53,7 +53,6 @@ def plot_1d_for_channel(wavelengths, values, output_dir, star, filename_tag, tit
     if zoom:
         _plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, f"{channel_name}_zoom", zoom_range[0], zoom_range[1])
 
-
 def _plot_photon_flux(wavelengths, values, output_dir, star : Star, filename_tag, title_text, y_label, key, wmin, wmax):
 
     mask = (wavelengths >= wmin) & (wavelengths <= wmax)
@@ -68,11 +67,23 @@ def _plot_photon_flux(wavelengths, values, output_dir, star : Star, filename_tag
     colors = {"nuv": "darkblue", "vis": "darkgreen", "nir": "darkred"}
     color = colors.get(band, "black")
 
-    ax.plot(wl, flux, color=color, linewidth=0.4, alpha=0.6)
+    ax.plot(wl, flux, color=color, linewidth=0.4, alpha=0.6, label=f"{band.upper()} ({wmin:.0f}–{wmax:.0f} Å)")
     ax.set_xlabel("Wavelength (Å)")
     ax.set_ylabel(y_label)
     meta = format_star_metadata(star)
     ax.set_title(f"{star.name}: {title_text} | {wmin:.2f}–{wmax:.2f} Å, {meta}", fontsize=11)
+    legend_loc = {"nuv": "upper left", "vis": "upper right", "nir": "upper right"}
+    ax.legend(loc=legend_loc.get(band, "upper right"), fontsize=10, framealpha=0.8)
+    
+    tick_spacing = {"nuv": 50, "vis": 500, "nir": 1000}
+    minor_tick_spacing = {"nuv": 10, "vis": 100, "nir": 200}
+    spacing = tick_spacing.get(band, 500)
+    minor_spacing = minor_tick_spacing.get(band, 100)
+    ax.xaxis.set_major_locator(plt.MultipleLocator(spacing))
+    ax.xaxis.set_minor_locator(plt.MultipleLocator(minor_spacing))
+    ax.tick_params(axis="x", which="minor", length=3)
+    ax.tick_params(axis="x", which="major", length=6)
+
     safe_name = normalize_target_name(star.name)
     fig.savefig(Path(output_dir) / f"{safe_name}_{filename_tag}_{key}.png", dpi=200, bbox_inches="tight")
     plt.close(fig)
