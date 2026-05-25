@@ -1,7 +1,7 @@
-"""Tests for loaders.run_waltzer_context."""
+"""Tests for loaders.run_cadence_context."""
 
 import pytest
-from loaders import run_waltzer_context
+from loaders import run_cadence_context
 import logging
 import sys
 from pathlib import Path
@@ -19,7 +19,7 @@ def test_get_repo_root_finds_repo_root(tmp_path):
     nested_file.parent.mkdir(parents=True)
     nested_file.write_text("", encoding="utf-8")
 
-    got = run_waltzer_context.get_repo_root(nested_file)
+    got = run_cadence_context.get_repo_root(nested_file)
 
     assert got == repo_root
 
@@ -32,7 +32,7 @@ def test_get_repo_root_raises_when_repo_markers_missing(tmp_path):
     base_file.write_text("", encoding="utf-8")
 
     with pytest.raises(RuntimeError):
-        run_waltzer_context.get_repo_root(base_file)
+        run_cadence_context.get_repo_root(base_file)
 
 
 # Tests: load_global_and_user_config
@@ -44,13 +44,13 @@ def test_load_global_and_user_config_loads_paths_and_returns_user_cfg(make_user_
     user_parameter_path.write_text("target_name = TestStar\n", encoding="utf-8")
     user_cfg = make_user_config(target_name="TestStar")
 
-    with patch("loaders.run_waltzer_context.get_repo_root", return_value=repo_root), \
-         patch("loaders.run_waltzer_context.get_user_parameter_path", return_value=user_parameter_path), \
-         patch("loaders.run_waltzer_context.load_global_config") as mock_global, \
-         patch("loaders.run_waltzer_context.load_user_config") as mock_user, \
-         patch("loaders.run_waltzer_context.get_user_config", return_value=user_cfg):
+    with patch("loaders.run_cadence_context.get_repo_root", return_value=repo_root), \
+         patch("loaders.run_cadence_context.get_user_parameter_path", return_value=user_parameter_path), \
+         patch("loaders.run_cadence_context.load_global_config") as mock_global, \
+         patch("loaders.run_cadence_context.load_user_config") as mock_user, \
+         patch("loaders.run_cadence_context.get_user_config", return_value=user_cfg):
 
-        got = run_waltzer_context.load_global_and_user_config()
+        got = run_cadence_context.load_global_and_user_config()
 
     assert got is user_cfg
     mock_global.assert_called_once_with(repo_root / "configs" / "global.cfg")
@@ -76,17 +76,17 @@ def test_setup_output_directory_raises_after_many_collisions(tmp_path):
             return real_mkdir(self, parents=parents, exist_ok=exist_ok)
         raise FileExistsError
 
-    with patch("loaders.run_waltzer_context.get_repo_root", return_value=tmp_path), \
-         patch("loaders.run_waltzer_context.datetime", FixedDateTime), \
+    with patch("loaders.run_cadence_context.get_repo_root", return_value=tmp_path), \
+         patch("loaders.run_cadence_context.datetime", FixedDateTime), \
          patch("pathlib.Path.mkdir", fake_mkdir):
 
         with pytest.raises(RuntimeError):
-            run_waltzer_context.setup_output_directory()
+            run_cadence_context.setup_output_directory()
 
 
-# Tests: initialize_waltzer_runtime_context
+# Tests: initialize_cadence_runtime_context
 # Behavior: builds RunContext from user config and output directory
-def test_initialize_waltzer_runtime_context_builds_run_context(make_user_config, tmp_path):
+def test_initialize_cadence_runtime_context_builds_run_context(make_user_config, tmp_path):
     from datetime import datetime
 
     output_dir = tmp_path / "output" / "20250101_120000_000000"
@@ -94,11 +94,11 @@ def test_initialize_waltzer_runtime_context_builds_run_context(make_user_config,
     timestamp = datetime(2025, 1, 1, 12, 0, 0)
     user_cfg = make_user_config(target_name="TestStar")
 
-    with patch("loaders.run_waltzer_context.setup_output_directory", return_value=(output_dir, timestamp_str, timestamp)), \
-         patch("loaders.run_waltzer_context.setup_logger"), \
-         patch("loaders.run_waltzer_context.load_global_and_user_config", return_value=user_cfg):
+    with patch("loaders.run_cadence_context.setup_output_directory", return_value=(output_dir, timestamp_str, timestamp)), \
+         patch("loaders.run_cadence_context.setup_logger"), \
+         patch("loaders.run_cadence_context.load_global_and_user_config", return_value=user_cfg):
 
-        run_ctx, got_user_cfg = run_waltzer_context.initialize_waltzer_runtime_context()
+        run_ctx, got_user_cfg = run_cadence_context.initialize_cadence_runtime_context()
 
     assert got_user_cfg is user_cfg
     assert run_ctx.target_name == user_cfg.target_name
@@ -120,7 +120,7 @@ def test_setup_logger_writes_log_records(tmp_path):
         handler.close()
 
     try:
-        run_waltzer_context.setup_logger(output_dir, timestamp)
+        run_cadence_context.setup_logger(output_dir, timestamp)
 
         for handler in logging.getLogger().handlers:
             handler.flush()
@@ -142,9 +142,9 @@ def test_setup_logger_writes_log_records(tmp_path):
 # Behavior: creates a timestamped output directory
 def test_setup_output_directory_creates_dir(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(run_waltzer_context, "get_repo_root", lambda base_dir=None: tmp_path)
+    monkeypatch.setattr(run_cadence_context, "get_repo_root", lambda base_dir=None: tmp_path)
 
-    output_dir, timestamp_str, _ = run_waltzer_context.setup_output_directory()
+    output_dir, timestamp_str, _ = run_cadence_context.setup_output_directory()
 
     assert output_dir.exists()
     assert output_dir.is_dir()
@@ -163,11 +163,11 @@ def test_setup_output_directory_handles_collision(monkeypatch, tmp_path):
             return datetime(2025, 2, 5, 12, 0, 0, 0)
 
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(run_waltzer_context, "datetime", FixedDateTime)
-    monkeypatch.setattr(run_waltzer_context, "get_repo_root", lambda base_dir=None: tmp_path)
+    monkeypatch.setattr(run_cadence_context, "datetime", FixedDateTime)
+    monkeypatch.setattr(run_cadence_context, "get_repo_root", lambda base_dir=None: tmp_path)
 
-    first_dir, ts1, _ = run_waltzer_context.setup_output_directory()
-    second_dir, ts2, _ = run_waltzer_context.setup_output_directory()
+    first_dir, ts1, _ = run_cadence_context.setup_output_directory()
+    second_dir, ts2, _ = run_cadence_context.setup_output_directory()
 
     assert first_dir.exists()
     assert second_dir.exists()
@@ -179,9 +179,9 @@ def test_setup_output_directory_handles_collision(monkeypatch, tmp_path):
 # Behavior: prints created output directory path
 def test_setup_output_directory_prints(monkeypatch, tmp_path, capsys):
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(run_waltzer_context, "get_repo_root", lambda base_dir=None: tmp_path)
+    monkeypatch.setattr(run_cadence_context, "get_repo_root", lambda base_dir=None: tmp_path)
 
-    run_waltzer_context.setup_output_directory()
+    run_cadence_context.setup_output_directory()
     captured = capsys.readouterr().out
 
     assert "Output directory created at:" in captured
@@ -193,7 +193,7 @@ def test_setup_logger_prints(monkeypatch, tmp_path, capsys):
     output_dir = tmp_path
     timestamp = "20250101_120000_000000"
 
-    run_waltzer_context.setup_logger(output_dir, timestamp)
+    run_cadence_context.setup_logger(output_dir, timestamp)
 
     captured = capsys.readouterr().out
     assert "Log file created at:" in captured
@@ -206,7 +206,7 @@ def test_setup_logger_creates_file(tmp_path):
     output_dir = tmp_path
     timestamp = "20250101_120000_000000"
 
-    run_waltzer_context.setup_logger(output_dir, timestamp)
+    run_cadence_context.setup_logger(output_dir, timestamp)
 
     log_file = output_dir / f"waltzer_simulator_{timestamp}.log"
     assert log_file.exists()
@@ -219,7 +219,7 @@ def test_too_many_arguments_exits_with_usage(monkeypatch, tmp_path, capsys):
     monkeypatch.setattr("sys.argv", ["waltzer_simulator.py", "a.txt", "b.txt"])
 
     with pytest.raises(SystemExit) as exc_info:
-        run_waltzer_context.get_user_parameter_path()
+        run_cadence_context.get_user_parameter_path()
 
     assert exc_info.value.code == 1
     out = capsys.readouterr()
@@ -236,10 +236,10 @@ def test_get_user_parameter_path_default_file(monkeypatch, tmp_path, capsys):
     (input_dir / "parameters.txt").write_text("target_name = HD 202772 A", encoding="utf-8")
 
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(run_waltzer_context, "get_repo_root", lambda base_dir=None: tmp_path)
+    monkeypatch.setattr(run_cadence_context, "get_repo_root", lambda base_dir=None: tmp_path)
     monkeypatch.setattr(sys, "argv", ["prog"])
 
-    p = run_waltzer_context.get_user_parameter_path()
+    p = run_cadence_context.get_user_parameter_path()
 
     assert p.resolve() == (tmp_path / "input" / "parameters.txt").resolve()
     captured = capsys.readouterr()
@@ -255,10 +255,10 @@ def test_get_user_parameter_path_custom_file(monkeypatch, tmp_path, capsys):
     (tmp_path / "input" / "custom.txt").write_text("target_name = HD 202772 A", encoding="utf-8")
 
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(run_waltzer_context, "get_repo_root", lambda base_dir=None: tmp_path)
+    monkeypatch.setattr(run_cadence_context, "get_repo_root", lambda base_dir=None: tmp_path)
     monkeypatch.setattr(sys, "argv", ["prog", "input/custom.txt"])
 
-    p = run_waltzer_context.get_user_parameter_path()
+    p = run_cadence_context.get_user_parameter_path()
 
     assert p.resolve() == (tmp_path / "input" / "custom.txt").resolve()
     captured = capsys.readouterr()
@@ -270,11 +270,11 @@ def test_get_user_parameter_path_custom_file(monkeypatch, tmp_path, capsys):
 # Behavior: exits when default parameter file is missing
 def test_get_user_parameter_path_missing_file(monkeypatch, tmp_path, capsys):
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(run_waltzer_context, "get_repo_root", lambda base_dir=None: tmp_path)
+    monkeypatch.setattr(run_cadence_context, "get_repo_root", lambda base_dir=None: tmp_path)
     monkeypatch.setattr(sys, "argv", ["prog"])
 
     with pytest.raises(SystemExit) as exc:
-        run_waltzer_context.get_user_parameter_path()
+        run_cadence_context.get_user_parameter_path()
 
     assert exc.value.code == 1
     captured = capsys.readouterr()
@@ -289,11 +289,11 @@ def test_get_user_parameter_path_one_argument_absolute_path_success(monkeypatch,
     param_file = tmp_path / "input" / "params.txt"
     param_file.write_text("target_name = HD 202772 A\n", encoding="utf-8")
 
-    monkeypatch.setattr(run_waltzer_context, "get_repo_root", lambda base_dir=None: tmp_path)
+    monkeypatch.setattr(run_cadence_context, "get_repo_root", lambda base_dir=None: tmp_path)
     monkeypatch.setattr("sys.argv", ["waltzer_simulator.py", str(param_file)])
     monkeypatch.chdir(tmp_path)
 
-    got = run_waltzer_context.get_user_parameter_path()
+    got = run_cadence_context.get_user_parameter_path()
 
     assert got.resolve() == param_file.resolve()
 
@@ -308,10 +308,10 @@ def test_get_user_parameter_path_one_argument_relative_path_success(monkeypatch,
     param_file.write_text("target_name = HD 202772 A\n", encoding="utf-8")
 
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(run_waltzer_context, "get_repo_root", lambda base_dir=None: tmp_path)
+    monkeypatch.setattr(run_cadence_context, "get_repo_root", lambda base_dir=None: tmp_path)
     monkeypatch.setattr("sys.argv", ["waltzer_simulator.py", "param/Wasp 99.txt"])
 
-    got = run_waltzer_context.get_user_parameter_path()
+    got = run_cadence_context.get_user_parameter_path()
 
     assert got.resolve() == param_file.resolve()
 
@@ -319,12 +319,12 @@ def test_get_user_parameter_path_one_argument_relative_path_success(monkeypatch,
 # Tests: get_user_parameter_path
 # Behavior: exits when no CLI arg and default file is absent
 def test_get_user_parameter_path_no_argument_file_not_found_exits(monkeypatch, tmp_path):
-    monkeypatch.setattr(run_waltzer_context, "get_repo_root", lambda base_dir=None: tmp_path)
+    monkeypatch.setattr(run_cadence_context, "get_repo_root", lambda base_dir=None: tmp_path)
     monkeypatch.setattr("sys.argv", ["waltzer_simulator.py"])
     monkeypatch.chdir(tmp_path)
 
     with pytest.raises(SystemExit) as exc_info:
-        run_waltzer_context.get_user_parameter_path()
+        run_cadence_context.get_user_parameter_path()
 
     assert exc_info.value.code == 1
 
@@ -333,12 +333,12 @@ def test_get_user_parameter_path_no_argument_file_not_found_exits(monkeypatch, t
 # Behavior: rejects traversal paths that resolve outside repo root
 def test_get_user_parameter_path_rejects_path_traversal(monkeypatch, tmp_path):
     """Path outside repo root raises ValueError (path traversal protection)."""
-    monkeypatch.setattr(run_waltzer_context, "get_repo_root", lambda base_dir=None: tmp_path)
+    monkeypatch.setattr(run_cadence_context, "get_repo_root", lambda base_dir=None: tmp_path)
     monkeypatch.setattr("sys.argv", ["waltzer_simulator.py", "../../../etc/passwd"])
     monkeypatch.chdir(tmp_path)
 
     with pytest.raises(ValueError) as exc_info:
-        run_waltzer_context.get_user_parameter_path()
+        run_cadence_context.get_user_parameter_path()
 
     assert "Path traversal" in str(exc_info.value) or "outside" in str(exc_info.value).lower()
 
@@ -348,11 +348,11 @@ def test_get_user_parameter_path_rejects_path_traversal(monkeypatch, tmp_path):
 def test_one_argument_file_not_found_exits(monkeypatch, tmp_path, capsys):
     """Path under repo root but file missing raises SystemExit."""
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(run_waltzer_context, "get_repo_root", lambda base_dir=None: tmp_path)
+    monkeypatch.setattr(run_cadence_context, "get_repo_root", lambda base_dir=None: tmp_path)
     monkeypatch.setattr("sys.argv", ["waltzer_simulator.py", "input/nonexistent_params.txt"])
 
     with pytest.raises(SystemExit) as exc_info:
-        run_waltzer_context.get_user_parameter_path()
+        run_cadence_context.get_user_parameter_path()
 
     assert exc_info.value.code == 1
     out = capsys.readouterr()
@@ -378,9 +378,9 @@ def test_invalid_params_raises_value_error(monkeypatch, tmp_path):
     )
 
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(run_waltzer_context, "get_user_parameter_path", lambda: Path(param_file))
+    monkeypatch.setattr(run_cadence_context, "get_user_parameter_path", lambda: Path(param_file))
 
     with pytest.raises(ValueError) as exc_info:
-        run_waltzer_context.load_global_and_user_config()
+        run_cadence_context.load_global_and_user_config()
 
     assert "total_observation_length_h" in str(exc_info.value)

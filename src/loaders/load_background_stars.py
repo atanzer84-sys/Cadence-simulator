@@ -1,9 +1,9 @@
 import logging
 import numpy as np
-from loaders.run_waltzer_context import RunContext
+from loaders.run_cadence_context import RunContext
 from domain.star import Star
 from astropy.table import Table
-from loaders.run_waltzer_context import get_repo_root
+from loaders.run_cadence_context import get_repo_root
 from utils.helpers import resolve_path_under
 from configs.global_config import GlobalConfig
 from domain.star_catalog import StarCatalog

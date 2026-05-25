@@ -3,7 +3,7 @@ import logging
 from configs.global_config import get_global_config
 from domain.star import Star
 from flux.photon_flux_pipeline import run_photon_flux_density_pipeline
-from loaders.run_waltzer_context import RunContext
+from loaders.run_cadence_context import RunContext
 from configs.channel_config import PhotometryChannel, SpectroscopyChannel, Channel
 from instrument.spectrum_spread import spread_target_star_spectrum_to_2d
 from instrument.spectral_convolution import counts_per_s_px_conv_per_channel, compute_broadened_channel_flux

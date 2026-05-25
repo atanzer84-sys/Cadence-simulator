@@ -1,7 +1,7 @@
 import logging
 import numpy as np
 from instrument.flat_image import generate_flat_image
-from loaders.run_waltzer_context import RunContext
+from loaders.run_cadence_context import RunContext
 from configs.channel_config import SpectroscopyChannel, PhotometryChannel, Channel
 from instrument.bias_image import generate_bias_image
 from instrument.dark_image import generate_dark_image

@@ -3,7 +3,7 @@ import logging
 import warnings
 import numpy as np
 from configs.global_config import get_global_config
-from loaders.run_waltzer_context import get_repo_root
+from loaders.run_cadence_context import get_repo_root
 from utils.helpers import resolve_path_under
 
 def read_text_lines_with_fallback(path: Path, encodings: tuple[str, ...], context: str) -> list[str]:

@@ -1,6 +1,6 @@
-# WALTzER simulator
+# Cadence simulator
 
-This repository simulates **WALTzER** observations in software: whichever channels are turned on in config, it can model **NUV and VIS spectroscopy** and **NIR photometry** in the same run. A typical simulation loads target (and planetary) inputs, builds **spectral photon flux density at Earth** from stellar atmosphere grids with optional extinction, ISM absorption, and line-core treatment, then **folds through the instrument** (dispersion, spreading, efficiencies) to produce synthetic **detector science images**. The main executable is `src/waltzer_simulator.py`.
+This repository simulates **WALTzER** observations in software: whichever channels are turned on in config, it can model **NUV and VIS spectroscopy** and **NIR photometry** in the same run. A typical simulation loads target (and planetary) inputs, builds **spectral photon flux density at Earth** from stellar atmosphere grids with optional extinction, ISM absorption, and line-core treatment, then **folds through the instrument** (dispersion, spreading, efficiencies) to produce synthetic **detector science images**. The main executable is `src/cadence_simulator.py`.
 
 ## Required components
 
@@ -43,13 +43,13 @@ When you run `python src/waltzer_simulator.py`, Python places the **directory th
 Example using the default file:
 
 ```bash
-python src/waltzer_simulator.py
+python src/cadence_simulator.py
 ```
 
 Example passing a specific parameter file:
 
 ```bash
-python src/waltzer_simulator.py input/parameters/parameter_030.txt
+python src/cadence_simulator.py input/parameters/parameter_030.txt
 ```
 
 ## Tests

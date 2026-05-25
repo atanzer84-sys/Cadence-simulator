@@ -1,7 +1,7 @@
 from astropy.coordinates import SkyCoord
 from datetime import datetime
 from loaders.load_gaia import _gaia_cone_search, _gaia_query_for_source_ids, _run_gaia_query
-from loaders.run_waltzer_context import setup_output_directory
+from loaders.run_cadence_context import setup_output_directory
 from pathlib import Path
 import pandas as pd
 

@@ -1,5 +1,5 @@
 import logging
-from loaders.run_waltzer_context import RunContext
+from loaders.run_cadence_context import RunContext
 from domain.star import Star
 from utils.images_common import format_frame_title, build_stats_row, build_png_filename, format_stats_text
 from configs.channel_config import Channel, SpectroscopyChannel

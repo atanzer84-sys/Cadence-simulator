@@ -1,7 +1,7 @@
 import sys
 import logging
 from loaders.load_channel import load_channels_config
-from loaders.run_waltzer_context import initialize_waltzer_runtime_context
+from loaders.run_cadence_context import initialize_cadence_runtime_context
 from loaders.load_stellar_and_planetary_properties import load_stellar_and_planetary_properties
 from domain.star import Star
 from domain.planet import Planet
@@ -14,7 +14,7 @@ from loaders.load_background_stars import lookup_background_stars
 def main():
     try:
         
-        run_ctx, user_cfg = initialize_waltzer_runtime_context()
+        run_ctx, user_cfg = initialize_cadence_runtime_context()
         nuv_channel, vis_channel, nir_channel = load_channels_config(user_cfg)
 
         planet_param, stellar_param, required_planetary_parameters, required_stellar_parameters = load_stellar_and_planetary_properties(user_cfg.target_name)

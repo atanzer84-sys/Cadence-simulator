@@ -8,7 +8,7 @@ from configs.global_config import load_global_config
 from loaders.run_context import RunContext
 
 
-def initialize_waltzer_runtime_context():
+def initialize_cadence_runtime_context():
     print("\n==== LOADING AND INITIALIZING WALTzER SIMULATOR =====")
 
     output_dir, timestamp_str, timestamp = setup_output_directory()

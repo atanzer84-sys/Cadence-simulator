@@ -1,7 +1,8 @@
-following data artifacts are needed in this folder:
+following data artifacts belong in this folder:
 - background.txt
 - nuv_cross_dispersion_spread.txt
 - nuv_spectropolarimetry.txt
+- nir_psf.txt
 - stellar_param_mamjeck.txt
 - vis_spectropolarimetry.txt
 - waltzer_nir_eff_area.txt

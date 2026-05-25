@@ -8,7 +8,7 @@ from loaders.parameter_preprocessing import get_missing_properties, clean_and_ca
 from loaders.load_gaia import lookup_target_star_gaia, GAIA_PROVIDES
 from astropy.io import ascii
 from configs.global_config import GlobalConfig, get_global_config
-from loaders.run_waltzer_context import get_repo_root
+from loaders.run_cadence_context import get_repo_root
 from utils.constants import MAG_G_SUN, TEMP_SUN
 
 

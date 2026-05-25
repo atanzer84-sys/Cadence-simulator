@@ -1,7 +1,7 @@
 import logging
 import numpy as np
 from domain.star_catalog import StarCatalog
-from loaders.run_waltzer_context import RunContext
+from loaders.run_cadence_context import RunContext
 from configs.channel_config import SpectroscopyChannel, PhotometryChannel
 from instrument.prepare_detector_images import compute_counts_per_s_px_one_channel
 from instrument.prepare_detector_images import calculate_photon_flux_density_on_Earth
