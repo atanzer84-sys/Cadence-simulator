@@ -4,7 +4,6 @@ Behavior: selects channels from global config flags
 """
 
 from pathlib import Path
-from types import SimpleNamespace
 import numpy as np
 import pytest
 from configs.channel_config import PhotometryChannel, SpectroscopyChannel
