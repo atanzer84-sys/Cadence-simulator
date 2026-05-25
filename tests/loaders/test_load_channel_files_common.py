@@ -50,12 +50,13 @@ def _write_ea_file(path: Path, pixel_scale: float = 0.01, rows: int = 3) -> None
 def test_load_effective_area_file_success(data_dir):
     _write_ea_file(data_dir / "ea.txt", pixel_scale=0.05, rows=4)
 
-    wavelength, effective_area, pixel_scale = load_effective_area_file("ea.txt")
+    wavelength, effective_area, pixel_scale, spectral_dispersion_A_per_pixel = load_effective_area_file("ea.txt")
 
     assert len(wavelength) == 4
     assert np.allclose(wavelength, [1000.0, 1100.0, 1200.0, 1300.0])
     assert np.allclose(effective_area, [0.1, 0.2, 0.3, 0.4])
     assert pixel_scale == pytest.approx(0.05)
+    assert spectral_dispersion_A_per_pixel == pytest.approx(100.0)
 
 
 # Tests: load_effective_area_file
@@ -125,9 +126,10 @@ def test_load_effective_area_file_header_lines_after_pixel_scale_ok(data_dir):
         "Wavelength foo bar EffectiveArea\n1000  7  8  0.11\n1100  9 10  0.22\n",
     )
 
-    wl, ea, pixel_scale = load_effective_area_file("ea.txt")
+    wl, ea, pixel_scale, spectral_dispersion_A_per_pixel = load_effective_area_file("ea.txt")
 
     assert pixel_scale == pytest.approx(0.02)
+    assert spectral_dispersion_A_per_pixel == pytest.approx(100.0)
     assert np.allclose(wl, [1000.0, 1100.0])
     assert np.allclose(ea, [0.11, 0.22])
 
@@ -140,7 +142,7 @@ def test_load_effective_area_file_extra_columns_first_and_last_used(data_dir):
         "# Pixel scale: 0.01\nWavelength c2 c3 c4 EffectiveArea\n1000  1  2  3  0.50\n1100  4  5  6  0.60\n",
     )
 
-    wl, ea, _ = load_effective_area_file("ea.txt")
+    wl, ea, _, _ = load_effective_area_file("ea.txt")
 
     assert np.allclose(wl, [1000.0, 1100.0])
     assert np.allclose(ea, [0.50, 0.60])
@@ -154,7 +156,7 @@ def test_load_effective_area_file_leading_trailing_whitespace_ok(data_dir):
         "# Pixel scale: 0.01\nWavelength EffectiveArea\n   1000\t   0.10   \n\t1100\t0.20\t\n",
     )
 
-    wl, ea, _ = load_effective_area_file("ea.txt")
+    wl, ea, _, _ = load_effective_area_file("ea.txt")
 
     assert np.allclose(wl, [1000.0, 1100.0])
     assert np.allclose(ea, [0.10, 0.20])
@@ -168,7 +170,7 @@ def test_load_effective_area_file_blank_lines_inside_numeric_block_ok(data_dir):
         "# Pixel scale: 0.01\nWavelength EffectiveArea\n1000  0.10\n\n1100  0.20\n   \n1200  0.30\n",
     )
 
-    wl, ea, _ = load_effective_area_file("ea.txt")
+    wl, ea, _, _ = load_effective_area_file("ea.txt")
 
     assert np.allclose(wl, [1000.0, 1100.0, 1200.0])
     assert np.allclose(ea, [0.10, 0.20, 0.30])
@@ -505,9 +507,10 @@ def test_load_effective_area_file_encoding_fallback_utf16_success(data_dir):
     )
     path.write_text(text, encoding="utf-16")
 
-    wl, ea, pixel_scale = load_effective_area_file("ea_utf16.txt")
+    wl, ea, pixel_scale, spectral_dispersion_A_per_pixel = load_effective_area_file("ea_utf16.txt")
 
     assert pixel_scale == pytest.approx(0.05)
+    assert spectral_dispersion_A_per_pixel == pytest.approx(100.0)
     assert np.allclose(wl, [1000.0, 1100.0, 1200.0])
     assert np.allclose(ea, [0.1, 0.2, 0.3])
 

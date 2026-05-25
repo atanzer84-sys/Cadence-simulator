@@ -75,8 +75,8 @@ def test_compute_broadened_channel_flux_extreme_hwhm_returns_mean(make_star, mak
     photon_flux = np.ones_like(wavelengths_total) * 10.0
     photon_flux[50:] = 20.0 # Mean is 15.0
     
-    # Large pixel scale forces the "hwhm > 5 * range" branch in gaussbroad
-    channel = make_spectroscopy_channel(pixel_scale=1000.0, effective_area_wavelength=np.array([140.0, 160.0]))
+    # Large spectral dispersion forces the "hwhm > 5 * range" branch in gaussbroad
+    channel = make_spectroscopy_channel(spectral_dispersion_A_per_pixel=1000.0, effective_area_wavelength=np.array([140.0, 160.0]))
     
     smoothed_flux, _ = compute_broadened_channel_flux(photon_flux, wavelengths_total, channel)
     
@@ -91,8 +91,8 @@ def test_compute_broadened_channel_flux_nonpositive_hwhm(hwhm_val, make_star, ma
     wavelengths_total = np.array([100.0, 101.0, 102.0], dtype=float)
     photon_flux = np.array([10.0, 20.0, 30.0], dtype=float)
     
-    # Manually override pixel_scale to simulate the hwhm input
-    channel = make_spectroscopy_channel(pixel_scale=hwhm_val, effective_area_wavelength=np.array([100.0, 101.0, 102.0]))
+    # Manually override spectral dispersion to simulate the hwhm input
+    channel = make_spectroscopy_channel(spectral_dispersion_A_per_pixel=hwhm_val, effective_area_wavelength=np.array([100.0, 101.0, 102.0]))
     
     # This currently fails in prod due to divide-by-zero
     smoothed_flux, _ = compute_broadened_channel_flux(photon_flux, wavelengths_total, channel)

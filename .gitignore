@@ -242,3 +242,4 @@ Roland_RUNS/*
 ~$all_background_stars.xlsx
 documents/reports/~$v_band_stars.xlsx
 documents/reports/~$target_back_stars.xlsx
+.venv-test/*

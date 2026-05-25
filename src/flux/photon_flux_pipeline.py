@@ -28,7 +28,7 @@ from astropy.coordinates import SkyCoord
 from astropy import units as u
 from loaders.run_cadence_context import RunContext
 from loaders.load_model_temperature import load_model_for_temperature
-from utils.debug_dumps import dump_1d_array, dump_3d_array
+from utils.debug_dumps import dump_1d_array, dump_3d_array, dump_npz_snapshot
 from utils.helpers import announce
 from utils.flux_image_array import plot_flux_and_photons_windows, plot_model_input
 
@@ -140,6 +140,8 @@ def run_photon_flux_density_pipeline(
 
     if dump_arrays:
         dump_1d_array(wavelengths, photon_flux, ctx.output_dir, star.name, "FluxCalc_8_photons_star", perChannel=True, zoom=True)
+        dump_npz_snapshot(ctx.output_dir, f"{star.name}_FluxCalc_8_photons_star_full.npz", photons_star=photon_flux, wavelengths=wavelengths)
+
     if dump_plots:
         plot_flux_and_photons_windows(wavelengths, photon_flux, ctx.output_dir, star, "FluxCalc_photons", "Photon Flux", "Photon flux [photons s⁻¹ cm⁻² Å⁻¹]")
 

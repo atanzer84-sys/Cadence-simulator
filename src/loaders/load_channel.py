@@ -42,12 +42,12 @@ def load_common_channel(path: Path, exposure_s: float):
     ccd_gain=as_float(raw.get("ccd_gain", 1.0), key="ccd_gain")
     n_science_frames = _compute_n_science_frames(channel_name, exposure_s)
     effective_area_file=str(raw.get("effective_area_file", "")).strip()
-    effective_area_wavelength, effective_area, pixel_scale = load_effective_area_file(effective_area_file)
+    effective_area_wavelength, effective_area, pixel_scale, spectral_dispersion_A_per_pixel = load_effective_area_file(effective_area_file)
 
     channel_properties = raw, channel_name, source_file
     detector_common = x_pixels, y_pixels, resolution_factor, dark_current, dark_current_noise, read_noise, bias_offset, ccd_gain
     exposure_common = exposure_s, n_science_frames
-    effective_area_common = effective_area_file, effective_area_wavelength, effective_area, pixel_scale
+    effective_area_common = effective_area_file, effective_area_wavelength, effective_area, pixel_scale, spectral_dispersion_A_per_pixel
     
     return channel_properties, detector_common, exposure_common, effective_area_common
 
@@ -57,7 +57,7 @@ def load_channel_photometry(path: Path, exposure_s: float, background: dict):
     raw, channel_name, source_file = channel_properties
     x_pixels, y_pixels, resolution_factor, dark_current, dark_current_noise, read_noise, bias_offset, ccd_gain = detector_common
     exposure_s, n_science_frames = exposure_common
-    effective_area_file, effective_area_wavelength, effective_area, pixel_scale = effective_area_common
+    effective_area_file, effective_area_wavelength, effective_area, pixel_scale, spectral_dispersion_A_per_pixel = effective_area_common
 
     # Photometry-only parsing
     psf_file = str(raw.get("psf_file", "")).strip()
@@ -84,6 +84,7 @@ def load_channel_photometry(path: Path, exposure_s: float, background: dict):
         effective_area_wavelength=effective_area_wavelength,
         effective_area=effective_area,
         pixel_scale=pixel_scale,
+        spectral_dispersion_A_per_pixel = spectral_dispersion_A_per_pixel,
         psf_file=psf_file,
         psf_image=psf_image,
         psf_center_x=psf_center_x,
@@ -105,7 +106,7 @@ def load_channel_spectroscopy(path: Path, exposure_s: float, background: dict):
     raw, channel_name, source_file = channel_properties
     x_pixels, y_pixels, resolution_factor, dark_current, dark_current_noise, read_noise, bias_offset, ccd_gain = detector_common
     exposure_s, n_science_frames = exposure_common
-    effective_area_file, effective_area_wavelength, effective_area, pixel_scale = effective_area_common
+    effective_area_file, effective_area_wavelength, effective_area, pixel_scale, spectral_dispersion_A_per_pixel = effective_area_common
 
     # Spectroscopy only:
     # effective area only matches x pixels in spectroscopy
@@ -159,6 +160,7 @@ def load_channel_spectroscopy(path: Path, exposure_s: float, background: dict):
         effective_area_wavelength=effective_area_wavelength,
         effective_area=effective_area,
         pixel_scale=pixel_scale,
+        spectral_dispersion_A_per_pixel = spectral_dispersion_A_per_pixel,
         
         mode=mode,
         observation_mode=observation_mode,
