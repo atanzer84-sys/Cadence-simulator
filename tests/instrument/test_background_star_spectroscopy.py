@@ -1,13 +1,11 @@
 import numpy as np
 from unittest.mock import patch
 
-from instrument.background_star_spectroscopy import (
-    generate_background_star_spectroscopy_image,
-)
+from instrument.background_star_spectroscopy import generate_background_star_spectroscopy_image
 
 
 # Tests: generate_background_star_spectroscopy_image
-# Behavior: returns zero image and no bands when no stars contribute
+# Behavior: returns zero image when no stars contribute
 def test_bg_spec_no_contribution(make_spectroscopy_channel, make_star_catalog, make_star):
     channel = make_spectroscopy_channel(x_pixels=32, y_pixels=32, channel_name="NUV")
     catalog = make_star_catalog(
@@ -20,7 +18,7 @@ def test_bg_spec_no_contribution(make_spectroscopy_channel, make_star_catalog, m
         "instrument.background_star_spectroscopy.get_spectrum_placement",
         return_value=(10, 16.0, 0.0, 16.0),
     ):
-        image, bands = generate_background_star_spectroscopy_image(
+        image = generate_background_star_spectroscopy_image(
             channel,
             catalog,
             roll_angle_start=0.0,
@@ -29,7 +27,6 @@ def test_bg_spec_no_contribution(make_spectroscopy_channel, make_star_catalog, m
         )
 
     assert np.all(image == 0.0)
-    assert bands == {}
 
 
 # Tests: generate_background_star_spectroscopy_image
@@ -52,7 +49,7 @@ def test_bg_spec_single_star(make_spectroscopy_channel, make_star_catalog, make_
         "instrument.background_star_spectroscopy.spread_1d_spectrum_to_2d",
         side_effect=_mock_spread,
     ):
-        image, bands = generate_background_star_spectroscopy_image(
+        image = generate_background_star_spectroscopy_image(
             channel,
             catalog,
             roll_angle_start=0.0,
@@ -61,7 +58,6 @@ def test_bg_spec_single_star(make_spectroscopy_channel, make_star_catalog, make_
         )
 
     assert np.sum(image) > 0.0
-    assert bands == {}
 
 
 # Tests: generate_background_star_spectroscopy_image
@@ -90,7 +86,7 @@ def test_bg_spec_multiple_stars(make_spectroscopy_channel, make_star_catalog, ma
         "instrument.background_star_spectroscopy.spread_1d_spectrum_to_2d",
         side_effect=_mock_spread,
     ):
-        image, bands = generate_background_star_spectroscopy_image(
+        image = generate_background_star_spectroscopy_image(
             channel,
             catalog,
             roll_angle_start=0.0,
@@ -99,12 +95,11 @@ def test_bg_spec_multiple_stars(make_spectroscopy_channel, make_star_catalog, ma
         )
 
     assert np.sum(image) > 0.0
-    assert bands == {}
 
 
 # Tests: generate_background_star_spectroscopy_image
-# Behavior: returns VIS bands when channel is VIS
-def test_bg_spec_vis_bands(make_spectroscopy_channel, make_star_catalog, make_star):
+# Behavior: VIS channel path still renders a contributing star into the slit image
+def test_bg_spec_vis_contributes(make_spectroscopy_channel, make_star_catalog, make_star):
     channel = make_spectroscopy_channel(
         x_pixels=32,
         y_pixels=32,
@@ -127,7 +122,7 @@ def test_bg_spec_vis_bands(make_spectroscopy_channel, make_star_catalog, make_st
         "instrument.background_star_spectroscopy.spread_1d_spectrum_to_2d",
         side_effect=_mock_spread,
     ):
-        image, bands = generate_background_star_spectroscopy_image(
+        image = generate_background_star_spectroscopy_image(
             channel,
             catalog,
             roll_angle_start=0.0,
@@ -136,9 +131,6 @@ def test_bg_spec_vis_bands(make_spectroscopy_channel, make_star_catalog, make_st
         )
 
     assert np.sum(image) > 0.0
-    assert "star_1" in bands
-    assert "y0" in bands["star_1"]
-    assert "sigma" in bands["star_1"]
 
 
 # Tests: generate_background_star_spectroscopy_image
@@ -154,7 +146,7 @@ def test_bg_spec_missing_counts(make_spectroscopy_channel, make_star_catalog, ma
         "instrument.background_star_spectroscopy.get_spectrum_placement",
         return_value=(10, 16.0, 0.0, 16.0),
     ):
-        image, bands = generate_background_star_spectroscopy_image(
+        image = generate_background_star_spectroscopy_image(
             channel,
             catalog,
             roll_angle_start=0.0,
@@ -163,4 +155,3 @@ def test_bg_spec_missing_counts(make_spectroscopy_channel, make_star_catalog, ma
         )
 
     assert np.all(image == 0.0)
-    assert bands == {}

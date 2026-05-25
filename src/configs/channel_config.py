@@ -24,6 +24,7 @@ class Channel:
     effective_area_wavelength: np.ndarray
     effective_area: np.ndarray
     pixel_scale: float
+    spectral_dispersion_A_per_pixel: float
 
     background_type: str | None = None
     background_wavelength: np.ndarray | None = None

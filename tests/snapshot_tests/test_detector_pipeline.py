@@ -25,20 +25,23 @@ def _load_effective_area(channel: str):
     path = SNAPSHOT_BASE / f"{channel}_effective_area.txt"
     first_line = path.read_text(encoding="utf-8").splitlines()[0].lstrip("# ").strip()
     pixel_scale = float(first_line.split("=", 1)[1])
-    table = np.loadtxt(path, dtype=np.float64)
-    return table[:, 0], table[:, 1], pixel_scale
+    table = np.loadtxt(path, dtype=np.float32)
+    wavelength = table[:, 0]
+    effective_area = table[:, -1]
+    spectral_dispersion_A_per_pixel = float(wavelength[1] - wavelength[0])
+    return wavelength, effective_area, pixel_scale, spectral_dispersion_A_per_pixel
 
 
 def run_snapshot_convolved_counts_full_photometry(star_name: str, channel: str, tmp_path: Path, make_photometry_channel, make_star, make_run_context):
     photons_full = _load_npz(SNAPSHOT_BASE / f"{star_name}_FluxCalc_8_photons_star_full.npz")
     convolved_counts = _load_npz(SNAPSHOT_BASE / f"{star_name}_{channel}_convolved_counts_full.npz")
-    effective_area_wavelength, effective_area, pixel_scale = _load_effective_area(channel)
+    effective_area_wavelength, effective_area, pixel_scale, spectral_dispersion_A_per_pixel = _load_effective_area(channel)
 
     channel_dims = {
         "NIR": (NIR_X_PIXELS, NIR_Y_PIXELS),
     }
     x_pixels, y_pixels = channel_dims[channel]
-    channel_cfg = make_photometry_channel(channel_name=channel, effective_area_wavelength=effective_area_wavelength, effective_area=effective_area, pixel_scale=float(pixel_scale), x_pixels=x_pixels, y_pixels=y_pixels)
+    channel_cfg = make_photometry_channel(channel_name=channel, effective_area_wavelength=effective_area_wavelength, effective_area=effective_area, pixel_scale=float(pixel_scale), spectral_dispersion_A_per_pixel=spectral_dispersion_A_per_pixel, x_pixels=x_pixels, y_pixels=y_pixels)
     star = make_star(name=star_name)
     ctx = make_run_context(output_dir=tmp_path)
 
@@ -49,14 +52,14 @@ def run_snapshot_convolved_counts_full_photometry(star_name: str, channel: str, 
 def run_snapshot_convolved_counts_full_spectroscopy(star_name: str, channel: str, tmp_path: Path, make_spectroscopy_channel, make_star, make_run_context):
     photons_full = _load_npz(SNAPSHOT_BASE / f"{star_name}_FluxCalc_8_photons_star_full.npz")
     snap = _load_npz(SNAPSHOT_BASE / f"{star_name}_{channel}_convolved_counts_full.npz")
-    effective_area_wavelength, effective_area, pixel_scale = _load_effective_area(channel)
+    effective_area_wavelength, effective_area, pixel_scale, spectral_dispersion_A_per_pixel = _load_effective_area(channel)
 
     channel_dims = {
         "NUV": (NUV_X_PIXELS, NUV_Y_PIXELS),
         "VIS": (VIS_X_PIXELS, VIS_Y_PIXELS),
     }
     x_pixels, y_pixels = channel_dims[channel]
-    channel_cfg = make_spectroscopy_channel(channel_name=channel, effective_area_wavelength=effective_area_wavelength, effective_area=effective_area, pixel_scale=float(pixel_scale), x_pixels=x_pixels, y_pixels=y_pixels)
+    channel_cfg = make_spectroscopy_channel(channel_name=channel, effective_area_wavelength=effective_area_wavelength, effective_area=effective_area, pixel_scale=float(pixel_scale), spectral_dispersion_A_per_pixel=spectral_dispersion_A_per_pixel, x_pixels=x_pixels, y_pixels=y_pixels)
     star = make_star(name=star_name)
     ctx = make_run_context(output_dir=tmp_path)
 
@@ -69,9 +72,9 @@ def run_snapshot_spread_image_2d_nuv_profile(star_name: str, make_spectroscopy_c
     convolved = _load_npz(SNAPSHOT_BASE / f"{star_name}_NUV_convolved_counts_full.npz")
     spread_image = _load_npz(SNAPSHOT_BASE / f"{star_name}_NUV_spread_image_2d_full.npz")
     spread_profile = _load_npz(SNAPSHOT_BASE / "NUV_spread_profile_full.npz")
-    effective_area_wavelength, _, pixel_scale = _load_effective_area("NUV")
+    effective_area_wavelength, _, pixel_scale, spectral_dispersion_A_per_pixel = _load_effective_area("NUV")
 
-    nuv_channel = make_spectroscopy_channel(channel_name="NUV", mode=1, x_pixels=NUV_X_PIXELS, y_pixels=NUV_Y_PIXELS, pixel_scale=float(pixel_scale), effective_area_wavelength=effective_area_wavelength, spread_y_positions=spread_profile["spread_y_positions"], spread_y_weights=spread_profile["spread_y_weights"], spread_y_wavelengths=spread_profile["spread_y_wavelengths"])
+    nuv_channel = make_spectroscopy_channel(channel_name="NUV", mode=1, x_pixels=NUV_X_PIXELS, y_pixels=NUV_Y_PIXELS, pixel_scale=float(pixel_scale), spectral_dispersion_A_per_pixel=spectral_dispersion_A_per_pixel, effective_area_wavelength=effective_area_wavelength, spread_y_positions=spread_profile["spread_y_positions"], spread_y_weights=spread_profile["spread_y_weights"], spread_y_wavelengths=spread_profile["spread_y_wavelengths"])
 
     placement = get_spectrum_placement(nuv_channel)
     image_full = np.zeros((nuv_channel.y_pixels, nuv_channel.x_pixels), dtype=np.float32)
@@ -82,9 +85,9 @@ def run_snapshot_spread_image_2d_nuv_profile(star_name: str, make_spectroscopy_c
 def run_snapshot_spread_image_2d_vis_gaussian(star_name: str, make_spectroscopy_channel):
     convolved = _load_npz(SNAPSHOT_BASE / f"{star_name}_VIS_convolved_counts_full.npz")
     spread_image = _load_npz(SNAPSHOT_BASE / f"{star_name}_VIS_spread_image_2d_full.npz")
-    effective_area_wavelength, _, pixel_scale = _load_effective_area("VIS")
+    effective_area_wavelength, _, pixel_scale, spectral_dispersion_A_per_pixel = _load_effective_area("VIS")
 
-    vis_channel = make_spectroscopy_channel(channel_name="VIS", observation_mode="spectroscopy", mode=1, x_pixels=VIS_X_PIXELS, y_pixels=VIS_Y_PIXELS, pixel_scale=float(pixel_scale), effective_area_wavelength=effective_area_wavelength, spread_y_positions=None, spread_y_weights=None, spread_y_wavelengths=None, spread_half_height_pix=10)
+    vis_channel = make_spectroscopy_channel(channel_name="VIS", observation_mode="spectroscopy", mode=1, x_pixels=VIS_X_PIXELS, y_pixels=VIS_Y_PIXELS, pixel_scale=float(pixel_scale), spectral_dispersion_A_per_pixel=spectral_dispersion_A_per_pixel, effective_area_wavelength=effective_area_wavelength, spread_y_positions=None, spread_y_weights=None, spread_y_wavelengths=None, spread_half_height_pix=10)
 
     placement = get_spectrum_placement(vis_channel)
     image_full = np.zeros((vis_channel.y_pixels, vis_channel.x_pixels), dtype=np.float32)
@@ -200,9 +203,9 @@ def run_snapshot_science_image_without_bg_stars_nuv(star_name: str, tmp_path: Pa
     snapshot = _load_npz(SNAPSHOT_BASE / f"{star_name}_NUV_science_image_without_bg_stars_full.npz")
 
     spread_profile = _load_npz(SNAPSHOT_BASE / "NUV_spread_profile_full.npz")
-    effective_area_wavelength, _, pixel_scale = _load_effective_area("NUV")
+    effective_area_wavelength, _, pixel_scale, spectral_dispersion_A_per_pixel = _load_effective_area("NUV")
 
-    channel = make_spectroscopy_channel(channel_name="NUV", mode=1, x_pixels=NUV_X_PIXELS, y_pixels=NUV_Y_PIXELS, pixel_scale=float(pixel_scale), effective_area_wavelength=effective_area_wavelength, spread_y_positions=spread_profile["spread_y_positions"], spread_y_weights=spread_profile["spread_y_weights"], spread_y_wavelengths=spread_profile["spread_y_wavelengths"], exposure_s=300.0)
+    channel = make_spectroscopy_channel(channel_name="NUV", mode=1, x_pixels=NUV_X_PIXELS, y_pixels=NUV_Y_PIXELS, pixel_scale=float(pixel_scale), spectral_dispersion_A_per_pixel=spectral_dispersion_A_per_pixel, effective_area_wavelength=effective_area_wavelength, spread_y_positions=spread_profile["spread_y_positions"], spread_y_weights=spread_profile["spread_y_weights"], spread_y_wavelengths=spread_profile["spread_y_wavelengths"], exposure_s=300.0)
 
     cfg = make_global_config(write_science_frame_component_png=False, write_science_frame_component_fits=False)
     ctx = make_run_context(output_dir=tmp_path, target_name=star_name.replace(" ", "_"))
@@ -230,9 +233,9 @@ def run_snapshot_science_image_without_bg_stars_vis(star_name: str, tmp_path: Pa
     flat = _load_npz(SNAPSHOT_BASE / f"{star_name}_VIS_flat_full.npz")
     cosmic = _load_npz(SNAPSHOT_BASE / f"{star_name}_VIS_cosmic_full.npz")
     snapshot = _load_npz(SNAPSHOT_BASE / f"{star_name}_VIS_science_image_without_bg_stars_full.npz")
-    effective_area_wavelength, _, pixel_scale = _load_effective_area("VIS")
+    effective_area_wavelength, _, pixel_scale, spectral_dispersion_A_per_pixel = _load_effective_area("VIS")
 
-    channel_cfg = make_spectroscopy_channel(channel_name="VIS", observation_mode="spectroscopy", mode=1, x_pixels=VIS_X_PIXELS, y_pixels=VIS_Y_PIXELS, pixel_scale=float(pixel_scale), effective_area_wavelength=effective_area_wavelength, spread_y_positions=None, spread_y_weights=None, spread_y_wavelengths=None, spread_half_height_pix=10, exposure_s=60.0)
+    channel_cfg = make_spectroscopy_channel(channel_name="VIS", observation_mode="spectroscopy", mode=1, x_pixels=VIS_X_PIXELS, y_pixels=VIS_Y_PIXELS, pixel_scale=float(pixel_scale), spectral_dispersion_A_per_pixel=spectral_dispersion_A_per_pixel, effective_area_wavelength=effective_area_wavelength, spread_y_positions=None, spread_y_weights=None, spread_y_wavelengths=None, spread_half_height_pix=10, exposure_s=60.0)
 
     cfg = make_global_config(write_science_frame_component_png=False, write_science_frame_component_fits=False)
     ctx = make_run_context(output_dir=tmp_path, target_name=star_name.replace(" ", "_"))
@@ -261,9 +264,9 @@ def run_snapshot_science_image_without_bg_stars_nir(star_name: str, tmp_path: Pa
     cosmic = _load_npz(SNAPSHOT_BASE / f"{star_name}_NIR_cosmic_full.npz")
     snapshot = _load_npz(SNAPSHOT_BASE / f"{star_name}_NIR_science_image_without_bg_stars_full.npz")
     spread_profile = _load_npz(SNAPSHOT_BASE / "NIR_psf_profile_full.npz")
-    effective_area_wavelength, _, pixel_scale = _load_effective_area("NIR")
+    effective_area_wavelength, _, pixel_scale, spectral_dispersion_A_per_pixel = _load_effective_area("NIR")
 
-    channel_cfg = make_photometry_channel(channel_name="NIR", x_pixels=NIR_X_PIXELS, y_pixels=NIR_Y_PIXELS, pixel_scale=float(pixel_scale), effective_area_wavelength=effective_area_wavelength, psf_image=spread_profile["psf_image"], psf_center_x=int(spread_profile["psf_center_x"]), psf_center_y=int(spread_profile["psf_center_y"]), source_position_x_arcsec=float(spread_profile["source_position_x_arcsec"]), source_position_y_arcsec=float(spread_profile["source_position_y_arcsec"]), exposure_s=60.0)
+    channel_cfg = make_photometry_channel(channel_name="NIR", x_pixels=NIR_X_PIXELS, y_pixels=NIR_Y_PIXELS, pixel_scale=float(pixel_scale), spectral_dispersion_A_per_pixel=spectral_dispersion_A_per_pixel, effective_area_wavelength=effective_area_wavelength, psf_image=spread_profile["psf_image"], psf_center_x=int(spread_profile["psf_center_x"]), psf_center_y=int(spread_profile["psf_center_y"]), source_position_x_arcsec=float(spread_profile["source_position_x_arcsec"]), source_position_y_arcsec=float(spread_profile["source_position_y_arcsec"]), exposure_s=60.0)
 
     cfg = make_global_config(write_science_frame_component_png=False, write_science_frame_component_fits=False)
     ctx = make_run_context(output_dir=tmp_path, target_name=star_name.replace(" ", "_"))
@@ -320,11 +323,11 @@ def run_snapshot_science_image_with_bg_stars_nuv(star_name: str, tmp_path: Path,
     cosmic = _load_npz(SNAPSHOT_BASE / f"{star_name}_NUV_cosmic_full.npz")
     snapshot = _load_npz(SNAPSHOT_BASE / f"{star_name}_NUV_science_image_full.npz")
     spread_profile = _load_npz(SNAPSHOT_BASE / "NUV_spread_profile_full.npz")
-    effective_area_wavelength, _, pixel_scale = _load_effective_area("NUV")
+    effective_area_wavelength, _, pixel_scale, spectral_dispersion_A_per_pixel = _load_effective_area("NUV")
 
-    channel = make_spectroscopy_channel(channel_name="NUV", mode=1, x_pixels=NUV_X_PIXELS, y_pixels=NUV_Y_PIXELS, pixel_scale=float(pixel_scale), effective_area_wavelength=effective_area_wavelength, spread_y_positions=spread_profile["spread_y_positions"], spread_y_weights=spread_profile["spread_y_weights"], spread_y_wavelengths=spread_profile["spread_y_wavelengths"], exposure_s=300.0)
+    channel = make_spectroscopy_channel(channel_name="NUV", mode=1, x_pixels=NUV_X_PIXELS, y_pixels=NUV_Y_PIXELS, pixel_scale=float(pixel_scale), spectral_dispersion_A_per_pixel=spectral_dispersion_A_per_pixel, effective_area_wavelength=effective_area_wavelength, spread_y_positions=spread_profile["spread_y_positions"], spread_y_weights=spread_profile["spread_y_weights"], spread_y_wavelengths=spread_profile["spread_y_wavelengths"], exposure_s=300.0)
 
-    cfg = make_global_config(write_science_frame_component_png=False, write_science_frame_component_fits=False, write_background_star_footprint_on_science_frame=False)
+    cfg = make_global_config(write_science_frame_component_png=False, write_science_frame_component_fits=False)
 
     ctx = make_run_context(output_dir=tmp_path, target_name=star_name.replace(" ", "_"))
 
@@ -339,13 +342,12 @@ def run_snapshot_science_image_with_bg_stars_nuv(star_name: str, tmp_path: Path,
     roll_angle_start = 360.0 * (time_s / orbit_duration_s)
     roll_angle_end = 360.0 * ((time_s + exposure) / orbit_duration_s)
 
-    monkeypatch.setattr("instrument.science_image.generate_background_star_visibility_on_science_frame", lambda *args, **kwargs: None)
     monkeypatch.setattr("instrument.science_image.generate_bias_image", lambda channel: bias["image_full"])
     monkeypatch.setattr("instrument.science_image.generate_dark_image", lambda channel: dark["image_full"])
     monkeypatch.setattr("instrument.science_image.generate_photon_noise_from_spectra2d", lambda target_star_component: photon_noise["image_full"])
     monkeypatch.setattr("instrument.science_image.generate_flat_image", lambda channel: flat["image_full"])
     monkeypatch.setattr("instrument.science_image.generate_cosmic_rays", lambda channel, cfg: cosmic["image_full"])
-    monkeypatch.setattr("instrument.science_image.generate_background_star_spectroscopy_image", lambda channel, background_stars_catalog, roll_angle_start, roll_angle_end, frame_index: (background_stars["image_full"], {}))
+    monkeypatch.setattr("instrument.science_image.generate_background_star_spectroscopy_image", lambda channel, background_stars_catalog, roll_angle_start, roll_angle_end, frame_index: background_stars["image_full"])
 
     stellar_component = stellar["image_full"] * exposure
     image_full = _create_per_exposure(stellar_component, background["image_full"], channel, ctx, cfg, star, None, frame_index, roll_angle_start, roll_angle_end, base_header)
@@ -363,11 +365,11 @@ def run_snapshot_science_image_with_bg_stars_vis(star_name: str, tmp_path: Path,
     flat = _load_npz(SNAPSHOT_BASE / f"{star_name}_VIS_flat_full.npz")
     cosmic = _load_npz(SNAPSHOT_BASE / f"{star_name}_VIS_cosmic_full.npz")
     snapshot = _load_npz(SNAPSHOT_BASE / f"{star_name}_VIS_science_image_full.npz")
-    effective_area_wavelength, _, pixel_scale = _load_effective_area("VIS")
+    effective_area_wavelength, _, pixel_scale, spectral_dispersion_A_per_pixel = _load_effective_area("VIS")
 
-    channel = make_spectroscopy_channel(channel_name="VIS", observation_mode="spectroscopy", mode=1, x_pixels=VIS_X_PIXELS, y_pixels=VIS_Y_PIXELS, pixel_scale=float(pixel_scale), effective_area_wavelength=effective_area_wavelength, spread_y_positions=None, spread_y_weights=None, spread_y_wavelengths=None, spread_half_height_pix=10, exposure_s=60.0)
+    channel = make_spectroscopy_channel(channel_name="VIS", observation_mode="spectroscopy", mode=1, x_pixels=VIS_X_PIXELS, y_pixels=VIS_Y_PIXELS, pixel_scale=float(pixel_scale), spectral_dispersion_A_per_pixel=spectral_dispersion_A_per_pixel, effective_area_wavelength=effective_area_wavelength, spread_y_positions=None, spread_y_weights=None, spread_y_wavelengths=None, spread_half_height_pix=10, exposure_s=60.0)
     
-    cfg = make_global_config(write_science_frame_component_png=False, write_science_frame_component_fits=False, write_background_star_footprint_on_science_frame=False)
+    cfg = make_global_config(write_science_frame_component_png=False, write_science_frame_component_fits=False)
     
     ctx = make_run_context(output_dir=tmp_path, target_name=star_name.replace(" ", "_"))
     
@@ -381,13 +383,12 @@ def run_snapshot_science_image_with_bg_stars_vis(star_name: str, tmp_path: Path,
     roll_angle_start = 360.0 * (time_s / orbit_duration_s)
     roll_angle_end = 360.0 * ((time_s + exposure) / orbit_duration_s)
 
-    monkeypatch.setattr("instrument.science_image.generate_background_star_visibility_on_science_frame", lambda *args, **kwargs: None)
     monkeypatch.setattr("instrument.science_image.generate_bias_image", lambda channel: bias["image_full"])
     monkeypatch.setattr("instrument.science_image.generate_dark_image", lambda channel: dark["image_full"])
     monkeypatch.setattr("instrument.science_image.generate_photon_noise_from_spectra2d", lambda target_star_component: photon_noise["image_full"])
     monkeypatch.setattr("instrument.science_image.generate_flat_image", lambda channel: flat["image_full"])
     monkeypatch.setattr("instrument.science_image.generate_cosmic_rays", lambda channel, cfg: cosmic["image_full"])
-    monkeypatch.setattr("instrument.science_image.generate_background_star_spectroscopy_image", lambda channel, background_stars_catalog, roll_angle_start, roll_angle_end, frame_index: (background_stars["image_full"], {}))
+    monkeypatch.setattr("instrument.science_image.generate_background_star_spectroscopy_image", lambda channel, background_stars_catalog, roll_angle_start, roll_angle_end, frame_index: background_stars["image_full"])
 
     stellar_component = stellar["image_full"] * exposure
     image_full = _create_per_exposure(stellar_component, background["image_full"], channel, ctx, cfg, star, None, frame_index, roll_angle_start, roll_angle_end, base_header)
@@ -406,11 +407,11 @@ def run_snapshot_science_image_with_bg_stars_nir(star_name: str, tmp_path: Path,
     cosmic = _load_npz(SNAPSHOT_BASE / f"{star_name}_NIR_cosmic_full.npz")
     snapshot = _load_npz(SNAPSHOT_BASE / f"{star_name}_NIR_science_image_full.npz")
     spread_profile = _load_npz(SNAPSHOT_BASE / "NIR_psf_profile_full.npz")
-    effective_area_wavelength, _, pixel_scale = _load_effective_area("NIR")
+    effective_area_wavelength, _, pixel_scale, spectral_dispersion_A_per_pixel = _load_effective_area("NIR")
 
-    channel = make_photometry_channel(channel_name="NIR", x_pixels=NIR_X_PIXELS, y_pixels=NIR_Y_PIXELS, pixel_scale=float(pixel_scale), effective_area_wavelength=effective_area_wavelength, psf_image=spread_profile["psf_image"], psf_center_x=int(spread_profile["psf_center_x"]), psf_center_y=int(spread_profile["psf_center_y"]), source_position_x_arcsec=float(spread_profile["source_position_x_arcsec"]), source_position_y_arcsec=float(spread_profile["source_position_y_arcsec"]), exposure_s=60.0)
+    channel = make_photometry_channel(channel_name="NIR", x_pixels=NIR_X_PIXELS, y_pixels=NIR_Y_PIXELS, pixel_scale=float(pixel_scale), spectral_dispersion_A_per_pixel=spectral_dispersion_A_per_pixel, effective_area_wavelength=effective_area_wavelength, psf_image=spread_profile["psf_image"], psf_center_x=int(spread_profile["psf_center_x"]), psf_center_y=int(spread_profile["psf_center_y"]), source_position_x_arcsec=float(spread_profile["source_position_x_arcsec"]), source_position_y_arcsec=float(spread_profile["source_position_y_arcsec"]), exposure_s=60.0)
 
-    cfg = make_global_config(write_science_frame_component_png=False, write_science_frame_component_fits=False, write_background_star_footprint_on_science_frame=False)
+    cfg = make_global_config(write_science_frame_component_png=False, write_science_frame_component_fits=False)
 
     ctx = make_run_context(output_dir=tmp_path, target_name=star_name.replace(" ", "_"))
 
@@ -425,13 +426,12 @@ def run_snapshot_science_image_with_bg_stars_nir(star_name: str, tmp_path: Path,
     roll_angle_start = 360.0 * (time_s / orbit_duration_s)
     roll_angle_end = 360.0 * ((time_s + exposure) / orbit_duration_s)
 
-    monkeypatch.setattr("instrument.science_image.generate_background_star_visibility_on_science_frame", lambda *args, **kwargs: None)
     monkeypatch.setattr("instrument.science_image.generate_bias_image", lambda channel: bias["image_full"])
     monkeypatch.setattr("instrument.science_image.generate_dark_image", lambda channel: dark["image_full"])
     monkeypatch.setattr("instrument.science_image.generate_photon_noise_from_spectra2d", lambda target_star_component: photon_noise["image_full"])
     monkeypatch.setattr("instrument.science_image.generate_flat_image", lambda channel: flat["image_full"])
     monkeypatch.setattr("instrument.science_image.generate_cosmic_rays", lambda channel, cfg: cosmic["image_full"])
-    monkeypatch.setattr("instrument.science_image.generate_background_star_photometry_image", lambda channel, background_stars_catalog, roll_angle_start, roll_angle_end, frame_index: (background_stars["image_full"], {}))
+    monkeypatch.setattr("instrument.science_image.generate_background_star_photometry_image", lambda channel, background_stars_catalog, roll_angle_start, roll_angle_end, frame_index: background_stars["image_full"])
 
     stellar_component = stellar["image_full"] * exposure
     image_full = _create_per_exposure(stellar_component, background["image_full"], channel, ctx, cfg, star, None, frame_index, roll_angle_start, roll_angle_end, base_header)

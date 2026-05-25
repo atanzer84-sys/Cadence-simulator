@@ -1,5 +1,5 @@
 from astropy.io import fits
-from loaders.run_waltzer_context import RunContext
+from loaders.run_cadence_context import RunContext
 from frame.frame_class import Frame
 from utils.images_common import build_base_output_path
 

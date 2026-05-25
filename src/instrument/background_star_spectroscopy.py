@@ -8,16 +8,14 @@ from instrument.background_star_common import compute_roll_angle_samples, get_ca
 type StarInSlitLog = dict[str, str | float | int]
 
 
-def generate_background_star_spectroscopy_image(channel: SpectroscopyChannel, background_stars_catalog: StarCatalog, roll_angle_start: float, roll_angle_stop: float, frame_index: int) -> tuple[np.ndarray, dict[str, dict[str, float]]]:
+def generate_background_star_spectroscopy_image(channel: SpectroscopyChannel, background_stars_catalog: StarCatalog, roll_angle_start: float, roll_angle_stop: float, frame_index: int) -> np.ndarray:
 
     image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
-    background_star_bands: dict[str, dict[str, float]] = {}
 
     spectrum_placement = get_spectrum_placement(channel)
     total = len(background_stars_catalog.stars_by_id)
     n_in_slit = 0
     stars_in_slit_log: list[StarInSlitLog] = []
-    is_vis_channel = channel.channel_name.upper() == "VIS"
     slit_reach_arcsec = spectroscopy_radius_arcsec(channel)
     
     for star_id in background_stars_catalog.stars_by_id:
@@ -41,15 +39,10 @@ def generate_background_star_spectroscopy_image(channel: SpectroscopyChannel, ba
                     "yrow_max": int(max(y_positions)),
                 }
             )
-            if is_vis_channel and len(y_positions) > 0:
-                background_star_bands[star_id] = {
-                    "y0": float(np.mean(y_positions)),
-                    "sigma": float(max(channel.spread_half_height_pix, (max(y_positions) - min(y_positions)) / 2.0)),
-                }
 
     _log_background_stars_in_slit(frame_index, channel.channel_name, roll_angle_start, roll_angle_stop, n_in_slit, total, stars_in_slit_log)
 
-    return image, background_star_bands
+    return image
 
 
 def _render_star_if_in_slit(star_id: str, image, channel: SpectroscopyChannel, catalog: StarCatalog, frame_index: int, spectrum_placement: tuple[int, float, float, float], roll_angle_start: float, roll_angle_stop: float) -> tuple[list[int], float] | None:

@@ -7,7 +7,7 @@ from instrument.background_star_common import compute_roll_angle_samples, get_ca
 
 _LAST_VISIBLE_SIGNATURE_BY_CHANNEL: dict[str, tuple[str, ...]] = {}
 
-def generate_background_star_photometry_image(channel: PhotometryChannel, background_stars_catalog: StarCatalog, roll_angle_start: float, roll_angle_stop: float, frame_index: int) -> tuple[np.ndarray, dict[str, dict[str, float]]]:
+def generate_background_star_photometry_image(channel: PhotometryChannel, background_stars_catalog: StarCatalog, roll_angle_start: float, roll_angle_stop: float, frame_index: int) -> np.ndarray:
     
     image = np.zeros((channel.y_pixels, channel.x_pixels), dtype=np.float32)
     background_star_arcs: dict[str, list[tuple[int, int]]] = {}
@@ -31,7 +31,7 @@ def generate_background_star_photometry_image(channel: PhotometryChannel, backgr
 
     _log_background_stars_on_detector(frame_index, channel.channel_name, roll_angle_start, roll_angle_stop, n_on_detector, total, stars_on_detector_ids, background_stars_catalog, background_star_arcs)
 
-    return image, background_star_arcs
+    return image
 
 def _render_star_if_on_detector(star_id: str, channel: PhotometryChannel, catalog: StarCatalog, frame_index: int, target_star_placement: tuple[int, float], roll_angle_start, roll_angle_stop, image: np.ndarray) -> list[tuple[int, int]] | None:
 

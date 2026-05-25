@@ -252,7 +252,7 @@ def test_load_channel_photometry_nir_returns_photometry_channel(monkeypatch):
     monkeypatch.setattr("loaders.load_channel.parse_simple_kv", lambda path: raw)
     monkeypatch.setattr(
         "loaders.load_channel.load_effective_area_file",
-        lambda filename: (np.array([1000.0, 1100.0]), np.array([0.1, 0.2]), 0.5),
+        lambda filename: (np.array([1000.0, 1100.0]), np.array([0.1, 0.2]), 0.5, 100.0),
     )
     monkeypatch.setattr(
         "loaders.load_channel.load_psf_image_file",
@@ -312,7 +312,7 @@ def test_load_channel_spectroscopy_vis_returns_spectroscopy_channel(monkeypatch)
     monkeypatch.setattr("loaders.load_channel.parse_simple_kv", lambda path: raw)
     monkeypatch.setattr(
         "loaders.load_channel.load_effective_area_file",
-        lambda filename: (np.array([1000.0, 1100.0, 1200.0]), np.array([0.1, 0.2, 0.3]), 0.5),
+        lambda filename: (np.array([1000.0, 1100.0, 1200.0]), np.array([0.1, 0.2, 0.3]), 0.5, 100.0),
     )
     monkeypatch.setattr(
         "loaders.load_channel.load_spread_profile_file_spectroscopy",

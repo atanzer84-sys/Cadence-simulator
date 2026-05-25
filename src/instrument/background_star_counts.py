@@ -1,16 +1,14 @@
 import logging
 import numpy as np
 from domain.star_catalog import StarCatalog
-from loaders.run_waltzer_context import RunContext
+from loaders.run_cadence_context import RunContext
 from configs.channel_config import SpectroscopyChannel, PhotometryChannel
 from instrument.prepare_detector_images import compute_counts_per_s_px_one_channel
-from instrument.wavelength_range import get_required_wavelength_range
-from instrument.prepare_detector_images import prepare_star_photon_flux_in_range
+from instrument.prepare_detector_images import calculate_photon_flux_density_on_Earth
 from instrument.background_star_spectroscopy import spectroscopy_radius_arcsec
 
 def populate_background_star_counts(background_stars_catalog: StarCatalog, nuv: SpectroscopyChannel | None, vis: SpectroscopyChannel | None, nir: PhotometryChannel | None, ctx: RunContext) -> StarCatalog:
 
-    wl_min_A, wl_max_A = get_required_wavelength_range(nuv, vis, nir)
     enabled_channels = [c for c in (nuv, vis, nir) if c is not None]
     total = len(background_stars_catalog.stars_by_id)
 
@@ -27,7 +25,7 @@ def populate_background_star_counts(background_stars_catalog: StarCatalog, nuv: 
 
         separation_arcsec = background_stars_catalog.get_separation_arcsec(star_id)
 
-        photons_star, wavelengths = prepare_star_photon_flux_in_range(bg_star, ctx, wl_min_A, wl_max_A, announce_user=False, background_star=True)
+        photons_star, wavelengths = calculate_photon_flux_density_on_Earth(bg_star, ctx, nuv, vis, nir, announce_user=False, background_star=True)
 
         for channel in enabled_channels:
             key = (star_id, channel.channel_name)

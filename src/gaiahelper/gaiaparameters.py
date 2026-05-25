@@ -21,8 +21,8 @@ for parent in [p] + list(p.parents):
 else:
     raise RuntimeError("Repository root not found")
 
-from loaders.run_waltzer_context import setup_output_directory
-from loaders.run_waltzer_context import get_repo_root
+from loaders.run_cadence_context import setup_output_directory
+from loaders.run_cadence_context import get_repo_root
 
 
 def ts(*args):

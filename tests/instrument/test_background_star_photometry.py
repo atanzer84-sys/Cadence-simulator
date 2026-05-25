@@ -1,9 +1,7 @@
 import numpy as np
 from unittest.mock import patch
 
-from instrument.background_star_photometry import (
-    generate_background_star_photometry_image,
-)
+from instrument.background_star_photometry import generate_background_star_photometry_image
 
 
 # Tests: generate_background_star_photometry_image
@@ -16,7 +14,7 @@ def test_bg_photometry_no_stars(make_photometry_channel, make_star_catalog):
         "instrument.background_star_photometry.get_photometry_placement",
         return_value=(16, 16.0),
     ):
-        image, arcs = generate_background_star_photometry_image(
+        image = generate_background_star_photometry_image(
             channel,
             catalog,
             roll_angle_start=0.0,
@@ -25,7 +23,6 @@ def test_bg_photometry_no_stars(make_photometry_channel, make_star_catalog):
         )
 
     assert np.all(image == 0.0)
-    assert arcs == {}
 
 
 # Tests: generate_background_star_photometry_image
@@ -42,7 +39,7 @@ def test_bg_photometry_star_outside_detector(make_photometry_channel, make_star_
         "instrument.background_star_photometry.get_photometry_placement",
         return_value=(16, 16.0),
     ):
-        image, arcs = generate_background_star_photometry_image(
+        image = generate_background_star_photometry_image(
             channel,
             catalog,
             roll_angle_start=0.0,
@@ -51,7 +48,6 @@ def test_bg_photometry_star_outside_detector(make_photometry_channel, make_star_
         )
 
     assert np.all(image == 0.0)
-    assert arcs == {}
 
 
 # Tests: generate_background_star_photometry_image
@@ -67,7 +63,7 @@ def test_bg_photometry_missing_counts(make_photometry_channel, make_star_catalog
         "instrument.background_star_photometry.get_photometry_placement",
         return_value=(16, 16.0),
     ):
-        image, arcs = generate_background_star_photometry_image(
+        image = generate_background_star_photometry_image(
             channel,
             catalog,
             roll_angle_start=0.0,
@@ -76,7 +72,6 @@ def test_bg_photometry_missing_counts(make_photometry_channel, make_star_catalog
         )
 
     assert np.all(image == 0.0)
-    assert arcs == {}
 
 
 # Tests: generate_background_star_photometry_image
@@ -99,7 +94,7 @@ def test_bg_photometry_single_star(make_photometry_channel, make_star_catalog, m
         "instrument.background_star_photometry.get_photometry_placement",
         return_value=(16, 16.0),
     ):
-        image, arcs = generate_background_star_photometry_image(
+        image = generate_background_star_photometry_image(
             channel,
             catalog,
             roll_angle_start=0.0,
@@ -108,8 +103,8 @@ def test_bg_photometry_single_star(make_photometry_channel, make_star_catalog, m
         )
 
     assert np.sum(image) > 0.0
-    assert "star_1" in arcs
-    assert len(arcs["star_1"]) >= 2
+    nonzero = np.count_nonzero(image)
+    assert nonzero >= 2
 
 
 # Tests: generate_background_star_photometry_image
@@ -138,7 +133,7 @@ def test_bg_photometry_multiple_stars(make_photometry_channel, make_star_catalog
         "instrument.background_star_photometry.get_photometry_placement",
         return_value=(16, 16.0),
     ):
-        image, arcs = generate_background_star_photometry_image(
+        image = generate_background_star_photometry_image(
             channel,
             catalog,
             roll_angle_start=0.0,
@@ -147,12 +142,11 @@ def test_bg_photometry_multiple_stars(make_photometry_channel, make_star_catalog
         )
 
     assert np.sum(image) > 0.0
-    assert set(arcs.keys()) == {"star_1", "star_2"}
 
 
 # Tests: generate_background_star_photometry_image
-# Behavior: returns arc positions for visible stars
-def test_bg_photometry_returns_arc_positions(make_photometry_channel, make_star_catalog, make_star):
+# Behavior: roll sweep keeps pasted PSFs on the detector grid
+def test_bg_photometry_roll_sweep_pixels_in_bounds(make_photometry_channel, make_star_catalog, make_star):
     channel = make_photometry_channel(
         x_pixels=32,
         y_pixels=32,
@@ -170,7 +164,7 @@ def test_bg_photometry_returns_arc_positions(make_photometry_channel, make_star_
         "instrument.background_star_photometry.get_photometry_placement",
         return_value=(16, 16.0),
     ):
-        _, arcs = generate_background_star_photometry_image(
+        image = generate_background_star_photometry_image(
             channel,
             catalog,
             roll_angle_start=0.0,
@@ -178,11 +172,11 @@ def test_bg_photometry_returns_arc_positions(make_photometry_channel, make_star_
             frame_index=0,
         )
 
-    assert "star_1" in arcs
-    assert len(arcs["star_1"]) >= 2
-    for x_pos, y_pos in arcs["star_1"]:
-        assert 0 <= x_pos < channel.x_pixels
-        assert 0 <= y_pos < channel.y_pixels
+    assert np.sum(image) > 0.0
+    ys, xs = np.nonzero(image)
+    assert ys.size >= 2
+    assert np.all((xs >= 0) & (xs < channel.x_pixels))
+    assert np.all((ys >= 0) & (ys < channel.y_pixels))
 
 
 # Tests: generate_background_star_photometry_image

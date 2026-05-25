@@ -2,34 +2,56 @@ import numpy as np
 import logging
 from configs.global_config import get_global_config
 from domain.star import Star
-from flux.flux_calc import calculate_flux_on_earth
-from loaders.run_waltzer_context import RunContext
+from flux.photon_flux_pipeline import run_photon_flux_density_pipeline
+from loaders.run_cadence_context import RunContext
 from configs.channel_config import PhotometryChannel, SpectroscopyChannel, Channel
 from instrument.spectrum_spread import spread_target_star_spectrum_to_2d
 from instrument.spectral_convolution import counts_per_s_px_conv_per_channel, compute_broadened_channel_flux
-from utils.constants import PHOTON_ENERGY_CONVERSION_A
-from instrument.psf_spread import spread_1d_photometry_to_2d
 from instrument.wavelength_range import get_required_wavelength_range
-from utils.debug_dumps import dump_1d_for_channel, dump_effective_area_txt, dump_npz_snapshot, dump_1d_array
-from utils.flux_image_array import plot_flux_and_photons_windows, plot_1d_for_channel
+from instrument.psf_spread import spread_1d_photometry_to_2d
+from utils.debug_dumps import dump_1d_for_channel, dump_effective_area_txt, dump_npz_snapshot
+from utils.flux_image_array import plot_1d_for_channel
+from utils.helpers import announce
 
-def prepare_star_photon_flux_for_channels(star: Star, ctx: RunContext, nuv: SpectroscopyChannel | None, vis: SpectroscopyChannel | None, nir: PhotometryChannel | None):
-    print("\n==== STARTING CALCULATION FOR FLUX TO INSTRUMENT =====")
+def calculate_photon_flux_density_on_Earth(star: Star, ctx: RunContext, nuv: SpectroscopyChannel | None, vis: SpectroscopyChannel | None, nir: PhotometryChannel | None, announce_user: bool = True, background_star: bool = False):
+    """Photon flux density on Earth for a source over the band required by the active channels.
+
+    Use this for the science target or for a background / field star: pass any
+    domain.star.Star instance. Wavelength limits come from the enabled instrument
+    channels (nuv, vis, and nir may be None when a band is off). The heavy work is
+    flux.photon_flux_pipeline.run_photon_flux_density_pipeline; this wrapper only supplies wl_min_A
+    and wl_max_A from get_required_wavelength_range.
+
+    Returns the same pair as that pipeline: photon flux density in photons s⁻¹ cm⁻² Å⁻¹ and
+    wavelength in Å, both float32 vectors of equal length.
+
+    Parameters
+    ----------
+    star : Star
+        Science target or background star (same Star type for both).
+    ctx : RunContext
+        Current run (includes output directory).
+    nuv, vis, nir : SpectroscopyChannel or PhotometryChannel or None
+        Per-band configs; None if the band is disabled.
+    announce_user : bool
+        If True, user-facing progress text is shown where supported.
+    background_star : bool
+        If True, use the background-star branch of the flux pipeline (fewer optional
+        plots and intermediate dumps); set this when ``star`` is a catalog background star.
+
+    Returns
+    -------
+    photon_flux_density : ndarray
+        Photons s⁻¹ cm⁻² Å⁻¹, float32, one bin per wavelength sample.
+    wavelengths : ndarray
+        Wavelength in Å, float32, same shape as photon_flux_density.
+    """
+    announce(f"\n==== STARTING CALCULATION FOR FLUX TO INSTRUMENT =====", announce_user)
+    
     wl_min_A, wl_max_A = get_required_wavelength_range(nuv, vis, nir)
-    photons_star, wavelengths_total = prepare_star_photon_flux_in_range(star, ctx, wl_min_A, wl_max_A, announce_user=True)
-    return photons_star, wavelengths_total
-
-def prepare_star_photon_flux_in_range(star: Star, ctx: RunContext, wl_min_A: float, wl_max_A: float, announce_user: bool = True, background_star: bool = False):
-    flux, wavelengths = calculate_flux_on_earth(star, ctx, wl_min_A, wl_max_A, announce_user=announce_user, background_star=background_star)
-    photons_star = convert_flux_to_photons(flux, wavelengths)
-    photons_star = np.asarray(photons_star, dtype=np.float32)
-    wavelengths = np.asarray(wavelengths, dtype=np.float32)
-
-    cfg = get_global_config()
-    if cfg.write_intermediate_arrays and not background_star:
-        dump_1d_array(wavelengths, photons_star, ctx.output_dir, star.name, "FluxCalc_8_photons_star", perChannel=True, zoom=True)
-    if cfg.produce_flux_convolution_plots and not background_star:
-        plot_flux_and_photons_windows(wavelengths, photons_star, ctx.output_dir, star, "FluxCalc_photons", "Photon Flux", "Photon flux [photons s⁻¹ cm⁻² Å⁻¹]")
+    photons_star, wavelengths = run_photon_flux_density_pipeline(
+        star, ctx, wl_min_A, wl_max_A, announce_user=announce_user, background_star=background_star
+    )
 
     return photons_star, wavelengths
 
@@ -76,12 +98,6 @@ def compute_counts_per_s_px_one_channel(photons_star: np.ndarray, wavelengths: n
     counts_s_px_convolved = counts_per_s_px_conv_per_channel(broadened_flux, wavelength, channel)
     _dump_convolved_counts(ctx, star, channel, counts_s_px_convolved, background_star=background_star)
     return counts_s_px_convolved
-
-def convert_flux_to_photons(flux_unred, wavelengths):
-    photon_flux = flux_unred * PHOTON_ENERGY_CONVERSION_A * wavelengths #from ergs/s/cm2/A to photons/s/cm2/A
-    return photon_flux
-
-
 
 def _dump_convolved_counts(ctx: RunContext, star: Star, channel: Channel, counts_s_px_convolved: np.ndarray, background_star: bool = False) -> None:
     cfg = get_global_config()

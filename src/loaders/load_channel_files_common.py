@@ -3,7 +3,7 @@ import logging
 import warnings
 import numpy as np
 from configs.global_config import get_global_config
-from loaders.run_waltzer_context import get_repo_root
+from loaders.run_cadence_context import get_repo_root
 from utils.helpers import resolve_path_under
 
 def read_text_lines_with_fallback(path: Path, encodings: tuple[str, ...], context: str) -> list[str]:
@@ -31,6 +31,7 @@ def load_effective_area_file(effective_area_filename: str) -> tuple[np.ndarray, 
         wavelength_angstrom: np.ndarray
         effective_area_cm2: np.ndarray
         pixel_scale: float  (mandatory; taken from '# Pixel scale: <value>' header line)
+        spectral_dispersion_A_per_pixel: float  (wavelength step between adjacent pixels, Å/pixel)
 
     Reads numeric table as whitespace-delimited. Ignores middle columns by taking:
         first numeric column  -> wavelength
@@ -92,9 +93,14 @@ def load_effective_area_file(effective_area_filename: str) -> tuple[np.ndarray, 
         logging.error(msg)
         raise ValueError(msg)
 
-    logging.info("Effective area loaded (%s): rows(WL)=%d rows(EA)=%d pixel_scale=%s", path, wavelength.shape[0], eff_area.shape[0], pixel_scale)
+    if len(wavelength) < 2:
+        raise ValueError(f"Effective area file has fewer than 2 wavelength points: {path}")
+    spectral_dispersion_A_per_pixel = float(wavelength[1] - wavelength[0])
 
-    return wavelength, eff_area, pixel_scale
+
+    logging.info("Effective area loaded (%s): rows(WL)=%d rows(EA)=%d pixel_scale=%s spectral_dispersion_A_per_pixel=%s", path, wavelength.shape[0], eff_area.shape[0], pixel_scale, spectral_dispersion_A_per_pixel)
+
+    return wavelength, eff_area, pixel_scale, spectral_dispersion_A_per_pixel
 
 def load_background_file(background_filename: str) -> tuple[np.ndarray | None, np.ndarray | None]:
     """

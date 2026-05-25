@@ -11,8 +11,7 @@ def test_populate_background_star_counts_no_stars(make_star_catalog, make_run_co
     ctx = make_run_context()
     nuv = make_spectroscopy_channel(channel_name="NUV")
 
-    with patch("instrument.background_star_counts.get_required_wavelength_range", return_value=(1000.0, 2000.0)), \
-         patch("instrument.background_star_counts.prepare_star_photon_flux_in_range") as prepare_mock, \
+    with patch("instrument.background_star_counts.calculate_photon_flux_density_on_Earth") as prepare_mock, \
          patch("instrument.background_star_counts.compute_counts_per_s_px_one_channel") as compute_mock:
         result = populate_background_star_counts(catalog, nuv=nuv, vis=None, nir=None, ctx=ctx)
 
@@ -33,8 +32,7 @@ def test_populate_background_star_counts_stores_spectroscopy_array(make_star_cat
     nuv = make_spectroscopy_channel(channel_name="NUV")
     counts_s_px = np.array([1.0, 2.0, 3.0], dtype=float)
 
-    with patch("instrument.background_star_counts.get_required_wavelength_range", return_value=(1000.0, 2000.0)), \
-         patch("instrument.background_star_counts.prepare_star_photon_flux_in_range", return_value=(np.array([10.0, 20.0]), np.array([1000.0, 1100.0]))), \
+    with patch("instrument.background_star_counts.calculate_photon_flux_density_on_Earth", return_value=(np.array([10.0, 20.0]), np.array([1000.0, 1100.0]))), \
          patch("instrument.background_star_counts.compute_counts_per_s_px_one_channel", return_value=counts_s_px):
         result = populate_background_star_counts(catalog, nuv=nuv, vis=None, nir=None, ctx=ctx)
 
@@ -55,8 +53,7 @@ def test_populate_background_star_counts_stores_photometry_scalar(make_star_cata
     nir = make_photometry_channel(channel_name="NIR")
     counts_s_px = np.array([1.0, 2.0, 3.0], dtype=float)
 
-    with patch("instrument.background_star_counts.get_required_wavelength_range", return_value=(1000.0, 2000.0)), \
-         patch("instrument.background_star_counts.prepare_star_photon_flux_in_range", return_value=(np.array([10.0, 20.0]), np.array([1000.0, 1100.0]))), \
+    with patch("instrument.background_star_counts.calculate_photon_flux_density_on_Earth", return_value=(np.array([10.0, 20.0]), np.array([1000.0, 1100.0]))), \
          patch("instrument.background_star_counts.compute_counts_per_s_px_one_channel", return_value=counts_s_px):
         result = populate_background_star_counts(catalog, nuv=None, vis=None, nir=nir, ctx=ctx)
 
@@ -83,8 +80,7 @@ def test_populate_background_star_counts_processes_multiple_channels(make_star_c
             return np.array([4.0, 5.0], dtype=float)
         return np.array([1.0, 2.0, 3.0], dtype=float)
 
-    with patch("instrument.background_star_counts.get_required_wavelength_range", return_value=(1000.0, 2000.0)), \
-         patch("instrument.background_star_counts.prepare_star_photon_flux_in_range", return_value=(np.array([10.0, 20.0]), np.array([1000.0, 1100.0]))), \
+    with patch("instrument.background_star_counts.calculate_photon_flux_density_on_Earth", return_value=(np.array([10.0, 20.0]), np.array([1000.0, 1100.0]))), \
          patch("instrument.background_star_counts.compute_counts_per_s_px_one_channel", side_effect=_fake_counts):
         result = populate_background_star_counts(catalog, nuv=nuv, vis=vis, nir=nir, ctx=ctx)
 
@@ -121,8 +117,7 @@ def test_populate_background_star_counts_skips_existing_counts(make_star_catalog
         assert channel.channel_name == "NIR"
         return np.array([1.0, 2.0, 3.0], dtype=float)
 
-    with patch("instrument.background_star_counts.get_required_wavelength_range", return_value=(1000.0, 2000.0)), \
-         patch("instrument.background_star_counts.prepare_star_photon_flux_in_range", return_value=(np.array([10.0, 20.0]), np.array([1000.0, 1100.0]))), \
+    with patch("instrument.background_star_counts.calculate_photon_flux_density_on_Earth", return_value=(np.array([10.0, 20.0]), np.array([1000.0, 1100.0]))), \
          patch("instrument.background_star_counts.compute_counts_per_s_px_one_channel", side_effect=_fake_counts) as compute_mock:
         result = populate_background_star_counts(catalog, nuv=nuv, vis=None, nir=nir, ctx=ctx)
 
@@ -144,8 +139,7 @@ def test_populate_background_star_counts_processes_multiple_stars(make_star_cata
     ctx = make_run_context()
     nuv = make_spectroscopy_channel(channel_name="NUV")
 
-    with patch("instrument.background_star_counts.get_required_wavelength_range", return_value=(1000.0, 2000.0)), \
-         patch("instrument.background_star_counts.prepare_star_photon_flux_in_range", return_value=(np.array([10.0, 20.0]), np.array([1000.0, 1100.0]))), \
+    with patch("instrument.background_star_counts.calculate_photon_flux_density_on_Earth", return_value=(np.array([10.0, 20.0]), np.array([1000.0, 1100.0]))), \
          patch("instrument.background_star_counts.compute_counts_per_s_px_one_channel", return_value=np.array([1.0, 2.0, 3.0], dtype=float)):
         result = populate_background_star_counts(catalog, nuv=nuv, vis=None, nir=None, ctx=ctx)
 

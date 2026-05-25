@@ -6,7 +6,7 @@ def compute_broadened_channel_flux(photon_flux_at_earth: np.ndarray, wavelengths
     # Cut up array to broaden with gauss later
     cut_photon_flux, wavelength = cut_wavelength_window_with_margin(photon_flux_at_earth, wavelengths_total, channel)
     # Gaussian Broadening of flux over wavelengths
-    photon_flux_smoothed =  gaussbroad(wavelength, cut_photon_flux, channel.pixel_scale)
+    photon_flux_smoothed =  gaussbroad(wavelength, cut_photon_flux, channel.spectral_dispersion_A_per_pixel)
     return photon_flux_smoothed, wavelength
 
 

@@ -1,4 +1,4 @@
-from utils.constants import AU_cm, Mgaratio_loggf2to1, MgII2w, MgII1w
+from utils.constants import AU_cm, Mgaratio_loggf2to1, MgII1w, MgII2w
 import numpy as np
 import logging
 from utils.helpers import announce

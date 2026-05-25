@@ -1,7 +1,7 @@
 import logging
 import numpy as np
 from instrument.flat_image import generate_flat_image
-from loaders.run_waltzer_context import RunContext
+from loaders.run_cadence_context import RunContext
 from configs.channel_config import SpectroscopyChannel, PhotometryChannel, Channel
 from instrument.bias_image import generate_bias_image
 from instrument.dark_image import generate_dark_image
@@ -23,7 +23,6 @@ from frame.frame_class import Frame
 from instrument.psf_spread import compute_aperture_photometry
 from utils.images_calibration_frame import write_calibration_frame_png
 from utils.images_science_frame import write_science_frame_png
-from utils.images_backgroundstar_science_panel import generate_background_star_visibility_on_science_frame
 from utils.debug_dumps import dump_npz_snapshot
 
 
@@ -106,19 +105,15 @@ def _create_per_exposure(stellar_component, background_component, channel: Chann
     image = _build_science_image_without_bg_stars(stellar_component, background_component, channel, ctx, cfg, star, frame_index, base_header)
 
     if isinstance(channel, SpectroscopyChannel):
-        bg_stars, background_star_visibility = generate_background_star_spectroscopy_image(channel, background_stars_catalog, roll_angle_start, roll_angle_end, frame_index)
-        visibility_kwargs = {"background_star_bands": background_star_visibility}
+        bg_stars = generate_background_star_spectroscopy_image(channel, background_stars_catalog, roll_angle_start, roll_angle_end, frame_index)
     elif isinstance(channel, PhotometryChannel):
-        bg_stars, background_star_visibility = generate_background_star_photometry_image(channel, background_stars_catalog, roll_angle_start, roll_angle_end, frame_index)
-        visibility_kwargs = {"background_star_arcs": background_star_visibility}
+        bg_stars = generate_background_star_photometry_image(channel, background_stars_catalog, roll_angle_start, roll_angle_end, frame_index)
     else:
         raise TypeError(f"Unsupported channel type: {type(channel)}")
 
     image += bg_stars
     image *= ccd_gain
 
-    if cfg.write_background_star_footprint_on_science_frame:
-        generate_background_star_visibility_on_science_frame(image, bg_stars, ctx, channel, star=star, index=frame_index, inverted=cfg.invert_calibration_science_frame_component, **visibility_kwargs)
     if cfg.write_intermediate_arrays and frame_index < 1:
         dump_npz_snapshot(ctx.output_dir, f"{star.name}_{channel.channel_name}_background_stars_component_full.npz", image_full=bg_stars)
         dump_npz_snapshot(ctx.output_dir, f"{star.name}_{channel.channel_name}_science_image_full.npz", image_full=image)

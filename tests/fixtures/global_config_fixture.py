@@ -36,7 +36,6 @@ def make_global_config():
             invert_science_frames=False,
             write_science_frames_png=False,
             science_frame_png_crop_spectrum_region=False,
-            write_background_star_footprint_on_science_frame=False,
 
             cosmic_rays_min=0,
             cosmic_rays_max=0,
