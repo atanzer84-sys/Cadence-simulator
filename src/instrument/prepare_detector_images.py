@@ -5,7 +5,7 @@ from domain.star import Star
 from flux.photon_flux_pipeline import run_photon_flux_density_pipeline
 from loaders.run_cadence_context import RunContext
 from configs.channel_config import PhotometryChannel, SpectroscopyChannel, Channel
-from instrument.spectrum_spread import spread_target_star_spectrum_to_2d
+from instrument.spectrum_spread import spread_target_star_spectrum_to_2d, get_spectrum_placement
 from instrument.spectral_convolution import counts_per_s_px_conv_per_channel, compute_broadened_channel_flux
 from instrument.wavelength_range import get_required_wavelength_range
 from instrument.psf_spread import spread_1d_photometry_to_2d
@@ -66,8 +66,21 @@ def prepare_detector_image_spectroscopy(photons: np.ndarray, wavelengths: np.nda
     cfg = get_global_config()
     if cfg.write_intermediate_arrays:
         dump_npz_snapshot(ctx.output_dir, f"{ctx.target_name}_{channel.channel_name}_spread_image_2d_full.npz", image_full=spectra_2d)
+
         if channel.spread_y_positions is not None and channel.spread_y_weights is not None and channel.spread_y_wavelengths is not None:
             dump_npz_snapshot(ctx.output_dir, f"{channel.channel_name}_spread_profile_full.npz", spread_y_positions=channel.spread_y_positions, spread_y_weights=channel.spread_y_weights, spread_y_wavelengths=channel.spread_y_wavelengths)
+    if cfg.produce_flux_convolution_plots:
+        placement = get_spectrum_placement(channel)
+        y0 = int(placement[1])
+        central_row = spectra_2d[y0, :]
+        plot_1d_for_channel(
+            channel.effective_area_wavelength, central_row, ctx.output_dir, star,
+            filename_tag="Detector_counts_s_px_spread_central_row",
+            title_text=f"Central Row After Cross-Dispersion Spread",
+            y_label=r"Counts s$^{-1}$ pixel$^{-1}$",
+            channel_name=channel.channel_name,
+            full=True,
+        )
 
     logging.info("Detector image prepared: channel=%s mode=spectroscopy shape=%s", channel.channel_name, spectra_2d.shape)
 
@@ -112,6 +125,7 @@ def _dump_convolved_counts(ctx: RunContext, star: Star, channel: Channel, counts
 
         noise_floor = channel.bias_offset + channel.dark_current * channel.exposure_s
         total_counts = counts_s_px_convolved * channel.exposure_s + noise_floor
+        noise_sigma = channel.read_noise + channel.dark_current_noise * channel.exposure_s
 
-        plot_1d_for_channel(channel.effective_area_wavelength, total_counts, ctx.output_dir, star, filename_tag="Detector_counts_s_px_convolved_noise_floor", title_text=f"Simulated Pixel Values ({channel.exposure_s:.0f} s) — bias + dark + signal", y_label=r"Counts pixel$^{-1}$", channel_name=channel.channel_name, full=True, noise_floor=noise_floor)
+        plot_1d_for_channel(channel.effective_area_wavelength, total_counts, ctx.output_dir, star, filename_tag="Detector_counts_s_px_convolved_noise_floor", title_text=f"Simulated Pixel Values ({channel.exposure_s:.0f} s) — bias + dark + signal", y_label=r"Counts pixel$^{-1}$", channel_name=channel.channel_name, full=True, noise_floor=noise_floor, noise_sigma=noise_sigma)
 
