@@ -72,15 +72,10 @@ def prepare_detector_image_spectroscopy(photons: np.ndarray, wavelengths: np.nda
     if cfg.produce_flux_convolution_plots:
         placement = get_spectrum_placement(channel)
         y0 = int(placement[1])
-        central_row = spectra_2d[y0, :]
-        plot_1d_for_channel(
-            channel.effective_area_wavelength, central_row, ctx.output_dir, star,
-            filename_tag="Detector_counts_s_px_spread_central_row",
-            title_text=f"Central Row After Cross-Dispersion Spread",
-            y_label=r"Counts s$^{-1}$ pixel$^{-1}$",
-            channel_name=channel.channel_name,
-            full=True,
-        )
+        # central_row = spectra_2d[y0, :]
+        central_rows = spectra_2d[y0-10:y0+11, :]
+        central_row = central_rows.sum(axis=0)
+        plot_1d_for_channel(channel.effective_area_wavelength, central_row, ctx.output_dir, star, filename_tag="Detector_counts_s_px_spread_central_row", title_text=f"Central Row After Cross-Dispersion Spread", y_label=r"Counts s$^{-1}$ pixel$^{-1}$", channel_name=channel.channel_name, full=True)
 
     logging.info("Detector image prepared: channel=%s mode=spectroscopy shape=%s", channel.channel_name, spectra_2d.shape)
 

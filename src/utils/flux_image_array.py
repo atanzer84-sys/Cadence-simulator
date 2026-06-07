@@ -99,14 +99,12 @@ def _plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title
     colors = {"nuv": "darkblue", "vis": "darkgreen", "nir": "darkred"}
     color = colors.get(band, "black")
 
-    ax.plot(wl, flux, color=color, linewidth=0.4, alpha=0.6, label=rf"{band.upper()} ({wmin:.0f}–{wmax:.0f} $\mathrm{{\AA}}$)")
+    ax.plot(wl, flux, color=color, linewidth=0.1, alpha=0.5, label=rf"{band.upper()} ({wmin:.0f}–{wmax:.0f} $\mathrm{{\AA}}$)")
     
     if noise_floor is not None:
         ax.axhline(noise_floor, color="red", linestyle="--", linewidth=1.0, label=rf"Baseline (bias + dark) = {noise_floor:.1f} e$^{{-}}$ px$^{{-1}}$")
         if noise_sigma is not None:
             ax.axhspan(noise_floor - noise_sigma, noise_floor + noise_sigma, color="red", alpha=0.15, label=rf"$\pm\sigma$ (read + dark noise) = {noise_sigma:.1f} e$^{{-}}$ px$^{{-1}}$")
-
-
 
     _wavelength_ticks(ax, key)
     ax.tick_params(axis="x", which="minor", length=3)

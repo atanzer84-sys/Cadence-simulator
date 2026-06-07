@@ -91,6 +91,8 @@ def run_photon_flux_density_pipeline(
 
     if dump_arrays:
         dump_3d_array(flux_lambda_original, ctx.output_dir, star.name, "FluxCalc_2_convertIntensityToLuminosity_snapshot", perChannel=True, zoom=True)
+    if dump_plots:
+        plot_flux_and_photons_windows(flux_lambda_original[:, 0], flux_lambda_original[:, 1], ctx.output_dir, star, "FluxCalc_2_convertIntensityToLuminosity_snapshot", "Flux After Stellar Model Conversion", "Spectral luminosity [erg s-1 A-1]")
 
     if cfg.line_core_emission:
         # ACTUAL LCA EMISSION
@@ -98,7 +100,9 @@ def run_photon_flux_density_pipeline(
 
         if dump_arrays:
             dump_3d_array(flux_lambda_diluted, ctx.output_dir, star.name, "FluxCalc_3_after_line_core_emission", perChannel=True, zoom=True)
-
+        if dump_plots:
+            plot_flux_and_photons_windows(flux_lambda_diluted[:, 0], flux_lambda_diluted[:, 1], ctx.output_dir, star, "FluxCalc_3_after_line_core_emission", "Flux After Line Core Emission", "Spectral luminosity [erg s-1 A-1]")
+            
     else:
         logging.info("Line Core Emission not applied!")
 
@@ -111,7 +115,8 @@ def run_photon_flux_density_pipeline(
 
         if dump_arrays:
             dump_3d_array(flux_lambda_diluted, ctx.output_dir, star.name, "FluxCalc_4_after_ISM", perChannel=True, zoom=True)
-
+        if dump_plots:
+            plot_flux_and_photons_windows(flux_lambda_diluted[:, 0], flux_lambda_diluted[:, 1], ctx.output_dir, star, "FluxCalc_4_after_ISM", "Flux After ISM Absorption", "Spectral luminosity [erg s-1 A-1]")
     else:
         logging.info("Interstellar Medium absorption not applied!")
 
@@ -143,7 +148,7 @@ def run_photon_flux_density_pipeline(
         dump_npz_snapshot(ctx.output_dir, f"{star.name}_FluxCalc_8_photons_star_full.npz", photons_star=photon_flux, wavelengths=wavelengths)
 
     if dump_plots:
-        plot_flux_and_photons_windows(wavelengths, photon_flux, ctx.output_dir, star, "FluxCalc_photons", "Photon Flux", "Photon flux [photons s⁻¹ cm⁻² Å⁻¹]")
+        plot_flux_and_photons_windows(wavelengths, photon_flux, ctx.output_dir, star, "FluxCalc_photons", "Photon Flux", "Photon flux [photons s⁻¹ cm⁻² Å⁻¹]", full=True)
 
     return photon_flux, wavelengths
 
