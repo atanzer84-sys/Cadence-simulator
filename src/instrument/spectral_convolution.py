@@ -2,6 +2,8 @@ import numpy as np
 from configs.channel_config import Channel
 from instrument.wavelength_range import compute_extended_wavelength_range
 from scipy.signal import fftconvolve
+from utils.constants import SPECTRAL_WINDOW_MARGIN_A
+
 
 
 def compute_broadened_channel_flux(photon_flux_at_earth: np.ndarray, wavelengths_total: np.ndarray, channel: Channel):
@@ -12,7 +14,7 @@ def compute_broadened_channel_flux(photon_flux_at_earth: np.ndarray, wavelengths
     return photon_flux_smoothed, wavelength
 
 
-def cut_wavelength_window_with_margin(photon_flux_at_earth: np.ndarray, wavelengths_total: np.ndarray, channel: Channel, margin_A: float = 200.0):
+def cut_wavelength_window_with_margin(photon_flux_at_earth: np.ndarray, wavelengths_total: np.ndarray, channel: Channel, margin_A: float = SPECTRAL_WINDOW_MARGIN_A):
     wl_min_ext, wl_max_ext = compute_extended_wavelength_range([channel], margin_A)
 
     i0_raw = np.searchsorted(wavelengths_total, wl_min_ext)

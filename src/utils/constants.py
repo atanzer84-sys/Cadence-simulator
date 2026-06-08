@@ -41,6 +41,9 @@ PHOTON_ENERGY_CONVERSION_A = (1.0 / (H_PLANCK * C_LIGHT_Angst))
 # (used to convert surface brightness from per steradian to per arcsec² / pixel units)
 ARCSEC2_PER_SR = (1 * u.sr).to(u.arcsec**2).value
 
+# Wavelength margin used for spectral windowing (e.g. ISM absorption, Gaussian broadening)
+SPECTRAL_WINDOW_MARGIN_A = 200.0
+
 #Parameters for MgII
 MgII1w      = 2795.5280 #MgIIk wavelength 
 MgII1_loggf = 0.100     #MgIIk loggf
