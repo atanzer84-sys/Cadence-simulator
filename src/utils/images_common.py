@@ -53,9 +53,14 @@ def normalize_target_name(name: str) -> str:
 def build_stats_row(array: np.ndarray, channel: Channel, frame_type: str) -> tuple[dict, list[str]]:
     filetype = "BIAS" if "BIAS" in frame_type.upper() else "SCIENCE"
     stats_keys = STATS_KEYS[filetype]
+    flat = array.ravel()
+    sample = flat[::10]
+
+
     stats_values = {
         "MEAN": float(np.mean(array)),
-        "MEDIAN": float(np.median(array)),
+        # "MEDIAN": float(np.median(array)),
+        "MEDIAN": float(np.median(sample)),
         "STDDEV": float(np.std(array, ddof=0)),
         "MIN": float(np.min(array)),
         "MAX": float(np.max(array)),
