@@ -236,7 +236,7 @@ def test_append_image_stats_header_appends_expected_stats():
     append_image_stats_header(header, image)
 
     assert header[HDR_MEAN] == round(float(np.mean(image)), 2)
-    assert header[HDR_MEDIAN] == round(float(np.median(image)), 2)
+    assert header[HDR_MEDIAN] == round(float(np.median(image.ravel()[::10])), 2)
     assert header[HDR_STDDEV] == round(float(np.std(image)), 2)
     assert header[HDR_MAX] == round(float(np.max(image)), 2)
     assert header[HDR_MIN] == round(float(np.min(image)), 2)

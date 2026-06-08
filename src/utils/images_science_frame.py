@@ -102,8 +102,10 @@ def save_single_frame_png_NIR(array: np.ndarray, filename: Path, title: str, sta
     # vmin, vmax = _calculate_percentile_scales(array)
     # vmin = float(np.min(array))
     # vmax = float(np.max(array))
-    vmin = float(np.percentile(array, 1))
-    vmax = float(np.percentile(array, 99.9))
+    # vmin = float(np.percentile(array, 1))
+    # vmax = float(np.percentile(array, 99.9))
+    vmin, vmax = _calculate_percentile_scales(array)
+
     ax.imshow(array, origin="lower", aspect="equal", cmap="gray", vmin=vmin, vmax=vmax)
 
     counts_star = None
@@ -155,7 +157,9 @@ def save_single_frame_png_NIR(array: np.ndarray, filename: Path, title: str, sta
         color = "#ff0000" if (line.startswith("C_STAR=") and not line.startswith("C_STAR_NOISE=") and counts_star < 5000) else "black"
         ax_txt.text(0.5, y, line, ha="center", va="center", fontsize=STATS_FONTSIZE_NIR, color=color, transform=ax_txt.transAxes)
         
-    fig.tight_layout()
+    # fig.tight_layout()
+    fig.subplots_adjust(left=0.05, right=0.98, top=0.92, bottom=0.05)
+
     fig.savefig(filename, dpi=_FIGURE_NIR_DPI, bbox_inches=_BBOX_INCHES)
     plt.close(fig)
     logging.debug("Wrote %s", filename)
@@ -205,7 +209,8 @@ def save_single_frame_png_VIS(array: np.ndarray, filename: Path, title: str, sta
     ax_txt.axis("off")
     ax_txt.text(0.5, 0.5, stats_text, ha="center", va="center", fontsize=_STATS_FONTSIZE, transform=ax_txt.transAxes)
 
-    fig.tight_layout()
+    # fig.tight_layout()
+    fig.subplots_adjust(left=0.05, right=0.98, top=0.92, bottom=0.05)
     fig.savefig(filename, dpi=_FIGURE_COMMON_DPI, bbox_inches=_BBOX_INCHES)
     plt.close(fig)
     logging.debug("Wrote %s", filename)
