@@ -59,7 +59,11 @@ def append_image_stats_header(header, image) -> None:
 
     # Use limited precision so FITS cards stay within 80 characters.
     _replace_header_card(header, "MEAN", float(round(image.mean(), 2)), "Mean value of the frame")
-    _replace_header_card(header, "MEDIAN", float(round(np.median(image), 2)), "Median value of the frame")
+    # _replace_header_card(header, "MEDIAN", float(round(np.median(image), 2)), "Median value of the frame")
+    flat = image.ravel()
+    sample = flat[::10]  # every 10th pixel
+    _replace_header_card(header, "MEDIAN", float(round(np.median(sample), 2)), "Median value of the frame (sampled)")
+
     _replace_header_card(header, "STDDEV", float(round(image.std(), 2)), "Standard deviation of the frame")
     _replace_header_card(header, "MAX", float(round(image.max(), 2)), "Maximum value of the frame")
     _replace_header_card(header, "MIN", float(round(image.min(), 2)), "Minimum value of the frame")
