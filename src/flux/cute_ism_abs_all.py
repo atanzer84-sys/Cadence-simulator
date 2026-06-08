@@ -1,4 +1,4 @@
-from utils.constants import C_LIGHT_km_s, ISM_b_Mg2, MgII1w, vr_ISM, MgII1_loggf, MgII1_stark, MgII2w, MgII2_loggf, MgII2_stark, MgIw, MgI_loggf, MgI_stark, FeIIw, FeII_loggf, FeII_stark
+from utils.constants import C_LIGHT_km_s, ISM_b_Mg2, MgII1w, vr_ISM, MgII1_loggf, MgII1_stark, MgII2w, MgII2_loggf, MgII2_stark, MgIw, MgI_loggf, MgI_stark, FeIIw, FeII_loggf, FeII_stark, SPECTRAL_WINDOW_MARGIN_A
 import scipy.constants as sc
 import scipy.special as ss
 import numpy as np
@@ -18,21 +18,21 @@ def cute_ism_abs_all(flux,n_mg2,n_mg1,n_fe2):
     #for MgII doublet
     absorberMg1={'ion':'MG21','N': n_mg2,'B':ISM_b_Mg2,'Z': 0.0}
     lineMg1={'ion':'Mg21','wave':MgII1w+MgII1w*vr_ISM/C_LIGHT_km_s,'F':10**MgII1_loggf,'gamma':10**MgII1_stark}
-    ISMMg21=voigtq(flux[:,0],absorberMg1,lineMg1)
+    # ISMMg21=voigtq(flux[:,0],absorberMg1,lineMg1)
     
     absorberMg2={'ion':'MG22','N':n_mg2,'B':ISM_b_Mg2,'Z':0.0}
     lineMg2={'ion':'Mg22','wave':MgII2w+MgII2w*vr_ISM/C_LIGHT_km_s,'F':10**MgII2_loggf,'gamma':10**MgII2_stark}
-    ISMMg22=voigtq(flux[:,0],absorberMg2,lineMg2)
+    # ISMMg22=voigtq(flux[:,0],absorberMg2,lineMg2)
     
     #for MgI
     absorberMgI={'ion':'MG1','N':n_mg1,'B':ISM_b_Mg2,'Z':0.0}
     lineMgI={'ion':'Mg1','wave':MgIw+MgIw*vr_ISM/C_LIGHT_km_s,'F':10**MgI_loggf,'gamma':10**MgI_stark}
-    ISMMg1=voigtq(flux[:,0],absorberMgI,lineMgI)
+    # ISMMg1=voigtq(flux[:,0],absorberMgI,lineMgI)
     
     #for FeII 
     absorberFeII={'ion':'FE2"','N':n_fe2,'B':ISM_b_Mg2,'Z':0.0}
     lineFeII={'ion':'Fe2','wave':FeIIw+FeIIw*vr_ISM/C_LIGHT_km_s,'F':10**FeII_loggf,'gamma':10**FeII_stark}
-    ISMFe2=voigtq(flux[:,0],absorberFeII,lineFeII)
+    # ISMFe2=voigtq(flux[:,0],absorberFeII,lineFeII)
 
     #for CaII
     #absorberCaK=create_struct('ion','Ca2K','N',N,'B',ISM_b_Ca2,'Z',0.0)
@@ -43,9 +43,32 @@ def cute_ism_abs_all(flux,n_mg2,n_mg1,n_fe2):
     #lineCaH=create_struct('ion','Ca2H','wave',CaHwl0+CaHwl0*vr_ISM/vc,'F',10**CaH_loggf,'gamma',10**CaH_stark)
     #ISMCaH=voigtq(flux[0,*],absorberCaH,lineCaH)
     
+
+    # Compute wavelength window from actual line centers + margin
+    
+    line_centers = [lineMg1['wave'], lineMg2['wave'], lineMgI['wave'], lineFeII['wave']]
+    wl_min = min(line_centers) - SPECTRAL_WINDOW_MARGIN_A
+    wl_max = max(line_centers) + SPECTRAL_WINDOW_MARGIN_A
+    wl = flux[:, 0]
+    mask = (wl >= wl_min) & (wl <= wl_max)
+
+    if not np.any(mask):
+        return flux  # no wavelengths in ISM window, nothing to absorb
+
+    wl_ism = wl[mask]
+
+    ISMMg21 = voigtq(wl_ism, absorberMg1, lineMg1)
+    ISMMg22 = voigtq(wl_ism, absorberMg2, lineMg2)
+    ISMMg1  = voigtq(wl_ism, absorberMgI, lineMgI)
+    ISMFe2  = voigtq(wl_ism, absorberFeII, lineFeII)
+
     ISM = ISMMg21*ISMMg22*ISMMg1*ISMFe2
 
-    flux_absorption = ISM * n_flux
+    # flux_absorption = ISM * n_flux
+    # Apply absorption only in ISM window, outside is unchanged (ISM = 1.0)
+    flux_absorption = n_flux.copy()
+    flux_absorption[mask] = ISM * n_flux[mask]
+
     flux[:,1]=flux[:,2]*flux_absorption
 
     return flux
@@ -89,6 +112,8 @@ def _build_voigt_profile_factor(wavelength, absorber, line):
 
 
 def voigtq(wavelength, absorber, line):
+
+
     cache_key = (
         wavelength.tobytes(),
         float(absorber["B"]),
