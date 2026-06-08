@@ -1,6 +1,8 @@
 import numpy as np
 from configs.channel_config import Channel
 from instrument.wavelength_range import compute_extended_wavelength_range
+from scipy.signal import fftconvolve
+
 
 def compute_broadened_channel_flux(photon_flux_at_earth: np.ndarray, wavelengths_total: np.ndarray, channel: Channel):
     # Cut up array to broaden with gauss later
@@ -78,7 +80,9 @@ def gaussbroad(wavelength, spectra, hwhm):
     spad = np.concatenate((np.full(npad,spectra[0]),spectra,np.full(npad,spectra[-1])))
 
     # Convolve with gaussian
-    sout = np.convolve(spad,gpro,mode='full')
+    # sout = np.convolve(spad,gpro,mode='full')
+    sout = fftconvolve(spad, gpro, mode='full')
+
     # Trim to original data/length
     sout = sout[npad : npad + len(wavelength)]
 
