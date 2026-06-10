@@ -243,3 +243,4 @@ Roland_RUNS/*
 documents/reports/~$v_band_stars.xlsx
 documents/reports/~$target_back_stars.xlsx
 .venv-test/*
+*.out
