@@ -109,7 +109,7 @@ def _read_global_cfg(path: Path) -> GlobalConfig:
     sigmaMg22 = as_float(raw.get("sigmaMg22", DEFAULT_SIGMA_MG22), key="sigmaMgIIh")
     sigmaMg21 = as_float(raw.get("sigmaMg21", DEFAULT_SIGMA_MG21), key="sigmaMgIIk")
 
-    enable_log_r_fallback = as_bool(raw.get("enable_log_r_fallback", 0), key="enable_log_r_fallback")
+    enable_log_r_fallback = as_bool(raw.get("enable_log_r_fallback", 1), key="enable_log_r_fallback")
     log_r_teff_threshold = as_float(raw["log_r_teff_threshold"], key="log_r_teff_threshold")
     log_r_hot_value = as_float(raw["log_r_hot_value"], key="log_r_hot_value")
     log_r_cool_value = as_float(raw["log_r_cool_value"], key="log_r_cool_value")

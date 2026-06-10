@@ -28,7 +28,7 @@ Required packages: \texttt{numpy}, \texttt{scipy}, \texttt{matplotlib}, \texttt{
               \item \texttt{nuv\_spectropolarimetry.txt}, \texttt{vis\_spectropolarimetry.txt} — polarization delta files for spectropolarimetry mode
               \item \texttt{background.txt} — default background spectrum
               \item \texttt{zod\_dist.txt}, \texttt{zod\_spectrum.txt} — zodiacal light distribution and spectrum
-              \item \texttt{stellar\_param\_mamjeck.txt} — Mamajek dwarf star parameter table for spectral type assignment
+              \item \texttt{stellar\_param\_mamjeck.txt} — Mamajek star parameter table for spectral type assignment
               \item \texttt{models/} — stellar atmosphere model grids
               \item \texttt{BackgroundStars/} — cached Gaia background star catalogues per target
           \end{itemize}
@@ -45,7 +45,17 @@ Required packages: \texttt{numpy}, \texttt{scipy}, \texttt{matplotlib}, \texttt{
 
 \subsection{Configuration}
 
-All configuration files are located in \texttt{configs/}. Every parameter is documented inline in the respective file.
+Cadence uses a combination of configuration files, runtime parameters and source-code constants. These are stored in different locations within the project:
+
+\begin{itemize}
+
+    \item \texttt{configs/}: simulator and instrument configuration files (\texttt{global.cfg}, \texttt{excel\_mapping.cfg}, \texttt{waltzer\_*.cfg})
+
+    \item \texttt{input/}: run-specific user input (\texttt{parameters.txt})
+
+    \item \texttt{src/utils/Constants.py}: implementation constants used throughout the simulator
+
+\end{itemize}
 
 The simulator distinguishes between constants, configuration files and runtime parameters. The distinction is primarily based on how frequently values are expected to change and how much validation is applied when they are modified.
 
@@ -59,13 +69,15 @@ For details on configuration loading, caching, and runtime access through \textt
 \subsubsection{\texttt{waltzer\_nuv.cfg}, \texttt{waltzer\_vis.cfg}, \texttt{waltzer\_nir.cfg}}
 Per-channel instrument configuration: detector geometry, noise properties, effective area file, slit or PSF properties, and spread profile.
 
+The files retain the \texttt{waltzer} naming convention because they describe a specific instrument configuration rather than the Cadence simulator itself. Cadence is intended to be instrument-independent, while these configuration files contain mission- or instrument-specific parameters.
+
 \subsubsection{\texttt{excel\_mapping.cfg}}
 
 The Excel mapping file decouples the Excel catalogue column names from the internal parameter names used by the simulator. Without it, column name changes in the catalogue would require modifying the source code. Instead, only the mapping file needs to be updated.
 
 The file also separates planetary and stellar properties, so the simulator can assign parameters to the correct class (\texttt{Star} or \texttt{Planet}) without hardcoding this distinction. Finally, it defines which parameters are required. For the primary target, if any required parameter is missing after all enrichment steps — including Gaia lookup and fallback derivations — the simulator stops and reports which parameters are missing. For background stars, missing parameters are handled differently: since Gaia does not always provide a complete set of properties and not all of them can be derived, background stars with missing required parameters are silently skipped rather than stopping the simulation.
 
-\subsubsection{Constants}
+\subsubsection{Constants (src/utils/Constants.py)}
 
 Constants are defined directly in the source code and are generally not intended to be modified during normal simulator operation. They typically represent implementation decisions, fixed assumptions or values that affect the behaviour of multiple pipeline stages.
 
