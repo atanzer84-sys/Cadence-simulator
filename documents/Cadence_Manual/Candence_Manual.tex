@@ -1,0 +1,48 @@
+\documentclass[10pt,a4paper]{article}
+
+% --- minimal, useful packages ---
+\usepackage[utf8]{inputenc}      % if you compile with pdfLaTeX
+\usepackage[a4paper,margin=2cm]{geometry}
+\usepackage{lmodern}
+\usepackage{graphicx}            % includegraphics
+\usepackage{amsmath,amssymb}     % math
+\usepackage{xcolor}              % optional color
+\usepackage{enumitem}            % compact lists
+\usepackage{fancyhdr}            % footer/header
+\usepackage{titlesec}            % section formatting
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue,
+}
+
+% --- spacing & lists ---
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{1ex}
+\setlist[itemize]{itemsep=0pt, topsep=2pt}
+
+% --- section numbering style ---
+\titleformat{\section}{\normalfont\Large\bfseries}{\thesection.}{1em}{}
+\titleformat{\subsection}{\normalfont\large\bfseries}{\thesubsection.}{1em}{}
+\titleformat{\subsubsection}{\normalfont\normalsize\bfseries}{\thesubsubsection.}{1em}{}
+
+% --- footer ---
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[C]{\scriptsize \leftmark\quad--\quad Page \thepage}
+
+% --- title ---
+\title{Cadence Manual}
+\author{}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+\input{man.tex}
+
+\end{document}
