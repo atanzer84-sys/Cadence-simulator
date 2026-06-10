@@ -20,7 +20,6 @@ _GAP_IN = 0.8
 _TITLE_FONTSIZE = 11
 _STATS_FONTSIZE = 10
 _FIGURE_COMMON_DPI = 150
-# None avoids expensive tight-bbox computation; we use tight_layout() for spacing instead.
 _BBOX_INCHES = None
 # Max pixels used for percentile scaling; larger arrays are subsampled to reduce runtime.
 _PERCENTILE_MAX_PIXELS = 250_000
@@ -86,7 +85,7 @@ def write_science_frame_png(detector_data, channel: Channel, ctx: RunContext, cf
 def save_single_frame_png_NIR(array: np.ndarray, filename: Path, title: str, stats_text: str, phot=None, draw_aperture_photometry_overlay: bool = False) -> None:
     STATS_FONTSIZE_NIR = 13
     TITLE_FONTSIZE_NIR = 18
-    GAP_IN_NIR = 0.35
+    GAP_IN_NIR = 0.8
     TEXT_H_IN_NIR = 0.9
     NIR_LABEL_FONTSIZE = 12
     _FIGURE_NIR_DPI = 100
@@ -99,11 +98,6 @@ def save_single_frame_png_NIR(array: np.ndarray, filename: Path, title: str, sta
     gs = fig.add_gridspec(nrows=3, ncols=1, height_ratios=[img_h_in, GAP_IN_NIR, TEXT_H_IN_NIR], hspace=0)
 
     ax = fig.add_subplot(gs[0, 0])
-    # vmin, vmax = _calculate_percentile_scales(array)
-    # vmin = float(np.min(array))
-    # vmax = float(np.max(array))
-    # vmin = float(np.percentile(array, 1))
-    # vmax = float(np.percentile(array, 99.9))
     vmin, vmax = _calculate_percentile_scales(array)
 
     ax.imshow(array, origin="lower", aspect="equal", cmap="gray", vmin=vmin, vmax=vmax)
@@ -157,7 +151,6 @@ def save_single_frame_png_NIR(array: np.ndarray, filename: Path, title: str, sta
         color = "#ff0000" if (line.startswith("C_STAR=") and not line.startswith("C_STAR_NOISE=") and counts_star < 5000) else "black"
         ax_txt.text(0.5, y, line, ha="center", va="center", fontsize=STATS_FONTSIZE_NIR, color=color, transform=ax_txt.transAxes)
         
-    # fig.tight_layout()
     fig.subplots_adjust(left=0.05, right=0.98, top=0.92, bottom=0.05)
 
     fig.savefig(filename, dpi=_FIGURE_NIR_DPI, bbox_inches=_BBOX_INCHES)
