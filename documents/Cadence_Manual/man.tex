@@ -49,7 +49,8 @@ Cadence uses a combination of configuration files, runtime parameters and source
 
 \begin{itemize}
 
-    \item \texttt{configs/}: simulator and instrument configuration files (\texttt{global.cfg}, \texttt{excel\_mapping.cfg}, \texttt{waltzer\_*.cfg})
+    \item \texttt{configs/}: simulator and instrument configuration files (\texttt{global.cfg}, \texttt{excel\_mapping.cfg}, \\
+          \texttt{waltzer\_*.cfg})
 
     \item \texttt{input/}: run-specific user input (\texttt{parameters.txt})
 
@@ -196,6 +197,11 @@ The resolved source ID is also used when fetching background stars — the targe
 \end{itemize}
 
 Effective temperature and mass are not derived. If effective temperature is missing after Excel and Gaia lookup, the simulator stops for the target star, as it is required for all downstream processing. Mass is optional and stays \texttt{None} if not provided.
+
+
+\subsection{Background}
+When \texttt{background\_type = calc} is set, the sun position used to compute the zodiacal light distribution is taken from the actual wall-clock time of the simulation run (\texttt{Time.now()}), not from a configurable observation epoch. Two runs of the same target on different dates will therefore produce different background levels. If reproducibility is required, replace \texttt{Time.now()} in \texttt{generate\_background\_calculated\_image()} with a fixed Julian date.
+
 \newpage
 
 \section{Tests}
@@ -445,7 +451,7 @@ This cache is especially important for simulations with many background stars, w
 
 \subsection{Unred Curve Cache}
 
-The extinction curve construction in \texttt{cute\_unred} is cached through: \texttt{\_UNRED\_CURVE\_CACHE = \{\}}.
+The extinction curve construction in \texttt{cute\_unred} is cached through: \texttt{\_UNRED\_CURVE\_CACHE}.
 The cache stores the wavelength-dependent extinction curve.
 The cache key consists of:
 
@@ -458,6 +464,20 @@ The cache therefore depends only on the wavelength grid and the selected extinct
 The expensive spline-based extinction curve construction is performed only once for a given wavelength grid and extinction-law configuration. Subsequent calls reuse the cached extinction curve and only apply the final E(B-V) scaling.
 
 The cache key includes all quantities used during extinction-curve construction. Changes to stellar models, wavelength sampling, or extinction-law configuration automatically generate separate cache entries and therefore do not require modifications to the cache implementation.
+
+\subsection{Additional Caches}
+
+\subsubsection{Mamajek Table Cache}
+The Mamajek spectral type table is loaded once and cached in \texttt{\_MAMAJEK\_CACHE} in \texttt{src/loaders/load\allowbreak\_stellar\allowbreak\_and\allowbreak\_planetary\allowbreak\_properties.py}. Subsequent calls to \texttt{infer\_mamajek()} reuse the cached table without re-reading the file.
+
+\subsubsection{Excel Mapping Cache}
+The Excel mapping configuration is loaded once and cached in \texttt{\_EXCEL\allowbreak\_MAPPING\allowbreak\_CACHE} in \texttt{src/loaders/load\allowbreak\_stellar\allowbreak\_and\allowbreak\_planetary\allowbreak\_properties.py}. Subsequent calls to \texttt{load\allowbreak\_excel\allowbreak\_mapping()} reuse the cached mapping without re-parsing \texttt{excel\allowbreak\_mapping.cfg}. This is particularly relevant for simulations with large background star catalogues, where \texttt{load\allowbreak\_excel\allowbreak\_mapping()} is called once per background star.
+
+\subsubsection{Background Star Visibility Log Cache}
+\texttt{\_LAST\_VISIBLE\_SIGNATURE\_BY\_CHANNEL} in \texttt{src/instrument/background\allowbreak\_star\allowbreak\_photometry.py} is not a performance cache. It tracks which background stars were visible on the detector in the previous frame per channel, so that the log only reports changes rather than repeating the full list every frame.
+
+\subsubsection{Profile Spread Warning Cache}
+\texttt{\_PROFILE\_SPREAD\_WARNED\_CHANNELS} in \texttt{src/instrument/spectrum\allowbreak\_spread.py} is not a performance cache. It ensures that the cross-dispersion profile spread conservation warning is logged at most once per channel per run.
 
 
 \newpage

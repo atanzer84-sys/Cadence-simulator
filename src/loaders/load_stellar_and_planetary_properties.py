@@ -14,6 +14,7 @@ from utils.constants import MAG_G_SUN, TEMP_SUN
 
 # Module-level cache (process lifetime) for Mamajek table arrays keyed by path.
 _MAMAJEK_CACHE: tuple[str, np.ndarray, np.ndarray] | None = None
+_EXCEL_MAPPING_CACHE = None
 
 def load_stellar_and_planetary_properties(target_name_user_input):
     cfg = get_global_config()
@@ -66,9 +67,12 @@ def load_stellar_and_planetary_properties(target_name_user_input):
         raise
 
 def load_excel_mapping():
-    repo_root = get_repo_root()
-    mapping_path = repo_root / "configs" / "excel_mapping.cfg"
-    return load_excel_cfg(mapping_path)
+    global _EXCEL_MAPPING_CACHE
+    if _EXCEL_MAPPING_CACHE is None:
+        repo_root = get_repo_root()
+        mapping_path = repo_root / "configs" / "excel_mapping.cfg"
+        _EXCEL_MAPPING_CACHE = load_excel_cfg(mapping_path)
+    return _EXCEL_MAPPING_CACHE
 
 def infer_mamajek(star_params, log_output: bool = True):
     repo_root = get_repo_root()
