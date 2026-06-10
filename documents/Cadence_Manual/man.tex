@@ -177,6 +177,8 @@ Gaia is queried in two situations during a simulation run.
 
 \paragraph{Background stars} If no CSV file for the target is found in \texttt{data/BackgroundStars/}, the simulator queries Gaia to fetch background stars at runtime. The resulting CSV is saved to the output directory and can be moved to \texttt{data/BackgroundStars/} for subsequent runs. It is strongly recommended to pre-fetch background stars using \texttt{gaiahelper\_create\_background\_stars.py} before running the simulator. Gaia queries are slow, unreliable, and can take a very long time for crowded fields.
 
+The Gaia fetch always uses a fixed magnitude limit of 20.0, independent of \texttt{magnitude\_cutoff} in \texttt{global.cfg}. If a lower cutoff were used, the saved CSV would only contain brighter stars, and a later run with a higher cutoff would silently get fewer background stars than expected without any error. By always fetching to 20.0, the CSV is safe to reuse regardless of what \texttt{magnitude\_cutoff} is set to in subsequent runs. The \texttt{magnitude\_cutoff} is then applied as an in-memory filter on the loaded CSV and can therefore only reduce the set of background stars, never expand it. If background stars fainter than 20.0 are needed, the CSV must be regenerated.
+
 The cone search radius is controlled by \texttt{gaia\_conesearch\_radius\_arcsec} in \texttt{global.cfg} (default 500 arcsec). The cached CSV contains only stars within the radius that was set when it was fetched. If a CSV is saved to \texttt{data/BackgroundStars/} with a small radius and the NIR channel covers a larger field of view, background stars outside that radius will be missing from the simulation. Always ensure the cone search radius is at least as large as the largest channel field of view when pre-fetching background stars.
 
 Gaia queries can be run in asynchronous or synchronous mode via \texttt{GAIA\_USE\_ASYNC\_JOBS} in \texttt{global.cfg}. In practice, neither mode is reliably fast or stable — if one fails or times out, try switching to the other.
@@ -204,56 +206,6 @@ When \texttt{background\_type = calc} is set, the sun position used to compute t
 
 \newpage
 
-\section{Tests}
-
-The test suite consists of unit tests and snapshot tests. Snapshot tests compare freshly computed simulator output against previously saved reference arrays produced by a pipeline run. They guard against unintended numerical changes when the pipeline is modified. If a change intentionally alters numerical output, the snapshots must be regenerated.
-
-Snapshot tests are the most important test category, as they freeze the pipeline output end-to-end. Effective area files and all configuration files are copied into the snapshot directory (as npz) alongside the reference arrays, so changes to those files do not break the tests. Only implementation changes require regenerating snapshots — which is correct behaviour, since a changed implementation may either fix a bug or introduce one, and the snapshots should reflect the intended output.
-
-\subsection{\texttt{test\_flux\_pipeline.py}}
-
-This suite covers the spectral modelling steps from stellar atmosphere model
-through to photon flux density at Earth. Each pipeline stage is tested
-independently: stellar intensity to luminosity conversion, chromospheric line
-core emission, interstellar medium absorption, geometric dilution to flux at
-Earth, dereddening, and conversion to photon flux density. Tests are run for
-WASP-69, WASP-189, and HD~2685. Snapshots are plain text files written by the
-simulator when \texttt{write\_intermediate\_arrays = 1} is set in
-\texttt{configs/global.cfg}.
-
-\subsection{\texttt{test\_detector\_pipeline.py}}
-
-This suite covers the instrument simulation steps from photon flux density
-through convolution with the instrument response, spreading to 2D detector
-images, and science frame assembly. All three channels (NUV, VIS, NIR) are
-tested for KELT-9 and HD~2685. Snapshots are \texttt{.npz} files written by
-the simulator when \texttt{write\_intermediate\_arrays = 1}.
-
-\subsection{Regenerating Snapshots}
-\begin{enumerate}
-    \item In \texttt{configs/global.cfg}, set \texttt{write\_intermediate\_arrays = 1}
-          and \texttt{orbit\_revolutions = 0.1} (only the intermediate array files
-          are needed; a full orbit is not required).
-    \item Run the simulator for the targets relevant to the changed pipeline stage.
-
-          For \texttt{test\_flux\_pipeline.py}: WASP-69, WASP-189, and HD~2685.
-
-          For \texttt{test\_detector\_pipeline.py}: KELT-9 and HD~2685.
-    \item Copy all \texttt{.txt} snapshot files (used by \texttt{test\_flux\_pipeline.py})
-          and all \texttt{.npz} snapshot files (used by \texttt{test\_detector\_pipeline.py})
-          from each output directory into \texttt{tests/snapshot\_tests/snapshots/}.
-
-          The \texttt{.npz} binary format is used for detector snapshots because
-          detector images are large and loading them as text would make the tests
-          prohibitively slow.
-    \item Run the simulator for the targets relevant to the changed pipeline stage.
-          For \texttt{test\_flux\_pipeline.py}: WASP-69, WASP-189, and HD~2685.
-          For \texttt{test\_detector\_pipeline.py}: KELT-9 and HD~2685.
-    \item Verify the full test suite passes: \texttt{python -m pytest tests/}
-    \item Reset \texttt{write\_intermediate\_arrays = 0} and
-          \texttt{orbit\_revolutions} to the original value for normal simulation runs.
-\end{enumerate}
-\newpage
 
 \section{Extending the Simulator / Performance Considerations}
 
@@ -480,4 +432,55 @@ The Excel mapping configuration is loaded once and cached in \texttt{\_EXCEL\all
 \texttt{\_PROFILE\_SPREAD\_WARNED\_CHANNELS} in \texttt{src/instrument/spectrum\allowbreak\_spread.py} is not a performance cache. It ensures that the cross-dispersion profile spread conservation warning is logged at most once per channel per run.
 
 
+\newpage
+
+\section{Tests}
+
+The test suite consists of unit tests and snapshot tests. Snapshot tests compare freshly computed simulator output against previously saved reference arrays produced by a pipeline run. They guard against unintended numerical changes when the pipeline is modified. If a change intentionally alters numerical output, the snapshots must be regenerated.
+
+Snapshot tests are the most important test category, as they freeze the pipeline output end-to-end. Effective area files and all configuration files are copied into the snapshot directory (as npz) alongside the reference arrays, so changes to those files do not break the tests. Only implementation changes require regenerating snapshots — which is correct behaviour, since a changed implementation may either fix a bug or introduce one, and the snapshots should reflect the intended output.
+
+\subsection{\texttt{test\_flux\_pipeline.py}}
+
+This suite covers the spectral modelling steps from stellar atmosphere model
+through to photon flux density at Earth. Each pipeline stage is tested
+independently: stellar intensity to luminosity conversion, chromospheric line
+core emission, interstellar medium absorption, geometric dilution to flux at
+Earth, dereddening, and conversion to photon flux density. Tests are run for
+WASP-69, WASP-189, and HD~2685. Snapshots are plain text files written by the
+simulator when \texttt{write\_intermediate\_arrays = 1} is set in
+\texttt{configs/global.cfg}.
+
+\subsection{\texttt{test\_detector\_pipeline.py}}
+
+This suite covers the instrument simulation steps from photon flux density
+through convolution with the instrument response, spreading to 2D detector
+images, and science frame assembly. All three channels (NUV, VIS, NIR) are
+tested for KELT-9 and HD~2685. Snapshots are \texttt{.npz} files written by
+the simulator when \texttt{write\_intermediate\_arrays = 1}.
+
+\subsection{Regenerating Snapshots}
+\begin{enumerate}
+    \item In \texttt{configs/global.cfg}, set \texttt{write\_intermediate\_arrays = 1}
+          and \texttt{orbit\_revolutions = 0.1} (only the intermediate array files
+          are needed; a full orbit is not required).
+    \item Run the simulator for the targets relevant to the changed pipeline stage.
+
+          For \texttt{test\_flux\_pipeline.py}: WASP-69, WASP-189, and HD~2685.
+
+          For \texttt{test\_detector\_pipeline.py}: KELT-9 and HD~2685.
+    \item Copy all \texttt{.txt} snapshot files (used by \texttt{test\_flux\_pipeline.py})
+          and all \texttt{.npz} snapshot files (used by \texttt{test\_detector\_pipeline.py})
+          from each output directory into \texttt{tests/snapshot\_tests/snapshots/}.
+
+          The \texttt{.npz} binary format is used for detector snapshots because
+          detector images are large and loading them as text would make the tests
+          prohibitively slow.
+    \item Run the simulator for the targets relevant to the changed pipeline stage.
+          For \texttt{test\_flux\_pipeline.py}: WASP-69, WASP-189, and HD~2685.
+          For \texttt{test\_detector\_pipeline.py}: KELT-9 and HD~2685.
+    \item Verify the full test suite passes: \texttt{python -m pytest tests/}
+    \item Reset \texttt{write\_intermediate\_arrays = 0} and
+          \texttt{orbit\_revolutions} to the original value for normal simulation runs.
+\end{enumerate}
 \newpage
