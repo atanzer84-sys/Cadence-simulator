@@ -62,6 +62,11 @@ def _plot_photon_flux(wavelengths, values, output_dir, star : Star, filename_tag
 
     wl = wavelengths[mask]
     flux = values[mask]
+    band_ticks = {
+        "nuv": (100, 25),
+        "vis": (200, 50),
+        "nir": (500, 100),
+    }
 
     fig, ax = plt.subplots(figsize=(12, 4))
 
@@ -75,8 +80,10 @@ def _plot_photon_flux(wavelengths, values, output_dir, star : Star, filename_tag
         ax.legend(fontsize=9)
     ax.set_xlabel(r"Wavelength ($\mathrm{\AA}$)")
     ax.set_ylabel(y_label)
-    ax.xaxis.set_major_locator(ticker.MultipleLocator(200))
-    ax.xaxis.set_minor_locator(ticker.MultipleLocator(50))
+    major, minor = band_ticks.get(band, (200, 50))
+
+    ax.xaxis.set_major_locator(ticker.MultipleLocator(major))
+    ax.xaxis.set_minor_locator(ticker.MultipleLocator(minor)) 
     meta = format_star_metadata(star)
     ax.set_title(rf"{star.name}: {title_text} | {wmin:.2f}–{wmax:.2f} $\mathrm{{\AA}}$, {meta}", fontsize=11)
     safe_name = normalize_target_name(star.name)
