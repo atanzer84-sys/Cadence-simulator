@@ -54,7 +54,7 @@ def plot_1d_for_channel(wavelengths, values, output_dir, star, filename_tag, tit
 
 
     if zoom:
-        _plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, f"{channel_name}_zoom", zoom_range[0], zoom_range[1], noise_floor=noise_floor)
+        _plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, f"{channel_name}_zoom", zoom_range[0], zoom_range[1], noise_floor=noise_floor,noise_sigma=noise_sigma)
 
 
 def _wavelength_ticks(ax, plot_key: str) -> None:
