@@ -191,12 +191,12 @@ def create_background_star_catalog(table: Table, cfg: GlobalConfig):
         dx = float(row["relative_dx_arcsec"])
         dy = float(row["relative_dy_arcsec"])
         catalog.set_offset_arcsec(bg_star.name, dx, dy)
+        sep = catalog.get_separation_arcsec(bg_star.name)
 
 
         formatted_id = f"{int(bg_star.name.split('_')[1]):,}".replace(",", " ")
         mass_str = f"{bg_star.mass:.3f}" if bg_star.mass is not None else "n/a"
-        logging.info("Background star added: star_id_formatted=%s star_id=%s mag=%.3f teff=%.0f radius=%.3f mass=%s ra=%.6f dec=%.6f dist=%.2f dx=%.3f dy=%.3f", formatted_id, bg_star.name, bg_star.gaia_magnitude, bg_star.effective_temperature, bg_star.radius, mass_str, bg_star.right_ascension, bg_star.declination, bg_star.distance_pc, dx, dy)
-    
+        logging.info("Background star added: star_id_formatted=%s star_id=%s mag=%.3f teff=%.0f radius=%.3f mass=%s ra=%.6f dec=%.6f dist=%.2f dx=%.3f dy=%.3f sep=%.3f", formatted_id, bg_star.name, bg_star.gaia_magnitude, bg_star.effective_temperature, bg_star.radius, mass_str, bg_star.right_ascension, bg_star.declination, bg_star.distance_pc, dx, dy, sep)
 
     return catalog
 
@@ -216,7 +216,7 @@ def _ensure_required_properties(star_params: dict, required_keys: list[str]) -> 
     """Return False if any required keys are missing (logs and skip). Otherwise return True."""
     missing = get_missing_properties(star_params, required_keys, log_output=False)
     if missing:
-        logging.info("Background star %s skipped. Missing: %s", star_params.get("name"), missing)
+        logging.info("Background star skipped %s. Missing: %s", star_params.get("name"), missing)
         return False
     return True
 
