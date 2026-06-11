@@ -72,7 +72,7 @@ vr_ISM=0.            #radial velocity of the ISM absorption lines in km/s
 
 
 # Complete Wavelength ranges for plots or datadumps in A
-# should be the complete WL range we actually want to see with Waltzer. 
+# should be the complete WL range we actually want to see with cadence. 
 # However, this is also just for data dumps, plots and checks
 debug_wavelength_range_nuv = [2390, 3260]
 debug_wavelength_range_vis = [4450, 8250]

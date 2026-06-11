@@ -57,4 +57,4 @@ def main(existing_output_dir):
     build_master_excel_from_csvs(output_dir)
 
 if __name__ == "__main__":
-    main("/Users/andreatanzer/Documents/Space Science/MasterThesis/WALTzER-simulator/output/Faint")
+    main("/Users/andreatanzer/Documents/Space Science/MasterThesis/Cadence-simulator/output/Faint")

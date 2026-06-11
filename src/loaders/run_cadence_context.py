@@ -9,7 +9,7 @@ from loaders.run_context import RunContext
 
 
 def initialize_cadence_runtime_context():
-    print("\n==== LOADING AND INITIALIZING WALTzER SIMULATOR =====")
+    print("\n==== LOADING AND INITIALIZING Cadence SIMULATOR =====")
 
     output_dir, timestamp_str, timestamp = setup_output_directory()
     setup_logger(output_dir, timestamp_str)
@@ -68,9 +68,9 @@ def setup_logger(output_dir, timestamp_str):
     """Configure logging to a single file in the output directory.
 
     Logs are written only to the file (no console). The log file is
-    named ``waltzer_simulator_<timestamp>.log`` inside ``output_dir``.
+    named ``cadence_simulator_<timestamp>.log`` inside ``output_dir``.
     """
-    filename = f"waltzer_simulator_{timestamp_str}.log"
+    filename = f"cadence_simulator_{timestamp_str}.log"
 
     log_filename = output_dir / filename
     print(f"Log file created at: {log_filename.resolve()}")
@@ -104,7 +104,7 @@ def get_user_parameter_path():
     """
     if len(sys.argv) > 2:
         logging.error("Too many command line arguments: %s", sys.argv)
-        print("Usage: python waltzer_simulator.py [parameters_file]")
+        print("Usage: python cadence_simulator.py [parameters_file]")
         sys.exit(1)
 
     repo_root = get_repo_root()

@@ -125,7 +125,7 @@ def test_setup_logger_writes_log_records(tmp_path):
         for handler in logging.getLogger().handlers:
             handler.flush()
 
-        log_file = output_dir / f"waltzer_simulator_{timestamp}.log"
+        log_file = output_dir / f"cadence_simulator_{timestamp}.log"
 
         assert log_file.exists()
         assert log_file.stat().st_size > 0
@@ -197,7 +197,7 @@ def test_setup_logger_prints(monkeypatch, tmp_path, capsys):
 
     captured = capsys.readouterr().out
     assert "Log file created at:" in captured
-    assert f"waltzer_simulator_{timestamp}.log" in captured
+    assert f"cadence_simulator_{timestamp}.log" in captured
 
 
 # Tests: setup_logger
@@ -208,7 +208,7 @@ def test_setup_logger_creates_file(tmp_path):
 
     run_cadence_context.setup_logger(output_dir, timestamp)
 
-    log_file = output_dir / f"waltzer_simulator_{timestamp}.log"
+    log_file = output_dir / f"cadence_simulator_{timestamp}.log"
     assert log_file.exists()
 
 
@@ -216,7 +216,7 @@ def test_setup_logger_creates_file(tmp_path):
 # Behavior: exits with usage when too many CLI arguments are provided
 def test_too_many_arguments_exits_with_usage(monkeypatch, tmp_path, capsys):
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr("sys.argv", ["waltzer_simulator.py", "a.txt", "b.txt"])
+    monkeypatch.setattr("sys.argv", ["cadence_simulator.py", "a.txt", "b.txt"])
 
     with pytest.raises(SystemExit) as exc_info:
         run_cadence_context.get_user_parameter_path()
