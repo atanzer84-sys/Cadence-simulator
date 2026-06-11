@@ -112,6 +112,7 @@ def _dump_convolved_counts(ctx: RunContext, star: Star, channel: Channel, counts
 
         noise_floor = channel.bias_offset + channel.dark_current * channel.exposure_s
         total_counts = counts_s_px_convolved * channel.exposure_s + noise_floor
+        noise_sigma = channel.read_noise + channel.dark_current_noise * channel.exposure_s
 
         plot_1d_for_channel(channel.effective_area_wavelength, total_counts, ctx.output_dir, star, filename_tag="Detector_counts_s_px_convolved_noise_floor", title_text=f"Simulated Pixel Values ({channel.exposure_s:.0f} s) — bias + dark + signal", y_label=r"Counts pixel$^{-1}$", channel_name=channel.channel_name, full=True, noise_floor=noise_floor)
 
