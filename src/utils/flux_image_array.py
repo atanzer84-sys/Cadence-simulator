@@ -35,7 +35,7 @@ def plot_flux_and_photons_windows(wavelengths, values, output_dir, star: Star, f
             _plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, "NIR_zoom",  *DEBUG_WL_A_NIR)
 
 
-def plot_1d_for_channel(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, channel_name: str, full: bool = False, zoom: bool = False, noise_floor: float | None = None):
+def plot_1d_for_channel(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, channel_name: str, full: bool = False, zoom: bool = False, noise_floor: float | None = None, noise_sigma: float | None = None):
     if channel_name == "NUV":
         full_range = debug_wavelength_range_nuv
         zoom_range = DEBUG_WL_A_NUV
@@ -49,13 +49,13 @@ def plot_1d_for_channel(wavelengths, values, output_dir, star, filename_tag, tit
         raise ValueError("channel_name must be 'NUV', 'VIS', or 'NIR'")
 
     if full:
-        _plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, channel_name, full_range[0], full_range[1], noise_floor=noise_floor)
+        _plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, channel_name, full_range[0], full_range[1], noise_floor=noise_floor, noise_sigma=noise_sigma)
 
     if zoom:
-        _plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, f"{channel_name}_zoom", zoom_range[0], zoom_range[1], noise_floor=noise_floor)
+        _plot_photon_flux(wavelengths, values, output_dir, star, filename_tag, title_text, y_label, f"{channel_name}_zoom", zoom_range[0], zoom_range[1], noise_floor=noise_floor,noise_sigma=noise_sigma)
 
 
-def _plot_photon_flux(wavelengths, values, output_dir, star : Star, filename_tag, title_text, y_label, key, wmin, wmax, noise_floor: float | None = None):
+def _plot_photon_flux(wavelengths, values, output_dir, star : Star, filename_tag, title_text, y_label, key, wmin, wmax, noise_floor: float | None = None, noise_sigma: float | None = None):
 
     mask = (wavelengths >= wmin) & (wavelengths <= wmax)
     logging.info("Plotting %s for star %s in window '%s' (%.1f–%.1f Å); %d wavelength bins", filename_tag, star.name, key, wmin, wmax, int(mask.sum()))
@@ -74,10 +74,11 @@ def _plot_photon_flux(wavelengths, values, output_dir, star : Star, filename_tag
     colors = {"nuv": "darkblue", "vis": "darkgreen", "nir": "darkred"}
     color = colors.get(band, "black")
 
-    ax.plot(wl, flux, color=color, linewidth=0.4, alpha=0.6)
+    ax.plot(wl, flux, color=color, linewidth=0.2, alpha=0.9, label=rf"{band.upper()} ({wmin:.0f}–{wmax:.0f} $\mathrm{{\AA}}$)")
     if noise_floor is not None:
-        ax.axhline(noise_floor, color="red", linestyle="--", linewidth=1.0, label=f"Bias + dark = {noise_floor:.1f} e⁻ px⁻¹")
-        ax.legend(fontsize=9)
+        ax.axhline(noise_floor, color="red", linestyle="--", linewidth=1.0, label=rf"Baseline (bias + dark) = {noise_floor:.1f} e$^{{-}}$ px$^{{-1}}$")
+        if noise_sigma is not None:
+            ax.axhspan(noise_floor - noise_sigma, noise_floor + noise_sigma, color="red", alpha=0.15, label=rf"$\pm\sigma$ (read + dark noise) = {noise_sigma:.1f} e$^{{-}}$ px$^{{-1}}$")
     ax.set_xlabel(r"Wavelength ($\mathrm{\AA}$)")
     ax.set_ylabel(y_label)
     major, minor = band_ticks.get(band, (200, 50))
@@ -86,6 +87,11 @@ def _plot_photon_flux(wavelengths, values, output_dir, star : Star, filename_tag
     ax.xaxis.set_minor_locator(ticker.MultipleLocator(minor)) 
     meta = format_star_metadata(star)
     ax.set_title(rf"{star.name}: {title_text} | {wmin:.2f}–{wmax:.2f} $\mathrm{{\AA}}$, {meta}", fontsize=11)
+
+    legend_loc = {"nuv": "upper left", "vis": "upper right", "nir": "upper right"}
+    ax.legend(loc=legend_loc.get(band, "upper right"), fontsize=9, framealpha=0.8)
+
+
     safe_name = normalize_target_name(star.name)
     fig.savefig(Path(output_dir) / f"{safe_name}_{filename_tag}_{key}.png", dpi=200, bbox_inches="tight")
     plt.close(fig)
