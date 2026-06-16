@@ -29,10 +29,11 @@ The top-level execution is defined in \texttt{cadence\_simulator.py} and follows
 
     \item \textbf{Photon Flux Density on Earth} --- \texttt{calculate\_photon\_flux\_density\_on\_Earth()} derives the photon flux density for a given \texttt{Star} object from a photospheric model, applies optional line core emission and ISM absorption, converts to photon flux density in photons\,s$^{-1}$\,cm$^{-2}$\,\AA$^{-1}$, and returns it on a common wavelength grid covering all enabled channels. It is used for both the target star and background stars.
 
-    \item \textbf{Background star loading and convolution} --- \texttt{lookup\_background\_stars()} loads or queries the background star catalogue. \texttt{populate\_background\_star\_counts()} runs the flux pipeline and detector convolution for each background star and caches the results in the \texttt{StarCatalog}.
+    \item \textbf{Detector image preparation} --- For each enabled channel, \texttt{prepare\_detector\_image\_spectroscopy()} (NUV, VIS) and \texttt{prepare\_detector\_image\_photometry()} (NIR) compute the raw target signal on the detector in electrons\,s$^{-1}$\,pixel$^{-1}$.
 
-    \item \textbf{Science frame generation} --- \texttt{build\_science\_images()} assembles and writes all science frames for a channel. Each frame combines bias, dark, flat-field, target signal, photon noise, diffuse background, cosmic rays, and background star contributions. Frames are written as FITS files; PNG outputs are optional. The internal structure of a science frame is described in Section~\ref{sec:science_image}.
+    \item \textbf{Background star loading} --- \texttt{lookup\_background\_stars()} loads or queries the background star catalogue. \texttt{populate\_background\_star\_counts()} runs the flux pipeline and detector image preparation for each background star and caches the results in the \texttt{StarCatalog}.
 
+    \item \textbf{Science frame generation} --- \texttt{build\_science\_images()} assembles and writes all science frames for a channel. Each frame combines bias, dark, flat-field, target signal, photon noise, diffuse background, cosmic rays, and background star contributions. Frames are written as FITS files; PNG outputs are optional.
 \end{enumerate}
 
 Steps 4--7 are repeated independently per channel where noted, so that channel-specific exposure times, noise realisations, and detector geometries are applied correctly.
@@ -110,7 +111,7 @@ Target loading is handled by \texttt{load\_stellar\_and\_planetary\_properties()
 
 The target retrieval flow is illustrated in Figure~\ref{fig:target_retrieval}.
 
-\begin{figure}[H]
+\begin{figure}[ht]
     \centering
     \includegraphics[width=0.75\linewidth]{images/TargetRetrieval.png}
     \caption{Target retrieval and validation flow.}
@@ -122,53 +123,58 @@ The target retrieval flow is illustrated in Figure~\ref{fig:target_retrieval}.
 
 Photon flux computation is handled by \texttt{calculate\_photon\_flux\_density\_on\_Earth()} in \texttt{src/instrument\allowbreak/prepare\_detector\_images.py}. It accepts the \texttt{Star} object, the \texttt{RunContext}, and the enabled channel objects. It returns the photon flux density in photons\,s$^{-1}$\,cm$^{-2}$\,\AA$^{-1}$ on a wavelength grid covering all enabled channels. The internal steps of this pipeline are illustrated in Figure~\ref{fig:flux_pipeline}.
 
-\begin{figure}[!htbp]
+\begin{figure}[ht]
     \centering
-    \includegraphics[width=0.85\linewidth]{images/FluxPipeline.png}
+    \includegraphics[width=0.6\linewidth]{images/FluxPipeline.png}
     \caption{Photon flux density pipeline.}
     \label{fig:flux_pipeline}
 \end{figure}
 
+\noindent
 \begin{itemize}
     \item \texttt{get\_required\_wavelength\_range()} derives the wavelength range spanning all enabled channels from their effective area grids, including a margin. The photospheric model is cut to this range so that all subsequent calculations operate only on the wavelengths relevant for the simulation.
 
     \item \texttt{run\_photon\_flux\_density\_pipeline()} executes the photon flux density pipeline for the given \texttt{Star} object on the trimmed wavelength grid.
           \begin{itemize}
               \item \texttt{load\_model\_for\_temperature()} selects the photospheric model closest to the target effective temperature and loads it from \texttt{data/models/}. Models are cached so repeated calls for the same temperature do not reload from disk (see Section~\ref{sec:stellar_model_cache}).
-
-              \item \texttt{convert\_stellar\_model\_to\_flux()} converts the photospheric model from spectral flux density per unit frequency to spectral flux density per unit wavelength and scales it to the spectral flux density of the star.
-
+              \item \texttt{convert\_stellar\_model\_to\_flux()} converts the photospheric model from spectral flux density per unit frequency to per unit wavelength, integrates over the stellar sphere, and integrates over all directions.
               \item \texttt{apply\_line\_core\_emission()} adds Mg\,\textsc{ii}\,h\,\&\,k line core emission if enabled in \texttt{global.cfg}.
               \item \texttt{compute\_ebv\_av()} computes the colour excess $E(B-V)$ from the target's galactic coordinates and distance using the Amores \& Lépine extinction model.
-              \item \texttt{apply\_ism\_absorption()} applies interstellar medium absorption at the Mg\,\textsc{ii}, Mg\,\textsc{i}, and Fe\,\textsc{ii} resonance lines if enabled in \texttt{global.cfg}.
-              \item \texttt{compute\_flux\_at\_earth()} applies geometric dilution via the inverse-square law to convert spectral luminosity to spectral flux at Earth.
-              \item \texttt{apply\_unred()} applies continuum dereddening using the Fitzpatrick (1999) extinction curve.
-              \item \texttt{convert\_flux\_to\_photons()} converts the dereddened spectral energy flux from erg\,s$^{-1}$\,cm$^{-2}$\,\AA$^{-1}$ to photon flux density in photons\,s$^{-1}$\,cm$^{-2}$\,\AA$^{-1}$.
+              \item \texttt{apply\_ism\_absorption()} applies interstellar medium absorption at the Mg\,\textsc{ii}, Mg\,\textsc{i}, and Fe\,\textsc{ii} resonance lines if enabled in \texttt{global.cfg}. Voigt profile shapes are cached to avoid recomputation across repeated calls (see Section~\ref{sec:voigt_cache}).
+              \item \texttt{compute\_flux\_at\_earth()} scales the stellar spectral flux density to the distance of the star.
+              \item \texttt{apply\_unred()} corrects the spectral flux density for interstellar extinction caused by absorption and scattering of radiation by dust grains along the line of sight, using a parameterised extinction law. The extinction curve is cached per wavelength grid and extinction-law configuration (see Section~\ref{sec:unred_cache}).
+              \item \texttt{convert\_flux\_to\_photons()} converts the spectral flux density into a photon flux density.
           \end{itemize}
-
-
-    \item \texttt{load\_model\_for\_temperature()} selects the stellar atmosphere model closest to the target effective temperature and loads it from \texttt{data/models/}. Models are cached so repeated calls for the same temperature do not reload from disk.
-
-    \item \texttt{convert\_stellar\_model\_to\_flux()} converts the model from surface flux density per unit frequency to spectral luminosity by applying the stellar surface area and the $F_\nu \rightarrow F_\lambda$ conversion.
-
-    \item \texttt{apply\_line\_core\_emission()} adds Mg\,\textsc{ii}\,h\,\&\,k line core emission if enabled in \texttt{global.cfg}.
-
-    \item \texttt{compute\_ebv\_av()} computes the colour excess $E(B-V)$ from the target's galactic coordinates and distance using the Amores \& Lépine extinction model.
-
-    \item \texttt{apply\_ism\_absorption()} applies interstellar medium absorption at the Mg\,\textsc{ii}, Mg\,\textsc{i}, and Fe\,\textsc{ii} resonance lines if enabled in \texttt{global.cfg}.
-
-    \item \texttt{compute\_flux\_at\_earth()} applies geometric dilution via the inverse-square law to convert spectral luminosity to spectral flux at Earth.
-
-    \item \texttt{apply\_unred()} applies continuum dereddening using the Fitzpatrick (1999) extinction curve.
-
-    \item \texttt{convert\_flux\_to\_photons()} converts the dereddened spectral energy flux from erg\,s$^{-1}$\,cm$^{-2}$\,\AA$^{-1}$ to photon flux density in photons\,s$^{-1}$\,cm$^{-2}$\,\AA$^{-1}$.
-
 \end{itemize}
 
 
+\subsubsection{Detector Image Preparation}
+\label{sec:detector_image}
+
+Detector image preparation is handled per channel by \texttt{prepare\_detector\_image\_spectroscopy()} for NUV and VIS, and \texttt{prepare\_detector\_image\_photometry()} for NIR, both in \texttt{src/instrument/prepare\_detector\allowbreak\_images.py}. They compute the raw target signal on the detector in electrons\,s$^{-1}$\,pixel$^{-1}$ by convolving the photon flux with the instrument response and spreading the signal onto the 2D detector using either a wavelength-dependent cross-dispersion profile (spectroscopy) or a PSF (photometry). The detector mapping flow is illustrated in Figure~\ref{fig:detector}.
 
 
-\newpage
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.6\linewidth]{images/detector.png}
+    \caption{Detector mapping flow.}
+    \label{fig:detector}
+\end{figure}
+
+\begin{itemize}
+
+    \item \texttt{compute\_counts\_per\_s\_px\_one\_channel()} handles the shared steps for all channels.
+          \begin{itemize}
+              \item \texttt{compute\_broadened\_channel\_flux()} cuts the photon flux to the channel wavelength range and convolves it with a Gaussian to match the instrument spectral resolution.
+              \item \texttt{counts\_per\_s\_px\_conv\_per\_channel()} interpolates the broadened flux onto the effective area wavelength grid, multiplies by the pixel scale and effective area, and returns the count rate in electrons\,s$^{-1}$\,pixel$^{-1}$.
+          \end{itemize}
+
+    \item For spectroscopy channels (NUV, VIS), \texttt{spread\_target\_star\_spectrum\_to\_2d()} spreads the 1D count rate onto the 2D detector using either a wavelength-dependent cross-dispersion profile or a Gaussian fallback.
+
+    \item For the NIR photometry channel, \texttt{spread\_1d\_photometry\_to\_2d()} places the total count rate onto the detector using the PSF, centred at the source position.
+
+\end{itemize}
+
 
 \section{Setup and Installation}
 
@@ -492,7 +498,7 @@ For implementation details and required updates to the wavelength-window optimis
 \section{Caches and Performance Improvements}
 
 \subsection{ISM Absorption Optimisation / Voigt Profile Cache}
-
+\label{sec:voigt_cache}
 The ISM absorption calculation was identified as a performance bottleneck because the Voigt profiles were evaluated over the full wavelength grid. The implemented ISM model only affects the wavelength region around the Mg\,II, Mg\,I and Fe\,II line centres. The calculation was therefore restricted to this region + margin of 200A.
 
 \begin{verbatim}
@@ -649,7 +655,7 @@ Code receiving model data from \texttt{load\_model\_for\_temperature()} must tre
 This cache is especially important for simulations with many background stars, where the same stellar model can be requested repeatedly.
 
 \subsection{Unred Curve Cache}
-
+\label{sec:unred_cache}
 The extinction curve construction in \texttt{cute\_unred} is cached through: \texttt{\_UNRED\_CURVE\_CACHE}.
 The cache stores the wavelength-dependent extinction curve.
 The cache key consists of:
