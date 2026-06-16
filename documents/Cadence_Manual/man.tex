@@ -1,3 +1,174 @@
+\section{\cadence Architecture and Execution Order}
+\label{sec:architecture}
+
+\subsection{Architecture Overview}
+The \cadence simulator is built on a configuration-driven architecture in which simulation parameters are specified through configuration files loaded at runtime.
+The overall architecture, illustrated in Figure \ref{fig:cadence_architecture}, is organised into configuration, physical modelling, instrumental response, and output generation stages.
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.6\linewidth]{images/architecture.png}
+    \caption{\cadence Architecture}
+    \label{fig:cadence_architecture}
+\end{figure}
+
+Managed by the \cadence module, the execution follows a linear sequence: loading configurations, initialising the target object, computing photon flux, and generating science frames. While channels share the target star and orbital parameters, they are executed independently to account for unique exposure timings. This ensures that satellite rotation and detector-specific noise are calculated specifically for each channel's observation window.
+
+\subsection{Execution Pipeline}
+\label{sec:execution_pipeline}
+
+The top-level execution is defined in \texttt{cadence\_simulator.py} and follows a sequence. The stages below correspond directly to the calls in \texttt{main()}.
+
+\begin{enumerate}
+
+    \item \textbf{Runtime initialisation} --- \texttt{initialize\_cadence\_runtime\_context()} creates the timestamped output directory, sets up the log file, loads the global and user configuration, and constructs a \texttt{RunContext} containing the target name, output path, and run timestamp.
+
+    \item \textbf{Channel loading} --- \texttt{load\_channels\_config()} reads the per-channel instrument configuration files and constructs the \texttt{NUV}, \texttt{VIS}, and \texttt{NIR} channel objects. Channels not enabled in \texttt{global.cfg} are set to \texttt{None} and skipped in all subsequent steps.
+
+    \item \textbf{Target loading} --- \texttt{load\_stellar\_and\_planetary\_properties()} resolves the target from the Excel catalogue, applies Gaia enrichment and parameter fallbacks (distance, radius, spectral type, $\log R'_{\mathrm{HK}}$), and returns the validated parameter dictionaries. \texttt{Star.from\_params()} and \texttt{Planet.from\_params()} construct the domain objects from these.
+
+    \item \textbf{Photon Flux Density on Earth} --- \texttt{calculate\_photon\_flux\_density\_on\_Earth()} derives the photon flux density for a given \texttt{Star} object from a photospheric model, applies optional line core emission and ISM absorption, converts to photon flux density in photons\,s$^{-1}$\,cm$^{-2}$\,\AA$^{-1}$, and returns it on a common wavelength grid covering all enabled channels. It is used for both the target star and background stars.
+
+    \item \textbf{Background star loading and convolution} --- \texttt{lookup\_background\_stars()} loads or queries the background star catalogue. \texttt{populate\_background\_star\_counts()} runs the flux pipeline and detector convolution for each background star and caches the results in the \texttt{StarCatalog}.
+
+    \item \textbf{Science frame generation} --- \texttt{build\_science\_images()} assembles and writes all science frames for a channel. Each frame combines bias, dark, flat-field, target signal, photon noise, diffuse background, cosmic rays, and background star contributions. Frames are written as FITS files; PNG outputs are optional. The internal structure of a science frame is described in Section~\ref{sec:science_image}.
+
+\end{enumerate}
+
+Steps 4--7 are repeated independently per channel where noted, so that channel-specific exposure times, noise realisations, and detector geometries are applied correctly.
+
+
+\subsubsection{Runtime Initialisation}
+\label{sec:runtime_init}
+
+Runtime initialisation is handled by \texttt{initialize\_cadence\_runtime\_context()} in \texttt{src/loaders/run\_cadence\allowbreak\_context.py}. It executes the following steps in order.
+
+\begin{itemize}
+
+    \item \texttt{setup\_output\_directory()} creates a unique timestamped directory under \texttt{output/}. The timestamp is used as the directory name and as the basis for the log filename, ensuring that parallel or repeated runs never overwrite each other.
+
+    \item \texttt{setup\_logger()} creates the log file inside the output directory and configures Python's standard \texttt{logging} module. Any module in the codebase can then write to the log by importing \texttt{logging} directly, without needing access to the log file path or the \texttt{RunContext}. The complete simulation log is written there. Only user-relevant info (status reports of where we are) is additionally written to the console, as well as errors such as missing parameters or invalid target names. Detailed error information is in the log.
+
+    \item \texttt{load\_global\_and\_user\_config()} loads both configuration files.
+          \begin{itemize}
+              \item \texttt{load\_global\_config()} parses and validates \texttt{configs/global.cfg} (see Section~\ref{sec:global_cfg}) and caches the result as a singleton accessible via \texttt{get\_global\_config()} throughout the run (see Section~\ref{sec:global_config_cache}).
+              \item \texttt{load\_user\_config()} loads the user parameter file (see Section~\ref{sec:user_cfg}) and caches it analogously, accessible via \texttt{get\_user\_config()} (see Section~\ref{sec:user_config_cache}).
+
+                    \texttt{get\_user\_parameter\_path()} determines which parameter file to use: if a path is passed as a command-line argument it is used directly, otherwise \texttt{input/pa\-rameters.txt} is loaded as the default. At most one argument is accepted; if too many arguments are passed or the file is missing, the simulator prints a usage message and exits with code 1.
+          \end{itemize}
+
+    \item A frozen \texttt{RunContext} dataclass is constructed from the target name, output directory, and run timestamp. It captures the minimum shared context needed across pipeline stages, avoiding repeated passing of individual values, and is passed explicitly to all stages that write output or log target-specific information.
+\end{itemize}
+
+\subsubsection{Channel Loading}
+\label{sec:channel_loading}
+
+Channel loading is handled in \texttt{load\_channels\_config()} located in \texttt{src/loaders/load\_channel.py}. It accepts the \texttt{UserConfig} to read the per-channel exposure times, which are written directly into the channel objects during construction, as exposure time fits logically into a channel. Only channels enabled in \texttt{global.cfg} via \texttt{run\_nuv}, \texttt{run\_vis}, and \texttt{run\_nir} are read and constructed; disabled channels are set to \texttt{None} and skipped in all subsequent pipeline stages.
+
+\begin{itemize}
+    \item \texttt{load\_channel\_spectroscopy()} constructs a \texttt{SpectroscopyChannel} object for NUV and VIS from their respective configuration files \texttt{waltzer\_nuv.cfg} and \texttt{waltzer\_vis.cfg}.
+          \begin{itemize}
+              \item \texttt{load\_common\_channel()} parses the shared detector parameters common to all channels: detector geometry, noise properties, gain, exposure time, and the effective area file.
+
+                    \texttt{load\_effective\_area\_file()} loads the wavelength-dependent effective area and derives the pixel scale and spectral dispersion from the file header and wavelength grid.
+
+              \item \texttt{load\_spread\_profile\_file\_spectroscopy()} loads the wavelength-dependent cross-dispersion spread profile, or falls back to a Gaussian if none is configured.
+              \item \texttt{load\_polarization\_file()} loads the polarization delta file for spectropolarimetry mode if configured.
+          \end{itemize}
+
+    \item \texttt{load\_channel\_photometry()} constructs a \texttt{PhotometryChannel} object for NIR from \texttt{waltzer\_nir.cfg}, using the same shared parsing steps as above, plus \texttt{load\_psf\_image\_file()} which loads and normalises the point spread function.
+
+    \item \texttt{load\_background\_from\_global\_cfg()} loads the background spectrum or zodiacal emission data as configured in \texttt{global.cfg} and attaches it to the channel object, so it is available during science frame generation without reloading.
+\end{itemize}
+
+\subsubsection{Target Loading}
+\label{sec:target_loading}
+
+Target loading is handled by \texttt{load\_stellar\_and\_planetary\_properties()} in \texttt{src/loaders/load\_stellar\_and\allowbreak\_planetary\_properties.py}. It accepts the target name from the user configuration and returns validated parameter dictionaries for the star and planet, from which \texttt{Star.from\_params()} and \texttt{Planet.from\_params()} construct the domain objects.
+
+\begin{itemize}
+
+    \item \texttt{load\_matching\_excel\_row\_from\_excel()} locates the Excel catalogue in \texttt{input/} and finds the row matching the target name. The match is case-insensitive and strips the planetary suffix from the \texttt{pl\_name} column before comparing.
+
+    \item \texttt{map\_to\_planet\_or\_star\_dictionary()} splits the matched row into separate stellar and planetary parameter dictionaries using the column mapping defined in \texttt{excel\_mapping.cfg} (see Section~\ref{sec:excel_mapping}).
+
+    \item \texttt{get\_missing\_properties()} checks which required stellar parameters are still missing after the Excel import. If any can be provided by Gaia, \texttt{lookup\_target\_star\_gaia()} queries Gaia DR3 for the target and returns the fetched parameters. \texttt{merge\_gaia\_into\_star\_params()} then merges only the missing values; Excel values always take precedence.
+
+    \item \texttt{apply\_radius\_from\_teff\_mag\_distance\_if\_missing()} estimates the stellar radius from the Gaia G magnitude, distance, and effective temperature if radius is not provided.
+
+    \item \texttt{infer\_mamajek()} assigns a spectral type from the Mamajek dwarf star table based on effective temperature.
+
+    \item \texttt{apply\_log\_r()} assigns a fallback $\log R'_{\mathrm{HK}}$ value based on a temperature threshold defined in \texttt{global.cfg} if the activity index is not provided.
+
+    \item \texttt{get\_missing\_properties()} is called once more after all fallbacks to check that no required parameters are still missing. If any are, the simulator stops and reports which parameters could not be resolved.
+
+    \item \texttt{clean\_and\_cast\_parameters()} normalises and type-casts all parameter values against the \texttt{Star} and \texttt{Planet} dataclass field definitions, so the domain objects can be constructed cleanly without any further parsing.
+
+\end{itemize}
+
+\texttt{Star.from\_params()} and \texttt{Planet.from\_params()} construct the domain objects from the validated parameter dictionaries. The planet object is currently not used in the simulation and is constructed for validation purposes only.
+
+The target retrieval flow is illustrated in Figure~\ref{fig:target_retrieval}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{images/TargetRetrieval.png}
+    \caption{Target retrieval and validation flow.}
+    \label{fig:target_retrieval}
+\end{figure}
+
+\subsubsection{Photon Flux Density on Earth}
+\label{sec:flux_pipeline}
+
+Photon flux computation is handled by \texttt{calculate\_photon\_flux\_density\_on\_Earth()} in \texttt{src/instrument\allowbreak/prepare\_detector\_images.py}. It accepts the \texttt{Star} object, the \texttt{RunContext}, and the enabled channel objects. It returns the photon flux density in photons\,s$^{-1}$\,cm$^{-2}$\,\AA$^{-1}$ on a wavelength grid covering all enabled channels. The internal steps of this pipeline are illustrated in Figure~\ref{fig:flux_pipeline}.
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.85\linewidth]{images/FluxPipeline.png}
+    \caption{Photon flux density pipeline.}
+    \label{fig:flux_pipeline}
+\end{figure}
+
+\begin{itemize}
+    \item \texttt{get\_required\_wavelength\_range()} derives the wavelength range spanning all enabled channels from their effective area grids, including a margin. The photospheric model is cut to this range so that all subsequent calculations operate only on the wavelengths relevant for the simulation.
+
+    \item \texttt{run\_photon\_flux\_density\_pipeline()} executes the photon flux density pipeline for the given \texttt{Star} object on the trimmed wavelength grid.
+          \begin{itemize}
+              \item \texttt{load\_model\_for\_temperature()} selects the photospheric model closest to the target effective temperature and loads it from \texttt{data/models/}. Models are cached so repeated calls for the same temperature do not reload from disk (see Section~\ref{sec:stellar_model_cache}).
+
+              \item \texttt{convert\_stellar\_model\_to\_flux()} converts the photospheric model from spectral flux density per unit frequency to spectral flux density per unit wavelength and scales it to the spectral flux density of the star.
+
+              \item \texttt{apply\_line\_core\_emission()} adds Mg\,\textsc{ii}\,h\,\&\,k line core emission if enabled in \texttt{global.cfg}.
+              \item \texttt{compute\_ebv\_av()} computes the colour excess $E(B-V)$ from the target's galactic coordinates and distance using the Amores \& Lépine extinction model.
+              \item \texttt{apply\_ism\_absorption()} applies interstellar medium absorption at the Mg\,\textsc{ii}, Mg\,\textsc{i}, and Fe\,\textsc{ii} resonance lines if enabled in \texttt{global.cfg}.
+              \item \texttt{compute\_flux\_at\_earth()} applies geometric dilution via the inverse-square law to convert spectral luminosity to spectral flux at Earth.
+              \item \texttt{apply\_unred()} applies continuum dereddening using the Fitzpatrick (1999) extinction curve.
+              \item \texttt{convert\_flux\_to\_photons()} converts the dereddened spectral energy flux from erg\,s$^{-1}$\,cm$^{-2}$\,\AA$^{-1}$ to photon flux density in photons\,s$^{-1}$\,cm$^{-2}$\,\AA$^{-1}$.
+          \end{itemize}
+
+
+    \item \texttt{load\_model\_for\_temperature()} selects the stellar atmosphere model closest to the target effective temperature and loads it from \texttt{data/models/}. Models are cached so repeated calls for the same temperature do not reload from disk.
+
+    \item \texttt{convert\_stellar\_model\_to\_flux()} converts the model from surface flux density per unit frequency to spectral luminosity by applying the stellar surface area and the $F_\nu \rightarrow F_\lambda$ conversion.
+
+    \item \texttt{apply\_line\_core\_emission()} adds Mg\,\textsc{ii}\,h\,\&\,k line core emission if enabled in \texttt{global.cfg}.
+
+    \item \texttt{compute\_ebv\_av()} computes the colour excess $E(B-V)$ from the target's galactic coordinates and distance using the Amores \& Lépine extinction model.
+
+    \item \texttt{apply\_ism\_absorption()} applies interstellar medium absorption at the Mg\,\textsc{ii}, Mg\,\textsc{i}, and Fe\,\textsc{ii} resonance lines if enabled in \texttt{global.cfg}.
+
+    \item \texttt{compute\_flux\_at\_earth()} applies geometric dilution via the inverse-square law to convert spectral luminosity to spectral flux at Earth.
+
+    \item \texttt{apply\_unred()} applies continuum dereddening using the Fitzpatrick (1999) extinction curve.
+
+    \item \texttt{convert\_flux\_to\_photons()} converts the dereddened spectral energy flux from erg\,s$^{-1}$\,cm$^{-2}$\,\AA$^{-1}$ to photon flux density in photons\,s$^{-1}$\,cm$^{-2}$\,\AA$^{-1}$.
+
+\end{itemize}
+
+
+
+
+\newpage
 
 \section{Setup and Installation}
 
@@ -61,6 +232,7 @@ Cadence uses a combination of configuration files, runtime parameters and source
 The simulator distinguishes between constants, configuration files and runtime parameters. The distinction is primarily based on how frequently values are expected to change and how much validation is applied when they are modified.
 
 \subsubsection{\texttt{global.cfg}}
+\label{sec:global_cfg}
 Global simulation settings: pipeline control (which channels to run), timing and observation parameters, Gaia configuration, ISM and line core emission parameters, cosmic ray settings, background configuration, and output control.
 
 These values are configurable and validated during loading. They are expected to change occasionally between simulation runs, but are generally stable during normal operation.
@@ -68,12 +240,13 @@ These values are configurable and validated during loading. They are expected to
 For details on configuration loading, caching, and runtime access through \texttt{get\_global\_config()}, see Section~\ref{sec:global_config_cache}.
 
 \subsubsection{\texttt{waltzer\_nuv.cfg}, \texttt{waltzer\_vis.cfg}, \texttt{waltzer\_nir.cfg}}
+\label{sec:channel_cfg}
 Per-channel instrument configuration: detector geometry, noise properties, effective area file, slit or PSF properties, and spread profile.
 
 The files retain the \texttt{waltzer} naming convention because they describe a specific instrument configuration rather than the Cadence simulator itself. Cadence is intended to be instrument-independent, while these configuration files contain mission- or instrument-specific parameters.
 
 \subsubsection{\texttt{excel\_mapping.cfg}}
-
+\label{sec:excel_mapping}
 The Excel mapping file decouples the Excel catalogue column names from the internal parameter names used by the simulator. Without it, column name changes in the catalogue would require modifying the source code. Instead, only the mapping file needs to be updated.
 
 The file also separates planetary and stellar properties, so the simulator can assign parameters to the correct class (\texttt{Star} or \texttt{Planet}) without hardcoding this distinction. Finally, it defines which parameters are required. For the primary target, if any required parameter is missing after all enrichment steps — including Gaia lookup and fallback derivations — the simulator stops and reports which parameters are missing. For background stars, missing parameters are handled differently: since Gaia does not always provide a complete set of properties and not all of them can be derived, background stars with missing required parameters are silently skipped rather than stopping the simulation.
@@ -85,7 +258,7 @@ Constants are defined directly in the source code and are generally not intended
 Constants are not exposed through configuration files and are generally not heavily guarded against invalid modifications. Changing them assumes an understanding of the affected code and the potential consequences for the simulation pipeline.
 
 \subsubsection{\texttt{parameters.txt} / User Config}
-
+\label{sec:user_cfg}
 The parameter file contains the runtime inputs selected by the user for a specific simulation run. At the moment this includes the target name, the total observation length, and the exposure times for the individual channels.
 
 The \texttt{target\_name} is the critical field. It is used to select the target system from the Excel catalogue. Its properties are then read from the catalogue, and missing values can be retrieved from Gaia where implemented. Because the target name controls which system is simulated, it is strongly validated during loading and preprocessing.
@@ -280,9 +453,6 @@ ID=gaia_2033127261865235328 ; ID=gaia_2033110700470081920 ; ID=gaia_203311087226
 
 \newpage
 
-
-
-
 \section{Extending the Simulator / Performance Considerations}
 
 \subsection{Adding Star and Planet Parameters}
@@ -431,10 +601,11 @@ cfg = get_global_config()
 All configuration access throughout the codebase must use this mechanism. This guarantees that every component operates on the same configuration instance and avoids repeated configuration file parsing and validation.
 
 \subsection{User Configuration Cache}
+\label{sec:user_config_cache}
 see above Section~\ref{sec:global_config_cache}. Same style, but usually i passed the user config around, since it was not often used. However, it is later more often used, you can use it similarly to \texttt{globalConfig()}.
 
 \subsection{Stellar Model Caches}
-
+\label{sec:stellar_model_cache}
 Stellar model loading is centralised in \texttt{load\_model\_for\_temperature()}. All code requiring stellar model data must use this function and must not load model files directly.
 
 The model loading system uses three caches:
