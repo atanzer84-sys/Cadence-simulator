@@ -149,19 +149,18 @@ def run_photon_flux_density_pipeline(
 
 
 def convert_stellar_model_to_flux(model_data, r_star):
-    """Map the loaded stellar grid from F_ν at the surface to L_λ (spectral luminosity).
+    """Map the loaded stellar grid from F_ν at the surface to L_λ.
 
     The model file supplies wavelength and surface flux density per unit frequency.
     This routine applies F_ν → F_λ (using c in Å/s), multiplies by the emitting area
-    4πR², and by 4π steradians so the result is integrated stellar spectral luminosity
-    in two parallel columns (same units as each other).
+    4πR², and by 4π steradians so the result is stellar spectral density.
 
     Parameters
     ----------
     model_data : ndarray, shape (n, 3)
         Column 0: wavelength λ in angstroms (Å).
-        Columns 1 and 2: surface flux density F_ν in erg cm⁻² s⁻¹ Hz⁻¹ (two components,
-        e.g. from the atmosphere grid).
+        Columns 1 and 2: spectral flux density F_λ in erg s⁻¹ Å⁻¹ per component (integrated
+        over the stellar surface and full solid angle as encoded in the scale factor).
     r_star : float
         Stellar radius in cm.
 
@@ -169,7 +168,7 @@ def convert_stellar_model_to_flux(model_data, r_star):
     -------
     flux_lambda : ndarray, shape (n, 3)
         Column 0: λ (Å), copied from the input.
-        Columns 1 and 2: spectral luminosity L_λ in erg s⁻¹ Å⁻¹ per component (integrated
+        Columns 1 and 2: spectral flux density L_λ in erg s⁻¹ Å⁻¹ per component (integrated
         over the stellar surface and full solid angle as encoded in the scale factor).
 
     Notes

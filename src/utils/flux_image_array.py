@@ -74,7 +74,8 @@ def _plot_photon_flux(wavelengths, values, output_dir, star : Star, filename_tag
     colors = {"nuv": "darkblue", "vis": "darkgreen", "nir": "darkred"}
     color = colors.get(band, "black")
 
-    ax.plot(wl, flux, color=color, linewidth=0.2, alpha=0.9, label=rf"{band.upper()} ({wmin:.0f}–{wmax:.0f} $\mathrm{{\AA}}$)")
+
+    ax.plot(wl, flux, color=color, linewidth=0.1, alpha=0.6, label=rf"{band.upper()} ({wmin:.0f}–{wmax:.0f} $\mathrm{{\AA}}$)")
     if noise_floor is not None:
         ax.axhline(noise_floor, color="red", linestyle="--", linewidth=1.0, label=rf"Baseline (bias + dark) = {noise_floor:.1f} e$^{{-}}$ px$^{{-1}}$")
         if noise_sigma is not None:
