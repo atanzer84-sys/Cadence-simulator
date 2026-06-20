@@ -26,15 +26,15 @@ def main():
         photon_flux_target, wavelengths = calculate_photon_flux_density_on_Earth(star, run_ctx, nuv_channel, vis_channel, nir_channel)
 
         # convoluting flux to instrument properties and returning per-channel detector images
-        spectra_2d_nuv = None
-        spectra_2d_vis = None
-        rate_nir = None
+        target_signal_nuv = None
+        target_signal_vis= None
+        target_signal_nir = None
         if nuv_channel is not None:
-            spectra_2d_nuv = prepare_detector_image_spectroscopy(photon_flux_target, wavelengths, nuv_channel, run_ctx, star)
+            target_signal_nuv = prepare_detector_image_spectroscopy(photon_flux_target, wavelengths, nuv_channel, run_ctx, star)
         if vis_channel is not None:
-            spectra_2d_vis = prepare_detector_image_spectroscopy(photon_flux_target, wavelengths, vis_channel, run_ctx, star)
+            target_signal_vis = prepare_detector_image_spectroscopy(photon_flux_target, wavelengths, vis_channel, run_ctx, star)
         if nir_channel is not None:
-            rate_nir = prepare_detector_image_photometry(photon_flux_target, wavelengths, nir_channel, run_ctx, star)
+            target_signal_nir = prepare_detector_image_photometry(photon_flux_target, wavelengths, nir_channel, run_ctx, star)
 
         # lookup background stars and populate a star catalog with the background stars and convolved counts
         background_stars_catalog = lookup_background_stars(nuv_channel, vis_channel, nir_channel, run_ctx, star)
@@ -42,11 +42,11 @@ def main():
 
         # Build and write science frames via streaming
         if nuv_channel is not None:
-            build_science_images(spectra_2d_nuv, nuv_channel, run_ctx, star, background_stars_catalog)
+            build_science_images(target_signal_nuv, nuv_channel, run_ctx, star, background_stars_catalog)
         if vis_channel is not None:
-            build_science_images(spectra_2d_vis, vis_channel, run_ctx, star, background_stars_catalog)
+            build_science_images(target_signal_vis, vis_channel, run_ctx, star, background_stars_catalog)
         if nir_channel is not None:
-            build_science_images(rate_nir, nir_channel, run_ctx, star, background_stars_catalog)
+            build_science_images(target_signal_nir, nir_channel, run_ctx, star, background_stars_catalog)
 
     except Exception as e:
         logging.exception("Fatal error")

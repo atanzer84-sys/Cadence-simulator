@@ -61,35 +61,35 @@ def prepare_detector_image_spectroscopy(photons: np.ndarray, wavelengths: np.nda
     print(f"\n==== STARTING CONVOLUTION TO INSTRUMENT ({channel.channel_name}) =====")
 
     counts_s_px_convolved = compute_counts_per_s_px_one_channel(photons, wavelengths, channel, ctx, star)
-    spectra_2d = spread_target_star_spectrum_to_2d(counts_s_px_convolved, channel)
+    target_signal_spec = spread_target_star_spectrum_to_2d(counts_s_px_convolved, channel)
 
     cfg = get_global_config()
     if cfg.write_intermediate_arrays:
-        dump_npz_snapshot(ctx.output_dir, f"{ctx.target_name}_{channel.channel_name}_spread_image_2d_full.npz", image_full=spectra_2d)
+        dump_npz_snapshot(ctx.output_dir, f"{ctx.target_name}_{channel.channel_name}_spread_image_2d_full.npz", image_full=target_signal_spec)
         if channel.spread_y_positions is not None and channel.spread_y_weights is not None and channel.spread_y_wavelengths is not None:
             dump_npz_snapshot(ctx.output_dir, f"{channel.channel_name}_spread_profile_full.npz", spread_y_positions=channel.spread_y_positions, spread_y_weights=channel.spread_y_weights, spread_y_wavelengths=channel.spread_y_wavelengths)
 
-    logging.info("Detector image prepared: channel=%s mode=spectroscopy shape=%s", channel.channel_name, spectra_2d.shape)
+    logging.info("Detector image prepared: channel=%s mode=spectroscopy shape=%s", channel.channel_name, target_signal_spec.shape)
 
-    return spectra_2d
+    return target_signal_spec
 
 def prepare_detector_image_photometry(photons: np.ndarray, wavelengths: np.ndarray, channel: PhotometryChannel, ctx: RunContext, star: Star):
     print(f"\n==== STARTING CONVOLUTION TO INSTRUMENT ({channel.channel_name}) =====")
     logging.info("PHOTOMETRY START: channel=%s star=%s", channel.channel_name, star.name)
 
     counts_s_px_nir = compute_counts_per_s_px_one_channel(photons, wavelengths, channel, ctx, star)
-    rate_image_e_s = spread_1d_photometry_to_2d(counts_s_px_nir, channel)
+    target_signal_nir = spread_1d_photometry_to_2d(counts_s_px_nir, channel)
 
     # dump spread file and image for tests or debug reasons
     cfg = get_global_config()
     if cfg.write_intermediate_arrays:
         dump_npz_snapshot(ctx.output_dir, f"{channel.channel_name}_psf_profile_full.npz", psf_image=channel.psf_image, psf_center_x=channel.psf_center_x, psf_center_y=channel.psf_center_y, source_position_x_arcsec=channel.source_position_x_arcsec, source_position_y_arcsec=channel.source_position_y_arcsec)
-        dump_npz_snapshot(ctx.output_dir, f"{ctx.target_name}_{channel.channel_name}_spread_image_full.npz", image_full=rate_image_e_s) 
+        dump_npz_snapshot(ctx.output_dir, f"{ctx.target_name}_{channel.channel_name}_spread_image_full.npz", image_full=target_signal_nir) 
 
 
-    logging.info("Detector image prepared: channel=%s mode=photometry shape=%s", channel.channel_name, rate_image_e_s.shape)
+    logging.info("Detector image prepared: channel=%s mode=photometry shape=%s", channel.channel_name, target_signal_nir.shape)
 
-    return rate_image_e_s
+    return target_signal_nir
 
 def compute_counts_per_s_px_one_channel(photons_star: np.ndarray, wavelengths: np.ndarray, channel: Channel, ctx: RunContext, star: Star, background_star: bool = False):
 
