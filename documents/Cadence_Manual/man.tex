@@ -147,12 +147,8 @@ Photon flux computation is handled by \texttt{calculate\_photon\_flux\_density\_
           \end{itemize}
 \end{itemize}
 
-
 \subsubsection{Detector Image Preparation}
 \label{sec:detector_image}
-
-Detector image preparation is handled per channel by \texttt{prepare\_detector\_image\_spectroscopy()} for NUV and VIS, and \texttt{prepare\_detector\_image\_photometry()} for NIR, both in \texttt{src/instrument/prepare\_detector\allowbreak\_images.py}. They compute the raw target signal on the detector in electrons\,s$^{-1}$\,pixel$^{-1}$ by convolving the photon flux with the instrument response and spreading the signal onto the 2D detector using either a wavelength-dependent cross-dispersion profile (spectroscopy) or a PSF (photometry). The detector mapping flow is illustrated in Figure~\ref{fig:detector}.
-
 
 \begin{figure}[ht]
     \centering
@@ -161,20 +157,169 @@ Detector image preparation is handled per channel by \texttt{prepare\_detector\_
     \label{fig:detector}
 \end{figure}
 
-\begin{itemize}
 
+\texttt{prepare\_detector\_image\_spectroscopy()} is called for NUV and VIS. It accepts the photon flux, wavelengths, the channel object, the \texttt{RunContext}, and the \texttt{Star} object. It computes the 1D count rate for the channel, spreads it onto the 2D detector, and returns the resulting detector image.
+
+\begin{itemize}
     \item \texttt{compute\_counts\_per\_s\_px\_one\_channel()} handles the shared steps for all channels.
           \begin{itemize}
               \item \texttt{compute\_broadened\_channel\_flux()} cuts the photon flux to the channel wavelength range and convolves it with a Gaussian to match the instrument spectral resolution.
+                    \begin{itemize}
+                        \item \texttt{cut\_wavelength\_window\_with\_margin()} trims the photon flux and wavelength arrays to the channel's effective area range plus a margin, so the subsequent convolution is not computed over the full wavelength grid.
+                        \item \texttt{gaussbroad()} convolves the trimmed photon flux with a Gaussian of half-width equal to \texttt{channel.spectral\_dispersion\_A\_per\_pixel}, broadening the spectrum to the instrument's spectral resolution.
+                    \end{itemize}
               \item \texttt{counts\_per\_s\_px\_conv\_per\_channel()} interpolates the broadened flux onto the effective area wavelength grid, multiplies by the pixel scale and effective area, and returns the count rate in electrons\,s$^{-1}$\,pixel$^{-1}$.
+
           \end{itemize}
-
-    \item For spectroscopy channels (NUV, VIS), \texttt{spread\_target\_star\_spectrum\_to\_2d()} spreads the 1D count rate onto the 2D detector using either a wavelength-dependent cross-dispersion profile or a Gaussian fallback.
-
-    \item For the NIR photometry channel, \texttt{spread\_1d\_photometry\_to\_2d()} places the total count rate onto the detector using the PSF, centred at the source position.
-
+    \item \texttt{spread\_target\_star\_spectrum\_to\_2d()} determines the target's detector placement and spreads the 1D count rate onto the 2D detector.
+          \begin{itemize}
+              \item \texttt{get\_spectrum\_placement()} returns the column, row, slope, and intercept describing where the target's spectrum is positioned on the detector.
+              \item \texttt{spread\_1d\_spectrum\_to\_2d()} is  called when \texttt{observation\_mode} is \texttt{spectroscopy}. Spreads the 1D count rate onto the 2D detector image at the given placement.
+                    \begin{itemize}
+                        \item \texttt{\_spread\_1d\_to\_2d\_profile()} is used when a wavelength-dependent cross-dispersion profile is configured for the channel. It distributes the counts across detector rows using the profile weights interpolated to the nearest spectral bin.
+                        \item \texttt{\_spread\_1d\_to\_2d\_gaussian()} is used otherwise, as a fallback. It distributes the counts across detector rows using a Gaussian with half-width \texttt{spread\_half\_height\_pix}.
+                    \end{itemize}
+              \item \texttt{spread\_target\_star\_spectropolarimetry\_to\_2d()} is called when \texttt{observation\_mode} is \\ \texttt{spectropolarimetry}. Splits the counts into two polarization beams using the wavelength-dependent polarization delta, spreads each beam separately via \texttt{spread\_1d\_spectrum\_to\_2d()}, shifts the second beam by \texttt{beam\_separation\_pix} rows, and adds both beams into the detector image.
+          \end{itemize}
 \end{itemize}
 
+\texttt{prepare\_detector\_image\_photometry()} accepts the same parameters for the NIR channel. It computes the 1D count rate and spreads it onto the 2D detector via the point spread function.
+\begin{itemize}
+    \item \texttt{compute\_counts\_per\_s\_px\_one\_channel()} is the same function used for spectroscopy channels (see above); it handles the shared steps for all channels.
+
+    \item \texttt{spread\_1d\_photometry\_to\_2d()} integrates the count rate over wavelength and places it on the detector using the PSF.
+          \begin{itemize}
+              \item \texttt{get\_photometry\_placement()} converts the configured source offset in arcseconds to a detector pixel position, relative to the detector centre.
+              \item \texttt{paste\_psf\_stamp()} pastes the PSF stamp, scaled by the total flux, into the detector image at the computed position, clipping any part of the stamp that falls outside the detector boundary.
+          \end{itemize}
+\end{itemize}
+
+\subsubsection{Surrounding fields / Background Stars}
+\label{sec:background_star_loading}
+
+\texttt{lookup\_background\_stars()} accepts all channel objects, the \texttt{RunContext}, and the target \texttt{Star} object. It loads or queries the background star catalogue and constructs the \texttt{StarCatalog}.
+
+\begin{itemize}
+    \item \texttt{\_load\_or\_query\_background\_star\_table()} returns a cached CSV table for the target if one exists in \texttt{data/BackgroundStars/}, named after the target without its planetary suffix. If no cached file is found, it queries Gaia DR3 within \texttt{gaia\_conesearch\_radius\_arcsec} using a fixed magnitude cutoff of 20.0, independent of \texttt{magnitude\_cutoff} in \texttt{global.cfg}, and saves the result as a CSV in the output directory. The fixed cutoff ensures the cached CSV always contains the full set of stars down to magnitude 20, so that a later run with a higher \texttt{magnitude\_cutoff} does not silently end up with fewer background stars than expected; the configured cutoff is instead applied afterwards as an in-memory filter.          \begin{itemize}
+              \item \texttt{\_load\_background\_csv\_if\_exists()} reads the cached CSV file from \texttt{data/BackgroundStars/} if present.
+              \item \texttt{gaia\_lookup\_for\_background\_stars()} performs the Gaia DR3 cone search if no cached CSV is found.
+              \item \texttt{\_save\_background\_stars\_csv()} writes the freshly queried table to the output directory for reuse in later runs.
+          \end{itemize}
+
+    \item \texttt{\_apply\_background\_star\_magnitude\_cutoff()} filters the loaded table in memory to stars at or below the configured \texttt{magnitude\_cutoff} from \texttt{global.cfg}.
+
+    \item \texttt{\_annotate\_background\_star\_offsets\_arcsec()} computes each background star's angular offset and separation relative to the target, used later to determine whether and where it appears on the detector or in the slit.
+
+    \item \texttt{\_drop\_stars\_outside\_max\_radius()} removes stars that fall outside the maximum reach of any enabled channel's slit or field of view, so they are not carried through the remaining pipeline unnecessarily.
+
+    \item \texttt{create\_background\_star\_catalog()} constructs a \texttt{Star} object for each remaining background star, applying the same parameter fallbacks used for the target. Each star is added to the \texttt{StarCatalog} together with its offset and separation from the target, so the catalogue can later be iterated for flux and signal calculations.
+\end{itemize}
+
+\texttt{populate\_background\_star\_counts()} accepts the \texttt{StarCatalog}, all channel objects, and the \texttt{RunContext}. For each background star in the catalogue, it computes the per-channel count rate and stores it in \texttt{counts\_by\_id\allowbreak\_and\_band} for later use when rendering science frames.
+
+\begin{itemize}
+    \item \texttt{calculate\_photon\_flux\_density\_on\_Earth()} runs the same photon flux pipeline used for the target (see Section~\ref{sec:flux_pipeline}) to obtain the background star's photon flux density.
+
+    \item \texttt{spectroscopy\_radius\_arcsec()} computes the maximum reach of a spectroscopy channel's slit. If the star's separation from the target exceeds this radius, the star is skipped entirely for that channel, since it could never appear in the slit.
+
+    \item \texttt{compute\_counts\_per\_s\_px\_one\_channel()} is the same function used for the target (see Section~\ref{sec:detector_image}); it converts the background star's photon flux into a count rate for the channel.
+\end{itemize}
+
+For spectroscopy channels, the full 1D count-rate array returned by \texttt{compute\_counts\_per\_s\_px\_one\_channel()} is stored, since the star's position within the slit changes over the exposure as the field rotates. For the NIR photometry channel, the count rate returned by \texttt{compute\_counts\_per\_s\_px\_one\_channel()} is summed to a scalar total before storing, since photometry only requires the total flux for the PSF stamp rather than a per-pixel spectrum.
+
+\subsubsection{Science Frame Generation}
+\label{sec:science_image}
+
+\texttt{build\_science\_images()} is called once per enabled channel. It accepts the 2D target signal (NUV, VIS: spread along the dispersion direction; NIR: the PSF stamp pasted onto the detector), the channel object, the \texttt{RunContext}, the target \texttt{Star}, and the \texttt{StarCatalog} of background stars. It first builds a base FITS header shared by all frames for that channel, then generates calibration frames and science frames. The overall science frame assembly flow is illustrated in Figure~\ref{fig:scienceframe}.
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{images/scienceframe.png}
+    \caption{Science frame assembly flow.}
+    \label{fig:scienceframe}
+\end{figure}
+
+\begin{itemize}
+    \item \texttt{initialize\_fits\_header()} creates a base FITS header containing the properties shared by all frames for the channel and target, such as target coordinates, magnitude, and exposure start time. Frame-specific header entries, for example bias or exposure time, are added later when each individual frame (bias, dark, flat, science) is generated.
+
+    \item \texttt{\_generate\_channel\_calibration\_frames()} generates the configured number of bias, dark, and flat calibration frames.
+
+          \texttt{\_create\_channel\_images()} generates and writes all science frames for the channel. This is discussed in detail below.
+\end{itemize}
+
+
+\paragraph{Creating an Image per Channel \texttt{\_create\_channel\_images()}}
+\begin{itemize}
+    \item The target signal is scaled by the exposure time, and the number of science frames (\texttt{n\_science\_frames}) is calculated from the orbit duration, number of revolutions, exposure time, and readout gap.
+
+    \item \texttt{generate\_background\_image()} computes the diffuse background image once, since it is the same for all channels.
+
+    \item For each frame, the roll angle range covered during that exposure is computed from the elapsed time since the start of the observation, the exposure time, and the readout gap, expressed as a fraction of the orbit duration and converted to degrees.
+
+    \item \texttt{\_create\_per\_exposure()} assembles the full per-pixel science image for the frame, combining bias, dark, flat-field, target signal, photon noise, diffuse background, cosmic rays, and background star contributions. As the central function of science frame generation, it is discussed in detail in the following paragraph.
+
+    \item \texttt{compute\_aperture\_photometry()} computes aperture photometry statistics on the assembled frame, used only for the NIR channel.
+
+    \item The frame header is finalised by appending the frame identity (\texttt{append\allowbreak\_base\allowbreak\_frame\_header()}), image statistics (\texttt{append\_image\_stats\_header()}), channel and exposure metadata (\texttt{append\allowbreak\_channel\allowbreak\_frame\allowbreak\_header()}), and, where available, aperture photometry results (\texttt{append\_photometry\_header()}).
+
+    \item \texttt{write\_fits\_frame()} writes the frame to a FITS file. \texttt{write\_science\_frame\_png()} additionally writes a PNG if \texttt{write\_science\_frames\_png} is enabled.
+\end{itemize}
+
+\paragraph{Per-Exposure Image Assembly \texttt{\_create\_per\_exposure()}} assembles the complete per-pixel science image for one exposure.
+
+\begin{itemize}
+    \item \texttt{\_build\_science\_image\_without\_bg\_stars()} builds the image from all per-pixel components that do not depend on background stars.
+          \begin{itemize}
+              \item \texttt{generate\_bias\_image()} initialises the image with the bias frame.
+              \item \texttt{generate\_dark\_image()} adds the dark current contribution.
+              \item \texttt{generate\_photon\_noise\_from\_spectra2d()} computes photon noise from the target signal.
+              \item \texttt{generate\_flat\_image()} generates the flat-field, which is applied multiplicatively to the combined target signal, photon noise, and diffuse background.
+              \item \texttt{generate\_cosmic\_rays()} adds randomised cosmic ray events.
+          \end{itemize}
+
+    \item Depending on the channel type, \texttt{generate\_background\_star\_spectroscopy\_image()} (NUV, VIS) or \texttt{generate\_background\_star\_photometry\_image()} (NIR) renders the background star contributions for the given roll angle range and adds them to the image. See next paragraph for a description.
+
+    \item The combined image is multiplied by \texttt{ccd\_gain} to convert from electrons to the final detector units.
+\end{itemize}
+
+\paragraph{Background Star Rendering: Spectroscopy}
+
+\texttt{generate\_background\_star\_spectroscopy\_image()} renders all background star contributions for one exposure into a 2D image, for the spectroscopy channels (NUV, VIS).
+
+\begin{itemize}
+    \item \texttt{get\_spectrum\_placement()} determines the target's reference column and row on the detector once for the whole frame; background stars are positioned relative to this same reference point.
+
+    \item \texttt{spectroscopy\_radius\_arcsec()} computes the slit's reach; stars beyond this separation are skipped before any per-star rendering.
+
+    \item For each remaining star, \texttt{\_render\_star\_if\_in\_slit()} determines whether and where the star falls within the slit during the exposure, and adds its contribution directly into the shared output image, so that all background stars end up combined into one image.
+          \begin{itemize}
+              \item \texttt{compute\_roll\_angle\_samples()} subdivides the exposure into small roll angle steps, fine enough that the star moves at most a fraction of a pixel per step.
+              \item \texttt{rotated\_coordinates()} rotates the star's fixed angular offset from the target by each sampled roll angle.
+              \item \texttt{within\_rotated\_bounds\_mask()} checks, for each roll angle sample, whether the rotated position falls within the slit half-width and half-length.
+              \item For each sample where the star is inside the slit, the corresponding detector row is computed and the time spent at that row is accumulated, since the star can stay at the same row across multiple consecutive samples.
+              \item \texttt{smear\_1d\_spectrum\_dispersion()} applies the dispersion smear to the star's count rate, mirroring the same effect applied to the target's spectrum.
+              \item \texttt{spread\_1d\_spectrum\_to\_2d()} spreads the star's counts, scaled by the time spent at each row, onto the 2D image at that row. This is the same spreading function used for the target.
+          \end{itemize}
+\end{itemize}
+
+\paragraph{Background Star Rendering: Photometry}
+
+\texttt{generate\_background\_star\_photometry\_image()} renders all background star contributions for one exposure into a single 2D image, for the NIR photometry channel.
+
+\begin{itemize}
+    \item \texttt{get\_photometry\_placement()} determines the target's reference position on the detector once for the whole frame; background stars are positioned relative to this same reference point.
+
+    \item For each star in the catalogue, \texttt{\_render\_star\_if\_on\_detector()} determines whether and where the star falls on the detector during the exposure, and adds its contribution directly into the shared output image.
+          \begin{itemize}
+              \item \texttt{compute\_roll\_angle\_samples()} subdivides the exposure into small roll angle steps, fine enough that the star moves at most a fraction of a pixel per step.
+              \item \texttt{rotated\_coordinates()} rotates the star's fixed angular offset from the target by each sampled roll angle, since the field of view rotates around the target over the orbit.
+              \item \texttt{within\_rotated\_bounds\_mask()} checks, for each roll angle sample, whether the rotated position falls within the detector bounds.
+              \item For each sample where the star is on the detector, its detector position is computed, and the cached total flux is divided equally across all such samples, since the star is treated as visible for the full exposure once it appears at least once.
+              \item \texttt{paste\_psf\_stamp()} pastes the PSF stamp, scaled by the per-step flux, into the shared image at each computed position. This is the same pasting function used for the target.
+          \end{itemize}
+\end{itemize}
+\newpage
 
 \section{Setup and Installation}
 
@@ -322,12 +467,156 @@ python src/cadence_simulator.py input/parameters/parameter_001.txt
 \paragraph{Batch run}
 To run all \texttt{.txt} parameter files in a folder sequentially, use the batch runner script:
 \begin{verbatim}
-input/starrunner.sh input/roland
+input/starrunner.sh input/exposures
 \end{verbatim}
 The script iterates over all \texttt{.txt} files in the given directory and runs the simulator for each one in sequence. Without an argument it iterates over all subdirectories of the current directory. The exit code of each run is reported.
 
 
+\subsection{Example Runs}
+\label{sec:example_runs}
+
+\subsubsection{Default Parameter File}
+
+The simplest invocation loads \texttt{input/parameters.txt} as the default parameter file. Run with:
+
+\begin{verbatim}
+python src/cadence_simulator.py
+\end{verbatim}
+
+\texttt{input/parameters.txt} contains:
+
+\begin{verbatim}
+# Name of the target star. Its properties are read from the Excel file in the project root.
+# If a property is missing there, it will be retrieved from GAIA.
+target_name = KELT-9
+
+# Total duration of the simulated observation, in hours.
+# The transit is centered in this window, with half of the time before and half after the 
+# transit.
+# Floating-point values are allowed (e.g. 24 or 24.5).
+# not implemented yet
+total_observation_length_h = 11.11
+
+# Exposure time of the Channels in seconds
+exposure_NUV_s = 300.0
+exposure_VIS_s = 60.0
+exposure_NIR_s = 60.0
+\end{verbatim}
+
+This produces a new timestamped output directory, for example: \texttt{output/20260620\_142936\_214098/} containing:
+
+\begin{verbatim}
+cadence_simulator_20260620_142936_214098.log
+WALTzER_KELT-9_NUV_science_300s_00000.fits
+WALTzER_KELT-9_NUV_science_300s_00000.png
+WALTzER_KELT-9_VIS_science_60s_00000.fits
+WALTzER_KELT-9_VIS_science_60s_00000.png
+WALTzER_KELT-9_NIR_science_60s_00000.fits
+WALTzER_KELT-9_NIR_science_60s_00000.png
+...
+\end{verbatim}
+
+with one FITS/PNG pair per science frame and channel. The full directory structure, including calibration frames and diagnostic plots when enabled, is described in Section~\ref{sec:output_structure}.
+
+
+\subsubsection{Specific Parameter File}
+
+A specific parameter file can be passed as an argument:
+
+\begin{verbatim}
+python src/cadence_simulator.py input/parameters/parameter_001.txt
+\end{verbatim}
+
+\texttt{input/parameters/parameter\_001.txt} contains the same structure as \texttt{input/parameters.txt} described above, but with different target and exposure values, for example:
+
+\begin{verbatim}
+target_name = HD 2685
+total_observation_length_h = 11.11
+exposure_NUV_s = 300.0
+exposure_VIS_s = 60.0
+exposure_NIR_s = 60.0
+\end{verbatim}
+
+This produces a new timestamped output directory, for example: \texttt{output/20260620\_143405\_439029/} containing:
+
+\begin{verbatim}
+cadence_simulator_20260620_143405_439029.log
+WALTzER_HD_2685_NUV_science_300s_00000.fits
+WALTzER_HD_2685_NUV_science_300s_00000.png
+WALTzER_HD_2685_VIS_science_60s_00000.fits
+WALTzER_HD_2685_VIS_science_60s_00000.png
+WALTzER_HD_2685_NIR_science_60s_00000.fits
+WALTzER_HD_2685_NIR_science_60s_00000.png
+...
+\end{verbatim}
+
+with the same structure as described for the default parameter file above.
+
+\subsubsection{Batch Run}
+\label{sec:batch_run}
+To run all \texttt{.txt} parameter files in a folder sequentially, use the batch runner script.
+\begin{verbatim}
+bash input/starrunner.sh [directory]
+\end{verbatim}
+
+\texttt{starrunner.sh} is a Bash script and has not been adapted for Windows; it must be run from a Unix-like shell (Linux, macOS, WSL, or Git Bash). It supports two modes.
+
+\paragraph{Batch Run Modes}
+
+Given the following directory structure:
+
+\begin{verbatim}
+input/exposures/
+    3460_11_D/
+        001.txt  002.txt  003.txt  004.txt  005.txt  006.txt
+    5800_11_D/
+        001.txt  002.txt  003.txt  004.txt  005.txt  006.txt
+    5800_11_G/
+        001.txt  002.txt  003.txt  004.txt  005.txt  006.txt
+\end{verbatim}
+
+\textbf{Run a single leaf directory:} \texttt{bash input/starrunner.sh input/exposures/3460\_11\_D}.
+
+This runs all 6 parameter files in \texttt{3460\_11\_D/} only.
+
+\vspace{10pt}
+\textbf{Run all subdirectories of a given directory:} \texttt{bash input/starrunner.sh input/exposures}
+
+This runs all 6 parameter files in \texttt{3460\_11\_D/}, then all 6 in \texttt{5800\_11\_D/}, then all 6 in \texttt{5800\_11\_G/}.
+
+\medskip
+\noindent Each parameter file produces its own independently timestamped output directory under \texttt{output/}, regardless of how it was invoked. Since the output directory name is generated from the run timestamp and not from the parameter filename, running many files with generic names such as \texttt{001.txt} across many folders is safe -- it does not cause output collisions. The script reports the exit code of each run and continues to the next file even if one fails.
+
+\subsection{Output Directory Structure}
+\label{sec:output_structure}
+
+Each simulation run creates a unique timestamped directory under \texttt{output/}. The directory contains the following.
+
+\begin{itemize}
+    \item \texttt{cadence\_simulator\_<timestamp>.log} --- the complete log file for the run.
+
+    \item \texttt{<target\_name>.csv} --- the background star table fetched from Gaia for this target, if no cached CSV was already available in \texttt{data/BackgroundStars/} (see Section~\ref{sec:background_star_loading}).
+
+    \item \texttt{WALTzER\_<target\_name>\_<channel>\_science\_<exposure>s\_<index>.fits} --- one science frame per exposure and channel. These are the actual simulated science output, written by \texttt{write\_fits\_frame()} (see Section~\ref{sec:science_image}).
+
+    \item \texttt{WALTzER\_<target\_name>\_<channel>\_science\_<exposure>s\_<index>.png} --- a PNG rendering of the corresponding science frame, written by \texttt{write\_science\_frame\_png()} if \texttt{write\_science\_frames\_png} is enabled (see Section~\ref{sec:science_image}).
+
+    \item \texttt{<target\_name>\_*.png} --- diagnostic and intermediate plots from the flux pipeline (e.g.\ model input, line core emission, ISM absorption, photon flux) and the detector convolution step, written when \texttt{produce\_flux\_convolution\_plots} is enabled. These are not science output and are intended for verifying intermediate pipeline steps.
+\end{itemize}
+
+Calibration frames (bias, dark, flat), if generated, follow the same naming pattern as science frames but with \texttt{bias}, \texttt{dark}, or \texttt{flat} in place of \texttt{science}. All FITS files, whether calibration or science, carry the \texttt{WALTzER\_} prefix. For PNGs, only science frames carry the prefix; calibration frame PNGs do not.
+
+\begin{itemize}
+    \item \texttt{WALTzER\_HD\_189733\_NUV\_bias\_300s\_00000.fits} --- a bias calibration frame for the NUV channel.
+    \item \texttt{WALTzER\_HD\_189733\_NUV\_bias\_300s\_00000.png} --- the same bias calibration frame, written in PNG format.
+    \item \texttt{WALTzER\_HD\_189733\_NUV\_science\_300s\_00000.fits} --- the first science frame for the NUV channel.
+    \item \texttt{WALTzER\_HD\_189733\_NUV\_science\_300s\_00000.png} --- the PNG rendering of that same science frame.
+    \item \texttt{HD\_189733\_Detector\_counts\_s\_px\_convolved\_NUV.png} --- a diagnostic plot of the convolved detector count rate for the NUV channel, not prefixed.
+    \item \texttt{HD\_189733.csv} --- the cached background star table for the target.
+\end{itemize}
+
 \subsection{Excel Target Catalogue}
+\label{sec:excel_catalogue}
 
 The simulator searches the \texttt{input/} directory for an Excel file at startup and loads whichever one it finds. Temporary lock files created by Excel (e.g.\ \texttt{\textasciitilde\$Targets.xlsx}) are automatically ignored. Only one real Excel file may be present — placing a second one there will cause the simulator to stop with an error. The first active worksheet is used, so if the catalogue ever contains multiple worksheets, the target data must be on the first one.
 
@@ -348,6 +637,7 @@ Combines all CSV files in a directory into a single Excel file for inspection. U
 
 
 \subsection{Gaia Lookups}
+\label{sec:gaia_lookups}
 
 Gaia is queried in two situations during a simulation run.
 
@@ -380,13 +670,16 @@ Effective temperature and mass are not derived. If effective temperature is miss
 
 
 \subsection{Background}
+\label{sec:background}
 When \texttt{background\_type = calc} is set, the sun position used to compute the zodiacal light distribution is taken from the actual wall-clock time of the simulation run (\texttt{Time.now()}), not from a configurable observation epoch. Two runs of the same target on different dates will therefore produce different background levels. If reproducibility is required, replace \texttt{Time.now()} in \texttt{generate\_background\_calculated\_image()} with a fixed Julian date.
 
 
 \subsection{Logging}
+\label{sec:logging}
 Each simulation run creates a unique output directory under \texttt{output/}, named by timestamp. The log file is placed in that directory and named \texttt{cadence\_simulator\_<timestamp>.log}. It contains the complete record of the run, including configuration loading, parameter enrichment, flux pipeline steps, detector image generation, and background star processing.
 
 \subsubsection{Background Stars}
+\label{sec:background_star_log}
 
 During simulation runs it is often useful to know where background stars are located on the detector and what their separation from the target is. A reference Excel file is provided at \texttt{<repo\_root>/documents/reports\allowbreak/target\_back\_stars.xlsx}, which contains all background stars for all targets currently in the target Excel catalogue. For each star the Gaia source ID, magnitude, separation, and position are listed. This file was generated by first pre-fetching background stars using \texttt{gaiahelper\_create\_background\_stars.py}, which saves one CSV per target, and then combining all CSVs into a single Excel file using \texttt{generate\_master\_excel.py}. The resulting file can be used to diagnose simulated images without having to run the simulator or query Gaia.
 
@@ -687,6 +980,98 @@ The Excel mapping configuration is loaded once and cached in \texttt{\_EXCEL\all
 
 \newpage
 
+
+\section{Troubleshooting}
+\label{sec:troubleshooting}
+
+This section collects common problems and their likely causes, with references to the detailed explanation elsewhere in the manual. If a fix is not obvious from the cause given here, check the log file (see Section~\ref{sec:logging}) for the detailed error message first.
+
+\subsection{Target and Excel Catalogue}
+
+\begin{center}
+    \begin{tabular}{p{0.30\linewidth} p{0.55\linewidth}}
+        \toprule
+        \textbf{Problem}                                                             & \textbf{Likely Cause}                                                                                                                                                                                                                                          \\
+        \midrule
+        Target not found, despite the name appearing correct                         & Hidden characters in the \texttt{pl\_name} cell, often introduced when copying from external sources, or the planetary suffix included in \texttt{target\_name} (only \texttt{KELT-9}, not \texttt{KELT-9 b}, is accepted) (Section~\ref{sec:excel_catalogue}) \\
+        \midrule
+
+        Simulator stops immediately at startup with an Excel-related error           & More than one \texttt{.xlsx} file present in \texttt{input/} (Section~\ref{sec:excel_catalogue})                                                                                                                                                               \\
+        \midrule
+        Missing required stellar parameter, simulator stops before simulation starts & Parameter not present in the Excel catalogue, not retrievable from Gaia, and no fallback derivation applies (Section~\ref{sec:target_loading})                                                                                                                 \\
+        \bottomrule
+    \end{tabular}
+\end{center}
+
+\subsection{Gaia}
+
+\begin{center}
+    \begin{tabular}{p{0.30\linewidth} p{0.55\linewidth}}
+        \toprule
+        \textbf{Problem}                                                     & \textbf{Likely Cause}                                                                                                                                        \\
+        \midrule
+        Gaia query is slow, times out, or fails intermittently               & Try switching \texttt{GAIA\_USE\_ASYNC\_JOBS} in \texttt{global.cfg} to the other mode (Section~\ref{sec:gaia_lookups})                                      \\
+        \midrule
+        Background stars missing from the simulation that should be visible  & Cached CSV in \texttt{data/BackgroundStars/} was fetched with a cone search radius smaller than the channel's field of view (Section~\ref{sec:gaia_lookups}) \\
+        \midrule
+        Target star also appears as a background star                        & Gaia source ID resolution mismatch, typically when the Excel RA/Dec differs from the Gaia position by more than 6 arcsec (Section~\ref{sec:gaia_lookups})    \\
+        \midrule
+        Background star silently missing from the catalogue without an error & Required parameters not available from Gaia for that star; missing background stars are skipped rather than stopping the run.                                \\
+        \bottomrule
+    \end{tabular}
+\end{center}
+
+\subsection{Configuration}
+
+\begin{center}
+    \begin{tabular}{>{\raggedright\arraybackslash}p{0.30\linewidth} >{\raggedright\arraybackslash}p{0.55\linewidth}}
+        \toprule
+        \textbf{Problem}                                                                              & \textbf{Likely Cause}                                                                                                                                                                                \\
+        \midrule
+        Simulator stops with a spread/PSF configuration error                                         & Neither \texttt{spread\_profile\_file} nor \texttt{spread\_half\_height\_pix} configured for a spectroscopy channel (Section~\ref{sec:channel_cfg})                                                  \\
+        \midrule
+        Background level differs between two runs of the same target                                  & \texttt{background\_type = calc} uses the wall-clock time of the run, not a fixed observation epoch (Section~\ref{sec:background})                                                                   \\
+        \midrule
+        Simulator stops at startup with a missing or invalid value (boolean, integer, or float) error & A configuration value in \texttt{global.cfg} or a channel \texttt{.cfg} file is missing, mistyped, or has an unexpected format                                                                       \\
+        \midrule
+        Simulator stops because no channel is enabled                                                 & \texttt{run\_vis}, \texttt{run\_nuv}, and \texttt{run\_nir} are all set to \texttt{False} in \texttt{global.cfg}; at least one must be enabled                                                       \\
+        \midrule
+        Simulator stops with a range or ordering error (e.g.\ minimum greater than maximum)           & A pair of related \texttt{global.cfg} values is inconsistent, for example \texttt{cosmic\_rays\_min} $>$ \texttt{cosmic\_rays\_max}, or \texttt{log\_r\_hot\_value} $>$ \texttt{log\_r\_cool\_value} \\
+        \bottomrule
+    \end{tabular}
+\end{center}
+
+\noindent In general, any error encountered while parsing or validating a configuration file is reported to the console with a short message indicating what is wrong; the log file contains the full detail (see Section~\ref{sec:logging}). The log file is, in general, very verbose and contains substantially more information than what is printed to the console, so it is the first place to check for any issue beyond what the console message already explains.
+
+\subsection{Background Stars}
+
+\begin{center}
+    \begin{tabular}{>{\raggedright\arraybackslash}p{0.30\linewidth} >{\raggedright\arraybackslash}p{0.55\linewidth}}
+        \toprule
+        \textbf{Problem}                                                                                & \textbf{Likely Cause / How To Check}                                                                                                                                                         \\
+        \midrule
+        Need to confirm whether a specific background star was included or skipped                      & Search the log for \texttt{Background star added} or \texttt{Background star skipped}, filtering by Gaia source ID (Section~\ref{sec:background_star_log})                                   \\
+        \midrule
+        Need to find where a specific background star landed on the detector for a spectroscopy channel & Search the log for \texttt{Background Stars in Slit} and look for the star's Gaia source ID in the per-frame listing (Section~\ref{sec:background_star_log})                                 \\
+        \midrule
+        Need to find where a specific background star landed on the detector for the NIR channel        & Search the log for \texttt{Background Stars on Detector}; only the first frame logs the full list, subsequent frames log only additions and removals (Section~\ref{sec:background_star_log}) \\
+        \bottomrule
+    \end{tabular}
+\end{center}
+
+\subsection{Batch Runs}
+
+\begin{center}
+    \begin{tabular}{p{0.30\linewidth} p{0.55\linewidth}}
+        \toprule
+        \textbf{Problem}                                                     & \textbf{Likely Cause}                                                                                                                                                 \\
+        \midrule
+        \texttt{starrunner.sh} exits immediately with no output and no error & The given directory's \texttt{.txt} files are direct children, not inside subdirectories; pass that directory itself as the leaf target (Section~\ref{sec:batch_run}) \\
+        \bottomrule
+    \end{tabular}
+\end{center}
+
+\newpage
 \section{Tests}
 
 The test suite consists of unit tests and snapshot tests. Snapshot tests compare freshly computed simulator output against previously saved reference arrays produced by a pipeline run. They guard against unintended numerical changes when the pipeline is modified. If a change intentionally alters numerical output, the snapshots must be regenerated.
